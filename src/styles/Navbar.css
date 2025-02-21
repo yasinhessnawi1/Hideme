@@ -1,0 +1,132 @@
+/*  6) Navbar
+-------------------------------------------------- */
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1.5rem;
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+    background-color: var(--background);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: var(--foreground);
+    margin-right: 20px;
+}
+
+.logo-icon {
+    width: 2rem;
+    height: 2rem;
+    color: var(--primary);
+}
+
+.logo-text {
+    font-weight: 700;
+    font-size: 2rem;
+    color: var(--foreground);
+}
+
+.menu-button {
+    background: none;
+    border: none;
+    color: var(--foreground);
+    cursor: pointer;
+}
+
+.menu-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.nav-links {
+    margin-right: auto;
+}
+
+.nav-link {
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    position: relative;
+}
+
+.nav-link:hover {
+    color: var(--foreground);
+}
+
+.nav-link::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--primary);
+    transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .nav-links {
+        display: flex;
+        gap: 2rem;
+    }
+
+    .auth-buttons {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .menu-button {
+        display: none;
+    }
+}
+
+/*
+  7) Auth Button Styles
+  -------------------------------------------------- */
+.Sign-in-button span {
+    white-space: pre-wrap;
+    text-align: center;
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    color: var(--foreground);
+}
+
+@media (min-width: 1024px) {
+    .Sign-in-button span {
+        font-size: 1.125rem;
+    }
+}
+
+/*
+  8) Theme Toggler
+  -------------------------------------------------- */
+.theme-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+}
+
+.theme-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--foreground);
+}

@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "useUnknownInCatchVariables": false,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+
+    // Allows using latest ECMAScript features
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+
+    // Strictness
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // React & JSX
+    "jsx": "react-jsx",
+
+    // OutDir
+    "outDir": "dist", // or "build" if you prefer
+
+    // BaseUrl / Paths (Optional)
+    // "baseUrl": "./src",
+    // "paths": {
+    //   "@components/*": ["components/*"]
+    // }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

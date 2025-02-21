@@ -1,0 +1,49 @@
+.interactive-grid {
+    position: absolute;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    min-height: 100vh;
+    width: 100px;
+    min-width: 100vw;
+    margin-top: 4rem;
+    z-index: 9;
+    border: 1px solid rgba(var(--muted), 0.3);
+}
+
+.interactive-grid-pattern {
+    height: 200%;
+    transform: skewY(12deg);
+    mask-image: radial-gradient(400px circle at center, white, transparent);
+}
+
+.grid-square {
+    /* Use your variable for color, plus an opacity or alpha channel. */
+    stroke: var(--muted);
+    stroke-opacity: 0.05;
+    stroke-width: 1px; /* the key to making borders visible */
+    fill: transparent;
+    transition: all 100ms ease-in-out;
+}
+
+.grid-square:not(:hover) {
+    transition-duration: 1000ms;
+}
+
+.grid-square.hovered {
+    fill: rgba(var(--muted), 0.3);
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --background: var(--dark-background);
+        --foreground: var(--dark-foreground);
+        --primary: var(--dark-primary);
+        --primary-hover: var(--dark-primary-hover);
+        --secondary: var(--dark-secondary);
+        --muted: var(--dark-muted);
+        --accent: var(--dark-accent);
+        --border: var(--dark-border);
+    }
+}
+

@@ -1,0 +1,33 @@
+.floating-paper-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.floating-paper {
+    position: absolute;
+}
+
+.paper-content {
+    width: 4rem;
+    height: 5rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(4px);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+.paper-content:hover {
+    transform: scale(1.1);
+}
+
+.paper-icon {
+    width: 2rem;
+    height: 2rem;
+    color: rgba(168, 85, 247, 0.5);
+}
+
