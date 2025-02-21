@@ -1,0 +1,11 @@
+.landing-page {
+    min-height: auto;
+    position: relative;
+    overflow: hidden;
+}
+
+
+
+.content {
+    position: relative;
+}

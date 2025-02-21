@@ -1,0 +1,116 @@
+.shimmer-button {
+    --spread: 90deg;
+    --radius: 100px;
+    --speed: 3s;
+    --cut: 0.05em;
+    --bg: rgba(0, 0, 0, 1);
+
+    position: relative;
+    z-index: 0;
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.75rem 1.5rem;
+    color: white;
+    background: var(--bg);
+    border-radius: var(--radius);
+    transform: translateZ(0);
+    transition: transform 300ms ease-in-out;
+}
+
+.shimmer-button:active {
+    transform: translateY(1px);
+}
+
+.shimmer-button__spark-container {
+    position: absolute;
+    inset: 0;
+    z-index: -30;
+    overflow: visible;
+    container-type: size;
+    filter: blur(2px);
+}
+
+.shimmer-button__spark {
+    position: absolute;
+    inset: 0;
+    height: 100cqh;
+    aspect-ratio: 1;
+    border-radius: 0;
+    mask: none;
+    animation: shimmer-slide 3s linear infinite;
+}
+
+.shimmer-button__spark::before {
+    content: "";
+    position: absolute;
+    inset: -100%;
+    width: auto;
+    rotate: 0;
+    background: conic-gradient(
+            from calc(270deg - (var(--spread) * 0.5)),
+            transparent 0,
+            var(--shimmer-color) var(--spread),
+            transparent var(--spread)
+    );
+    animation: spin-around 5s linear infinite;
+}
+
+.shimmer-button__highlight {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 1rem;
+    padding: 0.25rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    box-shadow: inset 0 -8px 10px rgba(255, 255, 255, 0.12);
+    transform: translateZ(0);
+    transition: all 300ms ease-in-out;
+}
+
+.shimmer-button:hover .shimmer-button__highlight {
+    box-shadow: inset 0 -6px 10px rgba(255, 255, 255, 0.24);
+}
+
+.shimmer-button:active .shimmer-button__highlight {
+    box-shadow: inset 0 -10px 10px rgba(255, 255, 255, 0.24);
+}
+
+.shimmer-button__backdrop {
+    position: absolute;
+    z-index: -20;
+    background: var(--bg);
+    border-radius: var(--radius);
+    inset: var(--cut);
+}
+
+@keyframes shimmer-slide {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes spin-around {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .shimmer-button {
+        color: black;
+    }
+}
+
