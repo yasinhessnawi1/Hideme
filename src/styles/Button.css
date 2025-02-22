@@ -3,7 +3,7 @@
     --radius: 100px;
     --speed: 3s;
     --cut: 0.05em;
-    --bg: rgba(0, 0, 0, 1);
+    --bg: rgb(134, 82, 82);
 
     position: relative;
     z-index: 0;

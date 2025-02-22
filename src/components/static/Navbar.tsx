@@ -13,7 +13,7 @@ interface NavbarProps {
     toggleTheme: () => void
 }
 
-export default function Navbar({ theme, toggleTheme }: NavbarProps) {
+export default function Navbar({ theme, toggleTheme }: Readonly<NavbarProps>) {
     const navigate = useNavigate()
 
     return (

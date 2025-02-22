@@ -37,6 +37,7 @@
     border: none;
     color: var(--foreground);
     cursor: pointer;
+    max-height: fit-content(100%);
 }
 
 .menu-icon {

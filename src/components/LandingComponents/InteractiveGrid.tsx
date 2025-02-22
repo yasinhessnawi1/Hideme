@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import "../../styles/InteractiveGrid.css"
+import "../../styles/landing/InteractiveGrid.css"
 
 interface InteractiveGridPatternProps extends React.SVGProps<SVGSVGElement> {
     width?: number
@@ -15,11 +15,11 @@ interface InteractiveGridPatternProps extends React.SVGProps<SVGSVGElement> {
 export function InteractiveGridPattern({
                                            width = 40,
                                            height = 40,
-                                           squares = [24, 24],
+                                           squares = [100, 100],
                                            className,
                                            squaresClassName,
                                            ...props
-                                       }: InteractiveGridPatternProps) {
+                                       }: Readonly<InteractiveGridPatternProps>) {
     const [horizontal, vertical] = squares
     const [hoveredSquare, setHoveredSquare] = useState<number | null>(null)
 

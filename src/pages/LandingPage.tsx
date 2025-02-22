@@ -1,8 +1,8 @@
 import React from 'react'
-import { InteractiveGridPattern } from '../components/static/InteractiveGrid'
+import { InteractiveGridPattern } from '../components/LandingComponents/InteractiveGrid'
 import Navbar from '../components/static/Navbar'
-import Hero from '../components/static/Hero'
-import '../styles/LandingPage.css'
+import Hero from '../components/LandingComponents/Hero'
+import '../styles/landing/LandingPage.css'
 
 interface LandingPageProps {
     theme: string
