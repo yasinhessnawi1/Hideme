@@ -1,0 +1,83 @@
+/* Container wrapper for the resizable sidebar */
+.page-previews-wrapper {
+    height: 100%;
+    background-color: var(--secondary);
+    transition: width 0.2s ease;
+    overflow: hidden;
+}
+.document-previews {
+    height: 100%;
+
+}
+/* Scrollable container for thumbnails with custom scrollbar styling */
+.previews-container {
+    height: 100%;
+    padding: 0.5rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color:  var(--muted) var(--secondary);
+    overflow-x: hidden;
+    justify-items: center;
+
+}
+
+/* Webkit scrollbars */
+.previews-container::-webkit-scrollbar {
+    width: 8px;
+}
+.previews-container::-webkit-scrollbar-track {
+    background: var(--background);
+}
+.previews-container::-webkit-scrollbar-thumb {
+    background-color: var(--primary);
+    border-radius: 4px;
+}
+
+/* Thumbnail wrapper: each preview with hover animations */
+.thumbnail-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    justify-content: center;
+}
+
+.thumbnail-wrapper:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.thumbnail-wrapper.active {
+    outline: 2px solid var(--primary);
+}
+
+/* Center the PDF page thumbnail */
+.thumbnail-inner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+}
+
+/* Animated page number label */
+.page-number-label {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--foreground);
+    background: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.thumbnail-wrapper:hover .page-number-label,
+.thumbnail-wrapper.active .page-number-label {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+
