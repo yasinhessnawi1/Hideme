@@ -10,7 +10,7 @@ const LoginPage: React.FC = () => {
         e.preventDefault()
         console.log('Login attempt:', { email, password })
         // Redirect to home page
-        navigate('/')
+        navigate('/playground')
     }
 
     return (
@@ -20,10 +20,9 @@ const LoginPage: React.FC = () => {
                 <label>
                     Email
                     <input
-                        type="email"
+                        type="text"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        required
                         style={{ width: '100%', padding: '0.5rem' }}
                     />
                 </label>
@@ -34,7 +33,6 @@ const LoginPage: React.FC = () => {
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        required
                         style={{ width: '100%', padding: '0.5rem' }}
                     />
                 </label>

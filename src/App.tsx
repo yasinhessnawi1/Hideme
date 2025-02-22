@@ -1,12 +1,15 @@
 import React from 'react'
 import AppRouter from './routes/AppRouter'
-import useTheme from './hooks/useTheme'
+import {PdfProvider} from "./contexts/PdfContext";
+import useTheme from "./hooks/useTheme";
 
 const App: React.FC = () => {
-    const [theme, toggleTheme] = useTheme('light')
-
+    const { theme, toggleTheme } = useTheme('light');
     return (
-        <AppRouter theme={theme} toggleTheme={toggleTheme} />
+                <PdfProvider>
+                    <AppRouter theme={theme} toggleTheme={toggleTheme} />
+                </PdfProvider>
+
     )
 }
 
