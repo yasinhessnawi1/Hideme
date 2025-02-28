@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface LoginFormProps {
   isSignUp: boolean;
@@ -21,6 +22,8 @@ const LoginForm: React.FC<LoginFormProps> = ({
   confirmPassword,
   setConfirmPassword,
 }) => {
+  const navigate = useNavigate();
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -34,7 +37,8 @@ const LoginForm: React.FC<LoginFormProps> = ({
       console.log('Login attempt:', { email, password });
     }
 
-    // Redirect logic here...
+    // Redirect to playground after successful submission
+    navigate('/playground');
   };
 
   const handleToggleSignUp = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
