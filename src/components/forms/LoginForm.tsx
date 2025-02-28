@@ -1,6 +1,17 @@
 import React from 'react';
 
-const LoginForm = ({
+interface LoginFormProps {
+  isSignUp: boolean;
+  setIsSignUp: React.Dispatch<React.SetStateAction<boolean>>;
+  email: string;
+  setEmail: React.Dispatch<React.SetStateAction<string>>;
+  password: string;
+  setPassword: React.Dispatch<React.SetStateAction<string>>;
+  confirmPassword: string;
+  setConfirmPassword: React.Dispatch<React.SetStateAction<string>>;
+}
+
+const LoginForm: React.FC<LoginFormProps> = ({
   isSignUp,
   setIsSignUp,
   email,
@@ -10,7 +21,7 @@ const LoginForm = ({
   confirmPassword,
   setConfirmPassword,
 }) => {
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (isSignUp) {
@@ -26,7 +37,7 @@ const LoginForm = ({
     // Redirect logic here...
   };
 
-  const handleToggleSignUp = (e) => {
+  const handleToggleSignUp = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
     e.preventDefault();
     setIsSignUp(!isSignUp);
   };

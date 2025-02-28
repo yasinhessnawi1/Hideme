@@ -12,18 +12,17 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    /* Adjust top/bottom padding as desired */
     padding: 3rem 1.5rem;
     max-height: 90vh;
-    background-color: #f9fafb; /* Light background */
-    align-items: center; /* Center horizontally */
-    justify-content: center; /* Center vertically if needed */
+    background-color: #f9fafb; 
+    align-items: center; 
+    justify-content: center; 
   }
   
   /* Right half: image/video placeholder */
   .login-right {
     flex: 1;
-    background-color: #f3f4f6; /* Slightly different gray to differentiate sides */
+    background-color: #f3f4f6; 
     display: flex;
     align-items: center;
     justify-content: center;
@@ -43,7 +42,7 @@
    ************************/
   .login-container {
     width: 100%;
-    max-width: 28rem; /* Adjust as desired for form width */
+    max-width: 28rem; 
     background-color: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 0.5rem;
@@ -53,7 +52,7 @@
   }
   
   .login-title {
-    font-size: 1.5rem; /* Could go larger (1.875rem) if desired */
+    font-size: 1.5rem; 
     font-weight: bold;
     color: #111827;
     margin-bottom: 0.5rem;

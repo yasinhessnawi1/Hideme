@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import '../styles/login/LoginPage.css';
-import LoginForm from '../components/forms/LoginForm.jsx';
+import LoginForm from '../components/forms/LoginForm';
 
-const LoginPage = () => {
-  // State to toggle between Login and Sign Up
-  const [isSignUp, setIsSignUp] = useState(false);
-
-  // Fields for the form
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+const LoginPage: React.FC = () => {
+  // State to toggle between login and sign-up modes
+  const [isSignUp, setIsSignUp] = useState<boolean>(false);
+  // Form field states
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
 
   return (
     <div className="login-page">
@@ -17,16 +16,14 @@ const LoginPage = () => {
       <div className="login-left">
         <div className="login-container">
           <h1 className="login-title">HIDE ME</h1>
-          {/* Toggle subtitle based on isSignUp */}
+          {/* Subtitle changes based on mode */}
           <p className="login-subtitle">
             {isSignUp ? 'Create an Account' : 'Login To Your Account'}
           </p>
 
           <LoginForm
-            // Pass current mode & the setter so the child can toggle
             isSignUp={isSignUp}
             setIsSignUp={setIsSignUp}
-            // Pass form field states/handlers
             email={email}
             setEmail={setEmail}
             password={password}
@@ -36,7 +33,7 @@ const LoginPage = () => {
           />
         </div>
 
-        {/* Add some top margin when in sign-up mode */}
+        {/* Add extra margin-top when in sign-up mode */}
         <p
           className="login-terms"
           style={{ marginTop: isSignUp ? '2rem' : '0' }}
