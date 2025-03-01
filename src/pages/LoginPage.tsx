@@ -1,11 +1,30 @@
+/**
+ * LoginPage.tsx
+ * -------------------------------------
+ * Renders the main layout for the login or sign-up page,
+ * containing the LoginForm component and any additional text or images.
+ * 
+ * The page toggles between Login and Sign-Up modes based on `isSignUp` state.
+ * Additional fields (Full Name, Confirm Password) appear in Sign-Up mode.
+ * 
+ * The top margin is adjusted using inline style on .login-terms 
+ * or other methods in the CSS to maintain consistent spacing.
+ */
+
 import React, { useState } from 'react';
 import '../styles/login/LoginPage.css';
 import LoginForm from '../components/forms/LoginForm';
 
+/**
+ * LoginPage component – Displays a two-column layout with a form on the left
+ * and an image on the right. Toggles between Login and Sign-Up modes.
+ * 
+ * @returns {JSX.Element} The LoginPage layout.
+ */
 const LoginPage: React.FC = () => {
   // State to toggle between login and sign-up modes
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
-  // Form field states
+  const [fullName, setFullName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
@@ -24,6 +43,8 @@ const LoginPage: React.FC = () => {
           <LoginForm
             isSignUp={isSignUp}
             setIsSignUp={setIsSignUp}
+            fullName={fullName}
+            setFullName={setFullName}
             email={email}
             setEmail={setEmail}
             password={password}
@@ -33,10 +54,10 @@ const LoginPage: React.FC = () => {
           />
         </div>
 
-        {/* Add extra margin-top when in sign-up mode */}
+        {/* Add extra margin-top when in sign-up mode if needed */}
         <p
           className="login-terms"
-          style={{ marginTop: isSignUp ? '2rem' : '0' }}
+          style={{ marginTop: isSignUp ? '-3rem' : '0' }}
         >
           By clicking continue, you agree to our{' '}
           <a href="#">Terms of Service</a> and{' '}

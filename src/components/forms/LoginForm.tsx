@@ -1,20 +1,57 @@
+/**
+ * LoginForm.tsx
+ * -------------------------------------
+ * This component handles both Login and Sign-Up forms.
+ * When isSignUp is true, it shows the Full Name and Confirm Password fields.
+ * It displays fields in the following order for Sign-Up:
+ * 1. Full Name
+ * 2. Email
+ * 3. Password
+ * 4. Confirm Password
+ * 
+ * For Login (isSignUp = false), it shows only Email and Password.
+ * 
+ * The spacing between fields is handled by the .form-group class in the CSS.
+ * The top margin remains consistent between Login and Sign-Up using .login-terms styling.
+ */
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface LoginFormProps {
+  /** Indicates if the user is in Sign-Up mode or Login mode. */
   isSignUp: boolean;
+  /** Toggles Sign-Up/Login mode. */
   setIsSignUp: React.Dispatch<React.SetStateAction<boolean>>;
+  /** Full name for Sign-Up. */
+  fullName: string;
+  /** Setter for fullName state. */
+  setFullName: React.Dispatch<React.SetStateAction<string>>;
+  /** Email address for Login or Sign-Up. */
   email: string;
+  /** Setter for email state. */
   setEmail: React.Dispatch<React.SetStateAction<string>>;
+  /** Password for Login or Sign-Up. */
   password: string;
+  /** Setter for password state. */
   setPassword: React.Dispatch<React.SetStateAction<string>>;
+  /** Confirm Password for Sign-Up. */
   confirmPassword: string;
+  /** Setter for confirmPassword state. */
   setConfirmPassword: React.Dispatch<React.SetStateAction<string>>;
 }
 
+/**
+ * LoginForm component – Renders a form for either Login or Sign-Up based on `isSignUp`.
+ * 
+ * @param {LoginFormProps} props - The properties for LoginForm component.
+ * @returns {JSX.Element} The form element.
+ */
 const LoginForm: React.FC<LoginFormProps> = ({
   isSignUp,
   setIsSignUp,
+  fullName,
+  setFullName,
   email,
   setEmail,
   password,
@@ -24,6 +61,10 @@ const LoginForm: React.FC<LoginFormProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  /**
+   * handleSubmit - Processes form submission for both Login and Sign-Up.
+   * @param {React.FormEvent<HTMLFormElement>} e - The form submission event.
+   */
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -32,7 +73,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
         alert('Passwords do not match!');
         return;
       }
-      console.log('Sign-up attempt:', { email, password, confirmPassword });
+      console.log('Sign-up attempt:', { fullName, email, password, confirmPassword });
     } else {
       console.log('Login attempt:', { email, password });
     }
@@ -41,6 +82,10 @@ const LoginForm: React.FC<LoginFormProps> = ({
     navigate('/playground');
   };
 
+  /**
+   * handleToggleSignUp - Toggles between Sign-Up and Login modes.
+   * @param {React.MouseEvent<HTMLAnchorElement, MouseEvent>} e - The click event on the toggle link.
+   */
   const handleToggleSignUp = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
     e.preventDefault();
     setIsSignUp(!isSignUp);
@@ -49,6 +94,21 @@ const LoginForm: React.FC<LoginFormProps> = ({
   return (
     <>
       <form className="login-form" onSubmit={handleSubmit}>
+        {/* Full Name field (only for Sign-Up) */}
+        {isSignUp && (
+          <div className="form-group">
+            <label htmlFor="fullName">Full Name</label>
+            <input
+              type="text"
+              id="fullName"
+              name="fullName"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Enter your full name"
+            />
+          </div>
+        )}
+
         {/* Email field */}
         <div className="form-group">
           <label htmlFor="email">Email</label>
@@ -84,7 +144,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
           />
         </div>
 
-        {/* Confirm Password field (only for sign-up) */}
+        {/* Confirm Password field (only for Sign-Up) */}
         {isSignUp && (
           <div className="form-group">
             <label htmlFor="confirmPassword">Confirm Password</label>
@@ -124,6 +184,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             <path d="M14.7516 4.24656C15.5266 3.29906 16.0641 2.00906 15.9141 0.709061C14.8141 0.754061 13.4891 1.47656 12.6891 2.39906C11.9641 3.22406 11.3141 4.54906 11.4891 5.81406C12.7016 5.89906 13.9516 5.19406 14.7516 4.24656Z" />
           </svg>
         </button>
+
         {/* Google */}
         <button
           type="button"
@@ -153,6 +214,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
             />
           </svg>
         </button>
+
         {/* Meta/Infinity (Optional) */}
         <button
           type="button"
