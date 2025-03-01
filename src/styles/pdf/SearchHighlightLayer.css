@@ -1,0 +1,64 @@
+.search-highlight-layer {
+    /* This layer is sized precisely to the PDF canvas dimensions
+       for pixel-perfect alignment of search highlights. */
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* width, height, and z-index typically set inline or from the parent */
+    pointer-events: none;
+    z-index: 11000; /* If you want search highlights above manual highlights, raise it. */
+    overflow: hidden;
+}
+
+/* Each search highlight rectangle */
+.search-highlight-rect {
+    position: absolute;
+    pointer-events: none; /* Usually no direct user interaction with search highlights */
+    background-color: rgba(15, 155, 255, 0.4); /* "gold" color, adjustable */
+    border-radius: 2px;
+    transition: opacity 0.2s ease;
+}
+
+/* Hover effect, if you do plan to let them be interactive: */
+.search-highlight-rect:hover {
+    opacity: 0.8;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5), 0 0 0 3px rgba(0, 0, 0, 0.15);
+    z-index: 20;
+}
+.search-highlight-rect.selected {
+    opacity: 0.7;
+    z-index: 15;
+}
+
+/* Optional tooltip styling if you want a hover tooltip */
+.search-highlight-tooltip {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 3px;
+    pointer-events: none;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    z-index: 99999;
+}
+.search-highlight-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+}
+
+/* Dark theme adjustments */
+.dark-theme .search-highlight-tooltip {
+    background-color: rgba(255, 255, 255, 0.9);
+    color: black;
+}
+.dark-theme .search-highlight-tooltip::after {
+    border-color: rgba(255, 255, 255, 0.9) transparent transparent transparent;
+}
