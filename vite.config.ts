@@ -1,17 +1,17 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import * as path from 'path';
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  build: {
-    rollupOptions: {
-      external: [/pdf.worker.min.js/],
-      },
-    },
   server: {
     hmr: {
       overlay: false,
+    },
+  },
+  resolve: {
+    alias: {
+      'pdfjs-dist': path.resolve('./node_modules/pdfjs-dist')
     }
   }
-})
+});

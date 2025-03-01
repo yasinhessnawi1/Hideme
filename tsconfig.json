@@ -28,6 +28,8 @@
     //   "@components/*": ["components/*"]
     // }
   },
-  "include": ["src", "src/global.d.ts"],
+  "include": ["src",
+    "src/types/pdfTypes.d.ts", "src/types/declarations.d.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }
