@@ -1,0 +1,276 @@
+/* PDF Viewer container */
+.pdf-viewer-container {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: #f0f0f0;
+    padding: 20px;
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Empty state */
+.pdf-viewer-empty {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #666;
+    font-size: 16px;
+}
+
+/* Loading and error states */
+.pdf-loading, .pdf-error {
+    padding: 20px;
+    text-align: center;
+    color: #666;
+}
+
+.pdf-error {
+    color: #d32f2f;
+}
+
+/* Document container */
+.react-pdf__Document {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+/* Page wrapper */
+.pdf-page-wrapper {
+    margin: 20px 0;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    width: fit-content;
+}
+
+.pdf-page-wrapper.active {
+    box-shadow: 0 0 0 2px #2196f3, 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Page content container - critical for proper positioning */
+.pdf-page-content {
+    position: relative;
+    display: inline-block;
+    width: auto;
+    height: auto;
+}
+
+/* Fix for the react-pdf Page component */
+.react-pdf__Page {
+    position: relative;
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+
+.pdf-page {
+    display: block;
+}
+
+/* Essential styling for the canvas and text layer alignment */
+.react-pdf__Page__canvas {
+    display: block;
+    user-select: none;
+    position: relative !important;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+.react-pdf__Page__textContent {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 2;
+    transform: none !important;
+    pointer-events: none;
+}
+
+.react-pdf__Page__annotations {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 3;
+}
+
+/* Highlight layers container */
+.highlight-layers-container {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    pointer-events: none;
+    z-index: 1000;
+    overflow: visible;
+}
+
+/* Common highlight layer styles */
+.highlight-layer,
+.search-highlight-layer,
+.entity-highlight-layer,
+.manual-highlight-layer {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* Highlight rectangle styles */
+.highlight-rect {
+    position: absolute;
+    box-sizing: border-box;
+    pointer-events: auto;
+    transition: opacity 0.2s ease, border 0.2s ease;
+    border-radius: 2px;
+}
+
+.highlight-rect:hover {
+    opacity: 0.6 !important;
+}
+
+.highlight-rect.selected {
+    border: 2px dashed #000 !important;
+    opacity: 0.7 !important;
+}
+
+/* Specific highlight types */
+.search-highlight {
+    background-color: rgba(255, 255, 0, 0.4) !important;
+    border: 1px solid rgba(0, 0, 0, 0.2) !important;
+}
+
+.entity-highlight {
+    background-color: rgba(135, 206, 250, 0.4) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.manual-highlight {
+    background-color: rgba(255, 0, 0, 0.3) !important;
+    border: 1px solid rgba(0, 0, 0, 0.2) !important;
+    border-radius: 3px;
+}
+
+/* Tooltip styles */
+.highlight-tooltip {
+    position: fixed;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 99999;
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Debug info */
+.debug-info {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* Page number indicator */
+.page-number-indicator {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 12px;
+    z-index: 5;
+}
+
+/* Selection overlay */
+.selection-overlay {
+    position: absolute;
+    pointer-events: none;
+    z-index: 50;
+    border: 1px dashed rgba(0, 0, 0, 0.5);
+}
+
+/* Debug toggle button */
+.debug-toggle {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* Z-index ordering for highlight layers */
+.search-highlight-layer {
+    z-index: 10000;
+}
+
+.entity-highlight-layer {
+    z-index: 10010;
+}
+
+.manual-highlight-layer {
+    z-index: 10020;
+}
+
+/* Factory container styling */
+.highlight-layer-factory {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+    transform-origin: top left;
+}
+
+/* Dark theme adjustments */
+.dark-theme .highlight-tooltip {
+    background-color: rgba(255, 255, 255, 0.9);
+    color: black;
+}
+
+.dark-theme .page-number-indicator {
+    background-color: rgba(255, 255, 255, 0.7);
+    color: black;
+}
+
+/* Media queries for responsive design */
+@media (max-width: 768px) {
+    .pdf-page-wrapper {
+        margin: 10px auto;
+    }
+
+    .pdf-viewer-container {
+        padding: 10px;
+    }
+}

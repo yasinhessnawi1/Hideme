@@ -23,14 +23,149 @@
   --dark-border: #2d3748;
 
   /* Default to Light Mode Variables */
-  --background: var(--light-background);
-  --foreground: var(--light-foreground);
-  --primary: var(--light-primary);
-  --primary-hover: var(--light-primary-hover);
-  --secondary: var(--light-secondary);
-  --muted: var(--light-muted);
-  --accent: var(--light-accent);
-  --border: var(--light-border);
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
+
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 222.2 84% 4.9%;
+
+  --radius: 0.5rem;
+  --sidebar-width: 250px;
+  --right-sidebar-width: 320px;
+  --header-height: 60px;
+  --toolbar-height: 40px;
+  --sidebar-header-height: 40px;
+  --border-radius: 4px;
+  --transition-speed: 0.3s;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --accent-color: #3b82f6;
+  --accent-hover: #2563eb;
+  --muted-bg: rgba(0, 0, 0, 0.03);
+  --muted-bg-dark: rgba(255, 255, 255, 0.05);
+  --icon-size: 18px;
+  --upload-bg: #e5e5e5;
+
+
+  /* Primary colors */
+  --toolbar-bg: #ffffff;
+  --toolbar-border: #e0e0e0;
+  --toolbar-shadow: rgba(0, 0, 0, 0.08);
+
+  /* Button colors */
+  --button-bg: #f7f7f7;
+  --button-border: #e5e5e5;
+  --button-hover: #edf2fa;
+  --button-active: #e1ebfa;
+  --button-text: #444444;
+  --button-active-text: #1a73e8;
+
+  /* Active state */
+  --active-bg: #e8f0fe;
+  --active-border: #c6dafc;
+  --active-text: #1967d2;
+
+  /* Dropdown colors */
+  --dropdown-bg: #ffffff;
+  --dropdown-border: #e0e0e0;
+  --dropdown-shadow: rgba(0, 0, 0, 0.1);
+  --dropdown-hover: #f5f7fa;
+
+  /* Transitions */
+  --transition-function: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+
+  /* Border radius */
+  --border-radius-sm: 4px;
+  --border-radius-md: 6px;
+
+  --primary-color: #1a73e8;
+  --primary-hover: #1765cc;
+  --primary-active: #135cbb;
+  --primary-light: #e8f0fe;
+  --secondary-color: #4f4f4f;
+  --success-color: #34a853;
+  --warning-color: #fbbc05;
+  --error-color: #ea4335;
+  --info-color: #4285f4;
+
+  /* Text colors */
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-tertiary: #80868b;
+  --text-disabled: #9aa0a6;
+  --text-inverse: #ffffff;
+
+  /* Background colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #f1f3f4;
+  --bg-disabled: #dadce0;
+
+  /* Border colors */
+  --border-primary: #dadce0;
+  --border-secondary: #e8eaed;
+  --border-focus: #4285f4;
+
+  /* Component specific */
+
+
+
+  --viewer-bg: #f8f9fa;
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e0e0e0;
+
+  /* Spacing */
+  --spacing-xl: 24px;
+  --spacing-xxl: 32px;
+
+  /* Border radius */
+
+  --border-radius-lg: 8px;
+  --border-radius-xl: 12px;
+
+
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  /* Font sizes */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+
+  /* Font weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
 }
 
 /*
@@ -46,6 +181,46 @@
   --muted: var(--dark-muted);
   --accent: var(--dark-accent);
   --border: var(--dark-border);
+  --upload-bg: var(--dark-secondary);
+  /* Primary colors */
+  --toolbar-bg: #ffffff;
+  --toolbar-border: #e0e0e0;
+  --toolbar-shadow: rgba(0, 0, 0, 0.08);
+
+  /* Button colors */
+  --button-bg: #f7f7f7;
+  --button-border: #e5e5e5;
+  --button-hover: #edf2fa;
+  --button-active: #e1ebfa;
+  --button-text: #444444;
+  --button-active-text: #1a73e8;
+
+  /* Active state */
+  --active-bg: #e8f0fe;
+  --active-border: #c6dafc;
+  --active-text: #1967d2;
+
+  /* Dropdown colors */
+  --dropdown-bg: #ffffff;
+  --dropdown-border: #e0e0e0;
+  --dropdown-shadow: rgba(0, 0, 0, 0.1);
+  --dropdown-hover: #f5f7fa;
+
+  /* Transitions */
+  --transition-speed: 0.2s;
+  --transition-function: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+
+  /* Border radius */
+  --border-radius-sm: 4px;
+  --border-radius-md: 6px;
+
+
 }
 
 /*
@@ -84,4 +259,60 @@ body {
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+}
+
+.resizing {
+  user-select: none;
+  cursor: ew-resize !important;
+}
+
+.resizing * {
+  user-select: none !important;
+}
+
+/* Animation for page transitions */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Add a subtle pulse animation for active elements */
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(var(--background), 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(var(--dropdown-shadow), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--dropdown-bg), 0); }
+}
+
+/* Helper to add this animation to active elements */
+.pulse-animation {
+  animation: pulse 2s infinite;
+}
+
+/* Transition helper classes */
+.transition-all {
+  transition: all var(--transition-speed) var(--transition-function);
+}
+
+.transition-transform {
+  transition: transform var(--transition-speed) var(--transition-function);
+}
+
+.transition-opacity {
+  transition: opacity var(--transition-speed) var(--transition-function);
+}
+
+/* Focus styles for better accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* For PDF page transitions */
+.pdf-page-wrapper {
+  animation: fadeIn 0.3s ease-out;
 }
