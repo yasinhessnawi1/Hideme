@@ -90,12 +90,13 @@ const PDFViewer: React.FC = () => {
     const [selectionEnd, setSelectionEnd] = useState<{ x: number; y: number } | null>(null);
     const [isSelecting, setIsSelecting] = useState(false);
     const {runExtractText} = usePDFApi();
-    // Debug mode toggles bounding boxes, console logs, etc.
 
-    // If you want to track canvas refs:
+    // Track canvas refs and alignment state with refs to avoid re-renders
     const canvasRefs = useRef<Map<number, HTMLCanvasElement | null>>(new Map());
+    const isAligning = useRef<boolean>(false);
+    const alignmentTimeoutRef = useRef<number | null>(null);
 
-    // React-PDF doc options
+    // React-PDF doc options - memoized to avoid unnecessary reloads
     const documentOptions = useMemo(
         () => ({
             cMapUrl: 'https://unpkg.com/pdfjs-dist@2.16.105/cmaps/',
@@ -125,9 +126,17 @@ const PDFViewer: React.FC = () => {
 
     /**
      * Align highlight containers after measuring the actual <canvas>
+     * Improved to avoid infinite update loops
      */
     const alignHighlightsWithCanvas = useCallback(() => {
+        // Prevent concurrent alignments to avoid state update conflicts
+        if (isAligning.current) return;
+        isAligning.current = true;
+
         const pages = document.querySelectorAll('.pdf-page-wrapper');
+        let pageDataUpdated = false;
+        const newData = new Map(pageData);
+
         pages.forEach((wrapper) => {
             const pageNumber = parseInt(wrapper.getAttribute('data-page-number') || '0');
             if (!pageNumber) return;
@@ -143,20 +152,26 @@ const PDFViewer: React.FC = () => {
             const offsetX = canvasRect.left - wrapperRect.left;
             const offsetY = canvasRect.top - wrapperRect.top;
 
-            setPageData((prev) => {
-                const newData = new Map(prev);
-                const existing = newData.get(pageNumber);
-                if (existing && existing.viewport) {
-                    const cssWidth = canvasRect.width;
-                    const cssHeight = canvasRect.height;
+            const existing = newData.get(pageNumber);
+            if (existing && existing.viewport) {
+                const cssWidth = canvasRect.width;
+                const cssHeight = canvasRect.height;
 
-                    const viewportWidth = existing.viewport.width;
-                    const viewportHeight = existing.viewport.height;
+                const viewportWidth = existing.viewport.width;
+                const viewportHeight = existing.viewport.height;
 
-                    // ratio = CSS px / PDF viewport points
-                    const scaleX = cssWidth / viewportWidth;
-                    const scaleY = cssHeight / viewportHeight;
+                // ratio = CSS px / PDF viewport points
+                const scaleX = cssWidth / viewportWidth;
+                const scaleY = cssHeight / viewportHeight;
 
+                // Only update if dimensions have actually changed
+                if (!existing.canvasRef ||
+                    Math.abs(existing.size.cssWidth - cssWidth) > 1 ||
+                    Math.abs(existing.size.cssHeight - cssHeight) > 1 ||
+                    Math.abs(existing.size.offsetX - offsetX) > 1 ||
+                    Math.abs(existing.size.offsetY - offsetY) > 1) {
+
+                    pageDataUpdated = true;
                     newData.set(pageNumber, {
                         ...existing,
                         size: {
@@ -170,10 +185,9 @@ const PDFViewer: React.FC = () => {
                         canvasRef: canvas as HTMLCanvasElement
                     });
                 }
-                return newData;
-            });
+            }
 
-            // physically transform the highlight-layers-container to match
+            // Apply transform directly to avoid unnecessary re-renders
             const containerStyle = highlightContainer as HTMLElement;
             containerStyle.style.position = 'absolute';
             containerStyle.style.left = '0px';
@@ -181,16 +195,37 @@ const PDFViewer: React.FC = () => {
             containerStyle.style.width = `${canvasRect.width}px`;
             containerStyle.style.height = `${canvasRect.height}px`;
             containerStyle.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-
-
         });
-    }, []);
+
+        // Only update state if necessary to avoid re-renders
+        if (pageDataUpdated) {
+            setPageData(newData);
+        }
+
+        // Reset alignment flag after a short delay to allow other operations to complete
+        setTimeout(() => {
+            isAligning.current = false;
+        }, 50);
+    }, [pageData]);
+
+    // Debounced alignment function to avoid excessive updates
+    const debouncedAlign = useCallback(() => {
+        if (alignmentTimeoutRef.current !== null) {
+            window.clearTimeout(alignmentTimeoutRef.current);
+        }
+
+        alignmentTimeoutRef.current = window.setTimeout(() => {
+            alignHighlightsWithCanvas();
+            alignmentTimeoutRef.current = null;
+        }, 100);
+    }, [alignHighlightsWithCanvas]);
 
     /**
-     * Observe new canvas elements
+     * Observe new canvas elements with improved handling to avoid loops
      */
     useEffect(() => {
         if (!file) return;
+
         const observer = new MutationObserver((mutations) => {
             let foundCanvas = false;
             mutations.forEach((mutation) => {
@@ -212,13 +247,20 @@ const PDFViewer: React.FC = () => {
                     });
                 }
             });
-            if (foundCanvas) {
-                setTimeout(() => alignHighlightsWithCanvas(), 100);
+
+            if (foundCanvas && !isAligning.current) {
+                debouncedAlign();
             }
         });
+
         observer.observe(document.body, {childList: true, subtree: true});
-        return () => observer.disconnect();
-    }, [file, alignHighlightsWithCanvas]);
+        return () => {
+            observer.disconnect();
+            if (alignmentTimeoutRef.current !== null) {
+                window.clearTimeout(alignmentTimeoutRef.current);
+            }
+        };
+    }, [file, debouncedAlign]);
 
     /**
      * Called after each <Page> is rendered
@@ -236,49 +278,64 @@ const PDFViewer: React.FC = () => {
                 setPageData((prev) => {
                     const newData = new Map(prev);
                     const existing = newData.get(pageNumber);
-                    newData.set(pageNumber, {
-                        viewport,
-                        textContent,
-                        size: {
-                            cssWidth: existing?.size.cssWidth || 0,
-                            cssHeight: existing?.size.cssHeight || 0,
-                            offsetX: existing?.size.offsetX || 0,
-                            offsetY: existing?.size.offsetY || 0,
-                            scaleX: existing?.size.scaleX || 1,
-                            scaleY: existing?.size.scaleY || 1,
-                        },
-                        canvasRef: existing?.canvasRef || null
-                    });
-                    return newData;
+
+                    // Only update if viewport or textContent has changed
+                    if (!existing ||
+                        !existing.viewport ||
+                        !existing.textContent ||
+                        existing.viewport.width !== viewport.width ||
+                        existing.viewport.height !== viewport.height) {
+
+                        newData.set(pageNumber, {
+                            viewport,
+                            textContent,
+                            size: {
+                                cssWidth: existing?.size.cssWidth || 0,
+                                cssHeight: existing?.size.cssHeight || 0,
+                                offsetX: existing?.size.offsetX || 0,
+                                offsetY: existing?.size.offsetY || 0,
+                                scaleX: existing?.size.scaleX || 1,
+                                scaleY: existing?.size.scaleY || 1,
+                            },
+                            canvasRef: existing?.canvasRef || null
+                        });
+
+                        return newData;
+                    }
+
+                    return prev; // No changes needed
                 });
 
-                setTimeout(() => alignHighlightsWithCanvas(), 50);
+                // Use debounced alignment to prevent excessive updates
+                debouncedAlign();
             } catch (err) {
                 console.error('Error on page render success', pageNumber, err);
             }
         },
-        [zoomLevel, alignHighlightsWithCanvas]
+        [zoomLevel, debouncedAlign]
     );
 
     /**
-     * Re-process search highlights
+     * Extract text from PDF only once
      */
     useEffect(() => {
-        if (!file) return;
-        // Only run extraction if we haven't already extracted text for this file.
-        if (extractedText.pages.length > 0) return;
+        if (!file || extractedText.pages.length > 0) return;
+
         runExtractText(file)
             .then((text) => {
                 setExtractedText(text);
             })
             .catch((err) => console.error("Error extracting text:", err));
-    }, [file, extractedText.pages.length]);
+    }, [file, extractedText.pages.length, runExtractText]);
 
+    /**
+     * Process search highlights with proper dependency tracking
+     */
     useEffect(() => {
         // Only run if there is a file, search term(s), and extracted text is populated.
         if (!file || !searchQueries || searchQueries.length === 0 || extractedText?.pages?.length === 0) {
             // If search queries are empty, clear all search highlights
-            if (searchQueries.length === 0) {
+            if (searchQueries?.length === 0) {
                 clearAnnotationsByType(HighlightType.SEARCH);
                 setProcessedSearchPages(new Set());
             }
@@ -287,6 +344,8 @@ const PDFViewer: React.FC = () => {
 
         // For each rendered page, process the highlights if not already done
         // or if search parameters have changed
+        const newProcessedPages = new Set<number>();
+
         renderedPages.forEach((pageNum) => {
             // Always clear existing search annotations on that page before adding new ones
             clearAnnotationsByType(HighlightType.SEARCH, pageNum);
@@ -306,9 +365,10 @@ const PDFViewer: React.FC = () => {
             // Process the highlights. The manager should match against words
             // from extractedText and compute precise positions.
             searchManager.processHighlights();
-
-            setProcessedSearchPages((prev) => new Set(prev).add(pageNum));
+            newProcessedPages.add(pageNum);
         });
+
+        setProcessedSearchPages(newProcessedPages);
     }, [
         file,
         searchQueries,
@@ -320,21 +380,21 @@ const PDFViewer: React.FC = () => {
         isCaseSensitive,
         isRegexSearch,
     ]);
+
     /**
-     * Re-process entity highlights
+     * Process entity highlights with proper dependency tracking
      */
     useEffect(() => {
         if (!file || !detectionMapping) return;
 
+        const newProcessedPages = new Set<number>();
+
         renderedPages.forEach((pageNum) => {
-            if (processedEntityPages.has(pageNum)) return;
             const data = pageData.get(pageNum);
             if (!data || !data.viewport || !data.textContent) return;
 
             clearAnnotationsByType(HighlightType.ENTITY, pageNum);
 
-            const {scaleX, scaleY} = data.size;
-            // If your EntityHighlightManager expects EXACTLY 6 parameters, do NOT pass a 7th:
             const entityManager = new EntityHighlightManager(
                 pageNum,
                 data.viewport,
@@ -342,19 +402,17 @@ const PDFViewer: React.FC = () => {
                 detectionMapping,
                 getNextHighlightId,
                 addAnnotation
-                // no extra param here
             );
-            // If that constructor uses scaleX, scaleY, add them to the constructor
-            // or do them in your bounding box code
-            entityManager.processHighlights();
 
-            setProcessedEntityPages((prev) => new Set(prev).add(pageNum));
+            entityManager.processHighlights();
+            newProcessedPages.add(pageNum);
         });
+
+        setProcessedEntityPages(newProcessedPages);
     }, [
         file,
         pageData,
         renderedPages,
-        processedEntityPages,
         detectionMapping,
         clearAnnotationsByType,
         getNextHighlightId,
@@ -420,25 +478,25 @@ const PDFViewer: React.FC = () => {
         setSelectionEnd(null);
     }, [isSelecting, selectionStart, selectionEnd, getNextHighlightId, addAnnotation, highlightColor]);
 
-    // Realign on window resize
+    // Debounced resize handler
     useEffect(() => {
-        const onResize = () => alignHighlightsWithCanvas();
-        window.addEventListener('resize', onResize);
-        return () => window.removeEventListener('resize', onResize);
-    }, [alignHighlightsWithCanvas]);
+        const handleResize = () => {
+            debouncedAlign();
+        };
 
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [debouncedAlign]);
 
     return (
-        <div className= { "pdf-viewer-container" } ref={mainContainerRef} >
+        <div className="pdf-viewer-container" ref={mainContainerRef}>
             <Document
                 file={file}
-                // remove the param type from your callback so there's no mismatch
                 onLoadSuccess={onDocumentLoadSuccess}
                 options={documentOptions}
                 className="pdf-document"
                 loading={<div>Loading PDF...</div>}
                 error={<div>Error loading PDF.</div>}
-
             >
                 {Array.from(new Array(numPages), (_, i) => (
                     <div
@@ -457,7 +515,6 @@ const PDFViewer: React.FC = () => {
                             <>
                                 <Page
                                     pageNumber={i + 1}
-                                    // If you still see "not assignable," do:  scale={zoomLevel as number}
                                     scale={zoomLevel as number}
                                     onRenderSuccess={onPageRenderSuccess}
                                     renderTextLayer
@@ -473,7 +530,6 @@ const PDFViewer: React.FC = () => {
                                         width: '100%',
                                         height: '100%',
                                         pointerEvents: 'none',
-                                        border: 'none',
                                     }}
                                 >
                                     {pageData.get(i + 1) && (

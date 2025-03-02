@@ -1,13 +1,11 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback, useRef} from 'react';
 import Select from 'react-select';
 import { usePDFContext, OptionType } from '../../contexts/PDFContext';
 import { useHighlightContext, HighlightType, HighlightRect } from '../../contexts/HighlightContext';
 import { usePDFApi } from '../../hooks/usePDFApi';
 import '../../styles/pdf/SettingsSidebar.css';
 
-
-
-// Presidio ML entity options (renamed from mlOptions)
+// Presidio ML entity options
 const presidioOptions: OptionType[] = [
     { value: 'CRYPTO', label: 'Crypto Wallet' },
     { value: 'DATE_TIME', label: 'Date/Time' },
@@ -25,7 +23,7 @@ const presidioOptions: OptionType[] = [
     { value: 'NO_FODSELSNUMMER', label: 'Norwegian ID' },
 ];
 
-// New Gliner ML entity options
+// Gliner ML entity options
 const glinerOptions: OptionType[] = [
     { value: 'PERSON', label: 'Person' },
     { value: 'BOOK', label: 'Book' },
@@ -58,10 +56,9 @@ const glinerOptions: OptionType[] = [
     { value: 'BLOOD_TYPE', label: 'Blood Type' },
     { value: 'CVV', label: 'CVV' },
     { value: 'CVC', label: 'CVC' },
-
 ];
 
-// Gemini AI entity options (renamed from aiOptions)
+// Gemini AI entity options
 const geminiOptions: OptionType[] = [
     { value: 'PHONE', label: 'Phone' },
     { value: 'EMAIL', label: 'Email' },
@@ -110,25 +107,50 @@ const EntityDetectionSidebar: React.FC = () => {
     const { loading, error, runDetectAi, runDetectMl, runDetectGliner } = usePDFApi();
 
     const [isDetecting, setIsDetecting] = useState(false);
-    const [lastDetectionId, setLastDetectionId] = useState<string | null>(null);
+
+    // Use a ref to track the detection id and processing state to avoid infinite loops
+    const detectionIdRef = useRef<string | null>(null);
+    const isProcessingRef = useRef<boolean>(false);
+
+    // Helper function to get color based on the model using the user's custom colors
+    const getColorForModel = useCallback((model: string): string => {
+        switch (model.toLowerCase()) {
+            case 'presidio':
+                return presidioColor;
+            case 'gliner':
+                return glinerColor;
+            case 'gemini':
+                return geminiColor;
+            default:
+                return glinerColor; // Default color
+        }
+    }, [presidioColor, glinerColor, geminiColor]);
 
     // This useEffect will convert detection mapping to highlight annotations
-    // whenever the detection mapping changes
+    // using a more stable approach to prevent infinite loops
     useEffect(() => {
-        if (!detectionMapping || !detectionMapping.pages || detectionMapping.pages.length === 0) {
+        // Skip if no mapping or if already processing
+        if (!detectionMapping || !detectionMapping.pages || detectionMapping.pages.length === 0 || isProcessingRef.current) {
             return;
         }
 
-        // Generate a unique ID for this detection batch
-        const currentDetectionId = `detection-${Date.now()}`;
-        setLastDetectionId(currentDetectionId);
-
-        // First, clear existing entity highlights only if this is a new detection
-        if (lastDetectionId !== currentDetectionId) {
-            clearAnnotationsByType(HighlightType.ENTITY);
+        // Early return if no real changes to handle
+        if (detectionMapping.pages.every(page => !page.sensitive || page.sensitive.length === 0)) {
+            return;
         }
 
-        // Convert detection results to highlights
+        // Generate a unique ID for this detection batch if needed
+        if (!detectionIdRef.current) {
+            detectionIdRef.current = `detection-${Date.now()}`;
+        }
+
+        // Set processing flag
+        isProcessingRef.current = true;
+
+        // Clear existing entity highlights only if this is a new batch of detection results
+        clearAnnotationsByType(HighlightType.ENTITY);
+
+        // Process each page's entities
         detectionMapping.pages.forEach(page => {
             const pageNumber = page.page;
 
@@ -156,28 +178,20 @@ const EntityDetectionSidebar: React.FC = () => {
                 });
             }
         });
-    }, [detectionMapping, addAnnotation, clearAnnotationsByType, getNextHighlightId, lastDetectionId]);
 
-    // Helper function to get color based on the model using the user's custom colors
-    const getColorForModel = (model: string): string => {
-        switch (model.toLowerCase()) {
-            case 'presidio':
-                return presidioColor;
-            case 'gliner':
-                return glinerColor;
-            case 'gemini':
-                return geminiColor;
-            default:
-                return glinerColor; // Default color
-        }
-    };
+        // Reset processing flag when done
+        isProcessingRef.current = false;
+    }, [detectionMapping, addAnnotation, clearAnnotationsByType, getNextHighlightId, getColorForModel]);
 
     // Run detection with selected entities
-    const handleDetect = async () => {
+    const handleDetect = useCallback(async () => {
         if (!file) return;
 
         try {
             setIsDetecting(true);
+
+            // Reset the detection ID to force a fresh batch
+            detectionIdRef.current = null;
 
             // Clear existing entity highlights
             clearAnnotationsByType(HighlightType.ENTITY);
@@ -188,54 +202,53 @@ const EntityDetectionSidebar: React.FC = () => {
 
             // Run AI detection if entities are selected
             if (selectedAiEntities.length > 0) {
-                console.log('Running Gemini AI detection with entities:', selectedAiEntities.map(e => e.value));
                 mappingAi = await runDetectAi(file, selectedAiEntities.map(e => e.value));
-                console.log('Gemini AI detection mapping:', mappingAi);
 
                 // Mark these entities as from Gemini
                 if (mappingAi?.pages) {
                     mappingAi.pages.forEach(page => {
-                        page.sensitive.forEach(entity => {
-                            entity.model = 'gemini';
-                        });
+                        if (page.sensitive) {
+                            page.sensitive.forEach((entity: any) => {
+                                entity.model = 'gemini';
+                            });
+                        }
                     });
                 }
             }
 
             // Run Presidio ML detection if entities are selected
             if (selectedMlEntities.length > 0) {
-                console.log('Running Presidio ML detection with entities:', selectedMlEntities.map(e => e.value));
                 mappingMl = await runDetectMl(file, selectedMlEntities.map(e => e.value));
-                console.log('Presidio ML detection mapping:', mappingMl);
 
                 // Mark these entities as from Presidio
                 if (mappingMl?.pages) {
                     mappingMl.pages.forEach(page => {
-                        page.sensitive.forEach(entity => {
-                            entity.model = 'presidio';
-                        });
+                        if (page.sensitive) {
+                            page.sensitive.forEach((entity: any) => {
+                                entity.model = 'presidio';
+                            });
+                        }
                     });
                 }
             }
 
             // Run Gliner ML detection if entities are selected
             if (selectedGlinerEntities.length > 0) {
-                console.log('Running Gliner ML detection with entities:', selectedGlinerEntities.map(e => e.value));
                 mappingGliner = await runDetectGliner(file, selectedGlinerEntities.map(e => e.label.toLowerCase()));
-                console.log('Gliner ML detection mapping:', mappingGliner);
 
                 // Mark these entities as from Gliner
                 if (mappingGliner?.pages) {
                     mappingGliner.pages.forEach(page => {
-                        page.sensitive.forEach(entity => {
-                            entity.model = 'gliner';
-                        });
+                        if (page.sensitive) {
+                            page.sensitive.forEach((entity: any) => {
+                                entity.model = 'gliner';
+                            });
+                        }
                     });
                 }
             }
 
-            // We'll set a fresh detection mapping to trigger the useEffect
-            // that will convert these to highlights
+            // Create a fresh detection mapping to trigger the useEffect safely
             const newMapping = { pages: [] as any[] };
 
             // Function to add pages from a detection result
@@ -260,33 +273,44 @@ const EntityDetectionSidebar: React.FC = () => {
             addPagesToMerged(mappingGliner);
             addPagesToMerged(mappingAi);
 
-            // Update detection mapping - this will trigger the useEffect
-            // to create highlights
-            setDetectionMapping(newMapping);
-            console.log('New detection mapping:', newMapping);
+            // Update detection mapping only if we have results
+            if (newMapping.pages.length > 0) {
+                setDetectionMapping(newMapping);
+            }
         } catch (error) {
             console.error('Error during entity detection:', error);
             alert('An error occurred during entity detection. Please try again.');
         } finally {
             setIsDetecting(false);
         }
-    };
+    }, [
+        file,
+        selectedAiEntities,
+        selectedMlEntities,
+        selectedGlinerEntities,
+        runDetectAi,
+        runDetectMl,
+        runDetectGliner,
+        clearAnnotationsByType,
+        setDetectionMapping
+    ]);
 
     // Reset selected entities and clear detection results
-    const handleReset = () => {
+    const handleReset = useCallback(() => {
         setSelectedAiEntities([]);
         setSelectedMlEntities([]);
         setSelectedGlinerEntities([]);
         setDetectionMapping(null);
         clearAnnotationsByType(HighlightType.ENTITY);
-    };
+        detectionIdRef.current = null;
+    }, [setSelectedAiEntities, setSelectedMlEntities, setDetectionMapping, clearAnnotationsByType]);
 
     // Reset highlight colors to defaults
-    const handleResetColors = () => {
+    const handleResetColors = useCallback(() => {
         setPresidioColor('#ffd771');
         setGlinerColor('#ff7171');
         setGeminiColor('#7171ff');
-    };
+    }, []);
 
     return (
         <div className="entity-detection-sidebar">
@@ -343,7 +367,7 @@ const EntityDetectionSidebar: React.FC = () => {
                     />
                 </div>
 
-                {/* New section for highlight color customization */}
+                {/* Highlight color customization section */}
                 <div className="sidebar-section">
                     <h4>Highlight Colors</h4>
                     <div className="color-picker-section">
