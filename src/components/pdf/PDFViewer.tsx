@@ -438,7 +438,7 @@ const PDFViewer: React.FC = () => {
     const toggleDebug = () => setDebugMode(!debugMode);
 
     return (
-        <div className= { theme  === 'dark' ? 'pdf-dark-mode' : 'pdf-light-mode'  } ref={mainContainerRef} >
+        <div className= { "pdf-viewer-container" } ref={mainContainerRef} >
             <button
                 onClick={toggleDebug}
                 style={{position: 'absolute', top: 10, right: 10, zIndex: 9999}}
@@ -454,7 +454,7 @@ const PDFViewer: React.FC = () => {
                 className="pdf-document"
                 loading={<div>Loading PDF...</div>}
                 error={<div>Error loading PDF.</div>}
-                
+
             >
                 {Array.from(new Array(numPages), (_, i) => (
                     <div

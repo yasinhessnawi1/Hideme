@@ -41,11 +41,86 @@ including entity detection, redaction, and search.
     padding: var(--spacing-md) var(--spacing-lg);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-sm);
     scrollbar-width: thin;
     scrollbar-color: var(--button-border) var(--sidebar-bg);
 }
 
+
+/*
+==============================================
+COLOR PICKER STYLES
+==============================================
+Add these styles to the end of your SettingsSidebar.css file
+*/
+
+.color-picker-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.color-picker-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-md);
+    transition: all 0.2s ease;
+}
+
+.color-picker-item:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
+
+.color-picker-item label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--foreground);
+}
+
+.color-picker-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.color-picker-input {
+    width: 40px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    background-color: transparent;
+}
+
+.color-picker-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.color-picker-input::-webkit-color-swatch {
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-sm);
+}
+
+.color-preview {
+    width: 24px;
+    height: 24px;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border);
+}
+
+.reset-colors-button {
+    margin-top: var(--spacing-sm);
+    width: 100%;
+    font-size: var(--font-size-xs);
+}
 .sidebar-content::-webkit-scrollbar {
     width: 6px;
 }
@@ -66,7 +141,7 @@ including entity detection, redaction, and search.
 }
 
 .sidebar-section {
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
     animation: fadeIn 0.3s ease forwards;
 }
 

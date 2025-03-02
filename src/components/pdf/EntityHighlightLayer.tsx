@@ -137,9 +137,9 @@ const EntityHighlightLayer: React.FC<EntityHighlightLayerProps> = ({
                 <div
                     className="highlight-tooltip entity-tooltip"
                     style={{
-                        position: 'fixed',
-                        left: hoveredAnnotation.position.x,
-                        top: hoveredAnnotation.position.y -30,
+                        position: 'absolute', // Changed from 'fixed' to 'absolute'
+                        left: hoveredAnnotation.annotation.x + (hoveredAnnotation.annotation.w / 2),
+                        top: hoveredAnnotation.annotation.y ,
                         pointerEvents: 'none',
                         transform: 'translateX(-50%)',
                         zIndex: 99999,

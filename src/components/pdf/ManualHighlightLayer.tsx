@@ -163,27 +163,27 @@ const ManualHighlightLayer: React.FC<ManualHighlightLayerProps> = ({
       ))}
 
       {hoveredAnnotation && (
-        <div
-          className="highlight-tooltip manual-tooltip"
-          style={{
-            position: 'fixed',
-            left: hoveredAnnotation.position.x,
-            top: hoveredAnnotation.position.y - 30,
-            pointerEvents: 'none',
-            transform: 'translateX(-50%)',
-            zIndex: 99999,
-            background: 'rgba(0,0,0,0.8)',
-            color: '#fff',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            fontSize: '12px',
-            boxSizing: 'border-box'
-          }}
-        >
-          {hoveredAnnotation.annotation.text
-            ? `Highlight: "${hoveredAnnotation.annotation.text}"`
-            : 'Manual highlight'}
-        </div>
+          <div
+              className="highlight-tooltip manual-tooltip"
+              style={{
+                position: 'absolute', // Changed from 'fixed' to 'absolute'
+                left: hoveredAnnotation.annotation.x + (hoveredAnnotation.annotation.w / 2),
+                top: hoveredAnnotation.annotation.y ,
+                pointerEvents: 'none',
+                transform: 'translateX(-50%)',
+                zIndex: 99999,
+                background: 'rgba(0,0,0,0.8)',
+                color: '#fff',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                boxSizing: 'border-box'
+              }}
+          >
+            {hoveredAnnotation.annotation.text
+                ? `Highlight: "${hoveredAnnotation.annotation.text}"`
+                : 'Manual highlight'}
+          </div>
       )}
     </div>
   );

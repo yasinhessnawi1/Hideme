@@ -81,7 +81,8 @@ including the sidebars, content areas, and responsive behavior.
 /* Tab content */
 .tabs-content {
     flex: 1;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     position: relative;
 }
 

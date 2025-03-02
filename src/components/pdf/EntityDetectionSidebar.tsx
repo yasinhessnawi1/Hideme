@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import Select from 'react-select';
 import { usePDFContext, OptionType } from '../../contexts/PDFContext';
-import { useHighlightContext, HighlightType } from '../../contexts/HighlightContext';
+import { useHighlightContext, HighlightType, HighlightRect } from '../../contexts/HighlightContext';
 import { usePDFApi } from '../../hooks/usePDFApi';
 import '../../styles/pdf/SettingsSidebar.css';
+
+
 
 // Presidio ML entity options (renamed from mlOptions)
 const presidioOptions: OptionType[] = [
@@ -38,7 +40,7 @@ const glinerOptions: OptionType[] = [
     { value: 'EMAIL', label: 'Email' },
     { value: 'CREDIT_CARD_NUMBER', label: 'Credit Card Number' },
     { value: 'SOCIAL_SECURITY_NUMBER', label: 'Social Security Number' },
-    { value: 'HEALTH_INSURANCE_ID_NUMBER', label: 'Health Insurance ID' },
+    { value: 'HEALTH_INSURANCE_ID_NUMBER', label: 'Health Insurance ID number' },
     { value: 'DATE_OF_BIRTH', label: 'Date of Birth' },
     { value: 'MOBILE_PHONE_NUMBER', label: 'Mobile Phone Number' },
     { value: 'BANK_ACCOUNT_NUMBER', label: 'Bank Account Number' },
@@ -93,14 +95,82 @@ const EntityDetectionSidebar: React.FC = () => {
     // Add state for Gliner entities
     const [selectedGlinerEntities, setSelectedGlinerEntities] = useState<OptionType[]>([]);
 
+    // Add state for customizable highlight colors
+    const [presidioColor, setPresidioColor] = useState('#ffd771');
+    const [glinerColor, setGlinerColor] = useState('#ff7171');
+    const [geminiColor, setGeminiColor] = useState('#7171ff');
+
     const {
-        clearAnnotationsByType
+        clearAnnotationsByType,
+        addAnnotation,
+        getNextHighlightId
     } = useHighlightContext();
 
     // Update API hook to include new model
     const { loading, error, runDetectAi, runDetectMl, runDetectGliner } = usePDFApi();
 
     const [isDetecting, setIsDetecting] = useState(false);
+    const [lastDetectionId, setLastDetectionId] = useState<string | null>(null);
+
+    // This useEffect will convert detection mapping to highlight annotations
+    // whenever the detection mapping changes
+    useEffect(() => {
+        if (!detectionMapping || !detectionMapping.pages || detectionMapping.pages.length === 0) {
+            return;
+        }
+
+        // Generate a unique ID for this detection batch
+        const currentDetectionId = `detection-${Date.now()}`;
+        setLastDetectionId(currentDetectionId);
+
+        // First, clear existing entity highlights only if this is a new detection
+        if (lastDetectionId !== currentDetectionId) {
+            clearAnnotationsByType(HighlightType.ENTITY);
+        }
+
+        // Convert detection results to highlights
+        detectionMapping.pages.forEach(page => {
+            const pageNumber = page.page;
+
+            if (page.sensitive && Array.isArray(page.sensitive)) {
+                page.sensitive.forEach(entity => {
+                    if (entity.bbox) {
+                        // Create a highlight rect from the entity
+                        const highlight: HighlightRect = {
+                            id: getNextHighlightId(),
+                            page: pageNumber,
+                            x: entity.bbox.x0 || 0,
+                            y: entity.bbox.y0 || 0,
+                            w: (entity.bbox.x1 || 0) - (entity.bbox.x0 || 0),
+                            h: (entity.bbox.y1 || 0) - (entity.bbox.y0 || 0),
+                            color: getColorForModel(entity.model || 'default'),
+                            opacity: 0.4,
+                            type: HighlightType.ENTITY,
+                            entity: entity.entity_type || 'Unknown',
+                            text: entity.content || '',
+                        };
+
+                        // Add the highlight to the HighlightContext
+                        addAnnotation(pageNumber, highlight);
+                    }
+                });
+            }
+        });
+    }, [detectionMapping, addAnnotation, clearAnnotationsByType, getNextHighlightId, lastDetectionId]);
+
+    // Helper function to get color based on the model using the user's custom colors
+    const getColorForModel = (model: string): string => {
+        switch (model.toLowerCase()) {
+            case 'presidio':
+                return presidioColor;
+            case 'gliner':
+                return glinerColor;
+            case 'gemini':
+                return geminiColor;
+            default:
+                return glinerColor; // Default color
+        }
+    };
 
     // Run detection with selected entities
     const handleDetect = async () => {
@@ -164,11 +234,12 @@ const EntityDetectionSidebar: React.FC = () => {
                 }
             }
 
-            // Merge results from all detection methods
-            let mergedMapping = { pages: [] as any[] };
+            // We'll set a fresh detection mapping to trigger the useEffect
+            // that will convert these to highlights
+            const newMapping = { pages: [] as any[] };
 
             // Function to add pages from a detection result
-            const addPagesToMerged = (mapping: any, modelName: string) => {
+            const addPagesToMerged = (mapping: any) => {
                 if (!mapping) return;
 
                 let pages = [];
@@ -180,18 +251,19 @@ const EntityDetectionSidebar: React.FC = () => {
 
                 // Add to merged pages
                 if (pages.length > 0) {
-                    mergedMapping.pages = mergedMapping.pages.concat(pages);
+                    newMapping.pages = newMapping.pages.concat(pages);
                 }
             };
 
             // Add pages from each detection method
-            addPagesToMerged(mappingMl, 'presidio');
-            addPagesToMerged(mappingGliner, 'gliner');
-            addPagesToMerged(mappingAi, 'gemini');
+            addPagesToMerged(mappingMl);
+            addPagesToMerged(mappingGliner);
+            addPagesToMerged(mappingAi);
 
-            // Update detection mapping
-            setDetectionMapping(mergedMapping);
-            console.log('Merged detection mapping:', mergedMapping);
+            // Update detection mapping - this will trigger the useEffect
+            // to create highlights
+            setDetectionMapping(newMapping);
+            console.log('New detection mapping:', newMapping);
         } catch (error) {
             console.error('Error during entity detection:', error);
             alert('An error occurred during entity detection. Please try again.');
@@ -207,6 +279,13 @@ const EntityDetectionSidebar: React.FC = () => {
         setSelectedGlinerEntities([]);
         setDetectionMapping(null);
         clearAnnotationsByType(HighlightType.ENTITY);
+    };
+
+    // Reset highlight colors to defaults
+    const handleResetColors = () => {
+        setPresidioColor('#ffd771');
+        setGlinerColor('#ff7171');
+        setGeminiColor('#7171ff');
     };
 
     return (
@@ -245,7 +324,6 @@ const EntityDetectionSidebar: React.FC = () => {
                         isDisabled={isDetecting}
                         closeMenuOnSelect={false}
                         menuPortalTarget={document.body}
-
                     />
                 </div>
 
@@ -263,6 +341,60 @@ const EntityDetectionSidebar: React.FC = () => {
                         closeMenuOnSelect={false}
                         menuPortalTarget={document.body}
                     />
+                </div>
+
+                {/* New section for highlight color customization */}
+                <div className="sidebar-section">
+                    <h4>Highlight Colors</h4>
+                    <div className="color-picker-section">
+                        <div className="color-picker-item">
+                            <label htmlFor="presidio-color">Presidio:</label>
+                            <div className="color-picker-input-wrapper">
+                                <input
+                                    type="color"
+                                    id="presidio-color"
+                                    value={presidioColor}
+                                    onChange={(e) => setPresidioColor(e.target.value)}
+                                    className="color-picker-input"
+                                />
+                                <div className="color-preview" style={{ backgroundColor: presidioColor }}></div>
+                            </div>
+                        </div>
+
+                        <div className="color-picker-item">
+                            <label htmlFor="gliner-color">Gliner:</label>
+                            <div className="color-picker-input-wrapper">
+                                <input
+                                    type="color"
+                                    id="gliner-color"
+                                    value={glinerColor}
+                                    onChange={(e) => setGlinerColor(e.target.value)}
+                                    className="color-picker-input"
+                                />
+                                <div className="color-preview" style={{ backgroundColor: glinerColor }}></div>
+                            </div>
+                        </div>
+
+                        <div className="color-picker-item">
+                            <label htmlFor="gemini-color">Gemini:</label>
+                            <div className="color-picker-input-wrapper">
+                                <input
+                                    type="color"
+                                    id="gemini-color"
+                                    value={geminiColor}
+                                    onChange={(e) => setGeminiColor(e.target.value)}
+                                    className="color-picker-input"
+                                />
+                                <div className="color-preview" style={{ backgroundColor: geminiColor }}></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        className="sidebar-button secondary-button reset-colors-button"
+                        onClick={handleResetColors}
+                    >
+                        Reset Colors
+                    </button>
                 </div>
 
                 <div className="sidebar-section button-group">
