@@ -1,79 +1,80 @@
-/**
- * LoginPage.tsx
- * -------------------------------------
- * Renders the main layout for the login or sign-up page,
- * containing the LoginForm component and any additional text or images.
- * 
- * The page toggles between Login and Sign-Up modes based on `isSignUp` state.
- * Additional fields (Full Name, Confirm Password) appear in Sign-Up mode.
- * 
- * The top margin is adjusted using inline style on .login-terms 
- * or other methods in the CSS to maintain consistent spacing.
- */
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/login/LoginPage.css';
 import LoginForm from '../components/forms/LoginForm';
+import login_video from '../assets/login-video.mp4';
+import { useSearchParams, useLocation } from 'react-router-dom';
 
-/**
- * LoginPage component – Displays a two-column layout with a form on the left
- * and an image on the right. Toggles between Login and Sign-Up modes.
- * 
- * @returns {JSX.Element} The LoginPage layout.
- */
-const LoginPage: React.FC = () => {
+interface LoginPageProps {
+  initialSignUp?: boolean;
+}
+
+const LoginPage: React.FC<LoginPageProps> = ({ initialSignUp = false }) => {
+  // Get URL parameters
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+
   // State to toggle between login and sign-up modes
-  const [isSignUp, setIsSignUp] = useState<boolean>(false);
+  const [isSignUp, setIsSignUp] = useState<boolean>(initialSignUp);
   const [fullName, setFullName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
 
-  return (
-    <div className="login-page">
-      {/* Left section: contains the form and related text */}
-      <div className="login-left">
-        <div className="login-container">
-          <h1 className="login-title">HIDE ME</h1>
-          {/* Subtitle changes based on mode */}
-          <p className="login-subtitle">
-            {isSignUp ? 'Create an Account' : 'Login To Your Account'}
-          </p>
+  // Check for signUp parameter in URL or state passed via navigation
+  useEffect(() => {
+    // Check URL parameter
+    const signUpParam = searchParams.get('signup');
 
-          <LoginForm
-            isSignUp={isSignUp}
-            setIsSignUp={setIsSignUp}
-            fullName={fullName}
-            setFullName={setFullName}
-            email={email}
-            setEmail={setEmail}
-            password={password}
-            setPassword={setPassword}
-            confirmPassword={confirmPassword}
-            setConfirmPassword={setConfirmPassword}
-          />
+    // Check location state if using React Router's state
+    const locationState = location.state as { isSignUp?: boolean } | null;
+
+    if (signUpParam === 'true') {
+      setIsSignUp(true);
+    } else if (locationState?.isSignUp) {
+      setIsSignUp(true);
+    } else if (initialSignUp) {
+      setIsSignUp(true);
+    }
+  }, [searchParams, location, initialSignUp]);
+
+  return (
+      <div className="login-page">
+        {/* Left section: contains the form and related text */}
+        <div className="login-left">
+          <div className="login-container">
+            <h1 className="login-title">HIDE ME</h1>
+            {/* Subtitle changes based on mode */}
+            <p className="login-subtitle">
+              {isSignUp ? 'Create an Account' : 'Login To Your Account'}
+            </p>
+
+            <LoginForm
+                isSignUp={isSignUp}
+                setIsSignUp={setIsSignUp}
+                fullName={fullName}
+                setFullName={setFullName}
+                email={email}
+                setEmail={setEmail}
+                password={password}
+                setPassword={setPassword}
+                confirmPassword={confirmPassword}
+                setConfirmPassword={setConfirmPassword}
+            />
+          </div>
         </div>
 
-        {/* Add extra margin-top when in sign-up mode if needed */}
-        <p
-          className="login-terms"
-          style={{ marginTop: isSignUp ? '-3rem' : '0' }}
-        >
-          By clicking continue, you agree to our{' '}
-          <a href="#">Terms of Service</a> and{' '}
-          <a href="#">Privacy Policy</a>.
-        </p>
+        {/* Right section: video */}
+        <div className="login-right">
+          <video
+              src={login_video}
+              className="login-image"
+              autoPlay={true}
+              loop={true}
+              muted={true}
+              playsInline={true}
+          />
+        </div>
       </div>
-
-      {/* Right section: image */}
-      <div className="login-right">
-        <img
-          src="src/assets/loginImage.png"
-          alt="Login"
-          className="login-image"
-        />
-      </div>
-    </div>
   );
 };
 

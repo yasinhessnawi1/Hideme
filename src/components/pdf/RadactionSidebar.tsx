@@ -3,7 +3,7 @@ import { usePDFContext, RedactionMapping } from '../../contexts/PDFContext';
 import { useHighlightContext, HighlightType } from '../../contexts/HighlightContext';
 import { usePDFApi } from '../../hooks/usePDFApi';
 import { createFullRedactionMapping, getRedactionStatistics } from '../../utils/redactionUtils';
-import '../../styles/pdf/RedactionSidebar.css';
+import '../../styles/pdf/SettingsSidebar.css';
 
 const RedactionSidebar: React.FC = () => {
     const {

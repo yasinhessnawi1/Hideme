@@ -37,7 +37,7 @@
         --background: var(--dark-background);
         --foreground: var(--dark-foreground);
         --primary: var(--dark-primary);
-        --primary-hover: var(--dark-primary-hover);
+        --primary-hover: var(--ligh-button-hover);
         --secondary: var(--dark-secondary);
         --muted: var(--dark-muted);
         --accent: var(--dark-accent);

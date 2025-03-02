@@ -436,7 +436,7 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
                 <button
                     onClick={handleZoomOut}
                     className="toolbar-button"
-                    title="Zoom Out"
+                    title="Zoom Out (zooming desterbes teh highlitng!)"
                     disabled={zoomLevel <= 0.5}
                 >
                     <FaSearchMinus/>
@@ -447,7 +447,7 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
                 <button
                     onClick={handleZoomIn}
                     className="toolbar-button"
-                    title="Zoom In"
+                    title="Zoom In (zooming desterbes teh highlitng!)"
                     disabled={zoomLevel >= 3.0}
                 >
                     <FaSearchPlus/>

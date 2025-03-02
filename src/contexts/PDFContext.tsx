@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
-import { HighlightRect } from './HighlightContext';
 
 export interface OptionType {
     value: string;

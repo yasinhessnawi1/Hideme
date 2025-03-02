@@ -22,10 +22,10 @@ export default function Navbar({ theme, toggleTheme }: Readonly<NavbarProps>) {
                 <span className="logo-text">HIDE ME</span>
             </Link>
 
-            <div className="nav-links">
-                <NavLink to="/features">Features</NavLink>
-                <NavLink to="/how-it-works">How it Works</NavLink>
-                <NavLink to="/About">About</NavLink>
+            <div className="nav-links" onClick={() => alert("The functionality is not implemented yet!")}>
+                <NavLink to={"#"} >Features</NavLink>
+                <NavLink to="#">How it Works</NavLink>
+                <NavLink to="#">About</NavLink>
             </div>
 
             <div className="auth-buttons">
@@ -46,6 +46,7 @@ export default function Navbar({ theme, toggleTheme }: Readonly<NavbarProps>) {
                     borderRadius="100px"
                     shimmerDuration="5s"
                     background="rgb(18,143,217)"
+                    onClick={() => navigate("/signup")}
                 >
                     <span>Get Started</span>
                 </Button>

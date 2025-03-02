@@ -39,12 +39,12 @@ export default function Hero() {
                         className="hero-buttons"
                     >
                         <Button className="Sign-in-button" shimmerColor={"#ffffff"} borderRadius={"100px"}
-                                shimmerDuration={"5s"} background={"rgb(18,143,217)"}>
+                                shimmerDuration={"5s"} background={"rgb(18,143,217)"} onClick={() => alert("The functionality is not implemented yet!")}>
                             <FileText className="btn-icon" />
                             <span>Upload File </span></Button>
 
                         <Button className="Sign-in-button" shimmerColor={"#ffffff"} borderRadius={"100px"}
-                                shimmerDuration={"5s"} background={"rgb(18,143,217)"}>
+                                shimmerDuration={"5s"} background={"rgb(18,143,217)"} onClick={() => alert("The functionality is not implemented yet!")}>
                             <Sparkles className="btn-icon" />
                             <span> See Examples </span></Button>
                     </motion.div>
