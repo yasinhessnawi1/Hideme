@@ -94,7 +94,7 @@ including animations, hover effects, and resizing functionality.
 
 /* Scrollable container for thumbnails */
 .thumbnails-container {
-    height: calc(100% - 70px); /* Adjust based on header height */
+    height: 100%;
     padding: var(--spacing-md);
     overflow-y: auto;
     scrollbar-width: thin;

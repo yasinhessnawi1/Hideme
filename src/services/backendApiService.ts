@@ -2,7 +2,8 @@ import { RedactionMapping } from '../contexts/PDFContext';
 import {ExtracteText} from "../types/pdfTypes";
 
 // Base API URL - modify to match your actual backend API endpoint
-const API_BASE_URL = 'https://api.hidemeai.com';
+//const API_BASE_URL = 'https://api.hidemeai.com';
+const API_BASE_URL = 'http://localhost:8000';
 
 /**
  * Calls the AI-based entity detection API endpoint.

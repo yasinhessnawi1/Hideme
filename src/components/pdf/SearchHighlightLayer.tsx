@@ -151,9 +151,9 @@ const SearchHighlightLayer: React.FC<SearchHighlightLayerProps> = ({
                 <div
                     className="highlight-tooltip search-tooltip"
                     style={{
-                        position: 'fixed', // for stable tooltip positioning
-                        left: hoveredAnnotation.position.x,
-                        top: hoveredAnnotation.position.y - 30,
+                        position: 'absolute', // Changed from 'fixed' to 'absolute'
+                        left: hoveredAnnotation.annotation.x + (hoveredAnnotation.annotation.w / 2),
+                        top: hoveredAnnotation.annotation.y,
                         pointerEvents: 'none',
                         transform: 'translateX(-50%)',
                         zIndex: 99999,
@@ -168,6 +168,7 @@ const SearchHighlightLayer: React.FC<SearchHighlightLayerProps> = ({
                         ? `Search: "${hoveredAnnotation.annotation.text}"`
                         : 'Search match'}
                 </div>
+
             )}
         </div>
     );
