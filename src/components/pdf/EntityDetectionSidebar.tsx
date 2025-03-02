@@ -3,7 +3,7 @@ import Select from 'react-select';
 import { usePDFContext, OptionType } from '../../contexts/PDFContext';
 import { useHighlightContext, HighlightType } from '../../contexts/HighlightContext';
 import { usePDFApi } from '../../hooks/usePDFApi';
-import '../../styles/pdf/EntityDetectionSidebar.css';
+import '../../styles/pdf/SettingsSidebar.css';
 
 // Presidio ML entity options (renamed from mlOptions)
 const presidioOptions: OptionType[] = [

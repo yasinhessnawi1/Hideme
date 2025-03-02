@@ -1,36 +1,65 @@
+/*
+==============================================
+PDF VIEWER STYLES
+==============================================
+These styles control the main PDF viewer container and pages
+*/
+
 /* PDF Viewer container */
 .pdf-viewer-container {
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: #f0f0f0;
-    padding: 20px;
+    scrollbar-color: var(--button-border) var(--sidebar-bg);
+    background-color: var(--viewer-bg);
+    padding: var(--spacing-md);
     box-sizing: border-box;
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
+    justify-content: flex-start;
+    transition: background-color var(--transition-speed) var(--transition-function);
+}
+.pdf-dark-mode .react-pdf__Page__canvas {
+    filter: invert(1) hue-rotate(180deg);
 }
 
-/* Empty state */
+.pdf-dark-mode .react-pdf__Page__textContent {
+    color: #ffffff !important;
+}
+
+/* Empty state with animation */
 .pdf-viewer-empty {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100%;
-    color: #666;
-    font-size: 16px;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-md);
+    text-align: center;
+    padding: var(--spacing-xl);
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.pdf-viewer-empty svg {
+    margin-bottom: var(--spacing-md);
+    color: var(--primary);
+    opacity: 0.7;
+    animation: float 6s ease-in-out infinite;
 }
 
 /* Loading and error states */
 .pdf-loading, .pdf-error {
-    padding: 20px;
+    padding: var(--spacing-lg);
     text-align: center;
-    color: #666;
+    color: var(--muted-foreground);
+    animation: pulse 2s infinite;
 }
 
 .pdf-error {
-    color: #d32f2f;
+    color: var(--destructive);
 }
 
 /* Document container */
@@ -39,22 +68,34 @@
     flex-direction: column;
     align-items: center;
     width: 100%;
+    padding-bottom: var(--spacing-lg);
+}
+.react-pdf__Page {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    display: block;
+    width: auto !important;
+    height: auto !important;
 }
 
 /* Page wrapper */
 .pdf-page-wrapper {
-    margin: 20px 0;
+    margin: var(--spacing-md) 0;
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     background-color: white;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-md);
     width: fit-content;
+    transition: all 0.3s ease;
+    border-radius: var(--border-radius-sm);
 }
 
 .pdf-page-wrapper.active {
-    box-shadow: 0 0 0 2px #2196f3, 0 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 0 2px var(--primary), var(--shadow-lg);
+    transform: translateY(-2px);
 }
 
 /* Page content container - critical for proper positioning */
@@ -65,148 +106,25 @@
     height: auto;
 }
 
-/* Fix for the react-pdf Page component */
-.react-pdf__Page {
-    position: relative;
-    display: block;
-    margin: 0;
-    padding: 0;
-}
-
-.pdf-page {
-    display: block;
-}
-
-/* Essential styling for the canvas and text layer alignment */
-.react-pdf__Page__canvas {
-    display: block;
-    user-select: none;
-    position: relative !important;
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
-}
-
-.react-pdf__Page__textContent {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    z-index: 2;
-    transform: none !important;
-    pointer-events: none;
-}
-
-.react-pdf__Page__annotations {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    z-index: 3;
-}
-
-/* Highlight layers container */
-.highlight-layers-container {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    pointer-events: none;
-    z-index: 1000;
-    overflow: visible;
-}
-
-/* Common highlight layer styles */
-.highlight-layer,
-.search-highlight-layer,
-.entity-highlight-layer,
-.manual-highlight-layer {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    pointer-events: none;
-    overflow: hidden;
-}
-
-/* Highlight rectangle styles */
-.highlight-rect {
-    position: absolute;
-    box-sizing: border-box;
-    pointer-events: auto;
-    transition: opacity 0.2s ease, border 0.2s ease;
-    border-radius: 2px;
-}
-
-.highlight-rect:hover {
-    opacity: 0.6 !important;
-}
-
-.highlight-rect.selected {
-    border: 2px dashed #000 !important;
-    opacity: 0.7 !important;
-}
-
-/* Specific highlight types */
-.search-highlight {
-    background-color: rgba(255, 255, 0, 0.4) !important;
-    border: 1px solid rgba(0, 0, 0, 0.2) !important;
-}
-
-.entity-highlight {
-    background-color: rgba(135, 206, 250, 0.4) !important;
-    border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-.manual-highlight {
-    background-color: rgba(255, 0, 0, 0.3) !important;
-    border: 1px solid rgba(0, 0, 0, 0.2) !important;
-    border-radius: 3px;
-}
-
-/* Tooltip styles */
-.highlight-tooltip {
-    position: fixed;
-    transform: translateX(-50%);
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    pointer-events: none;
-    z-index: 99999;
-    white-space: nowrap;
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-/* Debug info */
-.debug-info {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 10;
-    pointer-events: none;
-}
-
 /* Page number indicator */
 .page-number-indicator {
     position: absolute;
     bottom: -20px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 2px 6px;
+    background-color: var(--foreground);
+    color: var(--background);
+    padding: 2px 8px;
     border-radius: 10px;
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     z-index: 5;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.pdf-page-wrapper:hover .page-number-indicator {
+    opacity: 0.8;
+    transform: translateX(-50%) translateY(-5px);
 }
 
 /* Selection overlay */
@@ -214,54 +132,40 @@
     position: absolute;
     pointer-events: none;
     z-index: 50;
-    border: 1px dashed rgba(0, 0, 0, 0.5);
+    border: 1px dashed var(--primary);
+    background-color: rgba(39, 171, 111, 0.2);
+    border-radius: var(--border-radius-sm);
 }
 
 /* Debug toggle button */
 .debug-toggle {
-    background-color: #f44336;
+    position: fixed;
+    top: var(--spacing-md);
+    right: var(--spacing-md);
+    background-color: var(--primary);
     color: white;
     border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
     cursor: pointer;
-    font-size: 12px;
+    font-size: var(--font-size-xs);
+    z-index: 9999;
+    transition: all 0.2s ease;
 }
 
-/* Z-index ordering for highlight layers */
-.search-highlight-layer {
-    z-index: 10000;
-}
-
-.entity-highlight-layer {
-    z-index: 10010;
-}
-
-.manual-highlight-layer {
-    z-index: 10020;
-}
-
-/* Factory container styling */
-.highlight-layer-factory {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-    pointer-events: none;
-    transform-origin: top left;
+.debug-toggle:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
 }
 
 /* Dark theme adjustments */
-.dark-theme .highlight-tooltip {
-    background-color: rgba(255, 255, 255, 0.9);
-    color: black;
+[data-theme="dark"] .pdf-page-wrapper {
+    background-color: #2d3748;
 }
 
-.dark-theme .page-number-indicator {
-    background-color: rgba(255, 255, 255, 0.7);
-    color: black;
+[data-theme="dark"] .page-number-indicator {
+    background-color: var(--foreground);
+    color: var(--background);
 }
 
 /* Media queries for responsive design */
@@ -271,6 +175,6 @@
     }
 
     .pdf-viewer-container {
-        padding: 10px;
+        padding: var(--spacing-sm);
     }
 }

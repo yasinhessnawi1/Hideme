@@ -3,7 +3,8 @@
     --radius: 100px;
     --speed: 3s;
     --cut: 0.05em;
-    --bg: rgb(134, 82, 82);
+    --shimmer-color: rgba(255, 255, 255, 0.4);
+    --bg: var(--primary);
 
     position: relative;
     z-index: 0;
@@ -15,15 +16,23 @@
     white-space: nowrap;
     border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 0.75rem 1.5rem;
-    color: white;
+    color: var(--foreground);
     background: var(--bg);
     border-radius: var(--radius);
     transform: translateZ(0);
-    transition: transform 300ms ease-in-out;
+    transition: transform 300ms ease-in-out, box-shadow 300ms ease-in-out, background-color 300ms ease-in-out;
+    font-weight: var(--font-weight-medium);
+}
+
+.shimmer-button:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    background-color: var(--primary-hover);
 }
 
 .shimmer-button:active {
     transform: translateY(1px);
+    box-shadow: var(--shadow-sm);
 }
 
 .shimmer-button__spark-container {
@@ -42,7 +51,7 @@
     aspect-ratio: 1;
     border-radius: 0;
     mask: none;
-    animation: shimmer-slide 3s linear infinite;
+    animation: shimmer-slide var(--speed) linear infinite;
 }
 
 .shimmer-button__spark::before {
@@ -65,10 +74,8 @@
     inset: 0;
     width: 100%;
     height: 100%;
-    border-radius: 1rem;
+    border-radius: var(--radius);
     padding: 0.25rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
     box-shadow: inset 0 -8px 10px rgba(255, 255, 255, 0.12);
     transform: translateZ(0);
     transition: all 300ms ease-in-out;
@@ -88,6 +95,11 @@
     background: var(--bg);
     border-radius: var(--radius);
     inset: var(--cut);
+    transition: background-color 300ms ease-in-out;
+}
+
+.shimmer-button:hover .shimmer-button__backdrop {
+    background-color: var(--primary-hover);
 }
 
 @keyframes shimmer-slide {
@@ -108,9 +120,30 @@
     }
 }
 
-@media (prefers-color-scheme: dark) {
-    .shimmer-button {
-        color: black;
-    }
+/* Variant: Secondary */
+.shimmer-button.secondary {
+    --bg: var(--background);
+    color: var(--foreground);
+    border: 1px solid var(--border);
 }
 
+.shimmer-button.secondary:hover {
+    background-color: var(--button-hover);
+}
+
+.shimmer-button.secondary .shimmer-button__backdrop {
+    background: var(--background);
+}
+
+.shimmer-button.secondary:hover .shimmer-button__backdrop {
+    background-color: var(--button-hover);
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .shimmer-button {
+    --shimmer-color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="dark"] .shimmer-button.secondary {
+    border-color: var(--dark-border);
+}

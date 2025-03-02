@@ -20,6 +20,7 @@ import {ManualHighlightManager} from '../../utils/ManualHighlightManager';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import '../../styles/pdf/PdfViewer.css';
+import useTheme from "../../hooks/useTheme";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
@@ -80,6 +81,7 @@ const PDFViewer: React.FC = () => {
 
     // Store data for each page
     const [pageData, setPageData] = useState<Map<number, PageData>>(new Map());
+    const {theme} = useTheme();
     const [processedSearchPages, setProcessedSearchPages] = useState<Set<number>>(new Set());
     const [processedEntityPages, setProcessedEntityPages] = useState<Set<number>>(new Set());
     const [extractedText, setExtractedText] = useState<ExtracteText>({pages: []});
@@ -436,7 +438,7 @@ const PDFViewer: React.FC = () => {
     const toggleDebug = () => setDebugMode(!debugMode);
 
     return (
-        <div className="pdf-viewer-container" ref={mainContainerRef}>
+        <div className= { theme  === 'dark' ? 'pdf-dark-mode' : 'pdf-light-mode'  } ref={mainContainerRef} >
             <button
                 onClick={toggleDebug}
                 style={{position: 'absolute', top: 10, right: 10, zIndex: 9999}}
@@ -452,6 +454,7 @@ const PDFViewer: React.FC = () => {
                 className="pdf-document"
                 loading={<div>Loading PDF...</div>}
                 error={<div>Error loading PDF.</div>}
+                
             >
                 {Array.from(new Array(numPages), (_, i) => (
                     <div

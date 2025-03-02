@@ -2,170 +2,123 @@
   1) Global Theme Variables
   -------------------------------------------------- */
 :root {
+  /* Color Palette - Base Colors */
+  --lime-green: #1cc780;
+  --dark-pastel-green: #070707;
+  --dark-pastel-green-2: #000000;
+  --jade: #27AB6F;
+  --persian-green: #1FA28B;
+  --blue-munsell: #1898A6;
+  --blue-ncs: #108FC2;
+
   /* Light Mode Colors */
   --light-background: #ffffff;
   --light-foreground: #1a202c;
-  --light-primary: #4c6ef5;
-  --light-primary-hover: #364fc7;
+  --light-primary: var(--jade);
+  --light-primary-hover: var(--dark-pastel-green-2);
   --light-secondary: #e2e8f0;
   --light-muted: #718096;
-  --light-accent: #3498db;
+  --light-accent: var(--blue-ncs);
   --light-border: #e2e8f0;
+  --ligh-button-hover: var(--lime-green);
 
   /* Dark Mode Colors */
   --dark-background: #15202B;
   --dark-foreground: #f0f0f0;
-  --dark-primary: #4c6ef5;
-  --dark-primary-hover: #364fc7;
+  --dark-primary: var(--jade);
+  --dark-primary-hover: var(--dark-pastel-green);
   --dark-secondary: #2c3e50;
   --dark-muted: #a0aec0;
-  --dark-accent: #3498db;
+  --dark-accent: var(--blue-ncs);
   --dark-border: #2d3748;
+  --dark-button-hover: var(--dark-primary-hover);
 
   /* Default to Light Mode Variables */
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  --background: var(--light-background);
+  --foreground: var(--light-foreground);
+  --card: var(--light-background);
+  --card-foreground: var(--light-foreground);
+  --popover: var(--light-background);
+  --popover-foreground: var(--light-foreground);
 
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --primary: var(--light-primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--light-secondary);
+  --secondary-foreground: var(--light-foreground);
+  --muted: var(--light-secondary);
+  --muted-foreground: var(--light-muted);
+  --accent: var(--light-accent);
+  --accent-foreground: #ffffff;
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
+  --destructive: #e53e3e;
+  --destructive-foreground: #ffffff;
 
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
+  --border: var(--light-border);
+  --input: var(--light-border);
+  --ring: var(--light-foreground);
 
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
-
-  --radius: 0.5rem;
-  --sidebar-width: 250px;
-  --right-sidebar-width: 320px;
-  --header-height: 60px;
-  --toolbar-height: 40px;
-  --sidebar-header-height: 40px;
-  --border-radius: 4px;
-  --transition-speed: 0.3s;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --accent-color: #3b82f6;
-  --accent-hover: #2563eb;
-  --muted-bg: rgba(0, 0, 0, 0.03);
-  --muted-bg-dark: rgba(255, 255, 255, 0.05);
-  --icon-size: 18px;
-  --upload-bg: #e5e5e5;
-
-
-  /* Primary colors */
-  --toolbar-bg: #ffffff;
-  --toolbar-border: #e0e0e0;
-  --toolbar-shadow: rgba(0, 0, 0, 0.08);
-
-  /* Button colors */
-  --button-bg: #f7f7f7;
-  --button-border: #e5e5e5;
-  --button-hover: #edf2fa;
-  --button-active: #e1ebfa;
-  --button-text: #444444;
-  --button-active-text: #1a73e8;
-
-  /* Active state */
-  --active-bg: #e8f0fe;
-  --active-border: #c6dafc;
-  --active-text: #1967d2;
-
-  /* Dropdown colors */
-  --dropdown-bg: #ffffff;
-  --dropdown-border: #e0e0e0;
-  --dropdown-shadow: rgba(0, 0, 0, 0.1);
-  --dropdown-hover: #f5f7fa;
-
-  /* Transitions */
-  --transition-function: cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Spacing */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 12px;
-  --spacing-lg: 16px;
-
-  /* Border radius */
-  --border-radius-sm: 4px;
-  --border-radius-md: 6px;
-
-  --primary-color: #1a73e8;
-  --primary-hover: #1765cc;
-  --primary-active: #135cbb;
-  --primary-light: #e8f0fe;
-  --secondary-color: #4f4f4f;
-  --success-color: #34a853;
-  --warning-color: #fbbc05;
-  --error-color: #ea4335;
-  --info-color: #4285f4;
-
-  /* Text colors */
-  --text-primary: #202124;
-  --text-secondary: #5f6368;
-  --text-tertiary: #80868b;
-  --text-disabled: #9aa0a6;
-  --text-inverse: #ffffff;
-
-  /* Background colors */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f9fa;
-  --bg-tertiary: #f1f3f4;
-  --bg-disabled: #dadce0;
-
-  /* Border colors */
-  --border-primary: #dadce0;
-  --border-secondary: #e8eaed;
-  --border-focus: #4285f4;
-
-  /* Component specific */
-
-
-
-  --viewer-bg: #f8f9fa;
-  --sidebar-bg: #ffffff;
-  --sidebar-border: #e0e0e0;
-
-  /* Spacing */
-  --spacing-xl: 24px;
-  --spacing-xxl: 32px;
-
-  /* Border radius */
-
-  --border-radius-lg: 8px;
-  --border-radius-xl: 12px;
-
-
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-
-  /* Font sizes */
-  --font-size-xs: 12px;
-  --font-size-sm: 14px;
-  --font-size-md: 16px;
-  --font-size-lg: 18px;
-  --font-size-xl: 20px;
-
-  /* Font weights */
+  /* Typography */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+
+  /* Layout & Spacing */
+  --radius: 0.5rem;
+  --sidebar-width: 250px;
+  --right-sidebar-width: 320px;
+  --header-height: 60px;
+  --toolbar-height: 60px;
+  --sidebar-header-height: 60px;
+  --border-radius: 4px;
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-xxl: 3rem;
+
+  /* Border Radius */
+  --border-radius-sm: 0.25rem;
+  --border-radius-md: 0.5rem;
+  --border-radius-lg: 0.75rem;
+  --border-radius-xl: 1rem;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  /* Effects & Transitions */
+  --transition-speed: 0.3s;
+  --transition-function: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* PDF Viewer Specific */
+  --toolbar-bg: var(--background);
+  --toolbar-border: var(--border);
+  --toolbar-shadow: rgba(0, 0, 0, 0.08);
+  --button-bg: rgba(0, 0, 0, 0.03);
+  --button-border: var(--border);
+  --button-hover: rgba(0, 0, 0, 0.05);
+  --button-active: rgba(0, 0, 0, 0.08);
+  --button-text: var(--foreground);
+  --button-active-text: var(--primary);
+  --active-bg: rgba(39, 171, 111, 0.1);
+  --active-border: var(--primary);
+  --active-text: var(--primary);
+  --dropdown-bg: var(--background);
+  --dropdown-border: var(--border);
+  --dropdown-shadow: rgba(0, 0, 0, 0.1);
+  --dropdown-hover: rgba(0, 0, 0, 0.03);
+  --viewer-bg: #f8f9fa;
+  --sidebar-bg: var(--background);
+  --sidebar-border: var(--border);
+  --upload-bg: #f5f5f5;
 }
 
 /*
@@ -175,57 +128,60 @@
 [data-theme="dark"] {
   --background: var(--dark-background);
   --foreground: var(--dark-foreground);
+  --card: var(--dark-background);
+  --card-foreground: var(--dark-foreground);
+  --popover: var(--dark-background);
+  --popover-foreground: var(--dark-foreground);
+
   --primary: var(--dark-primary);
-  --primary-hover: var(--dark-primary-hover);
+  --primary-foreground: #ffffff;
   --secondary: var(--dark-secondary);
-  --muted: var(--dark-muted);
+  --secondary-foreground: var(--dark-foreground);
+  --muted: var(--dark-secondary);
+  --muted-foreground: var(--dark-muted);
   --accent: var(--dark-accent);
+  --accent-foreground: #ffffff;
+
   --border: var(--dark-border);
+  --input: var(--dark-border);
+  --ring: var(--dark-foreground);
   --upload-bg: var(--dark-secondary);
-  /* Primary colors */
-  --toolbar-bg: #ffffff;
-  --toolbar-border: #e0e0e0;
-  --toolbar-shadow: rgba(0, 0, 0, 0.08);
 
-  /* Button colors */
-  --button-bg: #f7f7f7;
-  --button-border: #e5e5e5;
-  --button-hover: #edf2fa;
-  --button-active: #e1ebfa;
-  --button-text: #444444;
-  --button-active-text: #1a73e8;
-
-  /* Active state */
-  --active-bg: #e8f0fe;
-  --active-border: #c6dafc;
-  --active-text: #1967d2;
-
-  /* Dropdown colors */
-  --dropdown-bg: #ffffff;
-  --dropdown-border: #e0e0e0;
-  --dropdown-shadow: rgba(0, 0, 0, 0.1);
-  --dropdown-hover: #f5f7fa;
-
-  /* Transitions */
-  --transition-speed: 0.2s;
-  --transition-function: cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Spacing */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 12px;
-  --spacing-lg: 16px;
-
-  /* Border radius */
-  --border-radius-sm: 4px;
-  --border-radius-md: 6px;
-
-
+  /* PDF Viewer Specific - Dark Theme */
+  --toolbar-bg: var(--dark-background);
+  --toolbar-border: var(--dark-border);
+  --toolbar-shadow: rgba(0, 0, 0, 0.2);
+  --button-bg: rgba(255, 255, 255, 0.05);
+  --button-border: rgba(255, 255, 255, 0.1);
+  --button-hover: rgba(255, 255, 255, 0.1);
+  --button-active: rgba(255, 255, 255, 0.15);
+  --button-text: var(--dark-foreground);
+  --button-active-text: var(--primary);
+  --active-bg: rgba(39, 171, 111, 0.2);
+  --active-border: var(--primary);
+  --active-text: var(--primary);
+  --dropdown-bg: var(--dark-background);
+  --dropdown-border: var(--dark-border);
+  --dropdown-shadow: rgba(0, 0, 0, 0.4);
+  --dropdown-hover: rgba(255, 255, 255, 0.05);
+  --viewer-bg: #1a2634;
+  --sidebar-bg: var(--dark-background);
+  --sidebar-border: var(--dark-border);
 }
 
 /*
   3) Base Body Styles
   -------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
@@ -234,12 +190,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--background);
   color: var(--foreground);
+  transition: background-color var(--transition-speed) var(--transition-function),
+  color var(--transition-speed) var(--transition-function);
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 var(--spacing-md);
 }
 
 /*
@@ -257,20 +215,6 @@ body {
   }
 }
 
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.resizing {
-  user-select: none;
-  cursor: ew-resize !important;
-}
-
-.resizing * {
-  user-select: none !important;
-}
-
-/* Animation for page transitions */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -281,16 +225,37 @@ body {
   to { transform: translateX(0); opacity: 1; }
 }
 
-/* Add a subtle pulse animation for active elements */
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(var(--background), 0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(var(--dropdown-shadow), 0); }
-  100% { box-shadow: 0 0 0 0 rgba(var(--dropdown-bg), 0); }
+  0% { box-shadow: 0 0 0 0 rgba(39, 171, 111, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(39, 171, 111, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(39, 171, 111, 0); }
 }
 
-/* Helper to add this animation to active elements */
+@keyframes ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
 .pulse-animation {
   animation: pulse 2s infinite;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out forwards;
 }
 
 /* Transition helper classes */
@@ -306,9 +271,19 @@ body {
   transition: opacity var(--transition-speed) var(--transition-function);
 }
 
+/* Resizing utilities */
+.resizing {
+  user-select: none;
+  cursor: ew-resize !important;
+}
+
+.resizing * {
+  user-select: none !important;
+}
+
 /* Focus styles for better accessibility */
 :focus-visible {
-  outline: 2px solid var(--primary-color);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 

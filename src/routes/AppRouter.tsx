@@ -14,6 +14,7 @@ const AppRouter: React.FC<AppRouterProps> = ({ theme, toggleTheme }) => {
         <Routes>
             <Route path="/" element={<LandingPage theme={theme} toggleTheme={toggleTheme} />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<LoginPage initialSignUp={true} />} />
             <Route path="/playground" element={<PDFViewerPage  theme={theme} toggleTheme={toggleTheme}/>} />
             {/* Add more routes as needed */}
         </Routes>
