@@ -250,6 +250,7 @@ ENTITY DETECTION SIDEBAR STYLES
     border-radius: var(--border-radius-md) !important;
     box-shadow: var(--shadow-md) !important;
     z-index: 100;
+    scrollbar-color: var(--button-border) var(--sidebar-bg);
 }
 
 .select__option {

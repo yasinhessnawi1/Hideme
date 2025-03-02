@@ -7,7 +7,6 @@ import '../../styles/pdf/SettingsSidebar.css';
 
 // Presidio ML entity options (renamed from mlOptions)
 const presidioOptions: OptionType[] = [
-    { value: 'CREDIT_CARD', label: 'Credit Card' },
     { value: 'CRYPTO', label: 'Crypto Wallet' },
     { value: 'DATE_TIME', label: 'Date/Time' },
     { value: 'EMAIL_ADDRESS', label: 'Email Address' },
@@ -229,6 +228,7 @@ const EntityDetectionSidebar: React.FC = () => {
                         classNamePrefix="select"
                         isDisabled={isDetecting}
                         closeMenuOnSelect={false}
+                        menuPortalTarget={document.body}
                     />
                 </div>
 
@@ -244,6 +244,8 @@ const EntityDetectionSidebar: React.FC = () => {
                         classNamePrefix="select"
                         isDisabled={isDetecting}
                         closeMenuOnSelect={false}
+                        menuPortalTarget={document.body}
+
                     />
                 </div>
 
@@ -259,6 +261,7 @@ const EntityDetectionSidebar: React.FC = () => {
                         classNamePrefix="select"
                         isDisabled={isDetecting}
                         closeMenuOnSelect={false}
+                        menuPortalTarget={document.body}
                     />
                 </div>
 
