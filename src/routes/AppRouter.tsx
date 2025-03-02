@@ -3,6 +3,8 @@ import { Routes, Route } from 'react-router-dom'
 import LandingPage from '../pages/LandingPage'
 import LoginPage from '../pages/LoginPage'
 import PDFViewerPage from "../pages/PDFViewerPage";
+import NotFound from "./NotFound";
+import toolbar from "../components/pdf/Toolbar";
 
 interface AppRouterProps {
     theme: string
@@ -16,7 +18,7 @@ const AppRouter: React.FC<AppRouterProps> = ({ theme, toggleTheme }) => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<LoginPage initialSignUp={true} />} />
             <Route path="/playground" element={<PDFViewerPage  theme={theme} toggleTheme={toggleTheme}/>} />
-            {/* Add more routes as needed */}
+            <Route path="*" element={<LandingPage theme={theme} toggleTheme={toggleTheme} />} />
         </Routes>
     )
 }
