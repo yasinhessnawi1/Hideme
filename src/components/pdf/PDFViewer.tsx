@@ -91,7 +91,6 @@ const PDFViewer: React.FC = () => {
     const [isSelecting, setIsSelecting] = useState(false);
     const {runExtractText} = usePDFApi();
     // Debug mode toggles bounding boxes, console logs, etc.
-    const [debugMode, setDebugMode] = useState(false);
 
     // If you want to track canvas refs:
     const canvasRefs = useRef<Map<number, HTMLCanvasElement | null>>(new Map());
@@ -183,16 +182,9 @@ const PDFViewer: React.FC = () => {
             containerStyle.style.height = `${canvasRect.height}px`;
             containerStyle.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
 
-            if (debugMode) {
-                console.log(`Aligned page ${pageNumber}`, {
-                    offsetX,
-                    offsetY,
-                    cssWidth: canvasRect.width,
-                    cssHeight: canvasRect.height,
-                });
-            }
+
         });
-    }, [debugMode]);
+    }, []);
 
     /**
      * Observe new canvas elements
@@ -435,17 +427,9 @@ const PDFViewer: React.FC = () => {
         return () => window.removeEventListener('resize', onResize);
     }, [alignHighlightsWithCanvas]);
 
-    const toggleDebug = () => setDebugMode(!debugMode);
 
     return (
         <div className= { "pdf-viewer-container" } ref={mainContainerRef} >
-            <button
-                onClick={toggleDebug}
-                style={{position: 'absolute', top: 10, right: 10, zIndex: 9999}}
-            >
-                {debugMode ? 'Disable Debug' : 'Enable Debug'}
-            </button>
-
             <Document
                 file={file}
                 // remove the param type from your callback so there's no mismatch
@@ -489,7 +473,7 @@ const PDFViewer: React.FC = () => {
                                         width: '100%',
                                         height: '100%',
                                         pointerEvents: 'none',
-                                        border: debugMode ? '1px solid red' : 'none',
+                                        border: 'none',
                                     }}
                                 >
                                     {pageData.get(i + 1) && (
@@ -498,7 +482,6 @@ const PDFViewer: React.FC = () => {
                                             showSearch={showSearchHighlights}
                                             showEntity={showEntityHighlights}
                                             showManual={showManualHighlights}
-                                            debug={debugMode}
                                             pageSize={{
                                                 width: pageData.get(i + 1)!.size.cssWidth,
                                                 height: pageData.get(i + 1)!.size.cssHeight,
