@@ -14,7 +14,7 @@ import {
 } from 'react-icons/fa';
 import {usePDFContext} from '../../contexts/PDFContext';
 import {HighlightType, useHighlightContext} from '../../contexts/HighlightContext';
-import '../../styles/pdf/Toolbar.css';
+import '../../styles/pages/pdf/Toolbar.css';
 
 interface ToolbarProps {
     toggleSidebar: () => void;

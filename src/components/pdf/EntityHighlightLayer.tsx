@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useHighlightContext, HighlightType, HighlightRect } from '../../contexts/HighlightContext';
 import { usePDFContext } from '../../contexts/PDFContext';
-import '../../styles/pdf/HighlightLayer.css';
+import '../../styles/pages/pdf/HighlightLayer.css';
 
 interface EntityHighlightLayerProps {
     pageNumber: number;

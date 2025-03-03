@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Document, Page } from 'react-pdf';
 import { usePDFContext } from '../../contexts/PDFContext';
 import { FaChevronUp, FaChevronDown } from 'react-icons/fa';
-import '../../styles/pdf/PageThumbnails.css';
+import '../../styles/pages/pdf/PageThumbnails.css';
 
 // Set threshold for number of pages before we implement virtualization
 const VIRTUALIZATION_THRESHOLD = 20;

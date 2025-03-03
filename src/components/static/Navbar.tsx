@@ -4,7 +4,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
 import { Menu } from 'lucide-react'
-import "../../styles/Navbar.css"
+import "../../styles/components/Navbar.css"
 import ThemeToggler from "../common/ThemeToggler"
 import { Button } from "../common/Button"
 
@@ -22,10 +22,10 @@ export default function Navbar({ theme, toggleTheme }: Readonly<NavbarProps>) {
                 <span className="logo-text">HIDE ME</span>
             </Link>
 
-            <div className="nav-links" onClick={() => alert("The functionality is not implemented yet!")}>
-                <NavLink to={"#"} >Features</NavLink>
-                <NavLink to="#">How it Works</NavLink>
-                <NavLink to="#">About</NavLink>
+            <div className="nav-links" >
+                <NavLink to={"/features"} >Features</NavLink>
+                <NavLink to="/how-to">How it Works</NavLink>
+                <NavLink to="/about">About</NavLink>
             </div>
 
             <div className="auth-buttons">
