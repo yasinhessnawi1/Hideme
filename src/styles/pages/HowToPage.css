@@ -1,0 +1,211 @@
+/* How-To Page Styles */
+.how-to-page {
+    background-color: var(--background);
+    color: var(--foreground);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.how-to-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-xl);
+    width: 100%;
+}
+
+.how-to-header {
+    margin-bottom: var(--spacing-xl);
+    animation: fadeIn 0.6s ease-out;
+}
+
+.how-to-header h1 {
+    font-size: 2.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--foreground);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.2;
+}
+
+.how-to-description {
+    font-size: var(--font-size-lg);
+    color: var(--muted-foreground);
+    max-width: 800px;
+    line-height: 1.6;
+}
+
+.scribe-embed-container {
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    margin: var(--spacing-xl) 0;
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    animation: fadeIn 0.8s ease-out;
+    position: relative;
+}
+
+.scribe-embed-container iframe {
+    display: block;
+    transition: height 0.3s ease;
+}
+
+.how-to-additional-info {
+    margin-top: var(--spacing-xxl);
+    animation: fadeIn 1s ease-out;
+}
+
+.how-to-additional-info h2 {
+    font-size: 1.75rem;
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-lg);
+    color: var(--foreground);
+}
+
+.resource-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+.resource-card {
+    background-color: var(--card);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border);
+    transition: all var(--transition-speed) var(--transition-function);
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 1.2s ease-out;
+}
+
+.resource-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary);
+}
+
+.card-icon {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.resource-card h3 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-sm);
+    color: var(--foreground);
+}
+
+.resource-card p {
+    color: var(--muted-foreground);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.5;
+    flex-grow: 1;
+}
+
+.card-link {
+    display: inline-block;
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+    transition: color var(--transition-speed) var(--transition-function);
+    margin-top: auto;
+}
+
+.card-link:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+.how-to-feedback {
+    margin-top: var(--spacing-xxl);
+    padding-top: var(--spacing-xl);
+    border-top: 1px solid var(--border);
+    text-align: center;
+    animation: fadeIn 1.4s ease-out;
+}
+
+.how-to-feedback h2 {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-md);
+}
+
+.feedback-buttons {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+}
+
+.feedback-button {
+    background-color: var(--secondary);
+    color: var(--secondary-foreground);
+    border: none;
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-md);
+    cursor: pointer;
+    transition: all var(--transition-speed) var(--transition-function);
+}
+
+.feedback-button:hover {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.how-to-feedback p {
+    color: var(--muted-foreground);
+    margin-top: var(--spacing-md);
+}
+
+.how-to-feedback a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color var(--transition-speed) var(--transition-function);
+}
+
+.how-to-feedback a:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .how-to-container {
+        padding: var(--spacing-lg);
+    }
+
+    .how-to-header h1 {
+        font-size: 2rem;
+    }
+
+    .resource-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .scribe-embed-container iframe {
+        height: 480px;
+    }
+}
+
+@media (max-width: 480px) {
+    .how-to-container {
+        padding: var(--spacing-md);
+    }
+
+    .how-to-header h1 {
+        font-size: 1.75rem;
+    }
+
+    .scribe-embed-container iframe {
+        height: 360px;
+    }
+
+    .feedback-buttons {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+}

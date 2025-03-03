@@ -11,7 +11,7 @@ import EntityDetectionSidebar from "../components/pdf/EntityDetectionSidebar"
 import RedactionSidebar from "../components/pdf/RadactionSidebar"
 import Navbar from "../components/static/Navbar"
 import { Upload } from 'lucide-react'
-import '../styles/pdf/PDFViewerPage.css'
+import '../styles/pages/pdf/PDFViewerPage.css'
 
 interface PDFViewerPageProps {
     theme: string

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import '../styles/login/LoginPage.css';
+import '../styles/pages/login/LoginPage.css';
 import LoginForm from '../components/forms/LoginForm';
 import login_video from '../assets/login-video.mp4';
 import { useSearchParams, useLocation } from 'react-router-dom';

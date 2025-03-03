@@ -1,5 +1,5 @@
 import React, { type ComponentPropsWithoutRef } from "react"
-import "../../styles/Button.css"
+import "../../styles/components/Button.css"
 
 export interface ButtonProps extends ComponentPropsWithoutRef<"button"> {
     shimmerColor?: string

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Moon, Sun } from 'lucide-react'
-import '../../styles/ThemeToggle.css'
+import '../../styles/components/ThemeToggle.css'
 
 interface ThemeToggleProps {
     isDarkMode: boolean

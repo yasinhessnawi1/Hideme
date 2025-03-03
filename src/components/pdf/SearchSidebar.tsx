@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaSearch, FaTimesCircle, FaChevronUp, FaChevronDown } from 'react-icons/fa';
 import { usePDFContext } from '../../contexts/PDFContext';
 import { useHighlightContext, HighlightType } from '../../contexts/HighlightContext';
-import '../../styles/pdf/SettingsSidebar.css';
+import '../../styles/pages/pdf/SettingsSidebar.css';
 
 const SearchSidebar: React.FC = () => {
     const {
