@@ -19,7 +19,7 @@ import {ManualHighlightManager} from '../../utils/ManualHighlightManager';
 // CSS + worker setup
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import '../../styles/pdf/PdfViewer.css';
+import '../../styles/pages/pdf/PdfViewer.css';
 import useTheme from "../../hooks/useTheme";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;

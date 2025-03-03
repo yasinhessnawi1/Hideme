@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import { FileText, Sparkles } from "lucide-react"
 import { FloatingPaper } from "./FloatingPaper"
-import "../../styles/landing/Hero.css"
+import "../../styles/pages/landing/Hero.css"
 import {Button} from "../common/Button";
 import React from "react";
 
