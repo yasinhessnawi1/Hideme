@@ -1,17 +1,18 @@
-"use client"
-
-import React, { useRef, useState } from "react"
-import { PDFProvider, usePDFContext } from "../contexts/PDFContext"
+// src/components/pdf/PDFViewerPage.tsx (Updated)
+import React, { useState, useEffect, useRef } from "react"
+import { FileProvider } from "../contexts/FileContext"
+import { PDFViewerProvider } from "../contexts/PDFViewerContext"
+import { EditProvider } from "../contexts/EditContext"
 import { HighlightProvider } from "../contexts/HighlightContext"
+import { BatchSearchProvider } from "../contexts/SearchContext" // Add BatchSearchProvider
 import PDFViewer from "../components/pdf/PDFViewer"
-import PageThumbnails from "../components/pdf/PageThumbnails"
-import Toolbar from "../components/pdf/Toolbar"
-import SearchSidebar from "../components/pdf/SearchSidebar"
-import EntityDetectionSidebar from "../components/pdf/EntityDetectionSidebar"
-import RedactionSidebar from "../components/pdf/RadactionSidebar"
+import TabbedSidebar from "../components/pdf/pdf_component/TabbedSidebar"
+import Toolbar from "../components/pdf/pdf_component/Toolbar"
+import SearchSidebar from "../components/pdf/pdf_component/SearchSidebar" // Use new component
+import EntityDetectionSidebar from "../components/pdf/pdf_component/EntityDetectionSidebar"
+import RedactionSidebar from "../components/pdf/pdf_component/RadactionSidebar"
 import Navbar from "../components/static/Navbar"
-import { Upload } from 'lucide-react'
-import '../styles/pages/pdf/PDFViewerPage.css'
+import '../styles/modules/pdf/PDFViewerPage.css'
 
 interface PDFViewerPageProps {
     theme: string
@@ -19,23 +20,63 @@ interface PDFViewerPageProps {
 }
 
 const PDFViewerPageContent: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'entities' | 'search' | 'redaction'>('entities')
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-    const { file, setFile } = usePDFContext()
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [activeTab, setActiveTab] = useState<'entities' | 'search' | 'redact'>('entities')
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true) // Set to true by default
+    const [isHoveringOnSidebar, setIsHoveringOnSidebar] = useState(false)
+    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const sidebarRef = useRef<HTMLDivElement>(null)
+    const hoverSensorRef = useRef<HTMLDivElement>(null)
 
-    // Handle file selection
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            setFile(e.target.files[0]);
-        }
-    };
-
-
-    // Toggle sidebar visibility
+    // Toggle sidebar visibility through button click
     const toggleSidebar = () => {
         setIsSidebarCollapsed(!isSidebarCollapsed);
     };
+
+    // Handle mouse enter on the hover sensor area
+    const handleHoverSensorEnter = () => {
+        if (isSidebarCollapsed) {
+            // Clear any existing timeout
+            if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current);
+            }
+
+            // Set timeout to prevent accidental triggers
+            hoverTimeoutRef.current = setTimeout(() => {
+                setIsHoveringOnSidebar(true);
+                setIsSidebarCollapsed(false);
+            }, 300); // 300ms delay before opening
+        }
+    };
+
+    // Handle mouse leave from the sidebar
+    const handleSidebarLeave = () => {
+        // Only auto-close if it was opened by hover
+        if (isHoveringOnSidebar) {
+            // Add delay before closing to give user time to interact
+            hoverTimeoutRef.current = setTimeout(() => {
+                setIsHoveringOnSidebar(false);
+                setIsSidebarCollapsed(true);
+            }, 500); // 500ms delay before closing
+        }
+    };
+
+    // Clear timeout on component unmount
+    useEffect(() => {
+        return () => {
+            if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    // Cancel timeout if user manually toggles sidebar
+    useEffect(() => {
+        if (!isSidebarCollapsed) {
+            if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current);
+            }
+        }
+    }, [isSidebarCollapsed]);
 
     return (
         <>
@@ -46,35 +87,25 @@ const PDFViewerPageContent: React.FC = () => {
 
             {/* Main content area */}
             <div className="viewer-content">
-                {/* Left sidebar - Collapsible */}
-                <aside className={`left-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-                    <div className="sidebar-content thumbnails-container">
-                        <PageThumbnails isSidebarCollapsed={isSidebarCollapsed} />
-                    </div>
+                {/* Hover sensor - small area that detects mouse enter */}
+                <div
+                    className="sidebar-hover-sensor"
+                    ref={hoverSensorRef}
+                    onMouseEnter={handleHoverSensorEnter}
+                ></div>
+
+                {/* Left sidebar - Tabbed with File Selector and Page Thumbnails */}
+                <aside
+                    className={`left-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}
+                    ref={sidebarRef}
+                    onMouseLeave={handleSidebarLeave}
+                >
+                    <TabbedSidebar isSidebarCollapsed={isSidebarCollapsed} />
                 </aside>
 
                 {/* Main PDF viewer */}
                 <main className="main-content">
-                    {/* Always render a hidden file input */}
-                    <input
-                        id="pdf-upload"
-                        type="file"
-                        accept="application/pdf"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        style={{display: 'none'}}
-                    />
-                    {file ? (
-                        <PDFViewer/>
-                    ) : (
-                        <div className="file-upload-container">
-                            <h2 className="file-upload-title">File</h2>
-                            <label className="file-upload-area" htmlFor="pdf-upload" >
-                                <Upload className="file-upload-icon" size={32}/>
-                                <span className="file-upload-text">Select a File to Redact</span>
-                            </label>
-                        </div>
-                    )}
+                    <PDFViewer />
                 </main>
 
                 {/* Right sidebar - Static */}
@@ -94,8 +125,8 @@ const PDFViewerPageContent: React.FC = () => {
                                 Search
                             </button>
                             <button
-                                className={`tab-button ${activeTab === 'redaction' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('redaction')}
+                                className={`tab-button ${activeTab === 'redact' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('redact')}
                             >
                                 Redact
                             </button>
@@ -108,7 +139,7 @@ const PDFViewerPageContent: React.FC = () => {
                             <div className={`tab-panel ${activeTab === 'search' ? 'active' : ''}`}>
                                 <SearchSidebar/>
                             </div>
-                            <div className={`tab-panel ${activeTab === 'redaction' ? 'active' : ''}`}>
+                            <div className={`tab-panel ${activeTab === 'redact' ? 'active' : ''}`}>
                                 <RedactionSidebar/>
                             </div>
                         </div>
@@ -121,14 +152,20 @@ const PDFViewerPageContent: React.FC = () => {
 
 const PDFViewerPage: React.FC<PDFViewerPageProps> = ({ theme, toggleTheme }) => {
     return (
-        <HighlightProvider>
-            <PDFProvider>
-                <div className={`pdf-viewer-page ${theme === 'dark' ? 'dark-theme' : 'light-theme'}`}>
-                    <Navbar theme={theme} toggleTheme={toggleTheme} />
-                    <PDFViewerPageContent />
-                </div>
-            </PDFProvider>
-        </HighlightProvider>
+        <div className={`pdf-viewer-page ${theme === 'dark' ? 'dark-theme' : 'light-theme'}`}>
+            <Navbar theme={theme} toggleTheme={toggleTheme} />
+            <FileProvider>
+                <PDFViewerProvider>
+                    <HighlightProvider>
+                        <EditProvider>
+                            <BatchSearchProvider> {/* Add the BatchSearchProvider */}
+                                <PDFViewerPageContent />
+                            </BatchSearchProvider>
+                        </EditProvider>
+                    </HighlightProvider>
+                </PDFViewerProvider>
+            </FileProvider>
+        </div>
     );
 };
 

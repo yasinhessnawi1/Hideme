@@ -1,4 +1,40 @@
 // src/types.ts
+export interface OptionType {
+    value: string;
+    label: string;
+}
+
+export interface RedactionItem {
+    entity_type: string;
+    start: number;
+    end: number;
+    score: number;
+    bbox: {
+        x0: number;
+        y0: number;
+        x1: number;
+        y1: number;
+    };
+    boxes?: {
+        x0: number;
+        y0: number;
+        x1: number;
+        y1: number;
+    }[];
+    content?: string;
+    model?: 'presidio' | 'gliner' | 'gemini';
+}
+
+export interface RedactionMapping {
+    pages: {
+        page: number;
+        sensitive: RedactionItem[];
+    }[];
+}
+/** Defines the possible types of highlights. */
+/**
+ * Common type definitions for the application
+ */
 
 /** Defines the possible types of highlights. */
 export enum HighlightType {
@@ -11,12 +47,12 @@ export enum HighlightType {
 /** A rectangle on a particular page. */
 export interface HighlightRect {
     /** Unique ID for this highlight (can be a string or number). */
-    id: string | number;
+    id: string;
 
     /** 1-based PDF page number this highlight belongs to. */
     page: number;
 
-    /** X and Y coordinate in the page’s “viewport” space. */
+    /** X and Y coordinate in the page's "viewport" space. */
     x: number;
     y: number;
 
@@ -31,7 +67,7 @@ export interface HighlightRect {
     opacity?: number;
 
     /** Type/category of the highlight (search, entity, manual, etc.). */
-    type: HighlightType | string;
+    type?: HighlightType;
 
     /** Optionally store the highlighted text for manual highlights or searches. */
     text?: string;
@@ -41,5 +77,32 @@ export interface HighlightRect {
 
     /** Any other custom fields you need. */
     [key: string]: any;
+}
 
+/** Option type for select dropdowns */
+export interface OptionType {
+    value: string;
+    label: string;
+}
+
+/** Redaction item representing an entity to be redacted */
+export interface RedactionItem {
+    entity_type: string;
+    start: number;
+    end: number;
+    score: number;
+    bbox: {
+        x0: number;
+        y0: number;
+        x1: number;
+        y1: number;
+    };
+    boxes?: {
+        x0: number;
+        y0: number;
+        x1: number;
+        y1: number;
+    }[];
+    content?: string;
+    model?: 'presidio' | 'gliner' | 'gemini';
 }

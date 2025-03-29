@@ -1,4 +1,3 @@
-
 /*
 ==============================================
 PDF VIEWER PAGE STYLES
@@ -40,6 +39,7 @@ including the sidebars, content areas, and responsive behavior.
     background-color var(--transition-speed) var(--transition-function);
     position: relative;
     z-index: 5;
+    width: 20rem;
 }
 
 .left-sidebar.collapsed {
@@ -47,6 +47,19 @@ including the sidebars, content areas, and responsive behavior.
     opacity: 0;
     transform: translateX(-20px);
     overflow: hidden;
+}
+
+/* Hover sensor for sidebar */
+.sidebar-hover-sensor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1vw;
+    height: 80%;
+    margin: 8vh auto;
+    z-index: 4;
+    background-color: transparent;
+    cursor: pointer;
 }
 
 /* Main content area */
@@ -204,6 +217,27 @@ including the sidebars, content areas, and responsive behavior.
     animation: slideIn var(--transition-speed) var(--transition-function);
 }
 
+/* Visual sidebar hover effect */
+.sidebar-hover-sensor:hover::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    width: 5px;
+    height: 50px;
+    background-color: var(--primary);
+    border-radius: 3px;
+    transform: translateY(-50%);
+    opacity: 0.6;
+    animation: pulseIndicator 2s infinite;
+}
+
+@keyframes pulseIndicator {
+    0% { opacity: 0.3; height: 40px; }
+    50% { opacity: 0.8; height: 60px; }
+    100% { opacity: 0.3; height: 40px; }
+}
+
 /* Responsive styles */
 @media (max-width: 992px) {
     .right-sidebar {
@@ -235,5 +269,12 @@ including the sidebars, content areas, and responsive behavior.
     .left-sidebar.collapsed {
         max-height: 0;
         transform: translateY(-20px);
+    }
+
+    /* Adjust hover sensor for mobile */
+    .sidebar-hover-sensor {
+        height: 20px;
+        width: 100%;
+        top: 0;
     }
 }

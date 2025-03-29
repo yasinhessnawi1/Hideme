@@ -1,7 +1,5 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-    FaChevronLeft,
-    FaChevronRight,
     FaCog,
     FaFileDownload,
     FaHighlighter,
@@ -12,40 +10,48 @@ import {
     FaSearchPlus,
     FaUpload
 } from 'react-icons/fa';
-import {usePDFContext} from '../../contexts/PDFContext';
-import {HighlightType, useHighlightContext} from '../../contexts/HighlightContext';
-import '../../styles/pages/pdf/Toolbar.css';
+import { useFileContext } from '../../../contexts/FileContext';
+import { usePDFViewerContext } from '../../../contexts/PDFViewerContext';
+import { useEditContext } from '../../../contexts/EditContext';
+import { HighlightType, useHighlightContext } from '../../../contexts/HighlightContext';
+import '../../../styles/modules/pdf/Toolbar.css';
 
 interface ToolbarProps {
     toggleSidebar: () => void;
     isSidebarCollapsed: boolean;
 }
 
-const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) => {
+const Toolbar: React.FC<ToolbarProps> = ({ toggleSidebar, isSidebarCollapsed }) => {
+    const { currentFile, addFile } = useFileContext();
+
     const {
-        file,
-        setFile,
         zoomLevel,
         setZoomLevel,
+    } = usePDFViewerContext();
+
+    const {
         isEditingMode,
         setIsEditingMode,
         highlightColor,
         setHighlightColor,
-        numPages,
-        currentPage,
-        setCurrentPage,
-        scrollToPage
-    } = usePDFContext();
-
-    const {
-        clearAnnotations,
-        clearAnnotationsByType,
         showSearchHighlights,
         setShowSearchHighlights,
         showEntityHighlights,
         setShowEntityHighlights,
         showManualHighlights,
-        setShowManualHighlights
+        setShowManualHighlights,
+
+        presidioColor,
+        setPresidioColor,
+        glinerColor,
+        setGlinerColor,
+        geminiColor,
+        setGeminiColor
+    } = useEditContext();
+
+    const {
+        clearAnnotations,
+        clearAnnotationsByType,
     } = useHighlightContext();
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -56,14 +62,8 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
 
     const [isVisibilityMenuOpen, setIsVisibilityMenuOpen] = useState(false);
     const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
-    const [pageInputValue, setPageInputValue] = useState<string>(currentPage.toString());
 
-    // Update page input when current page changes
-    useEffect(() => {
-        setPageInputValue(currentPage.toString());
-    }, [currentPage]);
-
-    // Handle clicks outside our dropdowns - more robust implementation
+    // Handle clicks outside our dropdowns
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             // Check if visibility menu should close
@@ -113,7 +113,7 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
     // Handle file upload
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            setFile(e.target.files[0]);
+            addFile(e.target.files[0]);
         }
     };
 
@@ -139,44 +139,15 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
         setIsEditingMode(!isEditingMode);
     };
 
-    // Navigation
-    const handleGoToPage = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        const pageNumber = parseInt(pageInputValue);
-
-        if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= numPages) {
-            scrollToPage(pageNumber);
-        } else {
-            // Reset to current page if invalid input
-            setPageInputValue(currentPage.toString());
-        }
-    };
-
-    const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setPageInputValue(e.target.value);
-    };
-
-    const handlePreviousPage = () => {
-        if (currentPage > 1) {
-            scrollToPage(currentPage - 1);
-        }
-    };
-
-    const handleNextPage = () => {
-        if (currentPage < numPages) {
-            scrollToPage(currentPage + 1);
-        }
-    };
-
     // Download/save functions
     const handleDownloadPDF = () => {
-        if (!file) return;
+        if (!currentFile) return;
 
         // Create a download link for the current file
-        const url = URL.createObjectURL(file);
+        const url = URL.createObjectURL(currentFile);
         const a = document.createElement('a');
         a.href = url;
-        a.download = file.name || 'document.pdf';
+        a.download = currentFile.name || 'document.pdf';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -184,10 +155,10 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
     };
 
     const handlePrint = () => {
-        if (!file) return;
+        if (!currentFile) return;
 
         // Create a temporary URL for the file
-        const url = URL.createObjectURL(file);
+        const url = URL.createObjectURL(currentFile);
 
         // Open in a new window for printing
         const printWindow = window.open(url, '_blank');
@@ -223,7 +194,6 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
         e.stopPropagation();
         if (window.confirm('Are you sure you want to clear all highlights?')) {
             clearAnnotations();
-            // Don't close the menu automatically - let the user decide
         }
     };
 
@@ -247,25 +217,43 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
         e.stopPropagation();
         setHighlightColor(e.target.value);
     };
+    const handleResetEntityColors = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setPresidioColor('#ffd771'); // Yellow
+        setGlinerColor('#ff7171'); // Red
+        setGeminiColor('#7171ff'); // Blue
+    };
 
     // Custom sidebar toggle icons
     const SidebarOpenIcon = () => (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
-             strokeLinecap="round" strokeLinejoin="round">
-            <path
-                d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"/>
-            <path d="M14.97 2V22"/>
-            <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599"/>
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+            <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+            <g id="SVGRepo_iconCarrier">
+                <path
+                    d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
+                    stroke="#292D32" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                <path d="M14.97 2V22" stroke="#292D32" strokeWidth="1.5" strokeLinecap="round"
+                      strokeLinejoin="round"></path>
+                <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="#292D32" strokeWidth="1.5"
+                      strokeLinecap="round" strokeLinejoin="round"></path>
+            </g>
         </svg>
     );
 
     const SidebarCloseIcon = () => (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
-             strokeLinecap="round" strokeLinejoin="round">
-            <path
-                d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"/>
-            <path d="M7.96997 2V22"/>
-            <path d="M14.97 9.43994L12.41 11.9999L14.97 14.5599"/>
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+            <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+            <g id="SVGRepo_iconCarrier">
+                <path
+                    d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
+                    stroke="#292D32" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                <path d="M7.96997 2V22" stroke="#292D32" strokeWidth="1.5" strokeLinecap="round"
+                      strokeLinejoin="round"></path>
+                <path d="M14.97 9.43994L12.41 11.9999L14.97 14.5599" stroke="#292D32" strokeWidth="1.5"
+                      strokeLinecap="round" strokeLinejoin="round"></path>
+            </g>
         </svg>
     );
 
@@ -276,6 +264,7 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
                 onClick={toggleSidebar}
                 className={`toolbar-button sidebar-toggle ${isSidebarCollapsed ? 'collapsed' : ''}`}
                 title={isSidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
+                style={{backgroundColor: 'transparent', border: 'none'}} // Add margin to the right
             >
                 {isSidebarCollapsed ? <SidebarOpenIcon/> : <SidebarCloseIcon/>}
             </button>
@@ -301,7 +290,7 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
                     onClick={handleDownloadPDF}
                     className="toolbar-button"
                     title="Download PDF"
-                    disabled={!file}
+                    disabled={!currentFile}
                 >
                     <FaFileDownload/>
                     <span className="button-label">Save</span>
@@ -311,7 +300,7 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
                     onClick={handlePrint}
                     className="toolbar-button"
                     title="Print PDF"
-                    disabled={!file}
+                    disabled={!currentFile}
                 >
                     <FaPrint/>
                     <span className="button-label">Print</span>
@@ -416,16 +405,59 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
                             ref={settingsMenuRef}
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="dropdown-item">
-                                <label onClick={(e) => e.stopPropagation()}>
-                                    Highlight Color
-                                    <input
-                                        type="color"
-                                        value={highlightColor}
-                                        onChange={handleColorChange}
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                </label>
+                            <div className="dropdown-section">
+                                <h5 className="dropdown-title">Manual Highlight</h5>
+                                <div className="dropdown-item">
+                                    <label onClick={(e) => e.stopPropagation()}>
+                                        Color
+                                        <input
+                                            type="color"
+                                            value={highlightColor}
+                                            onChange={handleColorChange}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="dropdown-section">
+                                <h5 className="dropdown-title">Entity Model Colors</h5>
+                                <div className="dropdown-item">
+                                    <label onClick={(e) => e.stopPropagation()}>
+                                        Presidio
+                                        <input
+                                            type="color"
+                                            value={presidioColor}
+                                            onChange={(e) => setPresidioColor(e.target.value)}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </label>
+                                </div>
+                                <div className="dropdown-item">
+                                    <label onClick={(e) => e.stopPropagation()}>
+                                        Gliner
+                                        <input
+                                            type="color"
+                                            value={glinerColor}
+                                            onChange={(e) => setGlinerColor(e.target.value)}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </label>
+                                </div>
+                                <div className="dropdown-item">
+                                    <label onClick={(e) => e.stopPropagation()}>
+                                        Gemini
+                                        <input
+                                            type="color"
+                                            value={geminiColor}
+                                            onChange={(e) => setGeminiColor(e.target.value)}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </label>
+                                </div>
+                                <div className="dropdown-item">
+                                    <button onClick={handleResetEntityColors}>Reset Entity Colors</button>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -436,7 +468,7 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
                 <button
                     onClick={handleZoomOut}
                     className="toolbar-button"
-                    title="Zoom Out (zooming desterbes teh highlitng!)"
+                    title="Zoom Out"
                     disabled={zoomLevel <= 0.5}
                 >
                     <FaSearchMinus/>
@@ -447,7 +479,7 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
                 <button
                     onClick={handleZoomIn}
                     className="toolbar-button"
-                    title="Zoom In (zooming desterbes teh highlitng!)"
+                    title="Zoom In"
                     disabled={zoomLevel >= 3.0}
                 >
                     <FaSearchPlus/>
@@ -459,39 +491,6 @@ const Toolbar: React.FC<ToolbarProps> = ({toggleSidebar, isSidebarCollapsed}) =>
                     title="Reset Zoom"
                 >
                     <span className="button-label">Reset</span>
-                </button>
-            </div>
-
-            <div className="toolbar-section">
-                <button
-                    onClick={handlePreviousPage}
-                    className="toolbar-button"
-                    title="Previous Page"
-                    disabled={currentPage <= 1 || !file}
-                >
-                    <FaChevronLeft/>
-                </button>
-
-                <form onSubmit={handleGoToPage} className="page-navigation-form">
-                    <input
-                        type="number"
-                        name="page-number"
-                        min="1"
-                        max={numPages}
-                        value={pageInputValue}
-                        onChange={handlePageInputChange}
-                        disabled={!file}
-                    />
-                    <span> / {numPages || 0}</span>
-                </form>
-
-                <button
-                    onClick={handleNextPage}
-                    className="toolbar-button"
-                    title="Next Page"
-                    disabled={currentPage >= numPages || !file}
-                >
-                    <FaChevronRight/>
                 </button>
             </div>
         </div>

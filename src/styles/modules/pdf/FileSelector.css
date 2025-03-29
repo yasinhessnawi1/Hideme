@@ -1,0 +1,247 @@
+/*
+  File Selector Styles
+  This handles the file list selector UI
+*/
+
+.file-selector {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--sidebar-bg);
+    animation: fadeIn 0.3s ease;
+}
+
+.file-selector-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--sidebar-border);
+}
+
+.file-selector-title {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-medium);
+    margin: 0;
+    color: var(--foreground);
+}
+
+.add-files-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: var(--button-bg);
+    border: 1px solid var(--button-border);
+    border-radius: var(--border-radius-sm);
+    color: var(--foreground);
+    cursor: pointer;
+    transition: all var(--transition-speed) var(--transition-function);
+    font-size: var(--font-size-sm);
+}
+
+.add-files-button:hover {
+    background-color: var(--button-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+    color: var(--primary);
+}
+
+.file-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    width: 100%;
+    padding: var(--spacing-sm);
+    overflow-y: auto;
+    flex: 1;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    background-color: var(--button-bg);
+    border: 1px solid var(--button-border);
+    cursor: pointer;
+    transition: all var(--transition-speed) var(--transition-function);
+}
+
+.file-item:hover {
+    background-color: var(--button-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.file-item.current {
+    background-color: var(--active-bg);
+    border-color: var(--primary);
+}
+
+.file-item.selected {
+    background-color: rgba(var(--primary), 0.1);
+    border-color: var(--primary);
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    overflow: hidden;
+}
+
+.file-icon {
+    color: var(--muted-foreground);
+    flex-shrink: 0;
+}
+
+.file-details {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.file-name {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--foreground);
+}
+
+.file-size {
+    font-size: var(--font-size-xs);
+    color: var(--muted-foreground);
+}
+
+.file-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    margin-left: var(--spacing-md);
+}
+
+.file-action-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    border-radius: var(--border-radius-sm);
+    color: var(--muted-foreground);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.file-action-button:hover {
+    background-color: var(--button-hover);
+    color: var(--foreground);
+    transform: translateY(-1px);
+}
+
+.delete-button:hover {
+    color: var(--destructive);
+}
+
+.select-button .selected-icon {
+    color: var(--primary);
+}
+
+.file-action-button:active {
+    transform: translateY(1px);
+}
+
+/* Selector batch actions */
+.batch-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border);
+}
+
+.batch-action-button {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    background-color: var(--button-bg);
+    border: 1px solid var(--button-border);
+    color: var(--foreground);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.batch-action-button:hover {
+    background-color: var(--button-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.batch-action-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.batch-action-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+.batch-action-danger {
+    background-color: var(--destructive);
+    border-color: var(--destructive);
+    color: white;
+}
+
+.batch-action-danger:hover {
+    background-color: #d32f2f;
+}
+
+/* Empty state */
+.empty-files-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: var(--spacing-xl);
+    text-align: center;
+    color: var(--muted-foreground);
+    gap: var(--spacing-md);
+}
+
+.empty-files-message p {
+    margin: 0;
+    font-size: var(--font-size-sm);
+}
+
+.empty-files-message .add-files-button {
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .file-selector-header {
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    .file-item {
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    .file-actions {
+        margin-left: var(--spacing-sm);
+    }
+
+    .file-action-button {
+        padding: 2px;
+    }
+}

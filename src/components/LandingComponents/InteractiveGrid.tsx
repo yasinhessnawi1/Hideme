@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import "../../styles/pages/landing/InteractiveGrid.css"
+import "../../styles/modules/landing/InteractiveGrid.css"
 
 interface InteractiveGridPatternProps extends React.SVGProps<SVGSVGElement> {
     width?: number

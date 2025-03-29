@@ -9,6 +9,7 @@ including animations, hover effects, and resizing functionality.
 /* Container wrapper for the resizable sidebar */
 .page-thumbnails-wrapper {
     height: 100%;
+    width: 100%;
     background-color: var(--sidebar-bg);
     transition: width var(--transition-speed) var(--transition-function),
     box-shadow var(--transition-speed) var(--transition-function),
@@ -20,12 +21,12 @@ including animations, hover effects, and resizing functionality.
 
 /* Header with title and navigation controls */
 .thumbnails-header {
+    padding: var(--spacing-sm) var(--spacing-md);
     display: flex;
-    flex-direction: column;
-    padding: var(--spacing-md);
     border-bottom: 1px solid var(--sidebar-border);
     gap: var(--spacing-sm);
-    min-height: 60px;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .thumbnails-header h3 {
@@ -35,6 +36,31 @@ including animations, hover effects, and resizing functionality.
     color: var(--foreground);
 }
 
+.page-input-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 var(--spacing-xs);
+}
+
+.page-input {
+    width: 40px;
+    font-size: var(--font-size-sm);
+    color: var(--foreground);
+    background-color: var(--button-bg);
+    border: 1px solid var(--button-border);
+    border-radius: var(--border-radius-sm);
+    padding: 2px 4px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.page-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(39, 171, 111, 0.2);
+    background-color: var(--background);
+}
 .page-navigation {
     display: flex;
     align-items: center;
@@ -46,8 +72,8 @@ including animations, hover effects, and resizing functionality.
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border: 1px solid var(--button-border);
     background-color: var(--button-bg);
     border-radius: var(--border-radius-sm);
@@ -91,6 +117,11 @@ including animations, hover effects, and resizing functionality.
     color: var(--muted-foreground);
     user-select: none;
 }
+.page-separator, .total-pages {
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    user-select: none;
+}
 
 /* Scrollable container for thumbnails */
 .thumbnails-container {
@@ -100,6 +131,9 @@ including animations, hover effects, and resizing functionality.
     scrollbar-width: thin;
     scrollbar-color: var(--button-border) var(--sidebar-bg);
     overflow-x: hidden;
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+
 }
 
 /* Webkit scrollbars */
@@ -275,5 +309,128 @@ including animations, hover effects, and resizing functionality.
 
     .thumbnail-wrapper:hover {
         transform: scale(1.03);
+    }
+}
+/*
+   New styles for multi-PDF thumbnail support
+   Add these to your existing PageThumbnails.css file
+*/
+
+/* File section container */
+.file-thumbnails-section {
+    margin-bottom: var(--spacing-xl);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--sidebar-border);
+    overflow: hidden;
+    background-color: var(--sidebar-bg);
+    transition: all var(--transition-speed) var(--transition-function);
+    animation: fadeSlideIn 0.3s ease forwards;
+    opacity: 0;
+    transform: translateY(10px);
+
+}
+
+.file-thumbnails-section.current-file {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary-hover);
+}
+
+/* File header styling */
+.file-thumbnails-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--background);
+    border-bottom: 1px solid var(--sidebar-border);
+    cursor: pointer;
+    transition: background-color var(--transition-speed) var(--transition-function);
+}
+
+.file-thumbnails-header:hover {
+    background-color: var(--dropdown-hover);
+}
+
+/* File info in header */
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    overflow: hidden;
+}
+
+.file-icon {
+    color: var(--muted-foreground);
+    min-width: 16px;
+}
+
+.file-name {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Expansion indicator */
+.expansion-indicator {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+    transition: transform 0.3s ease;
+}
+
+.file-thumbnails-section.current-file .expansion-indicator {
+    color: var(--primary);
+}
+
+/* Page navigation for each file */
+.file-page-navigation {
+    padding: var(--spacing-sm) var(--spacing-md);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background-color: var(--button-bg);
+    border-bottom: 1px solid var(--sidebar-border);
+}
+
+/* Grid layout for thumbnails */
+.file-thumbnails-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+}
+
+
+/* Current file highlighting */
+.current-file .thumbnail-wrapper.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-hover), var(--shadow-md);
+}
+
+
+@keyframes fadeSlideIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .file-thumbnails-header {
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    .file-page-navigation {
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    .file-thumbnails-grid {
+        padding: var(--spacing-sm);
+        gap: var(--spacing-sm);
     }
 }

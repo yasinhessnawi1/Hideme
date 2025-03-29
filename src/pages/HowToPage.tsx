@@ -1,6 +1,6 @@
 import React, {useEffect} from 'react';
 import Navbar from '../components/static/Navbar'; // Import your Navbar component
-import '../styles/pages/HowToPage.css'; // Import your styles
+import '../styles/HowToPage.css'; // Import your styles
 
 interface HowToPageProps {
     theme: string;

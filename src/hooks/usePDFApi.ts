@@ -1,127 +1,341 @@
-import {useState} from 'react';
-import {RedactionMapping} from '../contexts/PDFContext';
-import {
-    detectAi,
-    detectGliner,
-    detectPresidio,
-    extractText,
-    normalizeRedactionMapping,
-    redactPdf
-} from '../services/backendApiService';
-import {ExtracteText} from "../types/pdfTypes";
+// src/hooks/usePDFApi.ts
+import { useCallback, useState, useRef } from 'react';
+import { RedactionMapping } from '../types/types';
+import { batchHybridDetect, batchRedactPdfs } from '../services/BatchApiService';
+import { BatchSearchService } from '../services/BatchSearchService';
+import { getFileKey } from '../contexts/PDFViewerContext';
 
 /**
- * Hook for calling backend PDF-related API endpoints.
+ * Hook for calling PDF-related API endpoints with state management
  */
 export const usePDFApi = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [fileErrors, setFileErrors] = useState<Map<string, string>>(new Map());
+    const [progress, setProgress] = useState<number>(0);
+
+    // Store cached detection results with a stable reference
+    const detectionResultsCache = useRef<Map<string, any>>(new Map());
+
+    // API result cache for memoization
+    const apiResultCache = useRef<Map<string, any>>(new Map());
+
+    // Reset error state
+    const resetErrors = useCallback(() => {
+        setError(null);
+        setFileErrors(new Map());
+    }, []);
 
     /**
-     * Calls the AI detection endpoint.
-     * @param pdfFile PDF file to analyze.
-     * @param requestedEntities Array of requested entity types.
-     * @returns Parsed redaction mapping JSON.
+     * Create a stable cache key for API operations
      */
-    const runDetectAi = async (pdfFile: File, requestedEntities: string[]): Promise<RedactionMapping> => {
+    const getOrCreateCacheKey = useCallback((files: File[], operation: string, options: any = {}): string => {
+        // Create a stable cache key based on file keys and options
+        const fileKeys = files.map(file => getFileKey(file)).sort().join('-');
+        const optionsString = JSON.stringify(options);
+        return `${operation}-${fileKeys}-${optionsString}`;
+    }, []);
+
+    /**
+     * Get cached result if available
+     */
+    const getCachedResult = useCallback((cacheKey: string) => {
+        return apiResultCache.current.get(cacheKey);
+    }, []);
+
+    /**
+     * Set result in cache
+     */
+    const setCachedResult = useCallback((cacheKey: string, result: any) => {
+        apiResultCache.current.set(cacheKey, result);
+    }, []);
+
+    /**
+     * Get cached detection results for a specific file
+     */
+    const getDetectionResults = useCallback((fileKey: string): any => {
+        const result = detectionResultsCache.current.get(fileKey);
+        if (result) {
+            return result;
+        }
+        return null;
+    }, []);
+
+    /**
+     * Update the runBatchHybridDetect function to properly store results
+     */
+    const runBatchHybridDetect = useCallback(async (
+        files: File[],
+        options: {
+            presidio?: string[];
+            gliner?: string[];
+            gemini?: string[];
+        } = {}
+    ): Promise<Record<string, any>> => {
+        if (files.length === 0) {
+            return {};
+        }
+
         setLoading(true);
-        setError(null);
+        resetErrors();
+        setProgress(0);
+
         try {
-            const result = await detectAi(pdfFile, requestedEntities);
-            return normalizeRedactionMapping(result);
+            // Create cache key
+            const cacheKey = getOrCreateCacheKey(files, 'hybrid-detect', options);
+
+            // Check cache first
+            const cachedResult = getCachedResult(cacheKey);
+            if (cachedResult) {
+                console.log(`[APIDebug] Using cached results for batch detection`);
+                setProgress(100);
+                return cachedResult;
+            }
+
+            console.log(`[APIDebug] Starting batch hybrid detection for ${files.length} files`);
+
+            // Progressive progress updates
+            setProgress(10);
+
+            // Call the batch hybrid detection API
+            const results = await batchHybridDetect(files, options);
+
+            setProgress(90);
+            console.log(`[APIDebug] Detection complete for ${Object.keys(results).length} files`);
+
+            // Process each file to use the proper file key
+            // Clear existing cache entries for these files first to prevent stale data
+            files.forEach(file => {
+                const fileKey = getFileKey(file);
+                detectionResultsCache.current.delete(fileKey);
+            });
+
+            // Map file objects to their keys to ensure proper caching
+            const resultsWithCorrectKeys: Record<string, any> = {};
+
+            // Process each file to use the proper file key
+            files.forEach(file => {
+                const fileKey = getFileKey(file);
+                const fileName = file.name;
+
+                // If we have results for this file name, store them with the fileKey
+                if (results[fileName]) {
+                    resultsWithCorrectKeys[fileKey] = results[fileName];
+                    // Store in our detection cache
+                    detectionResultsCache.current.set(fileKey, results[fileName]);
+                    console.log(`[APIDebug] Mapped detection results from ${fileName} to ${fileKey}`);
+                }
+            });
+
+            // Store in API cache
+            setCachedResult(cacheKey, resultsWithCorrectKeys);
+
+            console.log(`[APIDebug] Updated detection results cache:`,
+                `(${Object.keys(resultsWithCorrectKeys).length})`,
+                Object.keys(resultsWithCorrectKeys));
+
+            setProgress(100);
+            return resultsWithCorrectKeys;
         } catch (err: any) {
-            setError(err.message || 'Error detecting AI entities');
+            const errorMsg = err.message || 'Error in batch hybrid detection';
+            setError(errorMsg);
+            setProgress(0);
             throw err;
         } finally {
             setLoading(false);
         }
-    };
+    }, [getOrCreateCacheKey, getCachedResult, setCachedResult, resetErrors]);
 
     /**
-     * Calls the ML detection endpoint.
-     * @param pdfFile PDF file to analyze.
-     * @param requestedEntities Array of requested entity types.
-     * @returns Parsed redaction mapping JSON.
+     * Redact a single PDF file
      */
-    const runDetectPresidio = async (pdfFile: File, requestedEntities: string[]): Promise<RedactionMapping> => {
+    const runRedactPdf = useCallback(async (
+        file: File,
+        redactionMapping: RedactionMapping
+    ): Promise<Blob> => {
         setLoading(true);
-        setError(null);
+        resetErrors();
+        setProgress(0);
+
         try {
-            const result = await detectPresidio(pdfFile, requestedEntities);
-            return normalizeRedactionMapping(result);
+            console.log(`[APIDebug] Starting redaction for file: ${file.name}`);
+
+            // Create a mapping object with this file's redaction mapping
+            const fileKey = getFileKey(file);
+            const mappings: Record<string, RedactionMapping> = {
+                [fileKey]: redactionMapping
+            };
+
+            setProgress(20);
+
+            // Use the batch API with a single file
+            const result = await batchRedactPdfs([file], mappings);
+
+            setProgress(100);
+
+            // Return the blob for the redacted file
+            const redactedBlob = result[fileKey];
+            if (!redactedBlob) {
+                throw new Error(`No redacted PDF returned for ${file.name}`);
+            }
+
+            return redactedBlob;
         } catch (err: any) {
-            setError(err.message || 'Error detecting ML entities');
+            const errorMsg = err.message || 'Error in redaction';
+            setError(errorMsg);
+            setProgress(0);
             throw err;
         } finally {
             setLoading(false);
         }
-    };
+    }, [resetErrors]);
 
     /**
-     * Calls the ML detection endpoint.
-     * @param pdfFile PDF file to analyze.
-     * @param requestedEntities Array of requested entity types.
-     * @returns Parsed redaction mapping JSON.
+     * Redact multiple PDF files in batch
      */
-    const runExtractText = async (pdfFile: File): Promise<ExtracteText> => {
+    const runBatchRedactPdfs = useCallback(async (
+        files: File[],
+        redactionMappings: Record<string, RedactionMapping>
+    ): Promise<Record<string, Blob>> => {
+        if (files.length === 0) {
+            return {};
+        }
+
         setLoading(true);
-        setError(null);
+        resetErrors();
+        setProgress(0);
+
         try {
-            return await extractText(pdfFile);
+            console.log(`[APIDebug] Starting batch redaction for ${files.length} files`);
+
+            // Filter files to only those with redaction mappings
+            const filesToRedact = files.filter(file => {
+                const fileKey = getFileKey(file);
+                return !!redactionMappings[fileKey];
+            });
+
+            if (filesToRedact.length === 0) {
+                throw new Error('No files with valid redaction mappings');
+            }
+
+            setProgress(10);
+
+            // Call the batch redaction API
+            const results = await batchRedactPdfs(filesToRedact, redactionMappings);
+
+            setProgress(100);
+            return results;
         } catch (err: any) {
-            setError(err.message || 'Error extraction text');
+            const errorMsg = err.message || 'Error in batch redaction';
+            setError(errorMsg);
+            setProgress(0);
             throw err;
         } finally {
             setLoading(false);
         }
-    };
+    }, [resetErrors]);
 
     /**
-     * Calls the redaction endpoint.
-     * @param pdfFile Original PDF file.
-     * @param redactionMapping Mapping data for redactions.
-     * @returns A Blob representing the redacted PDF.
+     * Run a batch search across multiple files
      */
-    const runRedactPdf = async (pdfFile: File, redactionMapping: RedactionMapping): Promise<Blob> => {
+    const runBatchSearch = useCallback(async (
+        files: File[],
+        searchTerm: string,
+        options: {
+            isCaseSensitive?: boolean;
+            isRegexSearch?: boolean;
+        } = {}
+    ): Promise<any> => {
+        if (files.length === 0 || !searchTerm.trim()) {
+            throw new Error('Files and search term are required');
+        }
+
         setLoading(true);
-        setError(null);
+        resetErrors();
+        setProgress(0);
+
         try {
-            const redactedPdfBlob = await redactPdf(pdfFile, redactionMapping);
-            return redactedPdfBlob;
-        } catch (err: any) {
-            setError(err.message || 'Error redacting PDF');
-            throw err;
+            // Create cache key for search
+            const cacheKey = getOrCreateCacheKey(files, 'search', {
+                term: searchTerm,
+                ...options
+            });
+
+            // Check cache first
+            const cachedResult = getCachedResult(cacheKey);
+            if (cachedResult) {
+                console.log(`[APIDebug] Using cached results for search: "${searchTerm}"`);
+                setProgress(100);
+                return cachedResult;
+            }
+
+            console.log(`[APIDebug] Searching for "${searchTerm}" in ${files.length} files`);
+
+            setProgress(10);
+
+            // Call the batch search API
+            const results = await BatchSearchService.batchSearch(
+                files,
+                searchTerm,
+                {
+                    caseSensitive: options.isCaseSensitive,
+                    regex: options.isRegexSearch
+                }
+            );
+
+            // Cache results
+            setCachedResult(cacheKey, results);
+
+            setProgress(100);
+
+            console.log(`[APIDebug] Search found ${results.batch_summary?.total_matches || 0} matches`);
+
+            return results;
+        } catch (error: any) {
+            console.error("[APIDebug] Search error:", error);
+            setError(error.message || 'Error during batch search');
+            setProgress(0);
+            throw error;
         } finally {
             setLoading(false);
         }
-    };
+    }, [getOrCreateCacheKey, getCachedResult, setCachedResult, resetErrors]);
 
     /**
-     * Calls the ML detection endpoint.
-     * @param pdfFile PDF file to analyze.
-     * @param requestedEntities Array of requested entity types.
-     * @returns Parsed redaction mapping JSON.
+     * Clear detection results cache for specific files or all files
      */
-    const runDetectGliner = async (pdfFile: File, requestedEntities: string[]): Promise<RedactionMapping> => {
-        setLoading(true);
-        setError(null);
-        try {
-            const result = await detectGliner(pdfFile, requestedEntities);
-            return normalizeRedactionMapping(result);
-        } catch (err: any) {
-            setError(err.message || 'Error detecting ML entities');
-            throw err;
-        } finally {
-            setLoading(false);
+    const clearDetectionCache = useCallback((fileKeys?: string[]) => {
+        if (fileKeys && fileKeys.length > 0) {
+            // Clear only specific file keys
+            fileKeys.forEach(key => {
+                detectionResultsCache.current.delete(key);
+            });
+            console.log(`[APIDebug] Cleared detection cache for ${fileKeys.length} files`);
+        } else {
+            // Clear entire cache
+            detectionResultsCache.current.clear();
+            console.log(`[APIDebug] Cleared entire detection cache`);
         }
-    };
+    }, []);
+
     return {
+        // State
         loading,
         error,
-        runDetectAi,
-        runDetectMl: runDetectPresidio,
+        fileErrors,
+        progress,
+
+        // Main API methods
+        runBatchHybridDetect,
+        getDetectionResults,
         runRedactPdf,
-        runExtractText,
-        runDetectGliner
+        runBatchRedactPdfs,
+        runBatchSearch,
+
+        // Cache management
+        clearDetectionCache,
+
+        // Utility
+        resetErrors
     };
 };

@@ -102,24 +102,6 @@
     z-index: 10020;
 }
 
-/* PDF page wrapper styling */
-.pdf-page-wrapper {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 0 auto 20px;
-    background-color: white;
-    box-shadow: var(--shadow-md);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
-    will-change: transform;
-}
-
-.pdf-page-wrapper.active {
-    box-shadow: 0 0 0 2px var(--primary), var(--shadow-lg);
-    transform: translateY(-2px);
-}
-
 /* PDF page content container */
 .pdf-page-content {
     position: relative;
@@ -190,16 +172,6 @@
     overflow: visible;
     pointer-events: none;
     transform-origin: top left;
-}
-
-/* Dark theme adjustments */
-[data-theme="dark"] .pdf-page-wrapper {
-    background-color: #2a2a2a;
-}
-
-[data-theme="dark"] .highlight-tooltip {
-    background-color: var(--foreground);
-    color: var(--background);
 }
 
 /* Responsive adjustments */

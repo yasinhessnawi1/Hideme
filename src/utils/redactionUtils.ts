@@ -1,5 +1,7 @@
+// src/utils/redactionUtils.ts (Updated for batch search)
 import { HighlightRect, HighlightType } from '../contexts/HighlightContext';
-import { RedactionMapping, RedactionItem } from '../contexts/PDFContext';
+import { RedactionMapping, RedactionItem } from '../types/types';
+import { SearchResult } from '../services/BatchSearchService';
 
 /**
  * Builds a redaction mapping from manual highlights
@@ -40,24 +42,21 @@ export const buildManualRedactionMapping = (
 };
 
 /**
- * Builds a redaction mapping from search highlights
+ * Builds a redaction mapping from search results
  *
- * @param annotations Object containing all highlight annotations
- * @returns A RedactionMapping object with search highlights
+ * @param searchResults Map of fileKey -> pageNumber -> SearchResult[]
+ * @returns A RedactionMapping object with search highlights for a specific file
  */
 export const buildSearchRedactionMapping = (
-    annotations: Record<number, HighlightRect[]>
+    searchResults: Map<number, SearchResult[]>
 ): RedactionMapping => {
     const pages: { page: number; sensitive: RedactionItem[] }[] = [];
 
-    // Process each page with annotations
-    Object.entries(annotations).forEach(([pageStr, highlights]) => {
-        const page = parseInt(pageStr);
-        const searchHighlights = highlights.filter(h => h.type === HighlightType.SEARCH);
+    // Process each page with search results
+    searchResults.forEach((highlights, pageNumber) => {
+        if (highlights.length === 0) return;
 
-        if (searchHighlights.length === 0) return;
-
-        const sensitive: RedactionItem[] = searchHighlights.map(highlight => ({
+        const sensitive: RedactionItem[] = highlights.map(highlight => ({
             entity_type: "SEARCH",
             content: highlight.text || "",
             start: 0,
@@ -71,7 +70,49 @@ export const buildSearchRedactionMapping = (
             }
         }));
 
-        pages.push({ page, sensitive });
+        pages.push({ page: pageNumber, sensitive });
+    });
+
+    return { pages };
+};
+
+/**
+ * Build a redaction mapping directly from batch search results
+ *
+ * @param searchResults Results from the batch search context for a specific file
+ * @returns A RedactionMapping object with search highlights
+ */
+export const buildBatchSearchRedactionMapping = (
+    searchResults: Map<number, Map<string, SearchResult[]>>
+): RedactionMapping => {
+    const pages: { page: number; sensitive: RedactionItem[] }[] = [];
+
+    // Process each page with search results
+    searchResults.forEach((pageSearches, pageNumber) => {
+        const sensitive: RedactionItem[] = [];
+
+        // Combine results from all search terms on this page
+        pageSearches.forEach((results, searchTerm) => {
+            results.forEach(highlight => {
+                sensitive.push({
+                    entity_type: "SEARCH",
+                    content: highlight.text || searchTerm,
+                    start: 0,
+                    end: 0,
+                    score: 1.0,
+                    bbox: {
+                        x0: highlight.x,
+                        y0: highlight.y,
+                        x1: highlight.x + highlight.w,
+                        y1: highlight.y + highlight.h,
+                    }
+                });
+            });
+        });
+
+        if (sensitive.length > 0) {
+            pages.push({ page: pageNumber, sensitive });
+        }
     });
 
     return { pages };
@@ -124,9 +165,10 @@ export const mergeRedactionMappings = (
 };
 
 /**
- * Creates a full redaction mapping from all highlight types and detection mappings
+ * Creates a full redaction mapping from all highlight types, search results, and detection mappings
  *
  * @param annotations Object containing all highlight annotations
+ * @param searchResults Map of page -> search term -> SearchResult[] from batch search
  * @param detectionMapping Detection mapping from AI/ML detection
  * @param includeSearchHighlights Whether to include search highlights
  * @param includeEntityHighlights Whether to include entity highlights
@@ -135,6 +177,7 @@ export const mergeRedactionMappings = (
  */
 export const createFullRedactionMapping = (
     annotations: Record<number, HighlightRect[]>,
+    searchResults: Map<number, Map<string, SearchResult[]>>,
     detectionMapping: RedactionMapping | null,
     includeSearchHighlights: boolean = true,
     includeEntityHighlights: boolean = true,
@@ -153,8 +196,8 @@ export const createFullRedactionMapping = (
     }
 
     // Add search highlights if requested
-    if (includeSearchHighlights) {
-        mappingsToMerge.push(buildSearchRedactionMapping(annotations));
+    if (includeSearchHighlights && searchResults && searchResults.size > 0) {
+        mappingsToMerge.push(buildBatchSearchRedactionMapping(searchResults));
     }
 
     // Merge all mappings
