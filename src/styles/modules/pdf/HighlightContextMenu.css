@@ -4,8 +4,8 @@
 */
 
 .highlight-context-menu {
-    position: relative;
-    z-index: 1000;
+    position: fixed;
+    z-index: 9999; /* Ensure it's above all other elements */
     background-color: var(--background);
     box-shadow: var(--shadow-md);
     border-radius: var(--border-radius-md);
@@ -14,6 +14,7 @@
     min-width: 180px;
     animation: contextMenuFadeIn 0.15s ease;
     user-select: none;
+    pointer-events: auto !important; /* Ensure the menu receives clicks */
 }
 
 .context-menu-header {
@@ -54,6 +55,7 @@
     transition: background-color 0.2s ease, color 0.2s ease;
     color: var(--foreground);
     font-size: var(--font-size-sm);
+    pointer-events: auto !important; /* Ensure menu items receive clicks */
 }
 
 .context-menu-item:hover {

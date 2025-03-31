@@ -11,7 +11,7 @@
     width: 100%;
     height: 100%;
     pointer-events: none;
-    overflow: hidden;
+    overflow: visible; /* Changed from 'hidden' to 'visible' to allow tooltips to overflow */
     transform-origin: top left;
     z-index: 1000;
 }
@@ -60,7 +60,7 @@
 
 /* Tooltip styles with animations */
 .highlight-tooltip {
-    position: fixed;
+    position: fixed; /* Use fixed positioning to follow mouse precisely */
     transform: translateX(-50%) translateY(-100%);
     background-color: var(--foreground);
     color: var(--background);
@@ -68,7 +68,7 @@
     border-radius: var(--border-radius-md);
     font-size: var(--font-size-xs);
     pointer-events: none;
-    z-index: 99999;
+    z-index: 99999; /* Very high z-index to ensure it's on top */
     white-space: nowrap;
     max-width: 200px;
     overflow: hidden;
@@ -115,12 +115,7 @@
     overflow: visible;
 }
 
-
-
 /* Critical styles for react-pdf */
-
-
-
 .react-pdf__Page__textContent {
     position: absolute !important;
     top: 0 !important;
@@ -172,11 +167,31 @@
     overflow: visible;
     pointer-events: none;
     transform-origin: top left;
+    z-index: 1000;
+}
+
+/* Make sure tooltips and context menus are visible */
+.highlight-tooltip,
+.highlight-context-menu {
+    pointer-events: auto;
+    z-index: 99999; /* Extremely high z-index to ensure visibility */
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .pdf-page-wrapper {
         margin: 10px auto;
+    }
+
+    /* Ensure tooltips remain visible on mobile */
+    .highlight-tooltip {
+        max-width: 150px;
+        font-size: 10px;
+    }
+
+    /* Make context menu more compact on mobile */
+    .highlight-context-menu {
+        min-width: 150px;
+        font-size: 12px;
     }
 }

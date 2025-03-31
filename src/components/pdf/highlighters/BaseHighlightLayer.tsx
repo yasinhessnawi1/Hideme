@@ -1,5 +1,5 @@
-// src/components/pdf/highlighters/BaseHighlightLayer.tsx
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+// src/components/pdf/highlighters/BaseHighlightLayer.tsx - Updated to pass wrapper ref
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useHighlightContext, HighlightRect } from '../../../contexts/HighlightContext';
 import { useEditContext } from '../../../contexts/EditContext';
 import HighlightContextMenu from './HighlightContextMenu';
@@ -11,6 +11,7 @@ interface BaseHighlightLayerProps {
     highlights: HighlightRect[];
     layerClass: string;
     fileKey?: string; // Optional file key for multi-file support
+    viewport?: any; // Pass the viewport to allow proper coordinate conversion
 }
 
 /**
@@ -21,10 +22,14 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                                                                    pageNumber,
                                                                    highlights,
                                                                    layerClass,
-                                                                   fileKey
+                                                                   fileKey,
+                                                                   viewport
                                                                }) => {
     const { selectedAnnotation, setSelectedAnnotation, removeAnnotation } = useHighlightContext();
     const { isEditingMode, getColorForModel, getSearchColor } = useEditContext();
+
+    // Create ref for the container to use with viewport sizing
+    const containerRef = useRef<HTMLDivElement>(null);
 
     // State for hover and context menu
     const [hoveredAnnotation, setHoveredAnnotation] = useState<{
@@ -84,12 +89,15 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
     }, [isEditingMode, removeAnnotation, pageNumber, fileKey]);
 
     const handleHighlightMouseEnter = useCallback((e: React.MouseEvent, annotation: HighlightRect) => {
+        // Get the highlight element's rectangle to position the tooltip correctly
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+
+        // Position the tooltip above the highlight's center point
         setHoveredAnnotation({
             annotation,
             position: {
-                x: rect.left + rect.width / 2,
-                y: rect.top,
+                x: rect.left + (rect.width / 2),
+                y: rect.top
             },
         });
     }, []);
@@ -103,10 +111,11 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
         e.preventDefault();
         e.stopPropagation();
 
-        // Store annotation and the position where the context menu should appear
+        // Store annotation and position where the context menu should appear
+        // Use the exact click coordinates for the context menu
         setContextMenuState({
             annotation,
-            position: { x: e.clientX /2, y: e.clientY /2 },
+            position: { x: e.clientX, y: e.clientY },
         });
     }, []);
 
@@ -124,7 +133,6 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
         }
         return highlight.color;
     }, [getColorForModel, getSearchColor]);
-
 
     useEffect(() => {
         // Cleanup function
@@ -222,6 +230,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
 
     return (
         <div
+            ref={containerRef}
             className={`highlight-layer ${layerClass}`}
             style={{
                 position: 'absolute',
@@ -245,8 +254,8 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                     className="highlight-tooltip"
                     style={{
                         position: 'fixed',
-                        left: hoveredAnnotation.position.x,
-                        top: hoveredAnnotation.position.y - 24,
+                        left: hoveredAnnotation.annotation.x,
+                        top: hoveredAnnotation.annotation.y - 24,
                         transform: 'translateX(-50%)',
                         backgroundColor: 'rgba(0, 0, 0, 0.7)',
                         color: 'white',
@@ -267,6 +276,9 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                     position={contextMenuState.position}
                     highlight={contextMenuState.annotation}
                     onClose={closeContextMenu}
+                    wrapperRef={containerRef}
+                    viewport={viewport}
+                    zoomLevel={1.0} // You might want to pass the actual zoom level here
                 />
             )}
         </div>
