@@ -1,6 +1,7 @@
-// src/utils/EntityHighlightManager.ts
+// src/utils/EntityHighlightManager.ts - Fixed version
 import { HighlightType } from "../contexts/HighlightContext";
 import { PDFPageViewport, TextContent } from "../types/pdfTypes";
+import { v4 as uuidv4 } from 'uuid';
 
 export interface EntityOptions {
     pageNumber?: number; // Optional page number to only process a specific page
@@ -18,10 +19,15 @@ export class EntityHighlightManager {
     private options: EntityOptions;
     private processingTimestamp: number;
     private processedEntityIds: Set<string> = new Set();
+
     // Track processed entities by file to prevent cross-contamination
     private static processedEntitiesByFile: Map<string, Set<string>> = new Map();
     // Track processed pages by file to prevent reprocessing
     private static processedPagesByFile: Map<string, Set<number>> = new Map();
+    // Track reset operations to prevent cascades
+    private static lastResetTimestamps: Map<string, number> = new Map();
+    // Define a reset throttle time (milliseconds)
+    private static RESET_THROTTLE_TIME = 2000; // 2 seconds
 
     constructor(
         pageNumber: number,
@@ -83,17 +89,6 @@ export class EntityHighlightManager {
     }
 
     /**
-     * Reset processed entities for a specific file
-     * This allows reprocessing entities when needed
-     */
-    public static resetProcessedEntitiesForFile(fileKey: string): void {
-        const fileMarker = fileKey || 'default';
-        EntityHighlightManager.processedEntitiesByFile.set(fileMarker, new Set<string>());
-        EntityHighlightManager.processedPagesByFile.set(fileMarker, new Set<number>());
-        console.log(`[EntityDebug] Reset processed entities for file ${fileMarker}`);
-    }
-
-    /**
      * Check if a file has any processed entities
      */
     public static hasProcessedEntitiesForFile(fileKey: string): boolean {
@@ -109,22 +104,63 @@ export class EntityHighlightManager {
         const fileMarker = fileKey || 'default';
         EntityHighlightManager.processedEntitiesByFile.delete(fileMarker);
         EntityHighlightManager.processedPagesByFile.delete(fileMarker);
+        // Also clear the reset timestamp
+        EntityHighlightManager.lastResetTimestamps.delete(fileMarker);
         console.log(`[EntityDebug] Removed file ${fileMarker} from processed entities tracking`);
     }
 
     /**
-     * Generate a unique entity ID based on its properties
-     * This helps prevent duplicate entity creation
+     * Reset processed entities for a specific file with throttling
+     * to prevent event cascade loops
      */
-    private generateEntityId(entity: any): string {
-        const { entity_type, bbox, model } = entity;
-        const { x0, y0, x1, y1 } = bbox || {};
+    public static resetProcessedEntitiesForFile(fileKey: string): boolean {
+        const fileMarker = fileKey || 'default';
+        const now = Date.now();
 
-        // Add more specific file data to prevent cross-file contamination
+        // Check if we've reset this file recently to prevent cascades
+        const lastReset = EntityHighlightManager.lastResetTimestamps.get(fileMarker) || 0;
+        if (now - lastReset < EntityHighlightManager.RESET_THROTTLE_TIME) {
+            // Skip this reset if it's too soon after the last one
+            console.log(`[EntityDebug] Throttling reset for file ${fileMarker} - last reset was ${now - lastReset}ms ago`);
+            return false;
+        }
+
+        // Clear processed entities for this file
+        EntityHighlightManager.processedEntitiesByFile.set(fileMarker, new Set<string>());
+
+        // Clear processed pages for this file
+        EntityHighlightManager.processedPagesByFile.set(fileMarker, new Set<number>());
+
+        // Update the reset timestamp
+        EntityHighlightManager.lastResetTimestamps.set(fileMarker, now);
+
+        console.log(`[EntityDebug] Reset processed entities for file ${fileMarker}`);
+
+        // Trigger a re-processing event with a slight delay to ensure UI is ready
+        // Using a simpler event with less data to reduce overhead
+        window.dispatchEvent(new CustomEvent('force-reprocess-entity-highlights', {
+            detail: {
+                fileKey: fileMarker,
+                timestamp: now,
+                source: 'entity-highlight-manager'
+            }
+        }));
+
+        return true;
+    }
+
+    // Generate a unique entity ID that won't cause duplicates
+    private generateEntityId(entity: any): string {
+        const {entity_type, bbox, model} = entity;
+        const {x0, y0, x1, y1} = bbox || {};
+
+        // Use full UUID for guaranteed uniqueness
+        const uuid = uuidv4();
+        const timestamp = Date.now();
         const fileMarker = this.fileKey || 'default';
 
-        // Create a stable identifying string based on entity properties with better uniqueness
-        return `${fileMarker}-${this.pageNumber}-${entity_type}-${model || 'unknown'}-${x0}-${y0}-${x1}-${y1}`;
+        // Create a compound ID with sufficient entropy to prevent collisions
+        return `entity-${fileMarker}-${this.pageNumber}-${entity_type}-${uuid}-${timestamp}`;
     }
 
     /**
@@ -133,6 +169,13 @@ export class EntityHighlightManager {
      */
     public processHighlights(): void {
         const fileMarker = this.fileKey || 'default';
+
+        // Verify that the detection mapping belongs to this file
+        if (this.detectionMapping && this.detectionMapping.fileKey &&
+            this.detectionMapping.fileKey !== fileMarker) {
+            console.warn(`[EntityDebug] Detection mapping belongs to file ${this.detectionMapping.fileKey} but processing for ${fileMarker}, skipping`);
+            return;
+        }
 
         // Check if this page has already been processed for this file
         // Skip if already processed unless force reprocess is enabled
@@ -185,6 +228,7 @@ export class EntityHighlightManager {
         // Create a new Set for this processing session
         const processedThisSession: Set<string> = new Set();
         const fileMarker = this.fileKey || 'default';
+        const batchSize = 10; // Process in smaller batches to avoid UI freezing
 
         // Filter entities in one pass to avoid redundant processing
         const uniqueEntities = entities.filter(entity => {
@@ -215,28 +259,41 @@ export class EntityHighlightManager {
 
         console.log(`[EntityDebug] Processing ${uniqueEntities.length} unique entities out of ${entities.length} total for file ${fileMarker}`);
 
-        // Create highlights for the unique entities
-        const highlightsToAdd = uniqueEntities
-            .map((entity, index) => {
+        // Process entities in smaller batches to avoid UI freezing
+        const processBatch = (startIndex: number) => {
+            const endIndex = Math.min(startIndex + batchSize, uniqueEntities.length);
+            const batch = uniqueEntities.slice(startIndex, endIndex);
+
+            // Create highlights for this batch
+            const highlightsToAdd = batch.map((entity, index) => {
                 try {
                     return this.createEntityHighlightObject(entity, index);
                 } catch (error) {
                     console.error('[EntityDebug] Error creating entity highlight:', error);
                     return null;
                 }
-            })
-            .filter(Boolean);
+            }).filter(Boolean);
 
-        // Add all highlights in batch
-        if (highlightsToAdd.length > 0) {
-            console.log(`[EntityDebug] Adding ${highlightsToAdd.length} entity highlights to page ${this.pageNumber} for file ${fileMarker}`);
+            // Add all highlights in this batch
+            if (highlightsToAdd.length > 0) {
+                highlightsToAdd.forEach(highlight => {
+                    if (highlight) {
+                        this.addAnnotation(this.pageNumber, highlight, this.fileKey);
+                    }
+                });
+            }
 
-            // Add all highlights in batch
-            highlightsToAdd.forEach(highlight => {
-                if (highlight) {
-                    this.addAnnotation(this.pageNumber, highlight, this.fileKey);
-                }
-            });
+            // Process next batch if more entities left
+            if (endIndex < uniqueEntities.length) {
+                setTimeout(() => processBatch(endIndex), 0);
+            } else {
+                console.log(`[EntityDebug] Completed processing all ${uniqueEntities.length} entities for page ${this.pageNumber}`);
+            }
+        };
+
+        // Start processing the first batch
+        if (uniqueEntities.length > 0) {
+            processBatch(0);
         } else {
             console.log(`[EntityDebug] No valid entity highlights to add on page ${this.pageNumber} for file ${fileMarker}`);
         }
@@ -252,7 +309,7 @@ export class EntityHighlightManager {
             return null;
         }
 
-        const { x0, y0, x1, y1 } = entity.bbox;
+        const {x0, y0, x1, y1} = entity.bbox;
 
         // Validate coordinate values
         if (typeof x0 !== 'number' || typeof y0 !== 'number' ||
@@ -267,21 +324,18 @@ export class EntityHighlightManager {
 
         // Add debug logging with clear context
         if (index < 3) { // Only log first 3 to reduce verbosity
-            console.log(`[EntityDebug] Creating entity highlight: ${entityType} from ${model} model at (${x0.toFixed(2)}, ${y0.toFixed(2)}) with size ${(x1-x0).toFixed(2)}x${(y1-y0).toFixed(2)} for file ${this.fileKey || 'default'}`);
+            console.log(`[EntityDebug] Creating entity highlight: ${entityType} from ${model} model at (${x0.toFixed(2)}, ${y0.toFixed(2)}) with size ${(x1 - x0).toFixed(2)}x${(y1 - y0).toFixed(2)} for file ${this.fileKey || 'default'}`);
         }
 
-        // Create a truly unique ID with timestamp and random string to prevent collisions
-        const randomString = Math.random().toString(36).substring(2, 7);
-        const timestamp = Date.now();
-        const nextId = this.getNextHighlightId();
-        const uniqueId = `entity-${this.fileKey || 'default'}-${this.pageNumber}-${nextId}-${timestamp}-${randomString}`;
+        // Generate a unique ID that won't collide
+        const uniqueId = this.generateEntityId(entity);
 
         // Create highlight object with guaranteed unique ID and file reference
         return {
             id: uniqueId,
             type: HighlightType.ENTITY,
-            x: x0 - 2, // Small padding for better visibility
-            y: y0 - 2,
+            x: x0 - 5, // Small padding for better visibility
+            y: y0 -5,
             w: (x1 - x0) + 4, // Add padding on both sides
             h: (y1 - y0) + 4,
             text: entity.content || entityType,
@@ -292,7 +346,8 @@ export class EntityHighlightManager {
             score: entity.score || 0,
             fileKey: this.fileKey, // Ensure fileKey is set
             page: this.pageNumber,
-            timestamp: this.processingTimestamp
+            timestamp: this.processingTimestamp,
+            instanceId: uuidv4()
         };
     }
 

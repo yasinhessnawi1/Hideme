@@ -1,4 +1,4 @@
-// src/hooks/usePDFApi.ts
+// src/hooks/usePDFApi.ts - Updated
 import { useCallback, useState, useRef } from 'react';
 import { RedactionMapping } from '../types/types';
 import { batchHybridDetect, batchRedactPdfs } from '../services/BatchApiService';
@@ -67,9 +67,9 @@ export const usePDFApi = () => {
     const runBatchHybridDetect = useCallback(async (
         files: File[],
         options: {
-            presidio?: string[];
-            gliner?: string[];
-            gemini?: string[];
+            presidio?: string[] | null ;
+            gliner?: string[] | null;
+            gemini?: string[] | null;
         } = {}
     ): Promise<Record<string, any>> => {
         if (files.length === 0) {
@@ -120,9 +120,19 @@ export const usePDFApi = () => {
 
                 // If we have results for this file name, store them with the fileKey
                 if (results[fileName]) {
-                    resultsWithCorrectKeys[fileKey] = results[fileName];
+                    // FIXED: Create a deep copy of the results to ensure isolation between files
+                    const resultCopy = JSON.parse(JSON.stringify(results[fileName]));
+
+                    // Add file information to detection results for better tracking
+                    if (resultCopy.pages) {
+                        resultCopy.fileKey = fileKey;
+                        resultCopy.fileName = fileName;
+                    }
+
+                    resultsWithCorrectKeys[fileKey] = resultCopy;
+
                     // Store in our detection cache
-                    detectionResultsCache.current.set(fileKey, results[fileName]);
+                    detectionResultsCache.current.set(fileKey, resultCopy);
                     console.log(`[APIDebug] Mapped detection results from ${fileName} to ${fileKey}`);
                 }
             });
@@ -153,6 +163,7 @@ export const usePDFApi = () => {
         file: File,
         redactionMapping: RedactionMapping
     ): Promise<Blob> => {
+        // Implementation unchanged
         setLoading(true);
         resetErrors();
         setProgress(0);
@@ -197,6 +208,7 @@ export const usePDFApi = () => {
         files: File[],
         redactionMappings: Record<string, RedactionMapping>
     ): Promise<Record<string, Blob>> => {
+        // Implementation unchanged
         if (files.length === 0) {
             return {};
         }
@@ -246,6 +258,7 @@ export const usePDFApi = () => {
             isRegexSearch?: boolean;
         } = {}
     ): Promise<any> => {
+        // Implementation unchanged
         if (files.length === 0 || !searchTerm.trim()) {
             throw new Error('Files and search term are required');
         }

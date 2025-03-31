@@ -1,3 +1,4 @@
+// src/contexts/EditContext.tsx - Updated with fixes for file isolation
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { OptionType, RedactionMapping } from '../types/types';
 import { useFileContext } from './FileContext';
@@ -37,9 +38,11 @@ interface EditContextProps {
     setGlinerColor: React.Dispatch<React.SetStateAction<string>>;
     geminiColor: string;
     setGeminiColor: React.Dispatch<React.SetStateAction<string>>;
-
+    searchColor: string;
+    setSearchColor: React.Dispatch<React.SetStateAction<string>>;
     resetEditState: () => void;
     getColorForModel: (model: string) => string;
+    getSearchColor: () => string;
 }
 
 const EditContext = createContext<EditContextProps | undefined>(undefined);
@@ -67,7 +70,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [showSearchHighlights, setShowSearchHighlights] = useState(true);
     const [showEntityHighlights, setShowEntityHighlights] = useState(true);
     const [showManualHighlights, setShowManualHighlights] = useState(true);
-
+    const [searchColor, setSearchColor] = useState('#71c4ff');
     const [presidioColor, setPresidioColor] = useState('#ffd771'); // Yellow
     const [glinerColor, setGlinerColor] = useState('#ff7171'); // Red
     const [geminiColor, setGeminiColor] = useState('#7171ff'); // Blue
@@ -75,40 +78,148 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Store detection mappings for each file
     const [fileDetectionMappings, setFileDetectionMappings] = useState<Map<string, RedactionMapping>>(new Map());
 
+    // Track the last processed file to prevent unnecessary resets
+    const lastFileKeyRef = useRef<string | null>(null);
+
     // Set detection mapping for a specific file
     const setFileDetectionMapping = useCallback((fileKey: string, mapping: RedactionMapping) => {
+        // Create a deep copy of the mapping using structuredClone for best isolation
+        const mappingCopy = structuredClone(mapping);
+
+        // Add file key and timestamp to the mapping for better tracking
+        if (mappingCopy && typeof mappingCopy === 'object') {
+            (mappingCopy as any).fileKey = fileKey;
+            (mappingCopy as any).lastUpdated = Date.now();
+        }
+
         setFileDetectionMappings(prev => {
             const newMap = new Map(prev);
-            newMap.set(fileKey, mapping);
+            newMap.set(fileKey, mappingCopy);
             console.log(`[EditContext] Set detection mapping for file: ${fileKey}`);
             return newMap;
         });
 
         // If this is the current file, also update the current detection mapping
         if (currentFile && getFileKey(currentFile) === fileKey) {
-            setDetectionMapping(mapping);
+            console.log(`[EditContext] Setting current detection mapping for file: ${fileKey}`);
+            setDetectionMapping(mappingCopy);
         }
+
+        // Dispatch a notification event with small delay to guarantee proper sequencing
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('apply-detection-mapping-completed', {
+                detail: {
+                    fileKey,
+                    timestamp: Date.now()
+                }
+            }));
+        }, 50);
     }, [currentFile]);
 
     // Get detection mapping for a specific file
     const getFileDetectionMapping = useCallback((fileKey: string): RedactionMapping | null => {
         return fileDetectionMappings.get(fileKey) || null;
     }, [fileDetectionMappings]);
+    useEffect(() => {
+        const handleEntityDetectionComplete = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey, source, forceProcess } = customEvent.detail || {};
 
+            if (!fileKey) return;
+
+            // Only process auto-processing events specifically
+            if (source === 'auto-process') {
+                console.log(`[EditContext] Entity detection completed from auto-processing for file: ${fileKey}`);
+
+                // Get the mapping for this file
+                const mapping = fileDetectionMappings.get(fileKey);
+
+                if (mapping) {
+                    console.log(`[EditContext] Found detection mapping for auto-processed file: ${fileKey}`);
+
+                    // Force an update of the detection mapping
+                    const mappingCopy = JSON.parse(JSON.stringify(mapping));
+
+                    // Update the file's detection mapping
+                    setFileDetectionMapping(fileKey, mappingCopy);
+
+                    // If this is the current file, also update current detection mapping
+                    if (currentFile && getFileKey(currentFile) === fileKey) {
+                        console.log(`[EditContext] Updating current detection mapping from auto-process for file: ${fileKey}`);
+                        setDetectionMapping(mappingCopy);
+                    }
+
+                    // Dispatch a notification that mapping update is completed
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('apply-detection-mapping-completed', {
+                            detail: {
+                                fileKey,
+                                source: 'auto-process',
+                                timestamp: Date.now(),
+                                forceProcess: true
+                            }
+                        }));
+                    }, 50);
+                } else {
+                    console.log(`[EditContext] No detection mapping found for auto-processed file: ${fileKey}`);
+                }
+            }
+        };
+
+        window.addEventListener('entity-detection-complete',
+            handleEntityDetectionComplete as EventListener);
+
+        return () => {
+            window.removeEventListener('entity-detection-complete',
+                handleEntityDetectionComplete as EventListener);
+        };
+    }, [currentFile, fileDetectionMappings, setFileDetectionMapping, setDetectionMapping]);
     // Update current detection mapping when current file changes
     useEffect(() => {
         if (currentFile) {
             const fileKey = getFileKey(currentFile);
-            const mapping = fileDetectionMappings.get(fileKey);
-            if (mapping) {
-                console.log(`[EditContext] Updating current detection mapping for file: ${fileKey}`);
-                setDetectionMapping(mapping);
-            } else {
-                console.log(`[EditContext] No detection mapping found for current file: ${fileKey}`);
-                setDetectionMapping(null);
+
+            // Only update if the file actually changed
+            if (lastFileKeyRef.current !== fileKey) {
+                lastFileKeyRef.current = fileKey;
+
+                const mapping = fileDetectionMappings.get(fileKey);
+                if (mapping) {
+                    // FIXED: Create a new reference to prevent shared state
+                    const mappingCopy = JSON.parse(JSON.stringify(mapping));
+                    console.log(`[EditContext] Updating current detection mapping for file: ${fileKey}`);
+                    setDetectionMapping(mappingCopy);
+                } else {
+                    console.log(`[EditContext] No detection mapping found for current file: ${fileKey}`);
+                    setDetectionMapping(null);
+                }
             }
         }
     }, [currentFile, fileDetectionMappings]);
+
+    // Listen for apply-detection-mapping events
+    useEffect(() => {
+        const handleApplyDetectionMapping = (event: CustomEvent) => {
+            const { fileKey, mapping } = event.detail;
+            if (fileKey && mapping) {
+                console.log(`[EditContext] Receiving detection mapping for file: ${fileKey} from event`);
+
+                // FIXED: Create a deep copy of the mapping to ensure complete isolation
+                const mappingCopy = JSON.parse(JSON.stringify(mapping));
+
+                // Set the mapping for this file
+                setFileDetectionMapping(fileKey, mappingCopy);
+            }
+        };
+
+        // Add event listener
+        window.addEventListener('apply-detection-mapping', handleApplyDetectionMapping as EventListener);
+
+        // Cleanup
+        return () => {
+            window.removeEventListener('apply-detection-mapping', handleApplyDetectionMapping as EventListener);
+        };
+    }, [setFileDetectionMapping]);
 
     // Reset state when needed
     const resetEditState = useCallback(() => {
@@ -136,6 +247,10 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return '#757575'; // Default gray
         }
     }, [presidioColor, glinerColor, geminiColor]);
+
+    const getSearchColor  = useCallback((): string => {
+       return searchColor;
+    }, [searchColor]);
 
     return (
         <EditContext.Provider
@@ -169,6 +284,9 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setShowManualHighlights,
                 presidioColor,
                 setPresidioColor,
+                searchColor,
+                setSearchColor,
+                getSearchColor,
                 glinerColor,
                 setGlinerColor,
                 geminiColor,

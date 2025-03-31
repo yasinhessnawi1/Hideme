@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { getFileKey } from './PDFViewerContext';
+import { autoProcessManager } from '../utils/AutoProcessManager';
 
 interface FileContextProps {
     // File management
@@ -27,6 +28,10 @@ interface FileContextProps {
     toggleActiveFile: (file: File) => void;
     isFileActive: (file: File) => boolean;
 
+    // Auto-processing settings
+    isAutoProcessingEnabled: boolean;
+    setAutoProcessingEnabled: (enabled: boolean) => void;
+
     // File utility functions
     getFileByKey: (fileKey: string) => File | null;
 }
@@ -46,6 +51,12 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [currentFile, setCurrentFile] = useState<File | null>(null);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [activeFiles, setActiveFiles] = useState<File[]>([]); // Files currently displayed
+    const [isAutoProcessingEnabled, setAutoProcessingEnabled] = useState<boolean>(true);
+
+    // Keep a queue of newly added files that need processing
+    const processingQueue = useRef<File[]>([]);
+    const processingInProgress = useRef<boolean>(false);
+    const [queueTrigger, setQueueTrigger] = useState(0);
 
     // Functions to manage active files (files currently displayed in the viewer)
     const addToActiveFiles = useCallback((file: File) => {
@@ -62,6 +73,54 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             f.name !== file.name || f.lastModified !== file.lastModified
         ));
     }, []);
+
+    // Update auto-processing settings
+    useEffect(() => {
+        autoProcessManager.updateConfig({ isActive: isAutoProcessingEnabled });
+    }, [isAutoProcessingEnabled]);
+
+    // Process queued files in a controlled manner
+    useEffect(() => {
+        const processQueue = async () => {
+            if (processingInProgress.current || processingQueue.current.length === 0) {
+                return;
+            }
+
+            processingInProgress.current = true;
+
+            try {
+                // Get files to process (up to 3 at a time)
+                const filesToProcess = processingQueue.current.splice(0, 3);
+
+                if (filesToProcess.length > 0) {
+                    console.log(`[FileContext] Processing ${filesToProcess.length} queued files`);
+
+                    // Process files with current settings
+                    const successCount = await autoProcessManager.processNewFiles(filesToProcess);
+                    console.log(`[FileContext] Successfully processed ${successCount}/${filesToProcess.length} files`);
+                }
+            } catch (error) {
+                console.error('[FileContext] Error processing file queue:', error);
+            } finally {
+                processingInProgress.current = false;
+
+                // Continue processing queue if there are more files
+                if (processingQueue.current.length > 0) {
+                    // Trigger another processing round after a delay
+                    setTimeout(() => {
+                        setQueueTrigger(prev => prev + 1);
+                    }, 300);
+                }
+            }
+        };
+
+        // Start processing if needed
+        if (processingQueue.current.length > 0 && !processingInProgress.current) {
+            processQueue();
+        }
+    }, [queueTrigger]); // Now depends on queueTrigger to activate when needed
+
+
     // File management functions
     const addFile = useCallback((file: File) => {
         setFiles((prevFiles) => {
@@ -89,7 +148,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             addToActiveFiles(file);
 
             // Trigger initialization for the new file's highlights
-            // This will ensure proper highlighting for the new file
             const fileKey = getFileKey(file);
             setTimeout(() => {
                 // Use a small timeout to ensure the file is fully added to the context
@@ -108,9 +166,19 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }));
             }, 100);
 
+            // Queue file for auto-processing with current settings
+            if (isAutoProcessingEnabled) {
+                processingQueue.current.push(file);
+
+                // Trigger queue processing with our state trigger
+                setQueueTrigger(prev => prev + 1);
+
+                console.log(`[FileContext] Queued new file for auto-processing: ${file.name}`);
+            }
+
             return newFiles;
         });
-    }, [addToActiveFiles]);
+    }, [addToActiveFiles, isAutoProcessingEnabled, setCurrentFile]);
 
     const addFiles = useCallback((newFiles: File[], replace = false) => {
         setFiles((prevFiles) => {
@@ -158,9 +226,20 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }, 100);
             });
 
+            // Queue new files for auto-processing with current settings
+            if (isAutoProcessingEnabled && uniqueNewFiles.length > 0) {
+                processingQueue.current.push(...uniqueNewFiles);
+
+                // Trigger queue processing with our state trigger
+                setQueueTrigger(prev => prev + 1);
+
+                console.log(`[FileContext] Queued ${uniqueNewFiles.length} new files for auto-processing`);
+            }
+
             return updatedFiles;
         });
-    }, [currentFile, addToActiveFiles]);
+    }, [currentFile, addToActiveFiles, isAutoProcessingEnabled, setCurrentFile]);
+
 
     const removeFile = useCallback((fileIndex: number) => {
         setFiles((prevFiles) => {
@@ -205,6 +284,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentFile(null);
         setSelectedFiles([]);
         setActiveFiles([]);
+        processingQueue.current = [];
     }, []);
 
     // File selection methods for batch operations
@@ -277,7 +357,22 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('Error saving file info to storage:', error);
         }
     }, [files]);
+    useEffect(() => {
+        // If processing is in progress, set a timeout to clear it if it gets stuck
+        if (processingInProgress.current) {
+            const timeoutId = setTimeout(() => {
+                console.log('[FileContext] Processing timeout - resetting state');
+                processingInProgress.current = false;
 
+                // Trigger processing again if there are files in the queue
+                if (processingQueue.current.length > 0) {
+                    setQueueTrigger(prev => prev + 1);
+                }
+            }, 30000); // 30 second timeout
+
+            return () => clearTimeout(timeoutId);
+        }
+    }, [queueTrigger]);
     return (
         <FileContext.Provider
             value={{
@@ -305,6 +400,10 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 removeFromActiveFiles,
                 toggleActiveFile,
                 isFileActive,
+
+                // Auto-processing settings
+                isAutoProcessingEnabled,
+                setAutoProcessingEnabled,
 
                 // Utilities
                 getFileByKey

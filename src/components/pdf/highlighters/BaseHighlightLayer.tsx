@@ -1,6 +1,9 @@
-import React, {useState, useMemo, useCallback, useEffect} from 'react';
+// src/components/pdf/highlighters/BaseHighlightLayer.tsx
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useHighlightContext, HighlightRect } from '../../../contexts/HighlightContext';
 import { useEditContext } from '../../../contexts/EditContext';
+import HighlightContextMenu from './HighlightContextMenu';
+import highlightManager from '../../../utils/HighlightManager';
 import '../../../styles/modules/pdf/HighlightLayer.css';
 
 interface BaseHighlightLayerProps {
@@ -21,9 +24,16 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                                                                    fileKey
                                                                }) => {
     const { selectedAnnotation, setSelectedAnnotation, removeAnnotation } = useHighlightContext();
-    const { isEditingMode, getColorForModel } = useEditContext();
+    const { isEditingMode, getColorForModel, getSearchColor } = useEditContext();
 
+    // State for hover and context menu
     const [hoveredAnnotation, setHoveredAnnotation] = useState<{
+        annotation: HighlightRect;
+        position: { x: number; y: number };
+    } | null>(null);
+
+    // New state for context menu
+    const [contextMenuState, setContextMenuState] = useState<{
         annotation: HighlightRect;
         position: { x: number; y: number };
     } | null>(null);
@@ -69,6 +79,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
 
         if (window.confirm('Remove this highlight?')) {
             removeAnnotation(pageNumber, annotation.id, fileKey);
+            highlightManager.removeHighlightData(annotation.id);
         }
     }, [isEditingMode, removeAnnotation, pageNumber, fileKey]);
 
@@ -87,23 +98,68 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
         setHoveredAnnotation(null);
     }, []);
 
+    // New handler for right-click / context menu
+    const handleContextMenu = useCallback((e: React.MouseEvent, annotation: HighlightRect) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Store annotation and the position where the context menu should appear
+        setContextMenuState({
+            annotation,
+            position: { x: e.clientX /2, y: e.clientY /2 },
+        });
+    }, []);
+
+    // Close context menu
+    const closeContextMenu = useCallback(() => {
+        setContextMenuState(null);
+    }, []);
+
     // Get the appropriate color for an entity highlight - memoize to avoid recalculation
     const getHighlightColor = useCallback((highlight: HighlightRect): string => {
-        // If the highlight has a model property and is an entity highlight
         if (highlight.type === 'ENTITY' && highlight.model) {
             return getColorForModel(highlight.model);
+        } else if (highlight.type === 'SEARCH'){
+            return getSearchColor();
         }
-        // Otherwise, use the color specified in the highlight
         return highlight.color;
-    }, [getColorForModel]);
+    }, [getColorForModel, getSearchColor]);
+
 
     useEffect(() => {
         // Cleanup function
         return () => {
             // Reset any hover state when component unmounts
             setHoveredAnnotation(null);
+            setContextMenuState(null);
         };
     }, []);
+
+    // Listen for the highlight-all-same-text event
+    useEffect(() => {
+        const handleHighlightAllSameText = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { text, fileKey: eventFileKey, highlightType, color } = customEvent.detail;
+
+            // Only process if this is for the current file
+            if (eventFileKey === fileKey) {
+                console.log(`[BaseHighlightLayer] Received highlight-all-same-text event for "${text}" in file ${eventFileKey}`);
+
+                // This would be where you'd implement the search-all functionality
+                // For now, we just log the event
+                // In a real implementation, you would:
+                // 1. Extract text from the PDF
+                // 2. Find all occurrences of the text
+                // 3. Create highlights for each occurrence
+            }
+        };
+
+        window.addEventListener('highlight-all-same-text', handleHighlightAllSameText);
+
+        return () => {
+            window.removeEventListener('highlight-all-same-text', handleHighlightAllSameText);
+        };
+    }, [fileKey]);
 
     // Memoize highlight rendering to prevent unnecessary recalculations
     const renderedHighlights = useMemo(() => {
@@ -111,36 +167,45 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
             return null;
         }
 
-        return filteredHighlights.map((highlight) => (
-            <div
-                key={`highlight-${highlight.id}`}
-                className={`highlight-rect ${layerClass}-highlight ${
-                    selectedAnnotation?.id === highlight.id ? 'selected' : ''
-                }`}
-                style={{
-                    position: 'absolute',
-                    left: highlight.x,
-                    top: highlight.y,
-                    width: highlight.w,
-                    height: highlight.h,
-                    backgroundColor: getHighlightColor(highlight),
-                    opacity: highlight.opacity ?? 0.4,
-                    cursor: isEditingMode ? 'pointer' : 'default',
-                    border: selectedAnnotation?.id === highlight.id ? '2px dashed #000' : '1px solid rgba(0,0,0,0.2)',
-                    pointerEvents: 'auto',
-                    boxSizing: 'border-box',
-                    borderRadius: '3px',
-                }}
-                onClick={(e) => handleHighlightClick(e, highlight)}
-                onDoubleClick={(e) => handleHighlightDoubleClick(e, highlight)}
-                onMouseEnter={(e) => handleHighlightMouseEnter(e, highlight)}
-                onMouseLeave={handleHighlightMouseLeave}
-                data-highlight-id={highlight.id}
-                data-highlight-type={highlight.type}
-                data-highlight-file={highlight.fileKey || 'default'}
-                data-highlight-page={pageNumber}
-            />
-        ));
+        return filteredHighlights.map((highlight) => {
+            // Store each highlight in the highlightManager for persistence
+            highlightManager.storeHighlightData({
+                ...highlight,
+                timestamp: highlight.timestamp || Date.now()
+            });
+
+            return (
+                <div
+                    key={`highlight-${highlight.id}`}
+                    className={`highlight-rect ${layerClass}-highlight ${
+                        selectedAnnotation?.id === highlight.id ? 'selected' : ''
+                    }`}
+                    style={{
+                        position: 'absolute',
+                        left: highlight.x,
+                        top: highlight.y,
+                        width: highlight.w,
+                        height: highlight.h,
+                        backgroundColor: getHighlightColor(highlight),
+                        opacity: highlight.opacity ?? 0.4,
+                        cursor: isEditingMode ? 'pointer' : 'default',
+                        border: selectedAnnotation?.id === highlight.id ? '2px dashed #000' : '1px solid rgba(0,0,0,0.2)',
+                        pointerEvents: 'auto',
+                        boxSizing: 'border-box',
+                        borderRadius: '3px',
+                    }}
+                    onClick={(e) => handleHighlightClick(e, highlight)}
+                    onDoubleClick={(e) => handleHighlightDoubleClick(e, highlight)}
+                    onMouseEnter={(e) => handleHighlightMouseEnter(e, highlight)}
+                    onMouseLeave={handleHighlightMouseLeave}
+                    onContextMenu={(e) => handleContextMenu(e, highlight)}
+                    data-highlight-id={highlight.id}
+                    data-highlight-type={highlight.type}
+                    data-highlight-file={highlight.fileKey || 'default'}
+                    data-highlight-page={pageNumber}
+                />
+            );
+        });
     }, [
         filteredHighlights,
         layerClass,
@@ -151,7 +216,8 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
         handleHighlightClick,
         handleHighlightDoubleClick,
         handleHighlightMouseEnter,
-        handleHighlightMouseLeave
+        handleHighlightMouseLeave,
+        handleContextMenu
     ]);
 
     return (
@@ -195,6 +261,14 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                     {getTooltipContent(hoveredAnnotation.annotation)}
                 </div>
             )}
+
+            {contextMenuState && (
+                <HighlightContextMenu
+                    position={contextMenuState.position}
+                    highlight={contextMenuState.annotation}
+                    onClose={closeContextMenu}
+                />
+            )}
         </div>
     );
 };
@@ -235,13 +309,14 @@ export default React.memo(BaseHighlightLayer, (prevProps, nextProps) => {
         return false;
     }
 
-    // Deep compare highlight IDs if lengths match
-    if (prevProps.highlights.length > 0) {
-        // Create sets of IDs for efficient comparison
+    // We need a more thorough comparison for search highlights
+    // since they might change even when count stays the same
+    if (prevProps.layerClass === 'search' && prevProps.highlights.length > 0) {
+        // Create sets of IDs for comparison
         const prevIds = new Set(prevProps.highlights.map(h => h.id));
         const nextIds = new Set(nextProps.highlights.map(h => h.id));
 
-        // If the sets have different sizes, they're different
+        // If any ID is different, we need to re-render
         if (prevIds.size !== nextIds.size) {
             return false;
         }
@@ -249,6 +324,13 @@ export default React.memo(BaseHighlightLayer, (prevProps, nextProps) => {
         // Check if all IDs in prevIds exist in nextIds
         for (const id of prevIds) {
             if (!nextIds.has(id)) {
+                return false;
+            }
+        }
+
+        // Check if all IDs in nextIds exist in prevIds
+        for (const id of nextIds) {
+            if (!prevIds.has(id)) {
                 return false;
             }
         }

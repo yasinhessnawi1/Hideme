@@ -10,7 +10,6 @@
   --persian-green: #1FA28B;
   --blue-munsell: #1898A6;
   --blue-ncs: #108FC2;
-
   /* Light Mode Colors */
   --light-background: #ffffff;
   --light-foreground: #1a202c;
@@ -23,6 +22,7 @@
   --ligh-button-hover: var(--lime-green);
 
   /* Dark Mode Colors */
+
   --dark-background: #15202B;
   --dark-foreground: #f0f0f0;
   --dark-primary: var(--jade);
@@ -58,9 +58,9 @@
   --ring: var(--light-foreground);
 
   /* Typography */
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-md: 1rem;
+  --font-size-xs: 0.5rem;
+  --font-size-sm: 0.7rem;
+  --font-size-md: 0.9rem;
   --font-size-lg: 1.125rem;
   --font-size-xl: 1.25rem;
   --font-weight-regular: 400;

@@ -3,6 +3,7 @@ import { useFileContext } from '../../contexts/FileContext';
 import PDFViewerContainer from './PDFViewerContainer';
 import { Plus } from 'lucide-react';
 import '../../styles/modules/pdf/PdfViewer.css';
+import ProcessingStatus from "./pdf_component/ProcessingStatus";
 
 /**
  * PDFViewer is the main component for PDF rendering and interaction.
@@ -45,8 +46,9 @@ const PDFViewer: React.FC = () => {
                     />
                 </>
             )}
+            <ProcessingStatus/>
 
-            <PDFViewerContainer/>
+            <PDFViewerContainer />
         </div>
     );
 };

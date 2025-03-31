@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
-import { useFileContext } from './FileContext';
+// src/contexts/HighlightContext.tsx - Improved version with unique IDs
+import React, {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {useFileContext} from './FileContext';
+import highlightManager from '../utils/HighlightManager';
+import {getFileKey} from './PDFViewerContext';
 
 // Define highlight types
 export enum HighlightType {
@@ -22,7 +25,8 @@ export interface HighlightRect {
     text?: string;
     fileKey?: string; // Added to track which file this highlight belongs to
     model?: string;
-    timestamp?: number
+    timestamp?: number;
+    instanceId?: string;
 }
 
 // File annotations map structure: fileKey -> {pageNumber -> highlights[]}
@@ -36,7 +40,7 @@ interface HighlightContextProps {
     clearAnnotations: (fileKey?: string) => void;
     clearAnnotationsByType: (type: HighlightType, pageNumber?: number, fileKey?: string) => void;
     clearAnnotationsForFile: (fileKey: string) => void;
-    getNextHighlightId: () => string;
+    getNextHighlightId: (prefix?: string) => string;
     selectedAnnotation: HighlightRect | null;
     setSelectedAnnotation: React.Dispatch<React.SetStateAction<HighlightRect | null>>;
     showSearchHighlights: boolean;
@@ -51,6 +55,8 @@ interface HighlightContextProps {
     resetProcessedEntityPages: () => void;
     getFileAnnotations: (fileKey: string) => Map<number, HighlightRect[]> | undefined;
     dumpAnnotationStats: () => void;
+    deleteHighlightsByText: (text: string, fileKey?: string) => number;
+    findHighlightsByText: (text: string, fileKey?: string) => HighlightRect[];
 }
 
 const HighlightContext = createContext<HighlightContextProps | undefined>(undefined);
@@ -63,15 +69,12 @@ export const useHighlightContext = () => {
     return context;
 };
 
-export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { currentFile } = useFileContext();
+export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({children}) => {
+    const {currentFile} = useFileContext();
 
     // Store annotations in a Map: fileKey -> Map<pageNumber, highlights[]>
     // This allows efficient storage and lookup by file and page
     const [fileAnnotations, setFileAnnotations] = useState<FileAnnotationsMap>(new Map());
-
-    // Use a single counter for all highlight IDs
-    const nextHighlightIdRef = useRef(1);
 
     const [selectedAnnotation, setSelectedAnnotation] = useState<HighlightRect | null>(null);
     const [showSearchHighlights, setShowSearchHighlights] = useState(true);
@@ -84,8 +87,39 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Get a unique key for the current file
     const getCurrentFileKey = useCallback((): string => {
         if (!currentFile) return '_default';
-        return `${currentFile.name}-${currentFile.lastModified}`;
+        return getFileKey(currentFile);
     }, [currentFile]);
+
+    // Initialize fileAnnotations from the highlightManager when component mounts
+    useEffect(() => {
+        // Import all data from our highlightManager
+        const allHighlights = highlightManager.exportHighlights();
+        if (allHighlights.length > 0) {
+            // Group highlights by fileKey and page number
+            const newFileAnnotations = new Map<string, Map<number, HighlightRect[]>>();
+
+            allHighlights.forEach(highlight => {
+                const fileKey = highlight.fileKey || '_default';
+                const page = highlight.page;
+
+                // Get or create file map
+                let fileMap = newFileAnnotations.get(fileKey);
+                if (!fileMap) {
+                    fileMap = new Map<number, HighlightRect[]>();
+                    newFileAnnotations.set(fileKey, fileMap);
+                }
+
+                // Get or create page highlights
+                let pageHighlights = fileMap.get(page) || [];
+
+                // Add highlight to page
+                pageHighlights = [...pageHighlights, highlight];
+                fileMap.set(page, pageHighlights);
+            });
+
+            setFileAnnotations(newFileAnnotations);
+        }
+    }, []);
 
     const resetProcessedEntityPages = useCallback(() => {
         // This function will be called when we need to force re-processing of entity highlights
@@ -97,7 +131,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         // Create an event that useHighlights hook can listen for
         window.dispatchEvent(new CustomEvent('reset-entity-highlights', {
-            detail: { fileKey, resetType: 'detection-update' }
+            detail: {fileKey, resetType: 'detection-update'}
         }));
 
         // Also reset the static processed entities map in EntityHighlightManager
@@ -127,11 +161,9 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
     }, [currentFile, getCurrentFileKey]);
 
-    // Generate a unique ID for new highlights
-    const getNextHighlightId = useCallback((): string => {
-        const id = nextHighlightIdRef.current;
-        nextHighlightIdRef.current += 1;
-        return id.toString();
+    // Generate a unique ID using the highlightManager
+    const getNextHighlightId = useCallback((prefix?: string): string => {
+        return highlightManager.generateUniqueId(prefix || '');
     }, []);
 
     // Debugging function to log annotation statistics
@@ -179,7 +211,6 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (!fileMap) return [];
 
         const pageAnnotations = fileMap.get(page);
-
         // Ensure we're only returning annotations that belong to this file
         // This adds an extra layer of protection against cross-contamination
         return (pageAnnotations || []).filter(ann => !ann.fileKey || ann.fileKey === targetFileKey);
@@ -194,11 +225,32 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const addAnnotation = useCallback((page: number, ann: HighlightRect, fileKey?: string) => {
         const targetFileKey = fileKey || getCurrentFileKey();
 
-        // Ensure annotation has the correct fileKey
-        const annotationWithFileKey = {
+        // Ensure annotation has a unique ID and proper fileKey
+        const annotationWithFileKey: HighlightRect = {
             ...ann,
-            fileKey: targetFileKey
+            id: ann.id || getNextHighlightId(ann.type),
+            fileKey: targetFileKey,
+            // Add timestamp if not present for better tracking
+            timestamp: ann.timestamp || Date.now()
         };
+        // For entity highlights, check for duplicates (within a small tolerance)
+        if (annotationWithFileKey.type === HighlightType.ENTITY) {
+            const existingAnnotations = getAnnotations(page, targetFileKey);
+            const duplicate = existingAnnotations.find(a =>
+                a.type === HighlightType.ENTITY &&
+                a.text === annotationWithFileKey.text &&
+                Math.abs(a.x - annotationWithFileKey.x) < 5 &&
+                Math.abs(a.y - annotationWithFileKey.y) < 5 &&
+                Math.abs(a.w - annotationWithFileKey.w) < 5 &&
+                Math.abs(a.h - annotationWithFileKey.h) < 5
+            );
+            if (duplicate) {
+                // Skip adding duplicate detection highlight
+                return;
+            }
+        }
+        // Store annotation in highlightManager for persistence
+        highlightManager.storeHighlightData(annotationWithFileKey);
 
         setFileAnnotations(prev => {
             const newMap = new Map(prev);
@@ -213,23 +265,21 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             // Get or create the page annotations
             const pageAnnotations = fileMap.get(page) || [];
 
-            // Check for duplicate IDs to prevent adding the same highlight twice
-            const isDuplicate = pageAnnotations.some(existing => existing.id === annotationWithFileKey.id);
-            if (isDuplicate) {
-                console.log(`[HighlightContext] Duplicate highlight ID detected: ${annotationWithFileKey.id}, skipping`);
-                return newMap;
+            // Only add the annotation if it doesn't already exist
+            if (!pageAnnotations.some(a => a.id === annotationWithFileKey.id)) {
+                fileMap.set(page, [...pageAnnotations, annotationWithFileKey]);
             }
-
-            // Add the new annotation
-            fileMap.set(page, [...pageAnnotations, annotationWithFileKey]);
 
             return newMap;
         });
-    }, [getCurrentFileKey]);
+    }, [getCurrentFileKey, getNextHighlightId]);
 
     // Remove annotation from a specific file and page
     const removeAnnotation = useCallback((page: number, id: string, fileKey?: string) => {
         const targetFileKey = fileKey || getCurrentFileKey();
+
+        // Remove from highlightManager first
+        highlightManager.removeHighlightData(id);
 
         setFileAnnotations(prev => {
             const newMap = new Map(prev);
@@ -270,6 +320,16 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const updateAnnotation = useCallback((page: number, updatedAnn: HighlightRect, fileKey?: string) => {
         const targetFileKey = fileKey || getCurrentFileKey();
 
+        // Ensure the updated annotation has the right fileKey
+        const annotationWithFileKey: HighlightRect = {
+            ...updatedAnn,
+            fileKey: targetFileKey,
+            timestamp: updatedAnn.timestamp || Date.now()
+        };
+
+        // Update in highlightManager
+        highlightManager.storeHighlightData(annotationWithFileKey);
+
         setFileAnnotations(prev => {
             const newMap = new Map(prev);
             const fileMap = newMap.get(targetFileKey);
@@ -280,7 +340,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
             // Update the annotation
             fileMap.set(page, pageAnnotations.map(ann =>
-                ann.id === updatedAnn.id ? {...updatedAnn, fileKey: targetFileKey} : ann
+                ann.id === updatedAnn.id ? annotationWithFileKey : ann
             ));
 
             return newMap;
@@ -289,7 +349,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         // Update selected annotation if it's the one being updated
         setSelectedAnnotation(curr => {
             if (curr && curr.page === page && curr.id === updatedAnn.id) {
-                return {...updatedAnn, fileKey: targetFileKey};
+                return annotationWithFileKey;
             }
             return curr;
         });
@@ -299,6 +359,17 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const clearAnnotations = useCallback((fileKey?: string) => {
         const targetFileKey = fileKey || getCurrentFileKey();
 
+        // Get all highlights from this file
+        const fileMap = fileAnnotations.get(targetFileKey);
+        if (fileMap) {
+            // Remove all highlights from this file from the highlightManager
+            fileMap.forEach((highlights, page) => {
+                highlights.forEach(highlight => {
+                    highlightManager.removeHighlightData(highlight.id);
+                });
+            });
+        }
+
         setFileAnnotations(prev => {
             const newMap = new Map(prev);
             newMap.delete(targetFileKey);
@@ -307,10 +378,21 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         // Reset selected annotation
         setSelectedAnnotation(null);
-    }, [getCurrentFileKey]);
+    }, [getCurrentFileKey, fileAnnotations]);
 
     // Clear annotations for a specific file
     const clearAnnotationsForFile = useCallback((fileKey: string) => {
+        // Get all highlights from this file
+        const fileMap = fileAnnotations.get(fileKey);
+        if (fileMap) {
+            // Remove all highlights from this file from the highlightManager
+            fileMap.forEach((highlights, page) => {
+                highlights.forEach(highlight => {
+                    highlightManager.removeHighlightData(highlight.id);
+                });
+            });
+        }
+
         setFileAnnotations(prev => {
             const newMap = new Map(prev);
             newMap.delete(fileKey);
@@ -324,7 +406,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             }
             return curr;
         });
-    }, []);
+    }, [fileAnnotations]);
 
     // Clear annotations by type, with optional page number and file key filtering
     const clearAnnotationsByType = useCallback((
@@ -344,6 +426,13 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 const pageAnnotations = fileMap.get(pageNumber);
                 if (!pageAnnotations) return newMap;
 
+                // Remove highlights of this type from highlightManager
+                pageAnnotations.forEach(highlight => {
+                    if (highlight.type === type) {
+                        highlightManager.removeHighlightData(highlight.id);
+                    }
+                });
+
                 const filtered = pageAnnotations.filter(ann => ann.type !== type);
 
                 if (filtered.length === 0) {
@@ -359,6 +448,13 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             } else {
                 // Otherwise, update all pages
                 for (const [page, annotations] of fileMap.entries()) {
+                    // Remove highlights of this type from highlightManager
+                    annotations.forEach(highlight => {
+                        if (highlight.type === type) {
+                            highlightManager.removeHighlightData(highlight.id);
+                        }
+                    });
+
                     const filtered = annotations.filter(ann => ann.type !== type);
 
                     if (filtered.length === 0) {
@@ -393,42 +489,41 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Export annotations to JSON string
     const exportAnnotations = useCallback((fileKey?: string): string => {
         const targetFileKey = fileKey || getCurrentFileKey();
-        const fileMap = fileAnnotations.get(targetFileKey);
 
-        if (!fileMap) return JSON.stringify({});
-
-        // Convert Map to plain object for serialization
-        const annotations: Record<string, HighlightRect[]> = {};
-
-        for (const [page, highlights] of fileMap.entries()) {
-            annotations[page.toString()] = highlights;
-        }
-
-        return JSON.stringify(annotations);
-    }, [fileAnnotations, getCurrentFileKey]);
+        // Use highlightManager to get file highlights
+        const highlights = highlightManager.exportHighlights(targetFileKey);
+        return JSON.stringify(highlights);
+    }, [getCurrentFileKey]);
 
     // Import annotations from JSON string
     const importAnnotations = useCallback((data: string, fileKey?: string): boolean => {
         try {
             const targetFileKey = fileKey || getCurrentFileKey();
-            const parsed = JSON.parse(data);
+            const parsed = JSON.parse(data) as HighlightRect[];
 
+            // Ensure each highlight has the right fileKey
+            const highlightsWithFileKey = parsed.map(highlight => ({
+                ...highlight,
+                fileKey: targetFileKey
+            }));
+
+            // Import into highlightManager
+            highlightManager.importHighlights(highlightsWithFileKey);
+
+            // Update state
             setFileAnnotations(prev => {
                 const newMap = new Map(prev);
 
-                // Create a new file map
+                // Group highlights by page
                 const fileMap = new Map<number, HighlightRect[]>();
 
-                // Add all page annotations
-                for (const [pageStr, annotations] of Object.entries(parsed)) {
-                    const page = parseInt(pageStr);
-                    fileMap.set(page, (annotations as HighlightRect[]).map(ann => ({
-                        ...ann,
-                        fileKey: targetFileKey
-                    })));
-                }
+                highlightsWithFileKey.forEach(highlight => {
+                    const page = highlight.page;
+                    const pageHighlights = fileMap.get(page) || [];
+                    fileMap.set(page, [...pageHighlights, highlight]);
+                });
 
-                // Update the file map
+                // Update the file entry
                 if (fileMap.size > 0) {
                     newMap.set(targetFileKey, fileMap);
                 } else {
@@ -450,6 +545,27 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return fileAnnotations;
     }, [fileAnnotations]);
 
+    // Delete all highlights with the same text
+    const deleteHighlightsByText = useCallback((text: string, fileKey?: string): number => {
+        const targetFileKey = fileKey || getCurrentFileKey();
+        const highlightsToDelete = highlightManager.findHighlightsByText(text, targetFileKey);
+
+        // Remove all matching highlights
+        let count = 0;
+        highlightsToDelete.forEach(highlight => {
+            removeAnnotation(highlight.page, highlight.id, highlight.fileKey);
+            count++;
+        });
+
+        return count;
+    }, [getCurrentFileKey, removeAnnotation]);
+
+    // Find highlights with the same text
+    const findHighlightsByText = useCallback((text: string, fileKey?: string): HighlightRect[] => {
+        const targetFileKey = fileKey || getCurrentFileKey();
+        return highlightManager.findHighlightsByText(text, targetFileKey);
+    }, [getCurrentFileKey]);
+
     // Persist annotations in localStorage when they change
     useEffect(() => {
         try {
@@ -469,50 +585,6 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             console.error('Error saving annotations:', error);
         }
     }, [fileAnnotations]);
-
-    // Load annotations from localStorage when component mounts
-    useEffect(() => {
-        try {
-            const saved = localStorage.getItem('pdf-annotations');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                const loadedMap = new Map<string, Map<number, HighlightRect[]>>();
-
-                for (const [fileKey, pageData] of Object.entries(parsed)) {
-                    const fileMap = new Map<number, HighlightRect[]>();
-
-                    for (const [pageStr, annotations] of Object.entries(pageData as Record<string, HighlightRect[]>)) {
-                        const page = parseInt(pageStr);
-                        fileMap.set(page, annotations);
-                    }
-
-                    if (fileMap.size > 0) {
-                        loadedMap.set(fileKey, fileMap);
-                    }
-                }
-
-                setFileAnnotations(loadedMap);
-
-                // Update the highlight ID counter to be greater than any existing ID
-                let maxId = 0;
-
-                for (const fileMap of loadedMap.values()) {
-                    for (const annotations of fileMap.values()) {
-                        for (const ann of annotations) {
-                            const id = parseInt(ann.id);
-                            if (!isNaN(id) && id > maxId) {
-                                maxId = id;
-                            }
-                        }
-                    }
-                }
-
-                nextHighlightIdRef.current = maxId + 1;
-            }
-        } catch (error) {
-            console.error('Error loading annotations:', error);
-        }
-    }, []);
 
     return (
         <HighlightContext.Provider
@@ -538,7 +610,9 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 getAllFileAnnotations,
                 resetProcessedEntityPages,
                 getFileAnnotations,
-                dumpAnnotationStats
+                dumpAnnotationStats,
+                deleteHighlightsByText,
+                findHighlightsByText
             }}
         >
             {children}

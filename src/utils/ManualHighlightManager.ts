@@ -1,4 +1,6 @@
+// src/utils/ManualHighlightManager.ts - Fixed version
 import { HighlightRect, HighlightType } from '../contexts/HighlightContext';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Manager for user-created manual highlights
@@ -12,8 +14,11 @@ export class ManualHighlightManager {
     private fileKey?: string;
     private lastProcessedId: string | null = null;
     private processingTimestamp: number;
+    private instanceId: string;
     // Track the last highlight creation time to prevent duplicate processing
     private lastHighlightTime: number = 0;
+    // Keep track of highlight IDs created by this instance
+    private createdHighlightIds: Set<string> = new Set();
 
     constructor(
         pageNumber: number,
@@ -28,6 +33,21 @@ export class ManualHighlightManager {
         this.highlightColor = highlightColor;
         this.fileKey = fileKey;
         this.processingTimestamp = Date.now();
+        // Create a unique instance ID for this manager using UUID
+        this.instanceId = uuidv4();
+    }
+
+    /**
+     * Generate a truly unique ID that incorporates all necessary context
+     * to prevent ID collisions across files and pages
+     */
+    private generateUniqueId(): string {
+        const uuid = uuidv4();
+        const timestamp = Date.now();
+        const fileMarker = this.fileKey || 'default';
+
+        // Construct a highly specific ID that won't collide
+        return `manual-${fileMarker}-${this.pageNumber}-${uuid}-${timestamp}-${this.instanceId}`;
     }
 
     /**
@@ -60,11 +80,11 @@ export class ManualHighlightManager {
         }
         this.lastHighlightTime = currentTime;
 
-        // Generate a completely unique ID using timestamp and random string
-        const randomString = Math.random().toString(36).substring(2, 9);
-        const timestamp = Date.now();
-        const nextId = this.getNextHighlightId();
-        const highlightId = `manual-${this.fileKey || 'default'}-${this.pageNumber}-${nextId}-${timestamp}-${randomString}`;
+        // Generate a completely unique ID that won't collide with IDs from other files or pages
+        const highlightId = this.generateUniqueId();
+
+        // Track this ID to prevent duplicates
+        this.createdHighlightIds.add(highlightId);
 
         // Create highlight rectangle with guaranteed unique ID
         const highlight: HighlightRect = {
@@ -78,7 +98,8 @@ export class ManualHighlightManager {
             opacity: 0.5,
             type: HighlightType.MANUAL,
             fileKey: this.fileKey,
-            timestamp: timestamp // Add timestamp for ordering and debugging
+            timestamp: currentTime, // Add timestamp for ordering and debugging
+            instanceId: this.instanceId // Add the instance ID for additional uniqueness
         };
 
         // Save this ID to prevent duplicate processing
@@ -89,5 +110,22 @@ export class ManualHighlightManager {
         // Add to annotations
         this.addAnnotation(this.pageNumber, highlight, this.fileKey);
         return highlight;
+    }
+
+    /**
+     * Check if a highlight ID was created by this instance
+     * Useful for verification and duplicate prevention
+     */
+    hasCreatedHighlight(id: string): boolean {
+        return this.createdHighlightIds.has(id);
+    }
+
+    /**
+     * Clear tracking of created highlights
+     * Can be used when resetting state
+     */
+    clearCreatedHighlights(): void {
+        this.createdHighlightIds.clear();
+        this.lastProcessedId = null;
     }
 }

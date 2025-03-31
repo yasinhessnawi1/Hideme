@@ -64,13 +64,7 @@ TABBED SIDEBAR STYLES
     font-weight: var(--font-weight-medium);
 }
 
-/* Content area - holds either page thumbnails or file selector */
-.sidebar-content {
-    flex: 1;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
+
 
 /* Animation for active tab indicator */
 @keyframes slideIn {

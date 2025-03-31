@@ -2,8 +2,7 @@
 import { apiRequest } from './apiService';
 import { getFileKey } from '../contexts/PDFViewerContext';
 import { HighlightType } from '../contexts/HighlightContext';
-import {blob} from "node:stream/consumers";
-
+import { v4 as uuidv4 } from 'uuid';
 // Base API URL - ensure this is consistent across services
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -59,6 +58,7 @@ export interface SearchResult {
     type: HighlightType;
     text: string;
     fileKey: string;
+    instanceId?: string;
 }
 
 /**
@@ -146,55 +146,75 @@ export class BatchSearchService {
         const resultsMap = new Map<string, Map<number, SearchResult[]>>();
 
         if (!searchResponse || !searchResponse.file_results) {
+            console.warn('[BatchSearchService] Empty or invalid search response');
             return resultsMap;
         }
+
+        console.log(`[BatchSearchService] Transforming search results with ${searchResponse.file_results.length} files`);
 
         // Process each file's results
         searchResponse.file_results.forEach(fileResult => {
             if (fileResult.status !== 'success' || !fileResult.results || !fileResult.results.pages) {
+                console.warn(`[BatchSearchService] Skipping file result with invalid structure:`, fileResult);
                 return; // Skip failed results
             }
 
-            const fileKey = fileResult.file;
+            const fileName = fileResult.file;
             const pageResults = new Map<number, SearchResult[]>();
+
+            // Log found results for debugging
+            console.log(`[BatchSearchService] Processing file ${fileName} with ${fileResult.results.pages.length} pages containing matches`);
 
             // Process each page
             fileResult.results.pages.forEach(page => {
+                if (!page.matches || !Array.isArray(page.matches)) {
+                    console.warn(`[BatchSearchService] Page ${page.page} has invalid matches structure`);
+                    return;
+                }
+
+                const pageNumber = page.page;
                 const highlights: SearchResult[] = [];
 
                 // Process matches on this page
                 page.matches.forEach((match, index) => {
+                    if (!match.bbox) {
+                        console.warn(`[BatchSearchService] Match missing bbox:`, match);
+                        return;
+                    }
+
                     // Extract bounding box coordinates
                     const { x0, y0, x1, y1 } = match.bbox;
 
-                    // Create highlight object
+                    // Create highlight object with a more unique ID
                     const highlight: SearchResult = {
-                        id: `search-${fileKey}-${page.page}-${index}`,
-                        page: page.page,
-                        x: x0,
-                        y: y0,
+                        id: `search-${fileName}-${pageNumber}-${index}-${Date.now()}`,
+                        page: pageNumber,
+                        x: x0 -3 ,
+                        y: y0 -3,
                         w: x1 - x0,
                         h: y1 - y0,
-                        color: '#FFD700', // Default color for search highlights
+                        color: '71c4ff', // Default color for search highlights
                         opacity: 0.4,
                         type: HighlightType.SEARCH,
                         text: searchTerm,
-                        fileKey: fileKey
+                        fileKey: fileName,
+                        instanceId: uuidv4(),
                     };
 
                     highlights.push(highlight);
                 });
 
                 if (highlights.length > 0) {
-                    pageResults.set(page.page, highlights);
+                    console.log(`[BatchSearchService] Created ${highlights.length} highlights for page ${pageNumber}`);
+                    pageResults.set(pageNumber, highlights);
                 }
             });
 
             if (pageResults.size > 0) {
-                resultsMap.set(fileKey, pageResults);
+                resultsMap.set(fileName, pageResults);
             }
         });
-
         return resultsMap;
     }
+
 }

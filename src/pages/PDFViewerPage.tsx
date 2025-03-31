@@ -4,15 +4,17 @@ import { FileProvider } from "../contexts/FileContext"
 import { PDFViewerProvider } from "../contexts/PDFViewerContext"
 import { EditProvider } from "../contexts/EditContext"
 import { HighlightProvider } from "../contexts/HighlightContext"
-import { BatchSearchProvider } from "../contexts/SearchContext" // Add BatchSearchProvider
+import { BatchSearchProvider } from "../contexts/SearchContext"
+import AutoProcessProvider from "../contexts/AutoProcessProvider" // Import the new provider
 import PDFViewer from "../components/pdf/PDFViewer"
 import TabbedSidebar from "../components/pdf/pdf_component/TabbedSidebar"
 import Toolbar from "../components/pdf/pdf_component/Toolbar"
-import SearchSidebar from "../components/pdf/pdf_component/SearchSidebar" // Use new component
+import SearchSidebar from "../components/pdf/pdf_component/SearchSidebar"
 import EntityDetectionSidebar from "../components/pdf/pdf_component/EntityDetectionSidebar"
 import RedactionSidebar from "../components/pdf/pdf_component/RadactionSidebar"
 import Navbar from "../components/static/Navbar"
 import '../styles/modules/pdf/PDFViewerPage.css'
+import ProcessingStatus from "../components/pdf/pdf_component/ProcessingStatus";
 
 interface PDFViewerPageProps {
     theme: string
@@ -105,6 +107,7 @@ const PDFViewerPageContent: React.FC = () => {
 
                 {/* Main PDF viewer */}
                 <main className="main-content">
+                    <ProcessingStatus />
                     <PDFViewer />
                 </main>
 
@@ -158,8 +161,10 @@ const PDFViewerPage: React.FC<PDFViewerPageProps> = ({ theme, toggleTheme }) => 
                 <PDFViewerProvider>
                     <HighlightProvider>
                         <EditProvider>
-                            <BatchSearchProvider> {/* Add the BatchSearchProvider */}
-                                <PDFViewerPageContent />
+                            <BatchSearchProvider>
+                                <AutoProcessProvider>
+                                    <PDFViewerPageContent />
+                                </AutoProcessProvider>
                             </BatchSearchProvider>
                         </EditProvider>
                     </HighlightProvider>

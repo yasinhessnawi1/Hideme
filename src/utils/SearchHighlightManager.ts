@@ -1,6 +1,7 @@
-// src/utils/SearchHighlightManager.ts
+// src/utils/SearchHighlightManager.ts - Fixed version
 import { HighlightType } from "../contexts/HighlightContext";
 import { SearchResult } from "../services/BatchSearchService";
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Manages search highlights from batch search results
@@ -12,11 +13,16 @@ export class SearchHighlightManager {
     private fileKey?: string;
     private processingTimestamp: number;
     private processedIds: Set<string> = new Set();
+    private options: { forceReprocess?: boolean } = {};
 
     // Static tracking of processed pages by file to prevent reprocessing
     private static processedPagesByFile: Map<string, Set<number>> = new Map();
     // Static tracking of processed search results by file
     private static processedSearchIdsByFile: Map<string, Set<string>> = new Map();
+    // Track reset operations to prevent cascades
+    private static lastResetTimestamps: Map<string, number> = new Map();
+    // Define a reset throttle time (milliseconds)
+    private static RESET_THROTTLE_TIME = 2000; // 2 seconds
 
     constructor(
         searchResults: SearchResult[],
@@ -28,6 +34,7 @@ export class SearchHighlightManager {
         this.addAnnotation = addAnnotation;
         this.fileKey = fileKey;
         this.processingTimestamp = Date.now();
+        this.options = options;
 
         // Initialize file-specific processed search IDs set if not exists
         const fileMarker = this.fileKey || 'default';
@@ -78,12 +85,27 @@ export class SearchHighlightManager {
     }
 
     /**
-     * Reset processed pages for a specific file
+     * Reset processed pages for a specific file with throttling
      */
-    public static resetProcessedPagesForFile(fileKey: string): void {
+    public static resetProcessedPagesForFile(fileKey: string): boolean {
         const fileMarker = fileKey || 'default';
+        const now = Date.now();
+
+        // Check if we've reset this file recently to prevent cascades
+        const lastReset = SearchHighlightManager.lastResetTimestamps.get(fileMarker) || 0;
+        if (now - lastReset < SearchHighlightManager.RESET_THROTTLE_TIME) {
+            // Skip this reset if it's too soon after the last one
+            console.log(`[SearchHighlightManager] Throttling reset for file ${fileMarker} - last reset was ${now - lastReset}ms ago`);
+            return false;
+        }
+
+        // Update the reset timestamp
+        SearchHighlightManager.lastResetTimestamps.set(fileMarker, now);
+
+        // Clear processed pages for this file
         SearchHighlightManager.processedPagesByFile.set(fileMarker, new Set<number>());
         console.log(`[SearchHighlightManager] Reset processed pages for file ${fileMarker}`);
+        return true;
     }
 
     /**
@@ -93,6 +115,8 @@ export class SearchHighlightManager {
         const fileMarker = fileKey || 'default';
         SearchHighlightManager.processedPagesByFile.set(fileMarker, new Set<number>());
         SearchHighlightManager.processedSearchIdsByFile.set(fileMarker, new Set<string>());
+        // Also clear the reset timestamp
+        SearchHighlightManager.lastResetTimestamps.delete(fileMarker);
         console.log(`[SearchHighlightManager] Reset all processed data for file ${fileMarker}`);
     }
 
@@ -103,7 +127,24 @@ export class SearchHighlightManager {
         const fileMarker = fileKey || 'default';
         SearchHighlightManager.processedPagesByFile.delete(fileMarker);
         SearchHighlightManager.processedSearchIdsByFile.delete(fileMarker);
+        // Also clear the reset timestamp
+        SearchHighlightManager.lastResetTimestamps.delete(fileMarker);
         console.log(`[SearchHighlightManager] Removed file ${fileMarker} from processed data tracking`);
+    }
+
+    /**
+     * Generate a unique ID for a search result that won't cause duplicates
+     */
+    private generateUniqueSearchId(result: SearchResult): string {
+        const { page,text } = result;
+        const fileMarker = this.fileKey || 'default';
+
+        // Use UUID for guaranteed uniqueness
+        const uuid = uuidv4();
+        const timestamp = Date.now();
+
+        // Create a truly unique ID
+        return `search-${fileMarker}-${page}-${text || 'unknown'}-${uuid}-${timestamp}`;
     }
 
     /**
@@ -118,10 +159,14 @@ export class SearchHighlightManager {
             return;
         }
 
-        // CRITICAL FIX: Always force reprocessing of search highlights
-        // This ensures search highlights always appear even when switching between files
-        SearchHighlightManager.resetProcessedPagesForFile(fileMarker);
+        // FIXED: Always force reprocessing of search highlights
+        // This ensures search highlights always appear even when switching files
+        const forceProcess = true; // Always process search highlights
 
+        // Force reprocessing of search highlights to ensure they always appear
+        if (forceProcess) {
+            SearchHighlightManager.resetProcessedPagesForFile(fileMarker);
+        }
         // Strict filtering to ensure we only process results for this file
         const fileFilteredResults = this.searchResults.filter(result =>
             !result.fileKey || result.fileKey === this.fileKey
@@ -135,11 +180,11 @@ export class SearchHighlightManager {
         const resultsByPage = new Map<number, SearchResult[]>();
 
         fileFilteredResults.forEach(result => {
-            // Generate a stable ID for this result
-            const resultId = this.generateSearchResultId(result);
+            // Generate a stable unique ID for this result
+            const resultId = this.generateUniqueSearchId(result);
 
             // Skip if we've already processed this exact result
-            if (this.processedIds.has(resultId)) {
+            if (this.processedIds.has(resultId) && !forceProcess) {
                 return;
             }
 
@@ -169,8 +214,6 @@ export class SearchHighlightManager {
 
         // Process each page's results efficiently
         resultsByPage.forEach((pageResults, pageNumber) => {
-            // CRITICAL FIX: Don't skip processing even if the page has been processed before
-            // This ensures search highlights always appear
             console.log(`[SearchHighlightManager] Adding ${pageResults.length} highlights to page ${pageNumber}`);
 
             // Process in batches for better performance
@@ -182,57 +225,56 @@ export class SearchHighlightManager {
     }
 
     /**
-     * Generate a unique ID for a search result to prevent duplicates
-     */
-    private generateSearchResultId(result: SearchResult): string {
-        const { page, x, y, w, h, text } = result;
-        const fileMarker = this.fileKey || 'default';
-
-        // Create a stable ID based on result properties
-        return `${fileMarker}-${page}-${text}-${x.toFixed(1)}-${y.toFixed(1)}-${w.toFixed(1)}-${h.toFixed(1)}`;
-    }
-
-    /**
      * Process a batch of search results for better performance
      */
     private processBatch(results: SearchResult[], pageNumber: number): void {
         // Create processed annotations array
         const processedAnnotations: any[] = [];
+        const batchSize = 10; // Process in smaller batches
 
-        // Prepare all annotations to be added
-        results.forEach(result => {
-            // Generate a unique ID with good entropy
-            const timestamp = Date.now();
-            const randomString = Math.random().toString(36).substring(2, 9);
-            const id = result.id || `search-${this.fileKey || 'default'}-${pageNumber}-${timestamp}-${randomString}`;
+        // Process in batches to prevent UI freezing
+        const processBatch = (startIndex: number) => {
+            const endIndex = Math.min(startIndex + batchSize, results.length);
+            const batch = results.slice(startIndex, endIndex);
 
-            // Create a new annotation with consistent properties
-            const annotation = {
-                ...result,
-                type: HighlightType.SEARCH,
-                id: id,
-                page: pageNumber,
-                fileKey: this.fileKey || result.fileKey, // Ensure fileKey is set
-                timestamp: this.processingTimestamp,
-                opacity: 0.4 // Consistent opacity for search highlights
-            };
+            // Prepare batch of annotations
+            const batchAnnotations = batch.map(result => {
+                // Generate a unique ID for this highlight
+                const uniqueId = this.generateUniqueSearchId(result);
 
-            // Add to our batch
-            processedAnnotations.push(annotation);
-        });
+                // Create a new highlight with consistent properties
+                return {
+                    ...result,
+                    type: HighlightType.SEARCH,
+                    id: uniqueId,
+                    page: pageNumber,
+                    fileKey: this.fileKey || result.fileKey, // Ensure fileKey is set
+                    timestamp: this.processingTimestamp,
+                    opacity: 0.4 // Consistent opacity for search highlights
+                };
+            });
 
-        // Add all annotations at once for better performance
-        if (processedAnnotations.length > 0) {
-            // Log only the first few for debugging
-            if (processedAnnotations.length > 0) {
-                const firstResult = processedAnnotations[0];
-                console.log(`[SearchHighlightManager] Sample highlight: x=${firstResult.x.toFixed(2)}, y=${firstResult.y.toFixed(2)}, w=${firstResult.w.toFixed(2)}, h=${firstResult.h.toFixed(2)}, term="${firstResult.text || ''}"`);
-            }
-
-            // Add each annotation to the context
-            processedAnnotations.forEach(annotation => {
+            // Add all annotations in this batch
+            batchAnnotations.forEach(annotation => {
                 this.addAnnotation(pageNumber, annotation, this.fileKey);
             });
+
+            // Process next batch if more results left
+            if (endIndex < results.length) {
+                setTimeout(() => processBatch(endIndex), 0);
+            } else {
+                console.log(`[SearchHighlightManager] Completed processing all ${results.length} search results for page ${pageNumber}`);
+            }
+        };
+
+        // Start processing the first batch
+        if (results.length > 0) {
+            // Log only the first few for debugging
+            const firstResult = results[0];
+            console.log(`[SearchHighlightManager] Sample highlight: x=${firstResult.x.toFixed(2)}, y=${firstResult.y.toFixed(2)}, w=${firstResult.w.toFixed(2)}, h=${firstResult.h.toFixed(2)}, term="${firstResult.text || ''}"`);
+
+            // Start batch processing
+            processBatch(0);
         }
     }
 }

@@ -1,0 +1,476 @@
+/*
+==============================================
+ENTITY DETECTION SIDEBAR SPECIFIC STYLES
+==============================================
+*/
+
+/* Entity selection section with color dots */
+.entity-select-section {
+    margin-bottom: var(--spacing-md);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.entity-select-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.entity-select-header h4 {
+    margin: 0;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-medium);
+    color: var(--foreground);
+    transition: color 0.2s ease;
+}
+
+.entity-select-section:hover .entity-select-header h4 {
+    color: var(--primary);
+}
+
+.color-dot {
+    margin-right: var(--spacing-sm);
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(var(--foreground), 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.entity-select-section:hover .color-dot {
+    box-shadow: 0 0 0 2px rgba(var(--foreground), 0.2);
+}
+
+/* Entity detection header specific */
+.entity-header {
+    background-color: var(--toolbar-bg);
+    border-bottom: 1px solid var(--toolbar-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.entity-header::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary), transparent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s ease;
+}
+
+.entity-header:hover::after {
+    transform: scaleX(0.8);
+}
+
+.entity-header h3 {
+    margin: 0;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-medium);
+    color: var(--foreground);
+    transition: color 0.2s ease;
+}
+
+.entity-header:hover h3 {
+    color: var(--primary);
+}
+
+.entity-badge {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 10px;
+    font-weight: var(--font-weight-medium);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.entity-header:hover .entity-badge {
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Entity types list */
+.entity-count-badge {
+    background-color: var(--primary);
+    color: white;
+    font-size: var(--font-size-xs);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: var(--font-weight-medium);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.file-summary-header:hover .entity-count-badge {
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Performance stats specific to entity detection */
+.performance-stats {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    background-color: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    transition: all 0.3s ease;
+}
+
+.performance-stats:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.performance-stats .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: transform 0.2s ease;
+}
+
+.performance-stats .stat-item:hover {
+    transform: translateY(-2px);
+}
+
+.performance-stats .stat-item::after {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background-color: var(--primary);
+    transform: translateX(-50%);
+    transition: width 0.3s ease;
+}
+
+.performance-stats .stat-item:hover::after {
+    width: 80%;
+}
+
+.performance-stats .stat-label {
+    font-size: var(--font-size-xs);
+    color: var(--muted-foreground);
+    margin-bottom: var(--spacing-xs);
+    transition: color 0.2s ease;
+}
+
+.performance-stats .stat-item:hover .stat-label {
+    color: var(--foreground);
+}
+
+.performance-stats .stat-value {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    color: var(--foreground);
+    transition: color 0.2s ease;
+}
+
+.performance-stats .stat-item:hover .stat-value {
+    color: var(--primary);
+}
+
+/* Entities by sections */
+.entities-by-section {
+    margin-top: var(--spacing-md);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.entities-by-section:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.entities-by-section h5 {
+    margin: 0;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--button-bg);
+    border-bottom: 1px solid var(--border);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--foreground);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.entities-by-section:hover h5 {
+    color: var(--primary);
+    background-color: var(--button-hover);
+}
+
+.entities-by-section h5::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background-color: var(--primary);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+}
+
+.entities-by-section:hover h5::before {
+    transform: translateX(0);
+}
+
+.entity-list {
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--button-border) var(--button-bg);
+}
+
+/* Entity list scrollbar styling */
+.entity-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.entity-list::-webkit-scrollbar-track {
+    background: var(--button-bg);
+    border-radius: 3px;
+}
+
+.entity-list::-webkit-scrollbar-thumb {
+    background-color: var(--button-border);
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+}
+
+.entity-list::-webkit-scrollbar-thumb:hover {
+    background-color: var(--primary);
+}
+
+/* Action buttons specific styling */
+.action-buttons {
+    margin-top: var(--spacing-md);
+}
+
+.detect-button {
+    width: 100%;
+    padding: var(--spacing-md);
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    border: none;
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: var(--spacing-sm);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.detect-button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.7s ease;
+}
+
+.detect-button:hover::before {
+    left: 100%;
+}
+
+.detect-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.detect-button:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.detect-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.progress-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8);
+    transition: width 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: progressShimmer 1.5s infinite;
+}
+
+@keyframes progressShimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.secondary-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.save-button {
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.save-button:hover:not(:disabled) {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.save-button svg {
+    transition: transform 0.3s ease;
+}
+
+.save-button:hover svg {
+    transform: scale(1.2);
+}
+
+/* Custom select styles */
+.entity-select .select__control {
+    background-color: var(--background);
+    border-color: var(--border);
+    transition: all 0.2s ease;
+}
+
+.entity-select .select__control:hover {
+    border-color: var(--primary);
+}
+
+.entity-select .select__control--is-focused {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+}
+
+.entity-select .select__menu {
+    background-color: var(--background);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+    z-index: 100;
+    animation: fadeIn 0.2s ease;
+}
+
+.entity-select .select__option {
+    background-color: var(--background);
+    color: var(--foreground);
+    transition: all 0.2s ease;
+}
+
+.entity-select .select__option--is-focused {
+    background-color: var(--button-hover);
+}
+
+.entity-select .select__option--is-selected {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.entity-select .select__multi-value {
+    background-color: var(--active-bg);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.entity-select .select__multi-value:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.entity-select .select__multi-value__label {
+    color: var(--foreground);
+}
+
+.entity-select .select__multi-value__remove {
+    color: var(--muted-foreground);
+    transition: all 0.2s ease;
+}
+
+.entity-select .select__multi-value__remove:hover {
+    background-color: var(--destructive);
+    color: white;
+}
+
+/* Loading state */
+.entity-detection-sidebar.loading .entity-select-section,
+.entity-detection-sidebar.loading .scope-section,
+.entity-detection-sidebar.loading .action-buttons {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.entity-detection-sidebar.loading .detect-button::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .performance-stats {
+        flex-direction: column;
+        align-items: center;
+    }
+}

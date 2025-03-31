@@ -17,9 +17,9 @@ const API_BASE_URL = 'http://localhost:8000';
 export const batchHybridDetect = async (
     files: File[],
     options: {
-        presidio?: string[];
-        gliner?: string[];
-        gemini?: string[];
+        presidio?: string[] | null;
+        gliner?: string[]| null;
+        gemini?: string[]| null;
     } = {}
 ): Promise<Record<string, any>> => {
     try {
@@ -35,18 +35,25 @@ export const batchHybridDetect = async (
             options.presidio.forEach(
                 entity => requested_entities.push(entity)
             );
+            formData.append('use_presidio', "True")
+        }else{
+            formData.append('use_presidio', "False")
         }
 
         if (options.gliner && Array.isArray(options.gliner) && options.gliner.length > 0) {
             options.gliner.forEach(
                 entity => requested_entities.push(entity)
             );
+            formData.append('use_gliner', "True")
+
         }
 
         if (options.gemini && Array.isArray(options.gemini) && options.gemini.length > 0) {
             options.gemini.forEach(
                 entity => requested_entities.push(entity)
             );
+            formData.append('use_gemini', "True")
+
         }
         // Add the requested entities to the form data
 
