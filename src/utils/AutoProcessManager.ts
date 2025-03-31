@@ -91,7 +91,7 @@ export class AutoProcessManager {
         const fileKey = getFileKey(file);
 
         // Skip if already being processed
-        if (this.processingQueue.has(fileKey)) {
+        if (this.processingQueue.has(fileKey) || fileKey.includes('redacted')) {
             console.log('[AutoProcessManager] File is already being processed, skipping:', file.name);
             return false;
         }

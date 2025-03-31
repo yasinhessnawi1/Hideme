@@ -191,7 +191,7 @@ function createSensitiveFromAnnotation(annotation: HighlightRect): Sensitive {
  */
 export function createRedactionRequest(
     files: File[],
-    redactionMappings: Record<string, RedactionMapping>
+    redactionMappings: Record<string, RedactionMapping>,
 ): { file_results: FileResult[] } {
     const fileResults: FileResult[] = [];
 

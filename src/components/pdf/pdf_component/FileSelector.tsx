@@ -235,22 +235,6 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                     })}
                 </div>
             )}
-
-            {selectedFiles.length > 0 && (
-                <div className="batch-actions">
-                    <div className="batch-label">
-                        {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected
-                    </div>
-                    <div className="batch-buttons">
-                        <button className="batch-action-button batch-action-primary">
-                            Process Selected
-                        </button>
-                        <button className="batch-action-button" onClick={deselectAllFiles}>
-                            Deselect All
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

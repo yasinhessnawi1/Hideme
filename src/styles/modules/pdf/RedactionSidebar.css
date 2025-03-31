@@ -211,7 +211,10 @@ REDACTION SIDEBAR SPECIFIC STYLES
     color: #ff7171;
 }
 
-
+.scope-options{
+    display: flex;
+    justify-content: space-between;
+}
 
 .redaction-header:hover .redaction-mode-badge {
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);

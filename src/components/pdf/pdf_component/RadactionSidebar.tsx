@@ -51,7 +51,8 @@ const RedactionSidebar: React.FC = () => {
     const [redactionOptions, setRedactionOptions] = useState({
         includeSearchHighlights: true,
         includeEntityHighlights: true,
-        includeManualHighlights: true
+        includeManualHighlights: true,
+        removeImages: true
     });
 
     // Map of fileKey -> redaction mapping
@@ -283,11 +284,11 @@ const RedactionSidebar: React.FC = () => {
                 }
 
                 // Use the hook's runRedactPdf method
-                const redactedBlob = await runRedactPdf(file, mapping);
+                const redactedBlob = await runRedactPdf(file, mapping, redactionOptions.removeImages);
                 redactedPdfs = {[fileKey]: redactedBlob};
             } else {
                 // For multiple files, use the batch API from the hook
-                redactedPdfs = await runBatchRedactPdfs(filesToProcess, mappingsObj);
+                redactedPdfs = await runBatchRedactPdfs(filesToProcess, mappingsObj, redactionOptions.removeImages);
             }
 
             setIsDownloading(true);
@@ -338,7 +339,8 @@ const RedactionSidebar: React.FC = () => {
         setRedactionOptions({
             includeSearchHighlights: true,
             includeEntityHighlights: true,
-            includeManualHighlights: true
+            includeManualHighlights: true,
+            removeImages: true
         });
         setRedactionMappings(new Map());
         setRedactionError(null);
@@ -429,13 +431,25 @@ const RedactionSidebar: React.FC = () => {
                             <span className="checkmark"></span>
                             Include Detected Entities
                         </label>
+                        <label className="checkbox-label">
+                            <input
+                                type="checkbox"
+                                checked={redactionOptions.removeImages}
+                                onChange={() => setRedactionOptions(prev => ({
+                                    ...prev,
+                                    removeImages: !prev.removeImages
+                                }))}
+                            />
+                            <span className="checkmark"></span>
+                            Remove Images
+                        </label>
                     </div>
                 </div>
 
                 {redactionSuccess && (
                     <div className="sidebar-section success-section">
                         <div className="success-message">
-                            <Check size={18} className="success-icon" />
+                            <Check size={18} className="success-icon"/>
                             {redactionSuccess}
                         </div>
                     </div>

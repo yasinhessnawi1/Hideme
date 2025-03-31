@@ -161,7 +161,8 @@ export const usePDFApi = () => {
      */
     const runRedactPdf = useCallback(async (
         file: File,
-        redactionMapping: RedactionMapping
+        redactionMapping: RedactionMapping,
+        remove_images : boolean = false
     ): Promise<Blob> => {
         // Implementation unchanged
         setLoading(true);
@@ -180,7 +181,7 @@ export const usePDFApi = () => {
             setProgress(20);
 
             // Use the batch API with a single file
-            const result = await batchRedactPdfs([file], mappings);
+            const result = await batchRedactPdfs([file], mappings, remove_images);
 
             setProgress(100);
 
@@ -206,7 +207,8 @@ export const usePDFApi = () => {
      */
     const runBatchRedactPdfs = useCallback(async (
         files: File[],
-        redactionMappings: Record<string, RedactionMapping>
+        redactionMappings: Record<string, RedactionMapping>,
+        remove_images : boolean = false
     ): Promise<Record<string, Blob>> => {
         // Implementation unchanged
         if (files.length === 0) {
@@ -233,7 +235,7 @@ export const usePDFApi = () => {
             setProgress(10);
 
             // Call the batch redaction API
-            const results = await batchRedactPdfs(filesToRedact, redactionMappings);
+            const results = await batchRedactPdfs(filesToRedact, redactionMappings, remove_images);
 
             setProgress(100);
             return results;

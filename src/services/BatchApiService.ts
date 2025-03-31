@@ -101,22 +101,27 @@ export const batchHybridDetect = async (
  * Sends multiple PDFs for batch redaction
  * @param files Array of PDF files to redact
  * @param redactionMappings Mapping of file keys to redaction mappings
+ * @param removeImages Remove images
  * @returns Promise with blob objects for redacted PDFs
  */
 export async function batchRedactPdfs(
     files: File[],
-    redactionMappings: Record<string, RedactionMapping>
+    redactionMappings: Record<string, RedactionMapping>,
+    removeImages: boolean = false
 ): Promise<Record<string, Blob>> {
     if (files.length === 0) {
         return {};
     }
+
 
     // Create the redaction request object
     const redactionRequest = createRedactionRequest(files, redactionMappings);
 
     // Create FormData object to send files and redaction request
     const formData = new FormData();
-
+    if (removeImages) {
+        formData.append( 'remove_images', String(removeImages));
+    }
     // Add each file to the FormData with a unique identifier
     files.forEach(file => {
         formData.append('files', file, file.name);
