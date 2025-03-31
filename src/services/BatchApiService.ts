@@ -2,6 +2,8 @@
 import { apiRequest } from './apiService';
 import { RedactionMapping } from '../types/types';
 import { getFileKey } from '../contexts/PDFViewerContext';
+import {createRedactionRequest} from "../utils/redactionUtils";
+import JSZip from 'jszip';
 
 // Base API URL - ensure this is consistent across services
 const API_BASE_URL = 'http://localhost:8000';
@@ -94,84 +96,108 @@ export const batchHybridDetect = async (
     }
 }
 
+
 /**
- * Calls the batch redaction endpoint for multiple files.
- *
+ * Sends multiple PDFs for batch redaction
  * @param files Array of PDF files to redact
- * @param redactionMappings Mapping of fileKeys to RedactionMapping objects
- * @returns Mapping of fileKeys to redacted PDF Blobs
+ * @param redactionMappings Mapping of file keys to redaction mappings
+ * @returns Promise with blob objects for redacted PDFs
  */
-export const batchRedactPdfs = async (
+export async function batchRedactPdfs(
     files: File[],
     redactionMappings: Record<string, RedactionMapping>
-): Promise<Record<string, Blob>> => {
+): Promise<Record<string, Blob>> {
+    if (files.length === 0) {
+        return {};
+    }
+
+    // Create the redaction request object
+    const redactionRequest = createRedactionRequest(files, redactionMappings);
+
+    // Create FormData object to send files and redaction request
+    const formData = new FormData();
+
+    // Add each file to the FormData with a unique identifier
+    files.forEach(file => {
+        formData.append('files', file, file.name);
+
+    });
+
+    // Add the redaction request as JSON
+    formData.append('redaction_mappings', JSON.stringify(redactionRequest));
+
+    // Send request to the API
+    const response = await fetch(`${API_BASE_URL}/batch/redact`, {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Batch redaction failed: ${errorText}`);
+    }
+
+    // The API should return a ZIP file containing all redacted PDFs
+    const zipBlob = await response.blob();
+
+    // Process the ZIP file to extract individual PDFs
+    return processRedactionZip(zipBlob, files);
+}
+
+/**
+ * Process a ZIP file containing redacted PDFs
+ * @param zipBlob The ZIP file blob from the API
+ * @param originalFiles The original files that were redacted
+ * @returns Record mapping file keys to redacted file blobs
+ */
+async function processRedactionZip(zipBlob: Blob, originalFiles: File[]): Promise<Record<string, Blob>> {
+    // JSZip is imported at the top of the file
+
     try {
-        const formData = new FormData();
+        // Load the ZIP file
+        const zip = await JSZip.loadAsync(zipBlob);
 
-        // Maps for lookups by name
-        const filesByName = new Map<string, File>();
-        const mappingArray: RedactionMapping[] = [];
+        // Map to store redacted file blobs by file key
+        const redactedFiles: Record<string, Blob> = {};
 
-        // Process files and prepare mappings
-        files.forEach(file => {
-            const fileKey = getFileKey(file);
-            const mapping = redactionMappings[fileKey];
+        // Process each file in the ZIP
+        const fileProcessingPromises = Object.keys(zip.files).map(async (zipPath) => {
+            // Skip directories
+            if (zip.files[zipPath].dir) {
+                return;
+            }
 
-            if (mapping) {
-                formData.append('files', file, file.name);
-                filesByName.set(file.name, file);
-                mappingArray.push(mapping);
+            // Get the file name from the path
+            const fileName = zipPath.split('/').pop() || '';
+
+            // Check if this is a PDF file
+            if (!fileName.toLowerCase().endsWith('.pdf')) {
+                return;
+            }
+
+            // Get the file content as a blob
+            const fileBlob = await zip.files[zipPath].async('blob');
+
+            // Determine which original file this corresponds to
+            // We'll match by name, ignoring any redacted suffix
+            const baseName = fileName.replace('redacted.pdf', '.pdf');
+
+            const matchingFile = originalFiles.find(file =>
+                file.name === baseName || file.name === fileName
+            );
+
+            if (matchingFile) {
+                const fileKey = getFileKey(matchingFile);
+                redactedFiles[fileKey] = fileBlob;
             }
         });
 
-        if (mappingArray.length === 0) {
-            throw new Error('No files with valid redaction mappings');
-        }
+        // Wait for all files to be processed
+        await Promise.all(fileProcessingPromises);
 
-        // Add redaction mappings as JSON
-        formData.append('redaction_mappings', JSON.stringify(mappingArray));
-
-        const response = await apiRequest<any>({
-            method: 'POST',
-            url: `${API_BASE_URL}/batch/redact`,
-            formData: formData,
-            responseType: 'json'
-        });
-
-        // Process the results
-        const redactedPdfs: Record<string, Blob> = {};
-
-        if (!response.file_results || !Array.isArray(response.file_results)) {
-            throw new Error('Invalid batch redaction response format');
-        }
-
-        // Process each file result
-        for (const fileResult of response.file_results) {
-            if (fileResult.status !== 'success' || !fileResult.file || !fileResult.data) {
-                continue;
-            }
-
-            const fileName = fileResult.file;
-            const file = filesByName.get(fileName);
-
-            if (!file) continue;
-
-            const fileKey = getFileKey(file);
-            const binaryData = atob(fileResult.data);
-
-            // Convert base64 to Blob
-            const bytes = new Uint8Array(binaryData.length);
-            for (let i = 0; i < binaryData.length; i++) {
-                bytes[i] = binaryData.charCodeAt(i);
-            }
-
-            const blob = new Blob([bytes], { type: 'application/pdf' });
-            redactedPdfs[fileKey] = blob;
-        }
-
-        return redactedPdfs;
+        return redactedFiles;
     } catch (error) {
-        console.error('Batch Redaction API error:', error);
-        throw error;
+        console.error('Error processing redaction ZIP file:', error);
+        throw new Error('Failed to process redacted files');
     }
 }

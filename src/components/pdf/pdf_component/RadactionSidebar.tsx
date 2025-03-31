@@ -4,16 +4,18 @@ import { useEditContext } from '../../../contexts/EditContext';
 import { useHighlightContext, HighlightType } from '../../../contexts/HighlightContext';
 import { useBatchSearch } from '../../../contexts/SearchContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
-import { createFullRedactionMapping, getRedactionStatistics } from '../../../utils/redactionUtils';
+import { createFullRedactionMapping, getRedactionStatistics, processRedactedFiles } from '../../../utils/redactionUtils';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import '../../../styles/modules/pdf/SettingsSidebar.css';
+import '../../../styles/modules/pdf/RedactionSidebar.css';
+import { AlertCircle, Check, Clock, File, Loader2, Settings, XCircle } from 'lucide-react';
 
 const RedactionSidebar: React.FC = () => {
     const {
         currentFile,
-        setCurrentFile,
         selectedFiles,
         files,
+        addFiles,
         getFileByKey
     } = useFileContext();
 
@@ -42,7 +44,9 @@ const RedactionSidebar: React.FC = () => {
     const [isRedacting, setIsRedacting] = useState(false);
     const [redactionScope, setRedactionScope] = useState<'current' | 'selected' | 'all'>('current');
     const [redactionError, setRedactionError] = useState<string | null>(null);
+    const [redactionSuccess, setRedactionSuccess] = useState<string | null>(null);
     const [fileErrors, setFileErrors] = useState<Map<string, string>>(new Map());
+    const [isDownloading, setIsDownloading] = useState(false);
 
     const [redactionOptions, setRedactionOptions] = useState({
         includeSearchHighlights: true,
@@ -62,6 +66,16 @@ const RedactionSidebar: React.FC = () => {
             setRedactionError(apiError);
         }
     }, [apiError]);
+
+    // Auto-hide success message after a few seconds
+    useEffect(() => {
+        if (redactionSuccess) {
+            const timer = setTimeout(() => {
+                setRedactionSuccess(null);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [redactionSuccess]);
 
     // Get files to process based on selected scope
     const getFilesToProcess = useCallback((): File[] => {
@@ -244,6 +258,7 @@ const RedactionSidebar: React.FC = () => {
         setIsRedacting(true);
         setRedactionError(null);
         setFileErrors(new Map());
+        setRedactionSuccess(null);
 
         try {
             // Create a mapping of fileKey -> redaction mapping for the API
@@ -275,53 +290,46 @@ const RedactionSidebar: React.FC = () => {
                 redactedPdfs = await runBatchRedactPdfs(filesToProcess, mappingsObj);
             }
 
-            // Process each redacted PDF
-            Object.entries(redactedPdfs).forEach(([fileKey, blob]) => {
-                const originalFile = getFileByKey(fileKey);
-                if (!originalFile) return;
+            setIsDownloading(true);
 
-                // Create a new File object with the redacted content
-                const fileName = originalFile.name.replace('.pdf', '-redacted.pdf');
-                const redactedFile = new File([blob], fileName, {type: 'application/pdf'});
+            try {
+                // Process the redacted files and update the application state
+                await processRedactedFiles(
+                    redactedPdfs,
+                    addFiles,
+                    files,
+                    selectedFiles,
+                    redactionScope
+                );
 
-                // If this was the current file, update it
-                if (currentFile && getFileKey(currentFile) === fileKey) {
-                    setCurrentFile(redactedFile);
+                // Clear highlights for processed files
+                Object.keys(redactedPdfs).forEach(fileKey => {
+                    clearAnnotationsByType(HighlightType.MANUAL, undefined, fileKey);
+                    clearAnnotationsByType(HighlightType.SEARCH, undefined, fileKey);
+                    clearAnnotationsByType(HighlightType.ENTITY, undefined, fileKey);
+                });
+
+                // Update success message
+                const successMessage = Object.keys(redactedPdfs).length === 1
+                    ? `Redaction complete. ${Object.keys(redactedPdfs).length} file has been processed.`
+                    : `Redaction complete. ${Object.keys(redactedPdfs).length} files have been processed.`;
+
+                setRedactionSuccess(successMessage);
+
+                // If we redacted the current file, reset its mapping
+                if (currentFile && redactedPdfs[getFileKey(currentFile)]) {
+                    setDetectionMapping(null);
                 }
-
-                // Trigger download
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                // Clear highlights for the redacted file
-                clearAnnotationsByType(HighlightType.MANUAL, undefined, fileKey);
-                clearAnnotationsByType(HighlightType.SEARCH, undefined, fileKey);
-                clearAnnotationsByType(HighlightType.ENTITY, undefined, fileKey);
-            });
-
-            // If we redacted the current file, clear its mapping
-            if (currentFile && redactedPdfs[getFileKey(currentFile)]) {
-                setDetectionMapping(null);
+            } catch (processingError: any) {
+                setRedactionError(`Error processing redacted files: ${processingError.message}`);
             }
-
-            // Show success message
-            const successMessage = Object.keys(redactedPdfs).length === 1
-                ? `Redaction complete. The redacted PDF has been downloaded.`
-                : `Redaction complete. ${Object.keys(redactedPdfs).length} redacted PDFs have been downloaded.`;
-
-            alert(successMessage);
 
         } catch (error: any) {
             console.error('Error during redaction:', error);
             setRedactionError(error.message || 'An error occurred during redaction');
         } finally {
             setIsRedacting(false);
+            setIsDownloading(false);
         }
     };
 
@@ -334,6 +342,7 @@ const RedactionSidebar: React.FC = () => {
         });
         setRedactionMappings(new Map());
         setRedactionError(null);
+        setRedactionSuccess(null);
         setFileErrors(new Map());
         console.log('[RedactionSidebar] Redaction options reset');
     };
@@ -346,7 +355,7 @@ const RedactionSidebar: React.FC = () => {
 
     return (
         <div className="redaction-sidebar">
-            <div className="sidebar-header">
+            <div className="sidebar-header redaction-header">
                 <h3>Redaction Tools</h3>
                 <div className="redaction-mode-badge">Redaction Mode</div>
             </div>
@@ -423,6 +432,15 @@ const RedactionSidebar: React.FC = () => {
                     </div>
                 </div>
 
+                {redactionSuccess && (
+                    <div className="sidebar-section success-section">
+                        <div className="success-message">
+                            <Check size={18} className="success-icon" />
+                            {redactionSuccess}
+                        </div>
+                    </div>
+                )}
+
                 {redactionMappings.size > 0 && stats.totalItems > 0 ? (
                     <div className="sidebar-section">
                         <h4>Redaction Preview</h4>
@@ -473,17 +491,31 @@ const RedactionSidebar: React.FC = () => {
 
                         {redactionError && (
                             <div className="error-message">
+                                <AlertCircle size={18} className="error-icon" />
                                 {redactionError}
                             </div>
                         )}
 
                         <div className="sidebar-section button-group">
                             <button
-                                className="sidebar-button primary-button redact-button"
+                                className="sidebar-button redact-button"
                                 onClick={handleRedact}
                                 disabled={isCurrentlyRedacting || redactionMappings.size === 0 || stats.totalItems === 0}
                             >
-                                {isCurrentlyRedacting ? `Redacting... ${progress}%` : 'Redact Content'}
+                                {isCurrentlyRedacting ? (
+                                    <>
+                                        <Loader2 className="animate-spin" size={16} />
+                                        {isDownloading ?
+                                            `Processing... ${progress}%` :
+                                            `Redacting... ${progress}%`}
+                                        <div className="progress-container">
+                                            <div
+                                                className="progress-bar"
+                                                style={{ width: `${progress}%` }}
+                                            ></div>
+                                        </div>
+                                    </>
+                                ) : 'Redact Content'}
                             </button>
 
                             <button

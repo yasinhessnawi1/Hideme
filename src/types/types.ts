@@ -1,4 +1,48 @@
 // src/types.ts
+export interface RedactionMapping {
+    pages: Page[]
+}
+
+export interface Page {
+    page: number
+    sensitive: Sensitive[]
+}
+
+export interface Sensitive {
+    original_text: string
+    entity_type: string
+    start: number
+    end: number
+    score: number
+    bbox: Bbox
+}
+
+export interface Bbox {
+    x0: number
+    y0: number
+    x1: number
+    y1: number
+}
+
+export interface FileInfo {
+    filename: string
+    content_type: string
+    size: string
+}
+export interface FileResult {
+    file: string
+    status: string
+    results: Results
+}
+
+export interface RedactionRequest {
+    file_results: FileResult
+}
+
+export interface Results {
+    redaction_mapping: RedactionMapping
+    file_info: FileInfo
+}
 export interface OptionType {
     value: string;
     label: string;
@@ -15,22 +59,14 @@ export interface RedactionItem {
         x1: number;
         y1: number;
     };
-    boxes?: {
-        x0: number;
-        y0: number;
-        x1: number;
-        y1: number;
-    }[];
-    content?: string;
-    model?: 'presidio' | 'gliner' | 'gemini';
 }
 
-export interface RedactionMapping {
-    pages: {
-        page: number;
-        sensitive: RedactionItem[];
-    }[];
+export interface Pages {
+    page: number;
+    sensitive: RedactionItem[];
+
 }
+
 /** Defines the possible types of highlights. */
 /**
  * Common type definitions for the application

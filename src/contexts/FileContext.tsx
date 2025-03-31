@@ -199,8 +199,10 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // If we're replacing files or no current file is set,
             // set the first new file as the current file
             if ((replace || !currentFile) && updatedFiles.length > 0) {
+                setActiveFiles([])
                 setCurrentFile(updatedFiles[0]);
             }
+
 
             // Add new files to active files
             uniqueNewFiles.forEach(file => {
