@@ -1,13 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { useFileContext } from './FileContext';
+import scrollingService from '../services/UnifiedScrollingService';
 
-// Define a type for file-specific page data
-interface FilePageData {
-    numPages: number;
-    currentPage: number;
-    activeScrollPage: number;
-    renderedPages: Set<number>;
-}
 
 interface PDFViewerContextProps {
     numPages: number;
@@ -47,7 +41,7 @@ export const usePDFViewerContext = () => {
 
 // Helper function to generate a unique key for a file
 export const getFileKey = (file: File): string => {
-    return `${file.name}-${file.lastModified}`;
+    return `${file.lastModified}-${file.name}`;
 };
 
 export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -70,9 +64,9 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const mainContainerRef = useRef<HTMLDivElement | null>(null);
     const lastVisibleFileRef = useRef<string | null>(null);
 
-    // Simple getter/setter for file-specific values that don't trigger rerenders
+    // Simple getter/setter for file-specific values that don't trigger renders
     const getFileNumPages = useCallback((fileKey: string): number => {
-        return fileNumPagesRef.current.get(fileKey) || 0;
+        return fileNumPagesRef.current.get(fileKey) ?? 0;
     }, []);
 
     const setFileNumPages = useCallback((fileKey: string, pages: number) => {
@@ -85,7 +79,7 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }, [currentFile]);
 
     const getFileCurrentPage = useCallback((fileKey: string): number => {
-        return fileCurrentPageRef.current.get(fileKey) || 1;
+        return fileCurrentPageRef.current.get(fileKey) ?? 1;
     }, []);
 
     const setFileCurrentPage = useCallback((fileKey: string, page: number) => {
@@ -95,10 +89,15 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (currentFile && getFileKey(currentFile) === fileKey) {
             setCurrentPage(page);
         }
+
+        // IMPROVEMENT: Emit an event for the page change
+        window.dispatchEvent(new CustomEvent('pdf-page-changed', {
+            detail: { fileKey, pageNumber: page }
+        }));
     }, [currentFile]);
 
     const getFileActiveScrollPage = useCallback((fileKey: string): number => {
-        return fileActiveScrollPageRef.current.get(fileKey) || 1;
+        return fileActiveScrollPageRef.current.get(fileKey) ?? 1;
     }, []);
 
     const setFileActiveScrollPage = useCallback((fileKey: string, page: number) => {
@@ -135,15 +134,15 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
             // Sync from file-specific to global (only if data exists)
             if (fileNumPagesRef.current.has(fileKey)) {
-                setNumPages(fileNumPagesRef.current.get(fileKey) || 0);
+                setNumPages(fileNumPagesRef.current.get(fileKey) ?? 0);
             }
 
             if (fileCurrentPageRef.current.has(fileKey)) {
-                setCurrentPage(fileCurrentPageRef.current.get(fileKey) || 1);
+                setCurrentPage(fileCurrentPageRef.current.get(fileKey) ?? 1);
             }
 
             if (fileActiveScrollPageRef.current.has(fileKey)) {
-                setActiveScrollPage(fileActiveScrollPageRef.current.get(fileKey) || 1);
+                setActiveScrollPage(fileActiveScrollPageRef.current.get(fileKey) ?? 1);
             }
 
             if (fileRenderedPagesRef.current.has(fileKey)) {
@@ -152,45 +151,21 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
     }, [currentFile]);
 
-    // Scroll to a specific page in a PDF
+    // IMPROVEMENT: Replace the old scrollToPage with the unified scrolling service
     const scrollToPage = useCallback((pageNumber: number, fileKey?: string) => {
         // Get the file key to use
-        const targetFileKey = fileKey || (currentFile ? getFileKey(currentFile) : null);
+        const targetFileKey = fileKey ?? (currentFile ? getFileKey(currentFile) : null);
         if (!targetFileKey) return;
 
-        // Find the container
-        const container = mainContainerRef.current;
-        if (!container) return;
-
-        // Find the file container element
-        const fileContainer = document.querySelector(`[data-file-key="${targetFileKey}"]`);
-        if (!fileContainer) return;
-
-        // Find the page element
-        const pageElement = fileContainer.querySelector(`[data-page-number="${pageNumber}"]`);
-        if (!pageElement) return;
-
-        // Calculate scroll position
-        const pageRect = pageElement.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-
-        const scrollTop = (
-            container.scrollTop +
-            pageRect.top -
-            containerRect.top -
-            containerRect.height / 2 +
-            pageRect.height / 2
-        );
-
-        // Scroll to the page
-        container.scrollTo({
-            top: scrollTop,
-            behavior: 'smooth'
-        });
-
-        // Update the file's current page
+        // Update the file's current page (this is crucial for UI state consistency)
         setFileCurrentPage(targetFileKey, pageNumber);
         setFileActiveScrollPage(targetFileKey, pageNumber);
+
+        // Use the unified scrolling service for all scrolling operations
+        scrollingService.scrollToPage(pageNumber, targetFileKey, 'pdf-context', {
+            behavior: 'smooth',
+            highlightThumbnail: true
+        });
     }, [currentFile, setFileCurrentPage, setFileActiveScrollPage]);
 
     // Helper function to find file that's most visible in viewport
@@ -239,86 +214,38 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Add scroll tracking
     useEffect(() => {
         const handleScroll = () => {
-            if (!mainContainerRef.current) return;
+            if (!mainContainerRef.current || scrollingService.isCurrentlyScrolling()) return;
 
-            const container = mainContainerRef.current;
-            const containerRect = container.getBoundingClientRect();
-            const containerCenter = containerRect.top + containerRect.height / 2;
+            const visiblePage = scrollingService.findMostVisiblePage();
 
-            // First, find the most visible file and make it the current file
-            const mostVisibleFileKey = findMostVisibleFile();
+            if (visiblePage.fileKey && visiblePage.pageNumber) {
+                // If we found a visible file and it's different from the current file,
+                // update the current file
+                if (visiblePage.fileKey !== lastVisibleFileRef.current) {
+                    lastVisibleFileRef.current = visiblePage.fileKey;
 
-            // If we found a visible file and it's different from the current file,
-            // update the current file
-            if (mostVisibleFileKey &&
-                mostVisibleFileKey !== lastVisibleFileRef.current) {
+                    // Find the file object that matches this key
+                    const matchingFile = activeFiles.find(file => {
+                        return getFileKey(file) === visiblePage.fileKey;
+                    });
 
-                lastVisibleFileRef.current = mostVisibleFileKey;
-
-                // Find the file object that matches this key
-                const matchingFile = activeFiles.find(file => {
-                    return getFileKey(file) === mostVisibleFileKey;
-                });
-
-                // If we found the file and it's not already the current file, update it
-                if (matchingFile && (!currentFile || getFileKey(currentFile) !== mostVisibleFileKey)) {
-                    setCurrentFile(matchingFile);
-                }
-            }
-
-            // Now track the active page for each visible PDF file
-            const fileContainers = document.querySelectorAll('.pdf-file-container');
-
-            fileContainers.forEach(fileContainer => {
-                const fileKey = fileContainer.getAttribute('data-file-key');
-                if (!fileKey) return;
-
-                // Skip if not in view
-                const fileRect = fileContainer.getBoundingClientRect();
-                if (fileRect.bottom < containerRect.top || fileRect.top > containerRect.bottom) {
-                    return;
-                }
-
-                // Find most visible page
-                let maxVisiblePage = 1;
-                let maxVisibleArea = 0;
-
-                const pages = fileContainer.querySelectorAll('.pdf-page-wrapper');
-
-                pages.forEach(pageEl => {
-                    const pageNumber = parseInt(pageEl.getAttribute('data-page-number') || '1', 10);
-                    const pageRect = pageEl.getBoundingClientRect();
-
-                    // Calculate visible area
-                    const visibleTop = Math.max(pageRect.top, containerRect.top);
-                    const visibleBottom = Math.min(pageRect.bottom, containerRect.bottom);
-                    const visibleHeight = Math.max(0, visibleBottom - visibleTop);
-                    const visibleArea = visibleHeight * pageRect.width ;
-
-                    // Prioritize pages closer to center
-                    const distanceToCenter = Math.abs(
-                        (pageRect.top + pageRect.height / 2) - containerCenter
-                    );
-
-                    const adjustedArea = visibleArea * (1 - distanceToCenter / containerRect.height);
-
-                    if (adjustedArea > maxVisibleArea) {
-                        maxVisibleArea = adjustedArea;
-                        maxVisiblePage = pageNumber;
+                    // Update the current file if needed
+                    if (matchingFile && (!currentFile || getFileKey(currentFile) !== visiblePage.fileKey)) {
+                        setCurrentFile(matchingFile);
                     }
-                });
+                }
 
-                // Only update if we found a visible page
-                if (maxVisibleArea > 0) {
-                    const currentActivePage = getFileActiveScrollPage(fileKey);
+                // Always update the active page for this file
+                if (visiblePage.pageNumber) {
+                    const currentActivePage = getFileActiveScrollPage(visiblePage.fileKey);
 
                     // Only update if the page changed to avoid unnecessary updates
-                    if (currentActivePage !== maxVisiblePage) {
-                        setFileActiveScrollPage(fileKey, maxVisiblePage);
-                        setFileCurrentPage(fileKey, maxVisiblePage);
+                    if (currentActivePage !== visiblePage.pageNumber) {
+                        setFileActiveScrollPage(visiblePage.fileKey, visiblePage.pageNumber);
+                        setFileCurrentPage(visiblePage.fileKey, visiblePage.pageNumber);
                     }
                 }
-            });
+            }
         };
 
         const container = mainContainerRef.current;
@@ -339,6 +266,31 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setCurrentFile,
         findMostVisibleFile
     ]);
+
+    // Listen for scroll events from other components
+    useEffect(() => {
+        const handleExternalPageChange = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey, pageNumber } = customEvent.detail || {};
+
+            if (fileKey && pageNumber && currentFile) {
+                const currentFileKey = getFileKey(currentFile);
+
+                // Only respond if this is for the current file
+                if (currentFileKey === fileKey) {
+                    // Update the current page and active scroll page
+                    setCurrentPage(pageNumber);
+                    setActiveScrollPage(pageNumber);
+                }
+            }
+        };
+
+        window.addEventListener('pdf-page-changed', handleExternalPageChange);
+
+        return () => {
+            window.removeEventListener('pdf-page-changed', handleExternalPageChange);
+        };
+    }, [currentFile]);
 
     // Add keyboard navigation
     useEffect(() => {

@@ -1,13 +1,15 @@
-// src/components/pdf/highlighters/HighlightContextMenu.tsx - Updated to use useViewportSize
+// src/components/pdf/highlighters/HighlightContextMenu.tsx - Updated to use highlightUtils
 import React, { useState, useEffect, useRef } from 'react';
 import { Trash2, Highlighter, X } from 'lucide-react';
-import { HighlightRect, HighlightType, useHighlightContext } from '../../../contexts/HighlightContext';
-import highlightManager from '../../../utils/HighlightManager';
+import { HighlightRect, useHighlightContext } from '../../../contexts/HighlightContext';
 import { useViewportSize } from '../../../hooks/useViewportSize';
 import '../../../styles/modules/pdf/HighlightContextMenu.css'
+import highlightManager from "../../../utils/HighlightManager";
+import {useBatchSearch} from "../../../contexts/SearchContext";
+import {useFileContext} from "../../../contexts/FileContext";
+import {getFileKey} from "../../../contexts/PDFViewerContext";
 
 interface HighlightContextMenuProps {
-    position: { x: number; y: number };
     highlight: HighlightRect;
     onClose: () => void;
     wrapperRef?: React.RefObject<HTMLDivElement | null>;
@@ -16,7 +18,6 @@ interface HighlightContextMenuProps {
 }
 
 const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
-                                                                       position,
                                                                        highlight,
                                                                        onClose,
                                                                        wrapperRef = { current: null },
@@ -25,37 +26,159 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                                                                    }) => {
     const menuRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const { removeAnnotation, clearAnnotationsByType, addAnnotation } = useHighlightContext();
-
+    const { removeAnnotation } = useHighlightContext();
+    const { batchSearch } = useBatchSearch();
+    const { files } = useFileContext();
     // Use the viewport size hook
     const { viewportSize } = useViewportSize(wrapperRef, viewport, zoomLevel);
 
     // Handle delete current highlight
     const handleDelete = () => {
-        if (highlight && highlight.id) {
+        if (highlight?.id) {
             removeAnnotation(highlight.page, highlight.id, highlight.fileKey);
-            highlightManager.removeHighlightData(highlight.id);
             onClose();
         }
     };
 
-    // Handle delete all with same text
     const handleDeleteAllSameText = () => {
-        if (!highlight.text || !highlight.fileKey) {
+        // First, ensure we have a file key and text
+        if (!highlight.fileKey) {
+            console.warn("[HighlightContextMenu] Missing fileKey when trying to delete all same");
             onClose();
             return;
         }
 
-        const highlightsWithSameText = highlightManager.findHighlightsByText(
-            highlight.text,
-            highlight.fileKey
-        );
+        // Determine which text to delete
+        let textToDelete = '';
+        if (highlight.text) {
+            textToDelete = highlight.text;
+        } else if (highlight.entity && highlight.x !== undefined && highlight.y !== undefined) {
+            // Find similar highlights at this position
+            const similarHighlights = highlightManager.findHighlightsByPosition(
+                highlight.page,
+                highlight.x,
+                highlight.y,
+                highlight.w,
+                highlight.h,
+                10, // Position tolerance
+                highlight.fileKey
+            );
 
-        // Delete each highlight with the same text
-        highlightsWithSameText.forEach(h => {
-            removeAnnotation(h.page, h.id, h.fileKey);
+            // Use text from any similar highlight that has it
+            const highlightWithText = similarHighlights.find(h => h.text);
+            if (highlightWithText?.text) {
+                textToDelete = highlightWithText.text;
+            } else {
+                // Fallback - just delete this specific highlight
+                removeAnnotation(highlight.page, highlight.id, highlight.fileKey);
+                alert("Could not determine text content to delete. Only removed this highlight.");
+                onClose();
+                return;
+            }
+        }
+
+        if (!textToDelete) {
+            alert("No text content found to delete.");
+            onClose();
+            return;
+        }
+
+        console.log(`[HighlightContextMenu] Deleting all highlights with text "${textToDelete}" in file ${highlight.fileKey}`);
+
+        // STEP 1: First find all matching highlights
+        const highlightsToDelete = highlightManager.findHighlightsByText(textToDelete, highlight.fileKey);
+
+        if (highlightsToDelete.length === 0) {
+            alert(`No highlights found with text "${textToDelete}"`);
+            onClose();
+            return;
+        }
+
+        console.log(`[HighlightContextMenu] Found ${highlightsToDelete.length} highlights to delete`);
+
+        // STEP 2: Track all affected pages
+        const affectedPages = new Set<number>();
+
+        // STEP 3: Delete highlights from the highlightManager and HighlightContext
+        highlightsToDelete.forEach(h => {
+            // Record affected pages
+            if (h.page) {
+                affectedPages.add(h.page);
+            }
+
+            // Remove from data store
             highlightManager.removeHighlightData(h.id);
+
+            // Also remove from the HighlightContext directly
+            if (h.page) {
+                removeAnnotation(h.page, h.id, h.fileKey);
+            }
+
+            // AGGRESSIVE APPROACH: Directly remove from DOM if you can find it
+            try {
+                const highlightElement = document.querySelector(`[data-highlight-id="${h.id}"]`);
+                if (highlightElement) {
+                    console.log(`[HighlightContextMenu] Directly removing DOM element for highlight ${h.id}`);
+                    highlightElement.remove();
+                }
+            } catch (error) {
+                console.error("[HighlightContextMenu] Error directly manipulating DOM:", error);
+            }
         });
+
+        // STEP 4: Dispatch multiple targeted events for each affected page
+        affectedPages.forEach(page => {
+            console.log(`[HighlightContextMenu] Dispatching page update event for page ${page}`);
+            window.dispatchEvent(new CustomEvent('highlights-removed-from-page', {
+                detail: {
+                    fileKey: highlight.fileKey,
+                    page,
+                    text: textToDelete,
+                    count: highlightsToDelete.length,
+                    timestamp: Date.now()
+                }
+            }));
+        });
+
+        // STEP 5: Dispatch a specific event for this deletion operation
+        window.dispatchEvent(new CustomEvent('highlights-removed-by-text', {
+            detail: {
+                text: textToDelete,
+                fileKey: highlight.fileKey,
+                count: highlightsToDelete.length,
+                affectedPages: Array.from(affectedPages),
+                timestamp: Date.now(),
+                // This flag signals this is a direct UI update request
+                forceUIUpdate: true
+            }
+        }));
+
+        // STEP 6: Force a global refresh with minimal delay
+        setTimeout(() => {
+            console.log(`[HighlightContextMenu] Forcing global highlight refresh`);
+            window.dispatchEvent(new CustomEvent('force-refresh-highlights', {
+                detail: {
+                    fileKey: highlight.fileKey,
+                    timestamp: Date.now(),
+                    forceUIUpdate: true
+                }
+            }));
+        }, 50);
+
+        // STEP 7: Also dispatch a general application state update event
+        setTimeout(() => {
+            console.log(`[HighlightContextMenu] Dispatching application state update`);
+            window.dispatchEvent(new CustomEvent('application-state-changed', {
+                detail: {
+                    type: 'highlights-deleted',
+                    fileKey: highlight.fileKey,
+                    timestamp: Date.now()
+                }
+            }));
+        }, 100);
+
+        // Show success message
+        alert(`Deleted ${highlightsToDelete.length} highlights with text "${textToDelete}"`);
 
         onClose();
     };
@@ -67,18 +190,41 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             return;
         }
 
-        // Dispatch event for finding all instances of this text
-        window.dispatchEvent(new CustomEvent('highlight-all-same-text', {
-            detail: {
-                text: highlight.text,
-                fileKey: highlight.fileKey,
-                highlightType: highlight.type,
-                color: highlight.color
+        // Find the file object for this file key
+        const file = files.find(f => {
+            const fileKey = getFileKey(f);
+            return fileKey === highlight.fileKey ||
+                fileKey.includes(highlight.fileKey as string) ||
+                highlight.fileKey?.includes(fileKey);
+        });
+
+        if (!file) {
+            console.error(`[HighlightContextMenu] Could not find file with key: ${highlight.fileKey}`);
+            alert('File not found. Cannot highlight all occurrences.');
+            onClose();
+            return;
+        }
+
+        console.log(`[HighlightContextMenu] Using batch search to highlight all occurrences of "${highlight.text}" in file ${getFileKey(file)}`);
+
+        // Use the batch search functionality to highlight all occurrences
+        batchSearch(
+            [file],
+            highlight.text,
+            {
+                caseSensitive: false,
+                regex: false
             }
-        }));
+        ).then(() => {
+            console.log(`[HighlightContextMenu] Successfully highlighted all occurrences of "${highlight.text}"`);
+        }).catch(error => {
+            console.error('[HighlightContextMenu] Error highlighting all occurrences:', error);
+            alert('An error occurred while highlighting all occurrences.');
+        });
 
         onClose();
     };
+
 
     // Close menu when clicking outside
     useEffect(() => {

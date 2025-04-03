@@ -1,6 +1,5 @@
 // src/services/BatchSearchService.ts
 import { apiRequest } from './apiService';
-import { getFileKey } from '../contexts/PDFViewerContext';
 import { HighlightType } from '../contexts/HighlightContext';
 import { v4 as uuidv4 } from 'uuid';
 // Base API URL - ensure this is consistent across services
@@ -96,7 +95,7 @@ export class BatchSearchService {
 
             // Add search options
             formData.append('case_sensitive', options.caseSensitive? 'true' : 'false');
-            formData.append('regex', options.regex? 'true' : 'false');
+            formData.append('ai_search', options.regex? 'true' : 'false');
 
             // Add search parameters
             formData.append('search_terms', searchTerm);
@@ -145,7 +144,7 @@ export class BatchSearchService {
         // Create a nested map structure: fileKey -> pageNumber -> highlights[]
         const resultsMap = new Map<string, Map<number, SearchResult[]>>();
 
-        if (!searchResponse || !searchResponse.file_results) {
+        if (!searchResponse?.file_results) {
             console.warn('[BatchSearchService] Empty or invalid search response');
             return resultsMap;
         }
@@ -154,7 +153,7 @@ export class BatchSearchService {
 
         // Process each file's results
         searchResponse.file_results.forEach(fileResult => {
-            if (fileResult.status !== 'success' || !fileResult.results || !fileResult.results.pages) {
+            if (fileResult.status !== 'success' || !fileResult.results?.pages) {
                 console.warn(`[BatchSearchService] Skipping file result with invalid structure:`, fileResult);
                 return; // Skip failed results
             }

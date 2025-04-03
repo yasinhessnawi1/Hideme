@@ -8,7 +8,7 @@ import { createFullRedactionMapping, getRedactionStatistics, processRedactedFile
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import '../../../styles/modules/pdf/SettingsSidebar.css';
 import '../../../styles/modules/pdf/RedactionSidebar.css';
-import { AlertCircle, Check, Clock, File, Loader2, Settings, XCircle } from 'lucide-react';
+import { AlertCircle, Check, Loader2 } from 'lucide-react';
 
 const RedactionSidebar: React.FC = () => {
     const {
@@ -165,13 +165,6 @@ const RedactionSidebar: React.FC = () => {
         // Update the state with new mappings
         setRedactionMappings(newMappings);
 
-        // Log redaction preview stats
-        console.log(`[RedactionSidebar] Generated ${newMappings.size} redaction mappings`);
-        newMappings.forEach((mapping, fileKey) => {
-            if (mapping.pages) {
-                console.log(`[RedactionSidebar] File ${fileKey}: ${mapping.pages.length} pages with redactions`);
-            }
-        });
     }, [
         getFilesToProcess,
         redactionOptions.includeSearchHighlights,
@@ -279,10 +272,6 @@ const RedactionSidebar: React.FC = () => {
                 const fileKey = getFileKey(file);
                 const mapping = redactionMappings.get(fileKey);
 
-                if (!mapping) {
-                    throw new Error(`No redaction mapping found for ${file.name}`);
-                }
-
                 // Use the hook's runRedactPdf method
                 const redactedBlob = await runRedactPdf(file, mapping, redactionOptions.removeImages);
                 redactedPdfs = {[fileKey]: redactedBlob};
@@ -304,7 +293,7 @@ const RedactionSidebar: React.FC = () => {
                 );
 
                 // Clear highlights for processed files
-                Object.keys(redactedPdfs).forEach(fileKey => {
+                Object.keys(filesToProcess).forEach(fileKey => {
                     clearAnnotationsByType(HighlightType.MANUAL, undefined, fileKey);
                     clearAnnotationsByType(HighlightType.SEARCH, undefined, fileKey);
                     clearAnnotationsByType(HighlightType.ENTITY, undefined, fileKey);

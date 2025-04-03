@@ -62,7 +62,7 @@ export const useBatchSearch = () => {
 };
 
 export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { addAnnotation, clearAnnotationsByType, resetProcessedEntityPages } = useHighlightContext();
+    const { addAnnotation, clearAnnotationsByType, resetProcessedEntityPages , removeAnnotation} = useHighlightContext();
     const { currentFile, activeFiles } = useFileContext();
 
     // Main search state
@@ -190,114 +190,154 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 }
             }));
         }
-    }, [clearAnnotationsByType, addAnnotation, resetProcessedEntityPages, activeFiles]);
+    }, [addAnnotation, resetProcessedEntityPages, activeFiles]);
 
     /**
      * Execute a batch search operation
      */
+        // In BatchSearchContext.tsx, update the batchSearch function
+
     const batchSearch = useCallback(async (
-        files: File[],
-        searchTerm: string,
-        options: { caseSensitive?: boolean; regex?: boolean } = {}
-    ) => {
-        if (!files.length || !searchTerm.trim()) {
-            setSearchState(prev => ({
-                ...prev,
-                error: 'Files and search term are required'
-            }));
-            return;
-        }
+            files: File[],
+            searchTerm: string,
+            options: { caseSensitive?: boolean; regex?: boolean } = {}
+        ) => {
+            if (!files.length || !searchTerm.trim()) {
+                setSearchState(prev => ({
+                    ...prev,
+                    error: 'Files and search term are required'
+                }));
+                return;
+            }
 
-        // Check if this search is already active (with same case sensitivity and regex options)
-        const isExistingSearch = searchStateRef.current.activeQueries.some(
-            query => query.term === searchTerm &&
-                query.caseSensitive === !!options.caseSensitive &&
-                query.isRegex === !!options.regex
-        );
+            // Check if this search is already active (with same case sensitivity and regex options)
+            const isExistingSearch = searchStateRef.current.activeQueries.some(
+                query => query.term === searchTerm &&
+                    query.caseSensitive === !!options.caseSensitive &&
+                    query.isRegex === !!options.regex
+            );
 
-        // If it's already an active search, we don't need to clear previous results
-        // This allows for cumulative search results
+            // If it's already an active search, clear existing highlights first to prevent duplicates
+            if (isExistingSearch) {
+                console.log(`[BatchSearchContext] Search term "${searchTerm}" is already active, clearing existing highlights before searching again`);
 
-        setSearchState(prev => ({
-            ...prev,
-            isSearching: true,
-            progress: 0,
-            error: null
-        }));
+                // Remove existing highlights for this term from all files being searched
+                for (const file of files) {
+                    const fileKey = getFileKey(file);
 
-        try {
-            // Execute the search using the PDF API hook
-            const response = await runBatchSearch(files, searchTerm, {
-                isCaseSensitive: options.caseSensitive,
-                isRegexSearch: options.regex
-            });
+                    // Find existing highlights for this term and file
+                    const existingHighlights = highlightManager.findHighlightsByText(searchTerm, fileKey)
+                        .filter(h => h.type === HighlightType.SEARCH);
 
-            // Transform API results to highlight-compatible format
-            const searchResultsMap = BatchSearchService.transformSearchResults(response, searchTerm);
+                    console.log(`[BatchSearchContext] Found ${existingHighlights.length} existing highlights for "${searchTerm}" in file ${fileKey}`);
 
-            // Add the new search query to active queries
-            const newQuery: SearchQuery = {
-                term: searchTerm,
-                caseSensitive: !!options.caseSensitive,
-                isRegex: !!options.regex
-            };
-
-            // Update the search results in state
-            setSearchState(prev => {
-                // Create a new map with all existing results
-                const updatedSearchResults = new Map(prev.searchResults);
-
-                // Integrate new results into the existing structure
-                searchResultsMap.forEach((pageMap, fileKey) => {
-                    let fileResults = updatedSearchResults.get(fileKey);
-
-                    if (!fileResults) {
-                        fileResults = new Map();
-                        updatedSearchResults.set(fileKey, fileResults);
-                    }
-
-                    pageMap.forEach((highlights, pageNumber) => {
-                        let pageResults = fileResults.get(pageNumber);
-
-                        if (!pageResults) {
-                            pageResults = new Map();
-                            fileResults.set(pageNumber, pageResults);
+                    // Remove them from the manager and UI
+                    existingHighlights.forEach(highlight => {
+                        highlightManager.removeHighlightData(highlight.id);
+                        if (highlight.page) {
+                            removeAnnotation(highlight.page, highlight.id, fileKey);
                         }
-
-                        // Store highlights for this search term, replacing any existing ones
-                        pageResults.set(searchTerm, highlights);
                     });
-                });
 
-                // Add the new query to active queries (without duplicates)
-                const updatedQueries = [...prev.activeQueries];
-                if (!updatedQueries.some(q => q.term === newQuery.term)) {
-                    updatedQueries.push(newQuery);
+                    // Trigger refresh to ensure highlights are gone before adding new ones
+                    window.dispatchEvent(new CustomEvent('force-refresh-highlights', {
+                        detail: {
+                            fileKey,
+                            timestamp: Date.now()
+                        }
+                    }));
                 }
 
-                return {
-                    ...prev,
-                    isSearching: false,
-                    progress: 100,
-                    searchResults: updatedSearchResults,
-                    activeQueries: updatedQueries,
-                    lastResponse: response
-                };
-            });
-            console.table(searchResultsMap);
+                // Small delay to ensure highlights are removed before adding new ones
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
 
-            // Add highlights to the highlight context
-            applySearchHighlights(searchResultsMap);
-
-        } catch (error: any) {
-            console.error('[BatchSearchContext] Search error:', error);
             setSearchState(prev => ({
                 ...prev,
-                isSearching: false,
-                error: error.message || 'Error performing batch search'
+                isSearching: true,
+                progress: 0,
+                error: null
             }));
-        }
-    }, [runBatchSearch, applySearchHighlights]);
+
+            try {
+                // Execute the search using the PDF API hook
+                const response = await runBatchSearch(files, searchTerm, {
+                    isCaseSensitive: options.caseSensitive,
+                    isRegexSearch: options.regex
+                });
+
+                // Transform API results to highlight-compatible format
+                const searchResultsMap = BatchSearchService.transformSearchResults(response, searchTerm);
+
+                // Add the new search query to active queries
+                const newQuery: SearchQuery = {
+                    term: searchTerm,
+                    caseSensitive: !!options.caseSensitive,
+                    isRegex: !!options.regex
+                };
+
+                // Update the search results in state
+                setSearchState(prev => {
+                    // Create a new map with all existing results
+                    const updatedSearchResults = new Map(prev.searchResults);
+
+                    // Integrate new results into the existing structure
+                    searchResultsMap.forEach((pageMap, fileKey) => {
+                        let fileResults = updatedSearchResults.get(fileKey);
+
+                        if (!fileResults) {
+                            fileResults = new Map();
+                            updatedSearchResults.set(fileKey, fileResults);
+                        }
+
+                        pageMap.forEach((highlights, pageNumber) => {
+                            let pageResults = fileResults.get(pageNumber);
+
+                            if (!pageResults) {
+                                pageResults = new Map();
+                                fileResults.set(pageNumber, pageResults);
+                            }
+
+                            // Store highlights for this search term, replacing any existing ones
+                            pageResults.set(searchTerm, highlights);
+                        });
+                    });
+
+                    // Add the new query to active queries if it doesn't exist
+                    let updatedQueries = [...prev.activeQueries];
+                    if (!isExistingSearch) {
+                        updatedQueries.push(newQuery);
+                    } else {
+                        // If existing search, update the options in case they changed
+                        updatedQueries = updatedQueries.map(q =>
+                            q.term === searchTerm ? newQuery : q
+                        );
+                    }
+
+                    return {
+                        ...prev,
+                        isSearching: false,
+                        progress: 100,
+                        searchResults: updatedSearchResults,
+                        activeQueries: updatedQueries,
+                        lastResponse: response
+                    };
+                });
+
+                console.log(`[BatchSearchContext] Search complete for "${searchTerm}". Adding highlights...`);
+
+                // Add highlights to the highlight context
+                applySearchHighlights(searchResultsMap);
+
+            } catch (error: any) {
+                console.error('[BatchSearchContext] Search error:', error);
+                setSearchState(prev => ({
+                    ...prev,
+                    isSearching: false,
+                    error: error.message || 'Error performing batch search'
+                }));
+            }
+        }, [runBatchSearch, applySearchHighlights, removeAnnotation]);
 
     /**
      * Clear all search results and highlights
@@ -316,92 +356,109 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
     /**
      * Clear a specific search term or all searches
      */
-    const clearSearch = useCallback((searchTerm?: string) => {
-        if (!searchTerm) {
-            return clearAllSearches();
-        }
+    const clearSearch = useCallback((searchTerm?: string, specificFileKey?: string) => {
+            if (!searchTerm) {
+                return clearAllSearches();
+            }
 
-        setSearchState(prev => {
-            // Create a new search results map without the specified term
-            const updatedResults = new Map(prev.searchResults);
+            setSearchState(prev => {
+                // Create a new search results map without the specified term
+                const updatedResults = new Map(prev.searchResults);
 
-            // Remove this search term from each page's results
-            updatedResults.forEach((fileMap, fileKey) => {
-                fileMap.forEach((pageMap, pageNumber) => {
-                    pageMap.delete(searchTerm);
+                // Only remove this specific search term from the results map
+                updatedResults.forEach((fileMap, fileKey) => {
+                    if (!specificFileKey || fileKey === specificFileKey) {
+                        fileMap.forEach((pageMap, pageNumber) => {
+                            // Only remove this search term, keep others
+                            pageMap.delete(searchTerm);
 
-                    // Clean up empty maps
-                    if (pageMap.size === 0) {
-                        fileMap.delete(pageNumber);
+                            // Clean up empty maps
+                            if (pageMap.size === 0) {
+                                fileMap.delete(pageNumber);
+                            }
+                        });
+
+                        // If no pages left for this file, remove the file entry
+                        if (fileMap.size === 0) {
+                            updatedResults.delete(fileKey);
+                        }
                     }
                 });
 
-                // Clean up empty files
-                if (fileMap.size === 0) {
-                    updatedResults.delete(fileKey);
-                }
+                // Update active queries - only remove the specific term
+                const updatedQueries = prev.activeQueries.filter(
+                    query => query.term !== searchTerm
+                );
+
+                return {
+                    ...prev,
+                    searchResults: updatedResults,
+                    activeQueries: updatedQueries
+                };
             });
 
-            // Update active queries
-            const updatedQueries = prev.activeQueries.filter(
-                query => query.term !== searchTerm
-            );
+            // Find all highlights with this search term and remove them
+            if (currentFile) {
+                // Use specific file key if provided, otherwise use current file
+                const targetFileKey = specificFileKey ?? getFileKey(currentFile);
 
-            return {
-                ...prev,
-                searchResults: updatedResults,
-                activeQueries: updatedQueries
-            };
-        });
+                // Find highlights matching this search term
+                const highlightsToRemove = highlightManager.findHighlightsByText(searchTerm, targetFileKey)
+                    .filter(h => h.type === HighlightType.SEARCH);
 
-        // Find all highlights with this search term and remove them
-        if (currentFile) {
-            const fileKey = getFileKey(currentFile);
+                console.log(`[BatchSearchContext] Found ${highlightsToRemove.length} search highlights to remove for term "${searchTerm}"`);
 
-            // Remove any matching search highlights from the manager
-            const highlights = highlightManager.findHighlightsByText(searchTerm);
-            highlights.forEach(highlight => {
-                // Only remove search highlights matching this term
-                if (highlight.type === HighlightType.SEARCH && highlight.text === searchTerm) {
+                // Keep track of affected pages for updates
+                const affectedPages = new Set<number>();
+
+                // Remove just these highlights
+                highlightsToRemove.forEach(highlight => {
+                    // Keep track of pages for UI updates
+                    if (highlight.page) {
+                        affectedPages.add(highlight.page);
+                    }
+
+                    // Remove from highlight manager
                     highlightManager.removeHighlightData(highlight.id);
-                }
-            });
 
-            // Clear highlights for this term from the highlight context
-            clearAnnotationsByType(HighlightType.SEARCH, undefined, fileKey);
+                    // Also remove from context (since we're not using clearAnnotationsByType)
+                    if (highlight.page) {
+                        removeAnnotation(highlight.page, highlight.id, targetFileKey);
+                    }
+                });
 
-            // Reapply remaining highlights
-            setTimeout(() => {
-                const currentResults = searchStateRef.current.searchResults.get(fileKey);
-                if (currentResults) {
-                    currentResults.forEach((pageMap, pageNumber) => {
-                        pageMap.forEach((highlights, term) => {
-                            if (term !== searchTerm) {
-                                highlights.forEach(highlight => {
-                                    const uniqueId = highlightManager.generateUniqueId('search');
-                                    const newHighlight = {
-                                        ...highlight,
-                                        id: uniqueId,
-                                        fileKey: fileKey,
-                                        timestamp: Date.now()
-                                    };
-
-                                    highlightManager.storeHighlightData(newHighlight);
-                                    addAnnotation(pageNumber, newHighlight, fileKey);
-                                });
-                            }
+                // Trigger UI updates for affected pages
+                if (affectedPages.size > 0) {
+                    setTimeout(() => {
+                        affectedPages.forEach(page => {
+                            window.dispatchEvent(new CustomEvent('highlights-removed-from-page', {
+                                detail: {
+                                    fileKey: targetFileKey,
+                                    page,
+                                    searchTerm,
+                                    timestamp: Date.now()
+                                }
+                            }));
                         });
-                    });
+
+                        // Also dispatch a general update event
+                        window.dispatchEvent(new CustomEvent('force-refresh-highlights', {
+                            detail: {
+                                fileKey: targetFileKey,
+                                searchTerm,
+                                timestamp: Date.now()
+                            }
+                        }));
+                    }, 50);
                 }
-            }, 0);
-        }
-    }, [clearAnnotationsByType, addAnnotation, currentFile, clearAllSearches]);
+            }
+        }, [currentFile, clearAllSearches, removeAnnotation]);
 
     /**
      * Get search results for a specific page and file
      */
     const getSearchResultsForPage = useCallback((pageNumber: number, fileKey?: string): SearchResult[] => {
-        const targetFileKey = fileKey || (currentFile ? getFileKey(currentFile) : '');
+        const targetFileKey = fileKey ?? (currentFile ? getFileKey(currentFile) : '');
         if (!targetFileKey) return [];
 
         const fileResults = searchStateRef.current.searchResults.get(targetFileKey);

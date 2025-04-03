@@ -1,4 +1,4 @@
-import { OptionType } from '../types/types';
+import {OptionType} from '../types/types';
 
 export function handleAllOPtions(selectedAiEntities : OptionType[], selectedGlinerEntities : OptionType[], selectedMlEntities : OptionType[]): {
     gemini: string[];
@@ -34,10 +34,9 @@ export function handleAllOPtions(selectedAiEntities : OptionType[], selectedGlin
     }
 
     // Prepare entity selections for each model
-    const detectionOptions = {
+    return {
         presidio: presidioEntitiesToSend,
         gliner: glinerEntitiesToSend,
         gemini: geminiEntitiesToSend
     };
-    return detectionOptions;
 }

@@ -1,4 +1,3 @@
-// src/hooks/usePDFApi.ts - Updated
 import { useCallback, useState, useRef } from 'react';
 import { RedactionMapping } from '../types/types';
 import { batchHybridDetect, batchRedactPdfs } from '../services/BatchApiService';
@@ -31,7 +30,7 @@ export const usePDFApi = () => {
      */
     const getOrCreateCacheKey = useCallback((files: File[], operation: string, options: any = {}): string => {
         // Create a stable cache key based on file keys and options
-        const fileKeys = files.map(file => getFileKey(file)).sort().join('-');
+        const fileKeys = files.map(file => getFileKey(file)).sort((a, b) => a.localeCompare(b)).join('-');
         const optionsString = JSON.stringify(options);
         return `${operation}-${fileKeys}-${optionsString}`;
     }, []);
@@ -100,7 +99,8 @@ export const usePDFApi = () => {
             // Call the batch hybrid detection API
             const results = await batchHybridDetect(files, options);
 
-            setProgress(90);
+            setProgress(50);
+
             console.log(`[APIDebug] Detection complete for ${Object.keys(results).length} files`);
 
             // Process each file to use the proper file key
@@ -112,7 +112,7 @@ export const usePDFApi = () => {
 
             // Map file objects to their keys to ensure proper caching
             const resultsWithCorrectKeys: Record<string, any> = {};
-
+            setProgress(80);
             // Process each file to use the proper file key
             files.forEach(file => {
                 const fileKey = getFileKey(file);
@@ -188,9 +188,8 @@ export const usePDFApi = () => {
             // Return the blob for the redacted file
             const redactedBlob = result[fileKey];
             if (!redactedBlob) {
-                throw new Error(`No redacted PDF returned for ${file.name}`);
+                setError(`No redacted PDF returned for ${file.name}`);
             }
-
             return redactedBlob;
         } catch (err: any) {
             const errorMsg = err.message || 'Error in redaction';
@@ -229,7 +228,7 @@ export const usePDFApi = () => {
             });
 
             if (filesToRedact.length === 0) {
-                throw new Error('No files with valid redaction mappings');
+                setError('No files with valid redaction mappings');
             }
 
             setProgress(10);

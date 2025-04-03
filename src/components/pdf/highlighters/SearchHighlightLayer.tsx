@@ -5,8 +5,8 @@ import { HighlightRect } from '../../../contexts/HighlightContext';
 
 interface SearchHighlightLayerProps {
     pageNumber: number;
-    highlights: HighlightRect[]; // Now we receive the highlights directly
-    fileKey?: string; // Optional file key for multi-file support
+    highlights: HighlightRect[];
+    fileKey?: string;
 }
 
 const SearchHighlightLayer: React.FC<SearchHighlightLayerProps> = ({

@@ -4,7 +4,7 @@
  * This service provides methods for user authentication, token management,
  * and API key operations including:
  * - Login/logout functionality
- * - Token storage, retrieval, and verification
+ * - Token and cookie storage, retrieval, and verification
  * - User registration
  * - API key management
  */
@@ -271,7 +271,7 @@ const authService = {
      * @throws {Error} If authentication fails
      */
     async login(credentials: UserCredentials): Promise<AuthResponse> {
-        const loginIdentifier = credentials.email || credentials.username;
+        const loginIdentifier = credentials.email ?? credentials.username;
         const loginMethod = credentials.email ? 'email' : 'username';
 
         console.log(`🔑 [AUTH] Login attempt`, {
@@ -284,7 +284,10 @@ const authService = {
 
         try {
             // Use direct axios call to avoid circular dependency with apiClient
-            const response = await axios.post(`${AUTH_URL}/login`, credentials);
+            // Set withCredentials to true to ensure cookies are saved
+            const response = await axios.post(`${AUTH_URL}/login`, credentials, {
+                withCredentials: true // Enable cookie handling
+            });
             const duration = performance.now() - startTime;
 
             // Extract data from the response
@@ -296,6 +299,7 @@ const authService = {
                 username: responseData.user.username,
                 email: responseData.user.email,
                 tokenExpiry: `${responseData.expires_in}s`,
+                cookiesReceived: !!document.cookie.length,
                 duration: `${duration.toFixed(2)}ms`
             });
 
@@ -329,8 +333,10 @@ const authService = {
         const startTime = performance.now();
 
         try {
-            // Use apiClient for authenticated requests
-            await apiClient.post(`/auth/logout`);
+            // Use apiClient for authenticated requests with cookie support
+            await apiClient.post(`/auth/logout`, {}, {
+                withCredentials: true // Include cookies in the request
+            });
             const duration = performance.now() - startTime;
 
             console.log(`✅ [AUTH] Logout API call successful`, {
@@ -338,6 +344,16 @@ const authService = {
             });
 
             this.clearToken();
+
+            // Clear any authentication cookies by setting them to expire
+            // This is a fallback in case the server doesn't properly clear cookies
+            document.cookie.split(";").forEach(cookie => {
+                const cookieName = cookie.split("=")[0].trim();
+                // Set each cookie to expire in the past
+                document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+            });
+
+            console.log(`🍪 [AUTH] Authentication cookies cleared`);
         } catch (error: any) {
             const duration = performance.now() - startTime;
 
@@ -347,9 +363,15 @@ const authService = {
                 error: error.response?.data || error.message
             });
 
-            // Still clear token on error
-            console.log(`🧹 [AUTH] Clearing token despite API error`);
+            // Still clear token and cookies on error
+            console.log(`🧹 [AUTH] Clearing token and cookies despite API error`);
             this.clearToken();
+
+            // Clear auth cookies by expiring them
+            document.cookie.split(";").forEach(cookie => {
+                const cookieName = cookie.split("=")[0].trim();
+                document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+            });
 
             throw error;
         }
@@ -367,8 +389,10 @@ const authService = {
         const startTime = performance.now();
 
         try {
-            // Use direct axios call to avoid circular dependency with apiClient
-            const response = await axios.post(`${AUTH_URL}/refresh`);
+            // Use direct axios call with cookie support
+            const response = await axios.post(`${AUTH_URL}/refresh`, {}, {
+                withCredentials: true // Include cookies in the request
+            });
             const duration = performance.now() - startTime;
 
             // Extract data from the response
@@ -408,8 +432,10 @@ const authService = {
         const startTime = performance.now();
 
         try {
-            // Use apiClient for authenticated requests
-            const response = await apiClient.get(`/auth/verify`);
+            // Use apiClient for authenticated requests with cookie support
+            const response = await apiClient.get(`/auth/verify`, {
+                withCredentials: true // Include cookies in the request
+            });
             const duration = performance.now() - startTime;
 
             // Extract data from the response
@@ -452,7 +478,9 @@ const authService = {
         const startTime = performance.now();
 
         try {
-            const response = await apiClient.post(`/keys`, data);
+            const response = await apiClient.post(`/keys`, data, {
+                withCredentials: true // Include cookies in the request
+            });
             const duration = performance.now() - startTime;
 
             console.log(`✅ [API KEY] API key created successfully`, {
@@ -490,7 +518,9 @@ const authService = {
         const startTime = performance.now();
 
         try {
-            const response = await apiClient.get(`/keys`);
+            const response = await apiClient.get(`/keys`, {
+                withCredentials: true // Include cookies in the request
+            });
             const duration = performance.now() - startTime;
 
             console.log(`✅ [API KEY] API keys fetched successfully`, {
@@ -525,7 +555,9 @@ const authService = {
         const startTime = performance.now();
 
         try {
-            await apiClient.delete(`/keys/${keyId}`);
+            await apiClient.delete(`/keys/${keyId}`, {
+                withCredentials: true // Include cookies in the request
+            });
             const duration = performance.now() - startTime;
 
             console.log(`✅ [API KEY] API key deleted successfully`, {
@@ -544,10 +576,8 @@ const authService = {
 
             throw error;
         }
-    }
+    },
 };
 
-// Log service initialization
-console.log('🚀 [AUTH] Auth Service initialized');
 
 export default authService;

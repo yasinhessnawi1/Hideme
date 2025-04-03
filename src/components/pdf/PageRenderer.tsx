@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState, useRef, useEffect, memo } from 'react';
 import { Page } from 'react-pdf';
 import { usePDFViewerContext } from '../../contexts/PDFViewerContext';
 import { useEditContext } from '../../contexts/EditContext';
@@ -26,6 +26,12 @@ const PageRenderer: React.FC<PageRendererProps> = ({ pageNumber, fileKey }) => {
     const [textContent, setTextContent] = useState<TextContent | null>(null);
     const wrapperRef = useRef<HTMLDivElement | null>(null);
 
+    // Track if this component is mounted to prevent state updates after unmount
+    const isMountedRef = useRef<boolean>(true);
+
+    // Track if this has already been rendered
+    const hasRenderedRef = useRef<boolean>(false);
+
     // Use the viewport size hook
     const { viewportSize, setCanvasReference } = useViewportSize(
         wrapperRef,
@@ -33,23 +39,49 @@ const PageRenderer: React.FC<PageRendererProps> = ({ pageNumber, fileKey }) => {
         zoomLevel
     );
 
+    // Set mounted status on mount/unmount
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
+
     // Determine if this page is active for the current file
-    const isActive = () => {
+    const isActive = useCallback(() => {
         // If a fileKey is provided, use that
         if (fileKey) {
             return getFileActiveScrollPage(fileKey) === pageNumber;
         }
         // Otherwise use the global activeScrollPage (for backward compatibility)
         return activeScrollPage === pageNumber;
-    };
+    }, [fileKey, getFileActiveScrollPage, pageNumber, activeScrollPage]);
 
     const onPageRenderSuccess = useCallback(async (page: any) => {
+        // Skip processing if component is unmounted
+        if (!isMountedRef.current) return;
+
+        // Get viewport with current zoom level
         const newViewport = page.getViewport({ scale: zoomLevel }) as unknown as PDFPageViewport;
 
         try {
-            const textContentRaw = await page.getTextContent();
-            setViewport(newViewport);
-            setTextContent(textContentRaw as TextContent);
+            // Only load text content if not already loaded
+            if (!textContent) {
+                const textContentRaw = await page.getTextContent();
+
+                // Check if component is still mounted before updating state
+                if (isMountedRef.current) {
+                    setTextContent(textContentRaw as TextContent);
+                }
+            }
+
+            // Update viewport if it changed
+            if (isMountedRef.current &&
+                (!viewport ||
+                    viewport.width !== newViewport.width ||
+                    viewport.height !== newViewport.height)) {
+                setViewport(newViewport);
+            }
 
             // Find the canvas element and set it as a reference
             const pageElement = wrapperRef.current;
@@ -57,14 +89,29 @@ const PageRenderer: React.FC<PageRendererProps> = ({ pageNumber, fileKey }) => {
                 const canvas = pageElement.querySelector('canvas');
                 if (canvas) {
                     setCanvasReference(canvas);
+
+                    // Dispatch an event when the page is fully rendered
+                    // This helps with viewport-based navigation
+                    window.dispatchEvent(new CustomEvent('pdf-page-render-complete', {
+                        detail: {
+                            pageNumber,
+                            fileKey,
+                            timestamp: Date.now(),
+                            viewport: newViewport
+                        }
+                    }));
                 }
             }
+
+            // Mark as having rendered
+            hasRenderedRef.current = true;
         } catch (err) {
             console.error('Error on page render success', pageNumber, err);
         }
-    }, [pageNumber, zoomLevel, setCanvasReference]);
+    }, [pageNumber, zoomLevel, setCanvasReference, viewport, textContent, fileKey]);
 
     const isPageActive = isActive();
+
 
     return (
         <div
@@ -90,6 +137,13 @@ const PageRenderer: React.FC<PageRendererProps> = ({ pageNumber, fileKey }) => {
                 renderTextLayer
                 renderAnnotationLayer
                 className="pdf-page"
+                loading={
+                    <div className="pdf-page-loading-placeholder" style={{
+                        width: viewport?.width ?? '100%',
+                        height: viewport?.height ?? 800,
+                        backgroundColor: 'var(--background)'
+                    }}></div>
+                }
             />
 
             {viewport && textContent && (
@@ -115,4 +169,12 @@ const PageRenderer: React.FC<PageRendererProps> = ({ pageNumber, fileKey }) => {
     );
 };
 
-export default PageRenderer;
+// Memoize the component with a custom comparison function
+export default memo(PageRenderer, (prevProps, nextProps) => {
+    // Only re-render if essential props change
+    // This prevents unnecessary re-renders during scrolling
+    return (
+        prevProps.pageNumber === nextProps.pageNumber &&
+        prevProps.fileKey === nextProps.fileKey
+    );
+});

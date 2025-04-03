@@ -1,8 +1,6 @@
-// Updated PDFViewerContainer.tsx
 import React from 'react';
 import { usePDFViewerContext } from '../../contexts/PDFViewerContext';
 import MultiPDFRenderer from './MultiPDFRenderer';
-import HighlightAllIntegrator from './highlighters/HighlightAllIntegrator';
 import '../../styles/modules/pdf/PdfViewer.css';
 
 const PDFViewerContainer: React.FC = () => {
@@ -13,7 +11,6 @@ const PDFViewerContainer: React.FC = () => {
             className="pdf-viewer-container"
             ref={mainContainerRef}
         >
-            <HighlightAllIntegrator />
 
             <MultiPDFRenderer />
         </div>

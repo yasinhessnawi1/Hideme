@@ -1,6 +1,6 @@
 // src/utils/redactionUtils.ts
 import { HighlightRect, HighlightType } from "../contexts/HighlightContext";
-import { RedactionMapping, Page, Sensitive, Bbox, FileInfo, RedactionRequest, FileResult, Results } from "../types/types";
+import { RedactionMapping, Page, Sensitive, FileInfo, FileResult } from "../types/types";
 import { getFileKey } from "../contexts/PDFViewerContext";
 
 /**
@@ -45,7 +45,7 @@ export function createFullRedactionMapping(
     }
 
     // Add pages from detection mapping if they should be included
-    if (detectionMapping && detectionMapping.pages && includeEntityHighlights) {
+    if (detectionMapping?.pages && includeEntityHighlights) {
         detectionMapping.pages.forEach((page: any) => {
             if (page.page) {
                 pages.add(page.page);
@@ -98,9 +98,9 @@ export function createFullRedactionMapping(
         }
 
         // Process entity detection results for this page if available
-        if (detectionMapping && detectionMapping.pages && includeEntityHighlights) {
+        if (detectionMapping?.pages && includeEntityHighlights) {
             const detectionPage = detectionMapping.pages.find((p: any) => p.page === pageNumber);
-            if (detectionPage && detectionPage.sensitive && Array.isArray(detectionPage.sensitive)) {
+            if (detectionPage?.sensitive && Array.isArray(detectionPage.sensitive)) {
                 // Add these sensitive items to our page mapping
                 pageMapping.sensitive.push(...detectionPage.sensitive);
             }
@@ -143,8 +143,8 @@ function shouldIncludeAnnotation(
 function createSensitiveFromAnnotation(annotation: HighlightRect): Sensitive {
    if (annotation.type === "SEARCH"){
        return {
-           original_text: annotation.text || 'Unknown',
-           entity_type: annotation.entity || annotation.type || 'MANUAL',
+           original_text: annotation.text ?? 'Unknown',
+           entity_type: (annotation.entity ?? annotation.type) || 'MANUAL',
            score: 1.0,
            start: 0, // Not tracked in our highlighting model
            end: 0,   // Not tracked in our highlighting model
@@ -157,8 +157,8 @@ function createSensitiveFromAnnotation(annotation: HighlightRect): Sensitive {
        };
    }else if (annotation.type === 'ENTITY') {
        return {
-           original_text: annotation.text || 'Unknown',
-           entity_type: annotation.entity || annotation.type || 'MANUAL',
+           original_text: annotation.text ?? 'Unknown',
+           entity_type: (annotation.entity ?? annotation.type) || 'MANUAL',
            score: 1.0,
            start: 0, // Not tracked in our highlighting model
            end: 0,   // Not tracked in our highlighting model
@@ -171,8 +171,8 @@ function createSensitiveFromAnnotation(annotation: HighlightRect): Sensitive {
        };
     }else {
    return {
-       original_text: annotation.text || 'Unknown',
-       entity_type: annotation.entity || annotation.type || 'MANUAL',
+       original_text: annotation.text ?? 'Unknown',
+       entity_type: annotation.entity ?? annotation.type ?? 'MANUAL',
        score: 1.0,
        start: 0, // Not tracked in our highlighting model
        end: 0,   // Not tracked in our highlighting model

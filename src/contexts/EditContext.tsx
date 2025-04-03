@@ -1,4 +1,3 @@
-// src/contexts/EditContext.tsx - Updated with fixes for file isolation
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { OptionType, RedactionMapping } from '../types/types';
 import { useFileContext } from './FileContext';
@@ -56,7 +55,7 @@ export const useEditContext = () => {
 };
 
 export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { currentFile, files } = useFileContext();
+    const { currentFile } = useFileContext();
 
     const [isEditingMode, setIsEditingMode] = useState(true);
     const [highlightColor, setHighlightColor] = useState('#00ff15');
@@ -123,7 +122,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const handleEntityDetectionComplete = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { fileKey, source, forceProcess } = customEvent.detail || {};
+            const { fileKey, source } = customEvent.detail || {};
 
             if (!fileKey) return;
 

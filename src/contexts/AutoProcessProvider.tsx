@@ -1,4 +1,3 @@
-// src/contexts/AutoProcessProvider.tsx
 import React, { useEffect } from 'react';
 import { useAutoProcess } from '../hooks/useAutoProcess';
 import { useBatchSearch } from './SearchContext';

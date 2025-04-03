@@ -1,9 +1,5 @@
-// src/utils/HighlightManager.ts
 import { v4 as uuidv4 } from 'uuid';
-import {HighlightRect, HighlightType} from '../contexts/HighlightContext';
-
-// Define a complete interface for a highlight
-
+import { HighlightRect, HighlightType } from '../contexts/HighlightContext';
 
 class HighlightManager {
     private static instance: HighlightManager;
@@ -51,14 +47,228 @@ class HighlightManager {
     }
 
     /**
-     * Remove highlight data
+     * Remove highlight data by ID
+     * @returns true if the highlight was found and removed, false otherwise
      */
     public removeHighlightData(id: string): boolean {
         const result = this.highlightData.delete(id);
         if (result) {
             this.saveHighlightDataToStorage();
+            // Note: We don't remove the ID from usedIds to prevent ID reuse
+            console.log(`[HighlightManager] Removed highlight with ID: ${id}`);
         }
         return result;
+    }
+
+    /**
+     * Remove all highlights of a specific type
+     * @param type The type of highlights to remove
+     * @param fileKey Optional file key to limit deletion to a specific file
+     * @param pageNumber Optional page number to limit deletion to a specific page
+     * @returns The number of highlights removed
+     */
+    public removeHighlightsByType(type: HighlightType, fileKey?: string, pageNumber?: number): number {
+        let removedCount = 0;
+        const idsToRemove: string[] = [];
+
+        this.highlightData.forEach((highlight, id) => {
+            if (highlight.type === type) {
+                // If fileKey is provided, only remove highlights from that file
+                if (fileKey && highlight.fileKey !== fileKey) {
+                    return;
+                }
+
+                // If pageNumber is provided, only remove highlights from that page
+                if (pageNumber !== undefined && highlight.page !== pageNumber) {
+                    return;
+                }
+
+                idsToRemove.push(id);
+                removedCount++;
+            }
+        });
+
+        // Remove all collected IDs
+        idsToRemove.forEach(id => {
+            this.highlightData.delete(id);
+        });
+
+        // Only save if we actually removed something
+        if (removedCount > 0) {
+            this.saveHighlightDataToStorage();
+            console.log(`[HighlightManager] Removed ${removedCount} highlights of type ${type}${fileKey ? ` for file ${fileKey}` : ''}${pageNumber !== undefined ? ` on page ${pageNumber}` : ''}`);
+        }
+
+        return removedCount;
+    }
+
+    /**
+     * Remove all highlights for a specific file
+     * @param fileKey The file key to remove highlights for
+     * @returns The number of highlights removed
+     */
+    public removeHighlightsByFile(fileKey: string): number {
+        if (!fileKey) {
+            console.warn('[HighlightManager] Attempted to remove highlights with empty fileKey');
+            return 0;
+        }
+
+        let removedCount = 0;
+        const idsToRemove: string[] = [];
+
+        this.highlightData.forEach((highlight, id) => {
+            if (highlight.fileKey === fileKey) {
+                idsToRemove.push(id);
+                removedCount++;
+            }
+        });
+
+        // Remove all collected IDs
+        idsToRemove.forEach(id => {
+            this.highlightData.delete(id);
+        });
+
+        // Only save if we actually removed something
+        if (removedCount > 0) {
+            this.saveHighlightDataToStorage();
+            console.log(`[HighlightManager] Removed ${removedCount} highlights for file ${fileKey}`);
+        }
+
+        return removedCount;
+    }
+
+    /**
+     * Remove highlights by text content
+     * @param text The text content to match
+     * @param fileKey Optional file key to limit deletion to a specific file
+     * @returns The number of highlights removed
+     */
+    public removeHighlightsByText(text: string, fileKey?: string): number {
+        if (!text) {
+            console.warn('[HighlightManager] Attempted to remove highlights with empty text');
+            return 0;
+        }
+
+        let removedCount = 0;
+        const idsToRemove: string[] = [];
+        const normalizedText = text.toLowerCase().trim();
+
+        this.highlightData.forEach((highlight, id) => {
+            // Skip if no text property
+            if (!highlight.text) return;
+
+            const highlightText = highlight.text.toLowerCase().trim();
+            if (highlightText === normalizedText) {
+                // If fileKey is provided, only remove highlights from that file
+                if (fileKey && highlight.fileKey !== fileKey) {
+                    return;
+                }
+
+                idsToRemove.push(id);
+                removedCount++;
+            }
+        });
+
+        // Remove all collected IDs
+        idsToRemove.forEach(id => {
+            this.highlightData.delete(id);
+        });
+
+        // Only save if we actually removed something
+        if (removedCount > 0) {
+            this.saveHighlightDataToStorage();
+            console.log(`[HighlightManager] Removed ${removedCount} highlights with text "${text}"${fileKey ? ` for file ${fileKey}` : ''}`);
+        }
+
+        return removedCount;
+    }
+
+    /**
+     * Remove highlights by text content and type
+     * @param text The text content to match
+     * @param type The type of highlights to remove
+     * @param fileKey Optional file key to limit deletion to a specific file
+     * @returns The number of highlights removed
+     */
+    public removeHighlightsByTextAndType(text: string, type: HighlightType, fileKey?: string): number {
+        if (!text) {
+            console.warn('[HighlightManager] Attempted to remove highlights with empty text');
+            return 0;
+        }
+
+        let removedCount = 0;
+        const idsToRemove: string[] = [];
+        const normalizedText = text.toLowerCase().trim();
+
+        this.highlightData.forEach((highlight, id) => {
+            // Skip if no text property or wrong type
+            if (!highlight.text || highlight.type !== type) return;
+
+            const highlightText = highlight.text.toLowerCase().trim();
+            if (highlightText === normalizedText) {
+                // If fileKey is provided, only remove highlights from that file
+                if (fileKey && highlight.fileKey !== fileKey) {
+                    return;
+                }
+
+                idsToRemove.push(id);
+                removedCount++;
+            }
+        });
+
+        // Remove all collected IDs
+        idsToRemove.forEach(id => {
+            this.highlightData.delete(id);
+        });
+
+        // Only save if we actually removed something
+        if (removedCount > 0) {
+            this.saveHighlightDataToStorage();
+            console.log(`[HighlightManager] Removed ${removedCount} highlights of type ${type} with text "${text}"${fileKey ? ` for file ${fileKey}` : ''}`);
+        }
+
+        return removedCount;
+    }
+
+    /**
+     * Remove highlights by entity type
+     * @param entityType The entity type to match
+     * @param fileKey Optional file key to limit deletion to a specific file
+     * @returns The number of highlights removed
+     */
+    public removeHighlightsByEntityType(entityType: string, fileKey?: string): number {
+        if (!entityType) {
+            console.warn('[HighlightManager] Attempted to remove highlights with empty entity type');
+            return 0;
+        }
+
+        let removedCount = 0;
+        const idsToRemove: string[] = [];
+
+        this.highlightData.forEach((highlight, id) => {
+            if (highlight.entity === entityType) {
+                // If fileKey is provided, only remove highlights from that file
+                if (fileKey && highlight.fileKey !== fileKey) {
+                    return;
+                }
+
+                idsToRemove.push(id);
+                removedCount++;
+            }
+        });
+
+        // Remove all collected IDs
+        idsToRemove.forEach(id => {
+            this.highlightData.delete(id);
+        });
+
+        // Only save if we actually removed something
+        if (removedCount > 0) {
+            this.saveHighlightDataToStorage();
+            console.log(`[HighlightManager] Removed ${removedCount} highlights with entity type "${entityType}"${fileKey ? ` for file ${fileKey}` : ''}`);
+        }
+
+        return removedCount;
     }
 
     /**
@@ -78,26 +288,6 @@ class HighlightManager {
 
             const highlightText = highlight.text?.toLowerCase().trim() || '';
             if (highlightText === normalizedText) {
-                results.push(highlight);
-            }
-        });
-
-        return results;
-    }
-
-    /**
-     * Find highlights with the same entity type
-     */
-    public findHighlightsByEntityType(entityType: string, fileKey?: string): HighlightRect[] {
-        const results: HighlightRect[] = [];
-
-        this.highlightData.forEach(highlight => {
-            // Only include highlights from the same file if fileKey is provided
-            if (fileKey && highlight.fileKey !== fileKey) {
-                return;
-            }
-
-            if (highlight.entity === entityType) {
                 results.push(highlight);
             }
         });
@@ -127,25 +317,7 @@ class HighlightManager {
      * Clear all highlights by type
      */
     public clearHighlightsByType(type: HighlightType, fileKey?: string): void {
-        const idsToRemove: string[] = [];
-
-        this.highlightData.forEach((highlight, id) => {
-            if (highlight.type === type) {
-                // If fileKey is provided, only remove highlights from that file
-                if (!fileKey || highlight.fileKey === fileKey) {
-                    idsToRemove.push(id);
-                }
-            }
-        });
-
-        // Remove the highlights
-        idsToRemove.forEach(id => {
-            this.highlightData.delete(id);
-            // Don't remove from usedIds to prevent ID reuse
-        });
-
-        // Save changes
-        this.saveHighlightDataToStorage();
+        this.removeHighlightsByType(type, fileKey);
     }
 
     /**
@@ -177,7 +349,7 @@ class HighlightManager {
     }
 
     /**
-     * Load highlight data from localStorage or IndexedDB
+     * Load highlight data from localStorage
      */
     private loadHighlightDataFromStorage(): void {
         try {
@@ -200,7 +372,7 @@ class HighlightManager {
     }
 
     /**
-     * Save highlight data to localStorage or IndexedDB
+     * Save highlight data to localStorage
      */
     private saveHighlightDataToStorage(): void {
         try {
@@ -258,6 +430,70 @@ class HighlightManager {
 
         this.saveHighlightDataToStorage();
         this.saveUsedIdsToStorage();
+    }
+    /**
+     * Find highlights with the same entity type
+     */
+    public findHighlightsByEntityType(entityType: string, fileKey?: string): HighlightRect[] {
+        const results: HighlightRect[] = [];
+
+        this.highlightData.forEach(highlight => {
+            // Only include highlights from the same file if fileKey is provided
+            if (fileKey && highlight.fileKey !== fileKey) {
+                return;
+            }
+
+            if (highlight.entity === entityType) {
+                results.push(highlight);
+            }
+        });
+
+        return results;
+    }
+
+    /**
+     * Find highlights near a specific position within a tolerance range
+     * Useful for finding overlapping or nearby highlights
+     */
+    public findHighlightsByPosition(
+        page: number,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        tolerance: number = 5,
+        fileKey?: string
+    ): HighlightRect[] {
+        const results: HighlightRect[] = [];
+
+        this.highlightData.forEach(highlight => {
+            // Skip if not on the same page or not in the same file
+            if (highlight.page !== page) return;
+            if (fileKey && highlight.fileKey !== fileKey) return;
+
+            // Check if this highlight is near the specified position
+            if (
+                highlight.x !== undefined &&
+                highlight.y !== undefined &&
+                highlight.w !== undefined &&
+                highlight.h !== undefined
+            ) {
+                // Check if the highlights overlap or are within tolerance
+                const xOverlap =
+                    Math.abs((highlight.x + highlight.w/2) - (x + width/2)) <
+                    (highlight.w/2 + width/2 + tolerance);
+
+                const yOverlap =
+                    Math.abs((highlight.y + highlight.h/2) - (y + height/2)) <
+                    (highlight.h/2 + height/2 + tolerance);
+
+                if (xOverlap && yOverlap) {
+                    results.push(highlight);
+                }
+            }
+        });
+
+        return results;
     }
 }
 

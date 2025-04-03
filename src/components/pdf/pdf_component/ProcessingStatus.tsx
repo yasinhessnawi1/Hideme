@@ -1,9 +1,8 @@
-// src/components/pdf/pdf_component/ProcessingStatus.tsx
 import React, { useEffect, useState } from 'react';
 import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import { autoProcessManager } from '../../../utils/AutoProcessManager';
-
+import '../../../styles/modules/pdf/PdfViewer.css'
 const ProcessingStatus: React.FC = () => {
     const { activeFiles } = useFileContext();
     const [processingFiles, setProcessingFiles] = useState<Record<string, string>>({});

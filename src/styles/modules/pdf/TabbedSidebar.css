@@ -65,7 +65,14 @@ TABBED SIDEBAR STYLES
 }
 
 
+.tab-panel {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
 
+.tab-panel.active {
+    opacity: 1;
+}
 /* Animation for active tab indicator */
 @keyframes slideIn {
     from {

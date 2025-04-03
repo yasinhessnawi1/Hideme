@@ -3,13 +3,14 @@ import Select from 'react-select';
 import { useFileContext } from '../../../contexts/FileContext';
 import { useEditContext } from '../../../contexts/EditContext';
 import { useHighlightContext, HighlightType } from '../../../contexts/HighlightContext';
-import { usePDFViewerContext, getFileKey } from '../../../contexts/PDFViewerContext';
+import { getFileKey } from '../../../contexts/PDFViewerContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
 import { OptionType } from '../../../types/types';
 import '../../../styles/modules/pdf/SettingsSidebar.css';
 import '../../../styles/modules/pdf/EntityDetctionSidebar.css';
 import {handleAllOPtions} from '../../../utils/pdfutils'
 import { ChevronUp, ChevronDown, Save, AlertTriangle, ChevronRight } from 'lucide-react';
+import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 
 // Presidio ML entity options
 const presidioOptions: OptionType[] = [
@@ -35,60 +36,61 @@ const presidioOptions: OptionType[] = [
 // Gliner ML entity options
 const glinerOptions: OptionType[] = [
     { value: 'ALL_GLINER', label: 'All Gliner Entities' },
-    { value: 'PERSON', label: 'Person' },
-    { value: 'LOCATION', label: 'Location' },
-    { value: 'DATE', label: 'Date' },
-    { value: 'ORGANIZATION', label: 'Organization' },
-    { value: 'PHONE_NUMBER', label: 'Phone Number' },
-    { value: 'ADDRESS', label: 'Address' },
-    { value: 'PASSPORT_NUMBER', label: 'Passport Number' },
-    { value: 'EMAIL', label: 'Email' },
-    { value: 'CREDIT_CARD_NUMBER', label: 'Credit Card Number' },
-    { value: 'DATE_OF_BIRTH', label: 'Date of Birth' },
-    { value: 'BANK_ACCOUNT_NUMBER', label: 'Bank Account Number' },
-    { value: 'MEDICATION', label: 'Medication' },
-    { value: 'TAX_IDENTIFICATION_NUMBER', label: 'Tax Identification Number' },
-    { value: 'MEDICAL_CONDITION', label: 'Medical Condition' },
-    { value: 'IDENTITY_CARD_NUMBER', label: 'Identity Card Number' },
-    { value: 'NATIONAL_ID_NUMBER', label: 'National ID Number' },
-    { value: 'IP_ADDRESS', label: 'IP Address' },
-    { value: 'EMAIL_ADDRESS', label: 'Email Address' },
-    { value: 'IBAN', label: 'IBAN' },
-    { value: 'CREDIT_CARD_EXPIRATION_DATE', label: 'Credit Card Expiration Date' },
-    { value: 'USERNAME', label: 'Username' },
-    { value: 'HEALTH_INSURANCE_NUMBER', label: 'Health Insurance Number' },
-    { value: 'REGISTRATION_NUMBER', label: 'Registration Number' },
-    { value: 'STUDENT_ID_NUMBER', label: 'Student ID Number' },
-    { value: 'INSURANCE_NUMBER', label: 'Insurance Number' },
-    { value: 'SOCIAL_MEDIA_HANDLE', label: 'Social Media Handle' },
-    { value: 'LICENSE_PLATE_NUMBER', label: 'License Plate Number' },
-    { value: 'POSTAL_CODE', label: 'Postal Code' },
-    { value: 'SERIAL_NUMBER', label: 'Serial Number' },
-    { value: 'VEHICLE_REGISTRATION_NUMBER', label: 'Vehicle Registration Number' },
-    { value: 'FAX_NUMBER', label: 'Fax Number' },
-    { value: 'VISA_NUMBER', label: 'Visa Number' },
-    { value: 'IDENTITY_DOCUMENT_NUMBER', label: 'Identity Document Number' },
-    { value: 'BIRTH_CERTIFICATE_NUMBER', label: 'Birth Certificate Number' },
-    { value: 'PASSPORT_EXPIRATION_DATE', label: 'Passport Expiration Date' },
-    { value: 'SOCIAL_SECURITY_NUMBER', label: 'Social Security Number' },
+    { value: 'person', label: 'Person' },
+    { value: 'location', label: 'Location' },
+    { value: 'date', label: 'Date' },
+    { value: 'organization', label: 'Organization' },
+    { value: 'phone number', label: 'Phone Number' },
+    { value: 'address', label: 'Address' },
+    { value: 'passport number', label: 'Passport Number' },
+    { value: 'email', label: 'Email' },
+    { value: 'credit card number', label: 'Credit Card Number' },
+    { value: 'date of birth', label: 'Date of Birth' },
+    { value: 'bank account number', label: 'Bank Account Number' },
+    { value: 'medication', label: 'Medication' },
+    { value: 'tax identification number', label: 'Tax Identification Number' },
+    { value: 'medical condition', label: 'Medical Condition' },
+    { value: 'identity card number', label: 'Identity Card Number' },
+    { value: 'national id number', label: 'National ID Number' },
+    { value: 'ip address', label: 'IP Address' },
+    { value: 'iban', label: 'IBAN' },
+    { value: 'credit card expiration date', label: 'Credit Card Expiration Date' },
+    { value: 'username', label: 'Username' },
+    { value: 'registration number', label: 'Registration Number' },
+    { value: 'student id number', label: 'Student ID Number' },
+    { value: 'insurance number', label: 'Insurance Number' },
+    { value: 'social media handle', label: 'Social Media Handle' },
+    { value: 'license plate number', label: 'License Plate Number' },
+    { value: 'postal code', label: 'Postal Code' },
+    { value: 'vehicle registration number', label: 'Vehicle Registration Number' },
+    { value: 'fax number', label: 'Fax Number' },
+    { value: 'visa number', label: 'Visa Number' },
+    { value: 'passport_number', label: 'Passport_number' },
 ];
 
 
 // Gemini AI entity options
 const geminiOptions: OptionType[] = [
     { value: 'ALL_GEMINI', label: 'All Gemini Entities' },
-    { value: 'PHONE', label: 'Phone' },
-    { value: 'EMAIL', label: 'Email' },
-    { value: 'ADDRESS', label: 'Address' },
-    { value: 'DATE', label: 'Date' },
-    { value: 'GOVID', label: 'Gov ID' },
-    { value: 'FINANCIAL', label: 'Financial' },
-    { value: 'EMPLOYMENT', label: 'Employment' },
-    { value: 'HEALTH', label: 'Health' },
-    { value: 'SEXUAL', label: 'Sexual' },
-    { value: 'CRIMINAL', label: 'Criminal' },
-    { value: 'CONTEXT', label: 'Context' },
-    { value: 'FAMILY', label: 'Family' },
+    { value: 'PERSON-G', label: 'Person' },
+    { value: 'ORGANIZATION-G', label: 'Organization' },
+    { value: 'PHONE-G', label: 'Phone' },
+    { value: 'EMAIL-G', label: 'Email' },
+    { value: 'ADDRESS-G', label: 'Address' },
+    { value: 'LOCATION-G', label: 'Location' },
+    { value: 'DATE-G', label: 'Date' },
+    { value: 'NATIONAL_ID-G', label: 'National ID' },
+    { value: 'FINANCIAL_INFO-G', label: 'Financial' },
+    { value: 'AGE-G', label: 'Age' },
+    { value: 'HEALTH-G', label: 'Health' },
+    { value: 'CRIMINAL-G', label: 'Criminal' },
+    { value: 'SEXUAL-G', label: 'Sexual' },
+    { value: 'RELIGIOUS_BELIEF-G', label: 'Religious Belief' },
+    { value: 'POLITICAL_AFFILIATION-G', label: 'Political Affiliation' },
+    { value: 'TRADE_UNION-G', label: 'Trade Union' },
+    { value: 'BIOMETRIC_DATA-G', label: 'Biometric Data' },
+    { value: 'GENETIC_DATA-G', label: 'Genetic Data' },
+    { value: 'CONTEXT-G', label: 'Context' },
 ];
 
 // Define model colors for dots
@@ -128,23 +130,6 @@ const customSelectStyles = {
         boxShadow: state.isFocused ? '0 0 0 1px var(--primary)' : null,
         '&:hover': {
             borderColor: 'var(--primary)'
-        }
-    }),
-    multiValue: (provided: any, state: any) => ({
-        ...provided,
-        backgroundColor: 'var(--active-bg)',
-        borderRadius: '4px'
-    }),
-    multiValueLabel: (provided: any) => ({
-        ...provided,
-        color: 'var(--foreground)'
-    }),
-    multiValueRemove: (provided: any) => ({
-        ...provided,
-        color: 'var(--muted-foreground)',
-        '&:hover': {
-            backgroundColor: 'var(--destructive)',
-            color: 'white'
         }
     }),
     menu: (provided: any) => ({
@@ -187,10 +172,10 @@ const EntityDetectionSidebar: React.FC = () => {
     const {
         currentFile,
         selectedFiles,
-        files, setCurrentFile
+        files
     } = useFileContext();
 
-    const { scrollToPage } = usePDFViewerContext();
+    const pdfNavigation = usePDFNavigation('entity-sidebar');
 
     const {
         selectedMlEntities,
@@ -199,7 +184,6 @@ const EntityDetectionSidebar: React.FC = () => {
         setSelectedAiEntities,
         selectedGlinerEntities,
         setSelectedGlinerEntities,
-        detectionMapping,
         setDetectionMapping,
         setFileDetectionMapping,
         fileDetectionMappings
@@ -207,7 +191,6 @@ const EntityDetectionSidebar: React.FC = () => {
 
     const {
         clearAnnotationsByType,
-        resetProcessedEntityPages
     } = useHighlightContext();
 
     const [isDetecting, setIsDetecting] = useState(false);
@@ -217,7 +200,6 @@ const EntityDetectionSidebar: React.FC = () => {
     const [fileSummaries, setFileSummaries] = useState<FileDetectionResult[]>([]);
     const [expandedFileSummaries, setExpandedFileSummaries] = useState<Set<string>>(new Set());
 
-    // Use the refactored PDF API hook
     const {
         loading,
         error,
@@ -253,20 +235,25 @@ const EntityDetectionSidebar: React.FC = () => {
 
     // Simple navigation to a page without highlighting
     const navigateToPage = useCallback((fileKey: string, pageNumber: number) => {
-        const file = files.find(f => getFileKey(f) === fileKey);
-        if (!file) return;
+        const file = files.find(f => getFileKey(f).includes(fileKey));
 
-        // Set as current file if not already
-        if (currentFile !== file) {
-            if (typeof setCurrentFile === 'function') {
-                setCurrentFile(file);
-            }
+        if (!file) {
+            return;
         }
 
-        // Scroll to the page
-        scrollToPage(pageNumber, fileKey);
-    }, [currentFile, files, scrollToPage, setCurrentFile]);
+        const isChangingFile = currentFile !== file;
 
+        // Use our navigation hook for consistent navigation behavior
+        pdfNavigation.navigateToPage(pageNumber, getFileKey(file), {
+            // Use auto behavior for better UX when changing files
+            behavior: isChangingFile ? 'auto' : 'smooth',
+            // Align to top when navigating to entities for better visibility
+            alignToTop: true,
+            // Always highlight the thumbnail
+            highlightThumbnail: true
+        });
+
+    }, [pdfNavigation, files, currentFile]);
 
 
 // Batch entity detection across multiple files
@@ -345,7 +332,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 }, 100);
 
                 // Extract summary information for this file
-                const filename = filesToProcess.find(f => getFileKey(f) === fileKey)?.name || fileKey;
+                const filename = filesToProcess.find(f => getFileKey(f) === fileKey)?.name ?? fileKey;
 
                 // Create a file summary object
                 const fileSummary: FileDetectionResult = {
@@ -369,20 +356,7 @@ const EntityDetectionSidebar: React.FC = () => {
         } finally {
             setIsDetecting(false);
         }
-    }, [
-        getFilesToProcess,
-        selectedAiEntities,
-        selectedMlEntities,
-        selectedGlinerEntities,
-        runBatchHybridDetect,
-        clearAnnotationsByType,
-        setDetectionMapping,
-        setFileDetectionMapping,
-        resetErrors,
-        currentFile,
-        resetEntityHighlightsForFile,
-        detectionScope
-    ]);
+    }, [getFilesToProcess, selectedAiEntities, selectedMlEntities, selectedGlinerEntities, runBatchHybridDetect, clearAnnotationsByType, setDetectionMapping, setFileDetectionMapping, resetErrors, currentFile, resetEntityHighlightsForFile]);
 
     // Reset selected entities and clear detection results
     const handleReset = useCallback(() => {
@@ -474,7 +448,7 @@ const EntityDetectionSidebar: React.FC = () => {
             const allOption = selectedOptions.find(option => option.value === 'ALL_PRESIDIO');
             setSelectedMlEntities(allOption ? [allOption] : []);
         } else {
-            setSelectedMlEntities(selectedOptions as OptionType[]);
+            setSelectedMlEntities(selectedOptions);
         }
     };
 
@@ -486,7 +460,7 @@ const EntityDetectionSidebar: React.FC = () => {
             const allOption = selectedOptions.find(option => option.value === 'ALL_GLINER');
             setSelectedGlinerEntities(allOption ? [allOption] : []);
         } else {
-            setSelectedGlinerEntities(selectedOptions as OptionType[]);
+            setSelectedGlinerEntities(selectedOptions);
         }
     };
 
@@ -498,7 +472,7 @@ const EntityDetectionSidebar: React.FC = () => {
             const allOption = selectedOptions.find(option => option.value === 'ALL_GEMINI');
             setSelectedAiEntities(allOption ? [allOption] : []);
         } else {
-            setSelectedAiEntities(selectedOptions as OptionType[]);
+            setSelectedAiEntities(selectedOptions);
         }
     };
 
@@ -736,7 +710,7 @@ const EntityDetectionSidebar: React.FC = () => {
                                                                 <div className="entity-item-left">
                                                                     <ColorDot color={MODEL_COLORS[model]} />
                                                                     <span className="entity-name">
-                                                                        {formatEntityName(entityType)}
+                                                                        {formatEntityDisplay(entityType)}
                                                                     </span>
                                                                 </div>
                                                                 <div className="entity-item-right">

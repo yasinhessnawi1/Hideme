@@ -1,4 +1,3 @@
-// src/utils/ManualHighlightManager.ts - Fixed version
 import { HighlightRect, HighlightType } from '../contexts/HighlightContext';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -7,14 +6,14 @@ import { v4 as uuidv4 } from 'uuid';
  * Handles both text selection and mouse drag highlighting
  */
 export class ManualHighlightManager {
-    private pageNumber: number;
-    private getNextHighlightId: () => string;
-    private addAnnotation: (page: number, ann: HighlightRect, fileKey?: string) => void;
-    private highlightColor: string;
-    private fileKey?: string;
+    private readonly pageNumber: number;
+    private readonly getNextHighlightId: () => string;
+    private readonly addAnnotation: (page: number, ann: HighlightRect, fileKey?: string) => void;
+    private readonly highlightColor: string;
+    private readonly fileKey?: string;
     private lastProcessedId: string | null = null;
-    private processingTimestamp: number;
-    private instanceId: string;
+    private readonly processingTimestamp: number;
+    private readonly instanceId: string;
     // Track the last highlight creation time to prevent duplicate processing
     private lastHighlightTime: number = 0;
     // Keep track of highlight IDs created by this instance
@@ -44,7 +43,7 @@ export class ManualHighlightManager {
     private generateUniqueId(): string {
         const uuid = uuidv4();
         const timestamp = Date.now();
-        const fileMarker = this.fileKey || 'default';
+        const fileMarker = this.fileKey ?? 'default';
 
         // Construct a highly specific ID that won't collide
         return `manual-${fileMarker}-${this.pageNumber}-${uuid}-${timestamp}-${this.instanceId}`;
@@ -110,22 +109,5 @@ export class ManualHighlightManager {
         // Add to annotations
         this.addAnnotation(this.pageNumber, highlight, this.fileKey);
         return highlight;
-    }
-
-    /**
-     * Check if a highlight ID was created by this instance
-     * Useful for verification and duplicate prevention
-     */
-    hasCreatedHighlight(id: string): boolean {
-        return this.createdHighlightIds.has(id);
-    }
-
-    /**
-     * Clear tracking of created highlights
-     * Can be used when resetting state
-     */
-    clearCreatedHighlights(): void {
-        this.createdHighlightIds.clear();
-        this.lastProcessedId = null;
     }
 }

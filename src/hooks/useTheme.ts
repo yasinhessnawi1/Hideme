@@ -1,4 +1,3 @@
-// src/hooks/useTheme.ts
 import { useState, useEffect } from 'react';
 
 export default function useTheme(defaultTheme: 'light' | 'dark' = 'light') {

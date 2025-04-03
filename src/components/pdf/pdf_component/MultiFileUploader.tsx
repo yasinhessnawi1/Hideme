@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { Upload, Plus } from 'lucide-react';
-import { useFileContext } from '../../contexts/FileContext';
-import '../../styles/modules/pdf/PDFViewerPage.css';
+import { useFileContext } from '../../../contexts/FileContext';
+import '../../../styles/modules/pdf/PDFViewerPage.css';
 
 interface MultiFileUploaderProps {
-    mode?: 'replace' | 'add'; // replace removes old files, add keeps existing files
+    mode?: 'replace' | 'add';
     buttonType?: 'full' | 'icon'; // full shows the full upload area, icon only shows a + button
 }
 

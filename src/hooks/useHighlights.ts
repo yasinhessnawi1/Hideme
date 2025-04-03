@@ -33,7 +33,7 @@ declare global {
     }
 }
 
-// Define the global function outside of the hook if it doesn't exist
+// Define the global function outside the hook if it doesn't exist
 if (typeof window !== 'undefined' && !window.removeFileHighlightTracking) {
     window.removeFileHighlightTracking = (fileKey: string): boolean => {
         try {
@@ -95,7 +95,6 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
     } = useHighlightContext();
 
     const {
-        detectionMapping,
         showSearchHighlights,
         showEntityHighlights,
         showManualHighlights,
@@ -177,8 +176,8 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
         const apiResult = getDetectionResults(fileKey);
         if (apiResult) {
             // Verify the mapping belongs to this file
-            if ((apiResult as any).fileKey && (apiResult as any).fileKey !== fileKey) {
-                console.warn(`[useHighlights] API result fileKey ${(apiResult as any).fileKey} doesn't match component fileKey ${fileKey}, ignoring`);
+            if ((apiResult).fileKey && (apiResult).fileKey !== fileKey) {
+                console.warn(`[useHighlights] API result fileKey ${(apiResult).fileKey} doesn't match component fileKey ${fileKey}, ignoring`);
                 return null;
             }
             return apiResult;
@@ -190,7 +189,7 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
 
     // Get a unique cache key for this page and file - memoized
     const getPageKey = useCallback((page: number, fileKey?: string): string => {
-        return `${fileKey || '_default'}-${page}`;
+        return `${fileKey ?? '_default'}-${page}`;
     }, []);
 
     // CRITICAL CHECK: Is this page already processed globally?
@@ -207,7 +206,7 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
     const canProcessPage = useCallback((fileKey: string, page: number): boolean => {
         const now = Date.now();
         const key = `${fileKey}-${page}`;
-        const lastProcessed = GLOBAL_LAST_PROCESSED.get(key) || 0;
+        const lastProcessed = GLOBAL_LAST_PROCESSED.get(key) ?? 0;
 
         // If too recent, skip processing
         if (now - lastProcessed < GLOBAL_THROTTLE_TIME) {
@@ -252,7 +251,7 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
     // Throttled reset handler to prevent event cascades
     const handleResetWithThrottle = useCallback((eventFileKey: string, resetType: string): boolean => {
         const now = Date.now();
-        const lastReset = lastResetTimeRef.current.get(eventFileKey) || 0;
+        const lastReset = lastResetTimeRef.current.get(eventFileKey) ?? 0;
 
         // Skip if this file was reset too recently
         if (now - lastReset < RESET_THROTTLE_TIME) {
@@ -654,9 +653,9 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
             }
 
             // Verify the mapping belongs to this file
-            if ((detectionMappingForFile as any).fileKey &&
-                (detectionMappingForFile as any).fileKey !== fileKey) {
-                console.warn(`[useHighlights] Detection mapping belongs to file ${(detectionMappingForFile as any).fileKey} but processing for ${fileKey}, skipping`);
+            if ((detectionMappingForFile).fileKey &&
+                (detectionMappingForFile).fileKey !== fileKey) {
+                console.warn(`[useHighlights] Detection mapping belongs to file ${(detectionMappingForFile).fileKey} but processing for ${fileKey}, skipping`);
 
                 // CRITICAL: Mark as processed globally despite mismatch
                 markPageAsProcessedGlobally(fileKey1, pageNumber);
@@ -674,7 +673,7 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
             clearAnnotationsByType(HighlightType.ENTITY, pageNumber, fileKey);
 
             // Get the correct structure - might be different based on API response
-            const detectionMappingToUse = (detectionMappingForFile as any).redaction_mapping || detectionMappingForFile;
+            const detectionMappingToUse = (detectionMappingForFile).redaction_mapping || detectionMappingForFile;
 
             // Create entity manager with the detection mapping and force reprocess option if needed
             const entityManager = new EntityHighlightManager(

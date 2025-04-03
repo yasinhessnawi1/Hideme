@@ -1,4 +1,3 @@
-// src/components/pdf/highlighters/BaseHighlightLayer.tsx - Updated to pass wrapper ref
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useHighlightContext, HighlightRect } from '../../../contexts/HighlightContext';
 import { useEditContext } from '../../../contexts/EditContext';
@@ -10,13 +9,12 @@ interface BaseHighlightLayerProps {
     pageNumber: number;
     highlights: HighlightRect[];
     layerClass: string;
-    fileKey?: string; // Optional file key for multi-file support
-    viewport?: any; // Pass the viewport to allow proper coordinate conversion
+    fileKey?: string;
+    viewport?: any;
 }
 
 /**
  * Base component for all highlight layers
- * Optimized for better performance with memoization and reduced rerenders
  */
 const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                                                                    pageNumber,
@@ -48,7 +46,6 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
         // More strict filtering to ensure file isolation
         if (!fileKey) return highlights;
 
-        // Enhanced filtering to prevent cross-contamination
         return highlights.filter(h => {
             // If highlight has no fileKey, check if it's for this page
             if (!h.fileKey) {
@@ -59,12 +56,6 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
         });
     }, [highlights, fileKey, pageNumber]);
 
-    // Log when filtered highlights change for debugging
-    useEffect(() => {
-        if (filteredHighlights.length > 0) {
-            console.log(`[BaseHighlightLayer] ${layerClass} layer for page ${pageNumber}, file ${fileKey || 'default'}: ${filteredHighlights.length} highlights`);
-        }
-    }, [filteredHighlights.length, layerClass, pageNumber, fileKey]);
 
     // Memoize the event handlers to prevent recreating them on every render
     const handleHighlightClick = useCallback((e: React.MouseEvent, annotation: HighlightRect) => {
@@ -143,31 +134,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
         };
     }, []);
 
-    // Listen for the highlight-all-same-text event
-    useEffect(() => {
-        const handleHighlightAllSameText = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { text, fileKey: eventFileKey, highlightType, color } = customEvent.detail;
 
-            // Only process if this is for the current file
-            if (eventFileKey === fileKey) {
-                console.log(`[BaseHighlightLayer] Received highlight-all-same-text event for "${text}" in file ${eventFileKey}`);
-
-                // This would be where you'd implement the search-all functionality
-                // For now, we just log the event
-                // In a real implementation, you would:
-                // 1. Extract text from the PDF
-                // 2. Find all occurrences of the text
-                // 3. Create highlights for each occurrence
-            }
-        };
-
-        window.addEventListener('highlight-all-same-text', handleHighlightAllSameText);
-
-        return () => {
-            window.removeEventListener('highlight-all-same-text', handleHighlightAllSameText);
-        };
-    }, [fileKey]);
 
     // Memoize highlight rendering to prevent unnecessary recalculations
     const renderedHighlights = useMemo(() => {
@@ -179,7 +146,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
             // Store each highlight in the highlightManager for persistence
             highlightManager.storeHighlightData({
                 ...highlight,
-                timestamp: highlight.timestamp || Date.now()
+                timestamp: highlight.timestamp ?? Date.now()
             });
 
             return (
@@ -214,19 +181,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                 />
             );
         });
-    }, [
-        filteredHighlights,
-        layerClass,
-        selectedAnnotation,
-        isEditingMode,
-        getHighlightColor,
-        pageNumber,
-        handleHighlightClick,
-        handleHighlightDoubleClick,
-        handleHighlightMouseEnter,
-        handleHighlightMouseLeave,
-        handleContextMenu
-    ]);
+    }, [filteredHighlights, layerClass, isEditingMode, getHighlightColor, pageNumber, handleHighlightClick, handleHighlightDoubleClick, handleHighlightMouseEnter, handleHighlightMouseLeave, handleContextMenu, selectedAnnotation?.id]);
 
     return (
         <div
@@ -273,7 +228,6 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
 
             {contextMenuState && (
                 <HighlightContextMenu
-                    position={contextMenuState.position}
                     highlight={contextMenuState.annotation}
                     onClose={closeContextMenu}
                     wrapperRef={containerRef}
@@ -295,11 +249,10 @@ function getTooltipContent(highlight: HighlightRect): string {
     } else if (highlight.text) {
         return highlight.text;
     } else {
-        return highlight.type || 'Highlight';
+        return highlight.type ?? 'Highlight';
     }
 }
 
-// Update the React.memo comparison function in BaseHighlightLayer.tsx
 export default React.memo(BaseHighlightLayer, (prevProps, nextProps) => {
     // Always re-render if the file key changes
     if (prevProps.fileKey !== nextProps.fileKey) {

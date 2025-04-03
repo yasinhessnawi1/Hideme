@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useFileContext } from '../../../contexts/FileContext';
-import { usePDFViewerContext, getFileKey } from '../../../contexts/PDFViewerContext';
+import {  getFileKey } from '../../../contexts/PDFViewerContext';
 import { useBatchSearch } from '../../../contexts/SearchContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
 import '../../../styles/modules/pdf/SettingsSidebar.css';
 import '../../../styles/modules/pdf/SearchSidebar.css';
 import { Search, XCircle, ChevronUp, ChevronDown, ChevronRight, Save, AlertTriangle } from 'lucide-react';
+import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 
 const SearchSidebar: React.FC = () => {
-    const { currentFile, selectedFiles, files, setCurrentFile } = useFileContext();
-    const { scrollToPage } = usePDFViewerContext();
+    const { currentFile, selectedFiles, files } = useFileContext();
+    const pdfNavigation = usePDFNavigation('search-sidebar');
 
     const {
         isSearching: isContextSearching,
@@ -21,7 +22,6 @@ const SearchSidebar: React.FC = () => {
         getSearchResultsStats
     } = useBatchSearch();
 
-    // Use the refactored PDF API hook for search operations
     const {
         loading: isApiLoading,
         error: apiError,
@@ -39,7 +39,6 @@ const SearchSidebar: React.FC = () => {
     const [contextMenuVisible, setContextMenuVisible] = useState(false);
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
     const [contextMenuSearchTerm, setContextMenuSearchTerm] = useState('');
-
     // Ref for the context menu
     const contextMenuRef = useRef<HTMLDivElement>(null);
 
@@ -84,7 +83,7 @@ const SearchSidebar: React.FC = () => {
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        addSearchTerm();
+        addSearchTerm().then(() => {});
     };
 
     const addSearchTerm = useCallback(async () => {
@@ -118,9 +117,8 @@ const SearchSidebar: React.FC = () => {
                 return;
             }
 
-            // First use the API hook for the search to get results from backend
-            // This will only add the new term without clearing existing ones
-            const searchResults = await runBatchSearch(
+
+            await runBatchSearch(
                 filesToSearch,
                 searchTermToUse,
                 {
@@ -129,9 +127,7 @@ const SearchSidebar: React.FC = () => {
                 }
             );
 
-            // Then use the context's batchSearch to integrate the results
-            // into the application state and create highlights
-            // Important: batchSearch by default preserves existing search terms!
+
             await batchSearch(
                 filesToSearch,
                 searchTermToUse,
@@ -180,7 +176,7 @@ const SearchSidebar: React.FC = () => {
 
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
-            addSearchTerm();
+            addSearchTerm().then(() => {});
         }
     };
 
@@ -190,17 +186,25 @@ const SearchSidebar: React.FC = () => {
     };
     // Simple navigation to a page
     const navigateToPage = useCallback((fileKey: string, pageNumber: number) => {
-        const file = files.find(f => getFileKey(f) === fileKey);
-        if (!file) return;
 
-        // Set as current file if not already
-        if (currentFile !== file) {
-            setCurrentFile(file);
+        const file = files.find(f => getFileKey(f).includes(fileKey));
+
+        if (!file) {
+            return;
         }
 
-        // Scroll to the page
-        scrollToPage(pageNumber, fileKey);
-    }, [currentFile, files, scrollToPage, setCurrentFile]);
+        const isChangingFile = currentFile !== file;
+
+        // Use our navigation hook for consistent navigation behavior
+        pdfNavigation.navigateToPage(pageNumber, getFileKey(file), {
+            // Use auto behavior for better UX when changing files
+            behavior: isChangingFile ? 'auto' : 'smooth',
+            // Always highlight the thumbnail
+            highlightThumbnail: true
+        });
+
+    }, [pdfNavigation, files, currentFile]);
+
     // Navigate to specific search result - improved with more robust error handling
     const navigateToSearchResult = useCallback((direction: 'next' | 'prev') => {
         const { results, currentIndex } = resultNavigation;
@@ -224,31 +228,17 @@ const SearchSidebar: React.FC = () => {
         }));
 
         if (!target) {
-            console.error('Target result not found');
             return;
         }
 
-        // Find the file object by key
-        const targetFile = files.find(file => getFileKey(file) === target.fileKey);
+        // Use our improved navigation mechanism
+        navigateToPage(target.fileKey, target.page);
 
-        if (targetFile && target.page) {
-            // Navigate to the page
-            navigateToPage(target.fileKey, target.page);
-        } else {
-            console.error('Could not navigate to result - file or page not found', {
-                fileKey: target.fileKey,
-                page: target.page,
-                targetFound: !!targetFile
-            });
-        }
-    }, [resultNavigation, files, navigateToPage]);
-
+    }, [resultNavigation, navigateToPage]);
     const handleChangeSearchScope = (scope: 'current' | 'selected' | 'all') => {
         if (scope === searchScope) return;
         setSearchScope(scope);
     };
-
-
 
     // Toggle file summary expansion
     const toggleFileSummary = useCallback((fileKey: string) => {
@@ -598,6 +588,7 @@ const SearchSidebar: React.FC = () => {
                                                                     <button
                                                                         className="nav-button"
                                                                         onClick={(e) => {
+                                                                            console.log("Button fired");
                                                                             e.stopPropagation();
                                                                             navigateToPage(fileKey, pageNum);
                                                                         }}

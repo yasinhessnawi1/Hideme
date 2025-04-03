@@ -232,7 +232,7 @@ const useDirectAuth = () => {
                 console.log(`⏱️ [USE_USER] Authentication verification completed in ${duration.toFixed(2)}ms`);
             }
         };
-        verifyToken();
+        verifyToken().then(r => console.log("[USER HOOK] refreshed token!!!"));
 
     }, []);
 
@@ -1483,7 +1483,7 @@ export const useUser = (): UseUserReturn => {
         user,
         isAuthenticated,
         isLoading: isLoading || authLoading,
-        error: error || authError,
+        error: error ?? authError,
 
         // Auth functions
         login,
@@ -1534,8 +1534,5 @@ export const useUser = (): UseUserReturn => {
         clearError
     };
 };
-
-// Log hook initialization
-console.log('🚀 [USE_USER] useUser hook initialized');
 
 export default useUser;

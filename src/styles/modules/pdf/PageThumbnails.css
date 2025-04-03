@@ -198,10 +198,21 @@ including animations, hover effects, and resizing functionality.
 }
 
 .thumbnail-wrapper.active {
-    background-color: var(--active-bg);
+    border: 2px solid var(--primary);
+    background-color: rgba(var(--primary-rgb), 0.1);
+    transform: translateY(-2px) scale(1.05);
     box-shadow: var(--shadow-sm);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+@keyframes thumbnailPulse {
+    0% { transform: translateY(-2px) scale(1.05); background-color: rgba(var(--primary-rgb), 0.1); }
+    50% { transform: translateY(-3px) scale(1.08); background-color: rgba(var(--primary-rgb), 0.2); }
+    100% { transform: translateY(-2px) scale(1.05); background-color: rgba(var(--primary-rgb), 0.1); }
 }
 
+.thumbnail-wrapper.highlight-pulse {
+    animation: thumbnailPulse 1s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
 /* Center the PDF page thumbnail */
 .thumbnail-inner {
     display: flex;
@@ -214,7 +225,36 @@ including animations, hover effects, and resizing functionality.
     transition: all var(--transition-speed) var(--transition-function);
     position: relative;
 }
+.optimized-scrolling {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    will-change: scroll-position;
+    contain: content;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+}
+.file-item.current::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 3px;
+    background-color: var(--primary);
+    animation: slideInFromLeft 0.3s ease forwards;
+}
+.file-item.current {
+    background-color: var(--active-bg);
+    border-color: var(--primary);
+    position: relative;
+    overflow: hidden;
+}
 
+@keyframes slideInFromLeft {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
 .thumbnail-inner::after {
     content: '';
     position: absolute;

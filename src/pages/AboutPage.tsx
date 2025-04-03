@@ -1,4 +1,3 @@
-// src/pages/AboutPage.tsx
 import React from 'react';
 import Navbar from '../components/static/Navbar';
 import '../styles/AboutPage.css';

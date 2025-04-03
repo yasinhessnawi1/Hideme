@@ -1,4 +1,3 @@
-// src/utils/EntityHighlightManager.ts - Fixed version
 import { HighlightType } from "../contexts/HighlightContext";
 import { PDFPageViewport, TextContent } from "../types/pdfTypes";
 import { v4 as uuidv4 } from 'uuid';
@@ -9,25 +8,25 @@ export interface EntityOptions {
 }
 
 export class EntityHighlightManager {
-    private pageNumber: number;
-    private viewport: PDFPageViewport;
-    private textContent: TextContent;
-    private detectionMapping: any;
-    private getNextHighlightId: () => string;
-    private addAnnotation: (page: number, annotation: any, fileKey?: string) => void;
-    private fileKey?: string;
-    private options: EntityOptions;
-    private processingTimestamp: number;
-    private processedEntityIds: Set<string> = new Set();
+    private readonly pageNumber: number;
+    private readonly viewport: PDFPageViewport;
+    private readonly textContent: TextContent;
+    private readonly detectionMapping: any;
+    private readonly getNextHighlightId: () => string;
+    private readonly addAnnotation: (page: number, annotation: any, fileKey?: string) => void;
+    private readonly fileKey?: string;
+    private readonly options: EntityOptions;
+    private readonly processingTimestamp: number;
+    private readonly processedEntityIds: Set<string> = new Set();
 
     // Track processed entities by file to prevent cross-contamination
-    private static processedEntitiesByFile: Map<string, Set<string>> = new Map();
+    private static readonly processedEntitiesByFile: Map<string, Set<string>> = new Map();
     // Track processed pages by file to prevent reprocessing
-    private static processedPagesByFile: Map<string, Set<number>> = new Map();
+    private static readonly processedPagesByFile: Map<string, Set<number>> = new Map();
     // Track reset operations to prevent cascades
-    private static lastResetTimestamps: Map<string, number> = new Map();
+    private static readonly lastResetTimestamps: Map<string, number> = new Map();
     // Define a reset throttle time (milliseconds)
-    private static RESET_THROTTLE_TIME = 2000; // 2 seconds
+    private static readonly RESET_THROTTLE_TIME = 2000; // 2 seconds
 
     constructor(
         pageNumber: number,
@@ -50,7 +49,7 @@ export class EntityHighlightManager {
         this.processingTimestamp = Date.now();
 
         // Initialize file-specific processed entities set if not exists
-        const fileMarker = this.fileKey || 'default';
+        const fileMarker = this.fileKey ?? 'default';
         if (!EntityHighlightManager.processedEntitiesByFile.has(fileMarker)) {
             EntityHighlightManager.processedEntitiesByFile.set(fileMarker, new Set<string>());
         }
@@ -118,7 +117,7 @@ export class EntityHighlightManager {
         const now = Date.now();
 
         // Check if we've reset this file recently to prevent cascades
-        const lastReset = EntityHighlightManager.lastResetTimestamps.get(fileMarker) || 0;
+        const lastReset = EntityHighlightManager.lastResetTimestamps.get(fileMarker) ?? 0;
         if (now - lastReset < EntityHighlightManager.RESET_THROTTLE_TIME) {
             // Skip this reset if it's too soon after the last one
             console.log(`[EntityDebug] Throttling reset for file ${fileMarker} - last reset was ${now - lastReset}ms ago`);
@@ -151,13 +150,12 @@ export class EntityHighlightManager {
 
     // Generate a unique entity ID that won't cause duplicates
     private generateEntityId(entity: any): string {
-        const {entity_type, bbox, model} = entity;
-        const {x0, y0, x1, y1} = bbox || {};
+        const {entity_type} = entity;
 
         // Use full UUID for guaranteed uniqueness
         const uuid = uuidv4();
         const timestamp = Date.now();
-        const fileMarker = this.fileKey || 'default';
+        const fileMarker = this.fileKey ?? 'default';
 
         // Create a compound ID with sufficient entropy to prevent collisions
         return `entity-${fileMarker}-${this.pageNumber}-${entity_type}-${uuid}-${timestamp}`;
@@ -168,10 +166,10 @@ export class EntityHighlightManager {
      * Optimized with batched operations and better validation
      */
     public processHighlights(): void {
-        const fileMarker = this.fileKey || 'default';
+        const fileMarker = this.fileKey ?? 'default';
 
         // Verify that the detection mapping belongs to this file
-        if (this.detectionMapping && this.detectionMapping.fileKey &&
+        if (this.detectionMapping?.fileKey &&
             this.detectionMapping.fileKey !== fileMarker) {
             console.warn(`[EntityDebug] Detection mapping belongs to file ${this.detectionMapping.fileKey} but processing for ${fileMarker}, skipping`);
             return;
@@ -189,7 +187,7 @@ export class EntityHighlightManager {
         console.log(`[EntityDebug] Processing highlights for page ${this.pageNumber}${this.fileKey ? ` in file ${this.fileKey}` : ''} (${this.processingTimestamp})`);
 
         // Validate detection mapping
-        if (!this.detectionMapping || !this.detectionMapping.pages || !Array.isArray(this.detectionMapping.pages)) {
+        if (!this.detectionMapping?.pages || !Array.isArray(this.detectionMapping.pages)) {
             console.warn('[EntityDebug] No valid detection mapping structure');
             return;
         }
@@ -227,7 +225,7 @@ export class EntityHighlightManager {
 
         // Create a new Set for this processing session
         const processedThisSession: Set<string> = new Set();
-        const fileMarker = this.fileKey || 'default';
+        const fileMarker = this.fileKey ?? 'default';
         const batchSize = 10; // Process in smaller batches to avoid UI freezing
 
         // Filter entities in one pass to avoid redundant processing
@@ -320,11 +318,12 @@ export class EntityHighlightManager {
 
         // Get entity type and model (for color assignment)
         const entityType = entity.entity_type || 'UNKNOWN';
-        const model = entity.model || 'presidio'; // Default to presidio if not specified
+
+        const model = entity.engine || 'presidio'; // Default to presidio if not specified
 
         // Add debug logging with clear context
         if (index < 3) { // Only log first 3 to reduce verbosity
-            console.log(`[EntityDebug] Creating entity highlight: ${entityType} from ${model} model at (${x0.toFixed(2)}, ${y0.toFixed(2)}) with size ${(x1 - x0).toFixed(2)}x${(y1 - y0).toFixed(2)} for file ${this.fileKey || 'default'}`);
+            console.log(`[EntityDebug] Creating entity highlight: ${entityType} from ${model} model at (${x0.toFixed(2)}, ${y0.toFixed(2)}) with size ${(x1 - x0).toFixed(2)}x${(y1 - y0).toFixed(2)} for file ${this.fileKey ?? 'default'}`);
         }
 
         // Generate a unique ID that won't collide

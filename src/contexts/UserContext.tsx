@@ -104,7 +104,7 @@ interface UserContextProviderProps {
  * - Manages authentication loading and error states
  * - Handles connection issues gracefully to maintain sessions
  */
-export function UserContextProvider({ children }: UserContextProviderProps) {
+export function UserContextProvider({ children }: Readonly<UserContextProviderProps>) {
     // Authentication state
     const [user, setUser] = useState<User | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -184,7 +184,7 @@ export function UserContextProvider({ children }: UserContextProviderProps) {
         };
 
         // Run token verification on mount
-        verifyToken();
+        verifyToken().then( () => console.log("[TOKEN] Refreshed the token"));
     }, []);
 
     /**

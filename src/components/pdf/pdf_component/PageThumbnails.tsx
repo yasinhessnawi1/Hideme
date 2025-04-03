@@ -1,9 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, {useState, useRef, useEffect, useCallback} from 'react';
 import { Document, Page } from 'react-pdf';
 import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey, usePDFViewerContext } from '../../../contexts/PDFViewerContext';
 import { FaChevronUp, FaChevronDown, FaFile } from 'react-icons/fa';
 import '../../../styles/modules/pdf/PageThumbnails.css';
+import scrollingService from "../../../services/UnifiedScrollingService";
+import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 
 interface PageThumbnailsProps {
     isSidebarCollapsed?: boolean;
@@ -13,12 +15,10 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
     // Previous sidebar collapsed state for detecting changes
     const wasCollapsed = useRef<boolean | undefined>(isSidebarCollapsed);
 
-    const { activeFiles, currentFile, setCurrentFile } = useFileContext();
+    const { activeFiles, currentFile } = useFileContext();
     const {
-        scrollToPage,
         getFileNumPages,
         getFileCurrentPage,
-        setFileCurrentPage,
         getFileActiveScrollPage
     } = usePDFViewerContext();
 
@@ -45,6 +45,7 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
 
     // We need to track visible page per file
     const [visiblePages, setVisiblePages] = useState<Map<string, number>>(new Map());
+    const pdfNavigation = usePDFNavigation('thumbnails');
 
     // Initialize
     useEffect(() => {
@@ -64,12 +65,87 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
             const fileKey = getFileKey(file);
             const currentPage = getFileCurrentPage(fileKey);
             initialPages.set(fileKey, currentPage);
-
-            // Initialize last seen page
-            lastSeenPageRef.current.set(fileKey, currentPage);
         });
         setVisiblePages(initialPages);
     }, []);
+
+    useEffect(() => {
+        const handleScrollServiceUpdate = (pageNumber: number, fileKey: string, source: string) => {
+            if (source === 'thumbnails') return; // Skip if we initiated the scroll
+
+            // Update the visible page
+            setVisiblePages(prev => {
+                const newMap = new Map(prev);
+                newMap.set(fileKey, pageNumber);
+                return newMap;
+            });
+
+            // Try to scroll to the thumbnail if needed
+            if (!userScrollingRef.current && expandedFiles.has(fileKey)) {
+                setTimeout(() => {
+                    const thumbnailElement = document.getElementById(`thumbnail-${fileKey}-${pageNumber}`);
+                    if (thumbnailElement && thumbnailsRef.current) {
+                        thumbnailElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                    }
+                }, 100);
+            }
+        };
+
+        // Add a scroll listener for this component
+        scrollingService.addScrollListener('thumbnails', handleScrollServiceUpdate);
+
+        return () => {
+            scrollingService.removeScrollListener('thumbnails');
+        };
+    }, [expandedFiles]);
+
+    // When the current file changes, expand and scroll to it
+    useEffect(() => {
+        if (!thumbnailsRef.current || !currentFile || isSidebarCollapsed) return;
+
+        const fileKey = getFileKey(currentFile);
+        const currentPage = getFileCurrentPage(fileKey);
+
+        // Ensure this file is expanded
+        setExpandedFiles(prev => {
+            const newExpanded = new Set(prev);
+            newExpanded.add(fileKey);
+            return newExpanded;
+        });
+
+        if (!isSidebarCollapsed) {
+            // Give time for expansion animation and PDF rendering
+            setTimeout(() => {
+                const thumbnailElement = document.getElementById(`thumbnail-${fileKey}-${currentPage}`);
+                if (thumbnailElement) {
+                    // If thumbnail exists, scroll to it immediately
+                    thumbnailElement.scrollIntoView({ behavior: 'auto', block: 'center' });
+                } else {
+                    // If thumbnail doesn't exist yet, set up a check interval
+                    const checkAndScrollInterval = setInterval(() => {
+                        const thumbnailElement = document.getElementById(`thumbnail-${fileKey}-${currentPage}`);
+                        if (thumbnailElement) {
+                            thumbnailElement.scrollIntoView({ behavior: 'auto', block: 'center' });
+                            clearInterval(checkAndScrollInterval);
+                        }
+                    }, 200);
+
+                    // Stop checking after a reasonable timeout
+                    setTimeout(() => {
+                        clearInterval(checkAndScrollInterval);
+                        // Last fallback - scroll to file header
+                        const fileHeaderElement = document.getElementById(`file-thumbnail-header-${fileKey}`);
+                        if (fileHeaderElement) {
+                            fileHeaderElement.scrollIntoView({ behavior: 'auto', block: 'start' });
+                        }
+                    }, 3000);
+                }
+            }, 300);
+        }
+    }, [currentFile, isSidebarCollapsed, getFileCurrentPage]);
 
     // Handle sidebar collapse/expand transitions
     useEffect(() => {
@@ -90,8 +166,7 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
                     return newExpanded;
                 });
 
-                // We'll wait until thumbnails are fully rendered before scrolling
-                // First set a longer delay to allow thumbnails to load
+
                 setTimeout(() => {
                     // Check if Document and Page components are rendered
                     const thumbnailElement = document.getElementById(`thumbnail-${fileKey}-${currentPage}`);
@@ -185,49 +260,46 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
 
     // When the current file changes, expand and scroll to it after PDF thumbnails are loaded
     useEffect(() => {
-        if (!thumbnailsRef.current || !currentFile || isSidebarCollapsed) return;
+        const handlePageChange = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey, pageNumber } = customEvent.detail || {};
 
-        const fileKey = getFileKey(currentFile);
-        const currentPage = getFileCurrentPage(fileKey);
+            if (fileKey && pageNumber) {
+                // Update the visible page for this file
+                setVisiblePages(prev => {
+                    const newMap = new Map(prev);
+                    newMap.set(fileKey, pageNumber);
+                    return newMap;
+                });
 
-        // Ensure this file is expanded
-        setExpandedFiles(prev => {
-            const newExpanded = new Set(prev);
-            newExpanded.add(fileKey);
-            return newExpanded;
-        });
+                // Ensure this file is expanded
+                setExpandedFiles(prev => {
+                    const newExpanded = new Set(prev);
+                    newExpanded.add(fileKey);
+                    return newExpanded;
+                });
 
-        // Use a more reliable approach for scrolling after thumbnails load
-        if (!isSidebarCollapsed) {
-            // Give time for expansion animation and PDF rendering
-            setTimeout(() => {
-                const thumbnailElement = document.getElementById(`thumbnail-${fileKey}-${currentPage}`);
-                if (thumbnailElement) {
-                    // If thumbnail exists, scroll to it immediately
-                    thumbnailElement.scrollIntoView({ behavior: 'auto', block: 'center' });
-                } else {
-                    // If thumbnail doesn't exist yet, set up a check interval
-                    const checkAndScrollInterval = setInterval(() => {
-                        const thumbnailElement = document.getElementById(`thumbnail-${fileKey}-${currentPage}`);
-                        if (thumbnailElement) {
-                            thumbnailElement.scrollIntoView({ behavior: 'auto', block: 'center' });
-                            clearInterval(checkAndScrollInterval);
-                        }
-                    }, 200);
-
-                    // Stop checking after a reasonable timeout
+                // Scroll thumbnail into view if this is the current file and it's not during user scrolling
+                if (currentFile && getFileKey(currentFile) === fileKey && !userScrollingRef.current) {
                     setTimeout(() => {
-                        clearInterval(checkAndScrollInterval);
-                        // Last fallback - scroll to file header
-                        const fileHeaderElement = document.getElementById(`file-thumbnail-header-${fileKey}`);
-                        if (fileHeaderElement) {
-                            fileHeaderElement.scrollIntoView({ behavior: 'auto', block: 'start' });
+                        const thumbnailElement = document.getElementById(`thumbnail-${fileKey}-${pageNumber}`);
+                        if (thumbnailElement && thumbnailsRef.current) {
+                            thumbnailElement.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center'
+                            });
                         }
-                    }, 3000);
+                    }, 100);
                 }
-            }, 300);
-        }
-    }, [currentFile, isSidebarCollapsed]);
+            }
+        };
+
+        window.addEventListener('pdf-page-changed', handlePageChange);
+
+        return () => {
+            window.removeEventListener('pdf-page-changed', handlePageChange);
+        };
+    }, [currentFile]);
 
     // Handle page changes in main viewer - only scroll if page changed externally
     useEffect(() => {
@@ -239,8 +311,8 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
         activeFiles.forEach(file => {
             const fileKey = getFileKey(file);
             const currentPageForFile = getFileCurrentPage(fileKey);
-            const visiblePageForFile = visiblePages.get(fileKey) || 1;
-            const lastSeenPage = lastSeenPageRef.current.get(fileKey) || 1;
+            const visiblePageForFile = visiblePages.get(fileKey) ?? 1;
+            const lastSeenPage = lastSeenPageRef.current.get(fileKey) ?? 1;
 
             // Check if the page changed since we last saw it
             if (currentPageForFile !== lastSeenPage) {
@@ -274,122 +346,43 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
         });
     }, [activeFiles, currentFile, isFirstRender, expandedFiles, getFileCurrentPage, isSidebarCollapsed, visiblePages]);
 
-    const handleThumbnailClick = (file: File, pageNumber: number) => {
+    const handleThumbnailClick = useCallback((file: File, pageNumber: number) => {
         const fileKey = getFileKey(file);
-        const currentPageForFile = getFileCurrentPage(fileKey);
-        const isChangingFile = currentFile !== file;
 
-        // Always navigate if changing files or if the page is different
-        if (isChangingFile || pageNumber !== currentPageForFile) {
-            // Set flag to prevent input field updates
-            navigationInProgress.current = true;
+        // Use our navigation hook for consistent behavior
+        pdfNavigation.navigateToPage(pageNumber, fileKey, {
+            behavior: 'smooth',
+            highlightThumbnail: false // We're already in the thumbnails, so no need to highlight
+        });
 
-            // First update visible page to prevent flickering
-            setVisiblePages(prev => {
-                const newMap = new Map(prev);
-                newMap.set(fileKey, pageNumber);
-                return newMap;
-            });
+    }, [pdfNavigation]);
 
-            // Update last seen page
-            lastSeenPageRef.current.set(fileKey, pageNumber);
-
-            // Set as the current file if it's not already
-            if (isChangingFile) {
-                setCurrentFile(file);
-            }
-
-            // Use requestAnimationFrame to ensure state updates are processed first
-            requestAnimationFrame(() => {
-                // Navigate to the page
-                scrollToPage(pageNumber, fileKey);
-
-                // Reset flag after the scroll animation completes
-                setTimeout(() => {
-                    navigationInProgress.current = false;
-                }, 300);
-            });
-        } else {
-            // Even if it's the same page in the same file, ensure scrolling to it
-            // This handles the case of clicking on the first page when it's already active
-            scrollToPage(pageNumber, fileKey);
-        }
-    };
-
-    const handleNavigatePrevious = (file: File) => {
+    const handleNavigatePrevious = useCallback((file: File) => {
         const fileKey = getFileKey(file);
         const currentPageForFile = getFileCurrentPage(fileKey);
 
         if (currentPageForFile > 1) {
-            // Set flag to prevent input field updates
-            navigationInProgress.current = true;
-
-            // Update input immediately
-            const newPage = currentPageForFile - 1;
-
-            // Update visible page immediately to prevent flickering
-            setVisiblePages(prev => {
-                const newMap = new Map(prev);
-                newMap.set(fileKey, newPage);
-                return newMap;
+            // Use our navigation hook
+            pdfNavigation.navigateToPage(currentPageForFile - 1, fileKey, {
+                behavior: 'smooth'
             });
-
-            // Update last seen page
-            lastSeenPageRef.current.set(fileKey, newPage);
-
-            // Set as the current file if it's not already
-            if (currentFile !== file) {
-                setCurrentFile(file);
-            }
-
-            // Navigate
-            scrollToPage(newPage, fileKey);
-
-            // Reset flag after a delay
-            setTimeout(() => {
-                navigationInProgress.current = false;
-            }, 300);
         }
-    };
+    }, [pdfNavigation, getFileCurrentPage]);
 
-    const handleNavigateNext = (file: File) => {
+    const handleNavigateNext = useCallback((file: File) => {
         const fileKey = getFileKey(file);
         const currentPageForFile = getFileCurrentPage(fileKey);
         const numPagesForFile = getFileNumPages(fileKey);
 
         if (currentPageForFile < numPagesForFile) {
-            // Set flag to prevent input field updates
-            navigationInProgress.current = true;
-
-            // Update immediately
-            const newPage = currentPageForFile + 1;
-
-            // Update visible page immediately
-            setVisiblePages(prev => {
-                const newMap = new Map(prev);
-                newMap.set(fileKey, newPage);
-                return newMap;
+            // Use our navigation hook
+            pdfNavigation.navigateToPage(currentPageForFile + 1, fileKey, {
+                behavior: 'smooth'
             });
-
-            // Update last seen page
-            lastSeenPageRef.current.set(fileKey, newPage);
-
-            // Set as the current file if it's not already
-            if (currentFile !== file) {
-                setCurrentFile(file);
-            }
-
-            // Navigate
-            scrollToPage(newPage, fileKey);
-
-            // Reset flag after a delay
-            setTimeout(() => {
-                navigationInProgress.current = false;
-            }, 300);
         }
-    };
+    }, [pdfNavigation, getFileCurrentPage, getFileNumPages]);
 
-    const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>, file: File) => {
+    const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         // Allow only numbers
         if (/^\d*$/.test(value)) {
@@ -397,46 +390,25 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
         }
     };
 
-    const handlePageInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, file: File) => {
+    const handlePageInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, file: File) => {
         if (e.key === 'Enter') {
             const fileKey = getFileKey(file);
             const numPagesForFile = getFileNumPages(fileKey);
             const page = parseInt(inputPage, 10);
 
             if (!isNaN(page) && page >= 1 && page <= numPagesForFile) {
-                // Set flag to prevent input field updates
-                navigationInProgress.current = true;
-
-                // Update visible page immediately
-                setVisiblePages(prev => {
-                    const newMap = new Map(prev);
-                    newMap.set(fileKey, page);
-                    return newMap;
+                // Use our navigation hook
+                pdfNavigation.navigateToPage(page, fileKey, {
+                    behavior: 'smooth'
                 });
-
-                // Update last seen page
-                lastSeenPageRef.current.set(fileKey, page);
-
-                // Set as the current file if it's not already
-                if (currentFile !== file) {
-                    setCurrentFile(file);
-                }
-
-                // Navigate
-                scrollToPage(page, fileKey);
 
                 // Remove focus from the input
                 (e.target as HTMLInputElement).blur();
-
-                // Reset flag after a delay
-                setTimeout(() => {
-                    navigationInProgress.current = false;
-                }, 300);
             }
         }
-    };
+    }, [inputPage, pdfNavigation, getFileNumPages]);
 
-    const handlePageInputBlur = (e: React.FocusEvent<HTMLInputElement>, file: File) => {
+    const handlePageInputBlur = useCallback((_e: React.FocusEvent<HTMLInputElement>, file: File) => {
         const fileKey = getFileKey(file);
         const numPagesForFile = getFileNumPages(fileKey);
         const currentPageForFile = getFileCurrentPage(fileKey);
@@ -446,33 +418,12 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
         if (isNaN(page) || page < 1 || page > numPagesForFile) {
             setInputPage(currentPageForFile.toString());
         } else if (page !== currentPageForFile) {
-            // Set flag to prevent input field updates
-            navigationInProgress.current = true;
-
-            // Update visible page immediately
-            setVisiblePages(prev => {
-                const newMap = new Map(prev);
-                newMap.set(fileKey, page);
-                return newMap;
+            // Use our navigation hook
+            pdfNavigation.navigateToPage(page, fileKey, {
+                behavior: 'smooth'
             });
-
-            // Update last seen page
-            lastSeenPageRef.current.set(fileKey, page);
-
-            // Set as the current file if it's not already
-            if (currentFile !== file) {
-                setCurrentFile(file);
-            }
-
-            // Navigate
-            scrollToPage(page, fileKey);
-
-            // Reset flag after a delay
-            setTimeout(() => {
-                navigationInProgress.current = false;
-            }, 300);
         }
-    };
+    }, [inputPage, pdfNavigation, getFileCurrentPage, getFileNumPages]);
 
     const toggleFileExpansion = (fileKey: string) => {
         setExpandedFiles(prev => {
@@ -544,7 +495,7 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
                     const currentPageForFile = getFileCurrentPage(fileKey);
                     const isExpanded = expandedFiles.has(fileKey);
                     const isCurrentFile = currentFile === file;
-                    const visiblePageForFile = visiblePages.get(fileKey) || currentPageForFile;
+                    const visiblePageForFile = visiblePages.get(fileKey) ?? currentPageForFile;
 
                     // Generate array of page numbers for this file
                     const pagesToRender = isExpanded
@@ -587,7 +538,7 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
                                                 type="text"
                                                 className="page-input"
                                                 value={visiblePageForFile.toString()}
-                                                onChange={(e) => handlePageInputChange(e, file)}
+                                                onChange={(e) => handlePageInputChange(e)}
                                                 onKeyDown={(e) => handlePageInputKeyDown(e, file)}
                                                 onBlur={(e) => handlePageInputBlur(e, file)}
                                                 title="Enter page number"

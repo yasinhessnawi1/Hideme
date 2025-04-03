@@ -6,7 +6,7 @@ import ManualHighlightLayer from './ManualHighlightLayer';
 import SearchHighlightLayer from './SearchHighlightLayer';
 import { useEditContext } from '../../../contexts/EditContext';
 import { PDFPageViewport, TextContent } from '../../../types/pdfTypes';
-import { HighlightType, useHighlightContext } from '../../../contexts/HighlightContext';
+import { HighlightType } from '../../../contexts/HighlightContext';
 
 interface HighlightLayerFactoryProps {
     pageNumber: number;
@@ -25,7 +25,7 @@ interface HighlightLayerFactoryProps {
 
 /**
  * Factory component that creates and renders all types of highlight layers for a PDF page
- * Optimized to reduce unnecessary rerenders and improve performance
+ * Optimized to reduce unnecessary renders and improve performance
  * Updated to work with the new highlight context structure
  */
 const HighlightLayerFactory: React.FC<HighlightLayerFactoryProps> = ({
@@ -41,7 +41,6 @@ const HighlightLayerFactory: React.FC<HighlightLayerFactoryProps> = ({
         showManualHighlights
     } = useEditContext();
 
-    const { getAnnotations } = useHighlightContext();
 
     // Get all highlights through the useHighlights hook - optimized with efficient caching
     const { annotations, triggerAnnotationUpdate } = useHighlights({
@@ -87,24 +86,6 @@ const HighlightLayerFactory: React.FC<HighlightLayerFactoryProps> = ({
         );
     }, [annotations, fileKey]);
 
-    // Logging for debugging highlight issues
-    const highlightCounts = useMemo(() => ({
-        search: searchHighlights.length,
-        entity: entityHighlights.length,
-        manual: manualHighlights.length
-    }), [
-        searchHighlights.length,
-        entityHighlights.length,
-        manualHighlights.length
-    ]);
-
-    // Log only when highlight counts change
-    useEffect(() => {
-        if (highlightCounts.entity > 0 || highlightCounts.manual > 0 || highlightCounts.search > 0) {
-            console.log(`[HighlightLayer] Page ${pageNumber}${fileKey ? ` in file ${fileKey}` : ''} has ${highlightCounts.search} search, ${highlightCounts.entity} entity, and ${highlightCounts.manual} manual highlights`);
-        }
-    }, [highlightCounts, pageNumber, fileKey]);
-
     // Listen for file changes to trigger annotation updates
     useEffect(() => {
         if (fileKey) {
@@ -113,7 +94,80 @@ const HighlightLayerFactory: React.FC<HighlightLayerFactoryProps> = ({
         }
     }, [fileKey, triggerAnnotationUpdate]);
 
-    // Optimize by conditionally rendering only necessary highlight layers
+    useEffect(() => {
+        // List of all events we want to listen for
+        const highlightEvents = [
+            'force-refresh-highlights',
+            'highlights-removed-from-page',
+            'highlights-removed-by-text',
+            'highlights-batch-removed',
+            'highlight-removed',
+            'highlight-all-same-text-complete',
+            'search-highlights-applied',
+            'entity-detection-complete'
+        ];
+
+        // Generic event handler for all highlight-related events
+        const handleHighlightEvent = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const eventDetail = customEvent.detail || {};
+            const eventFileKey = eventDetail.fileKey;
+            const eventPage = eventDetail.page;
+
+            // Debug logging
+            console.log(`[HighlightLayerFactory] Received ${event.type} event:`,
+                eventFileKey ? `fileKey: ${eventFileKey}` : '',
+                eventPage ? `page: ${eventPage}` : '');
+
+            // Decide whether to update based on fileKey and page
+            const shouldUpdate =
+                // If no fileKey was specified in the event, update all components
+                !eventFileKey ||
+                // Or if the event's fileKey matches this component's fileKey
+                eventFileKey === fileKey ||
+                // Or if either key is a substring of the other (for flexible matching)
+                (fileKey && eventFileKey && (fileKey.includes(eventFileKey) || eventFileKey.includes(fileKey)));
+
+            // Additional page-specific check
+            const isForThisPage =
+                // If no page specified in event, update all pages
+                !eventPage ||
+                // Or if event is specifically for this page
+                eventPage === pageNumber;
+
+            if (shouldUpdate && isForThisPage) {
+                console.log(`[HighlightLayerFactory] Updating highlights for ${event.type} event on page ${pageNumber}${fileKey ? ` of file ${fileKey}` : ''}`);
+                triggerAnnotationUpdate();
+            }
+        };
+
+        // Register event listeners for all events
+        highlightEvents.forEach(eventName => {
+            window.addEventListener(eventName, handleHighlightEvent);
+        });
+
+        // Add individual highlight-removed handler for direct ID tracking
+        const handleHighlightRemoved = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { id, page, fileKey: eventFileKey } = customEvent.detail || {};
+
+            if (page === pageNumber && (!eventFileKey || eventFileKey === fileKey)) {
+                console.log(`[HighlightLayerFactory] Highlight ${id} removed from page ${pageNumber}`);
+                triggerAnnotationUpdate();
+            }
+        };
+
+        window.addEventListener('highlight-removed', handleHighlightRemoved);
+
+        // Clean up event listeners
+        return () => {
+            highlightEvents.forEach(eventName => {
+                window.removeEventListener(eventName, handleHighlightEvent);
+            });
+            window.removeEventListener('highlight-removed', handleHighlightRemoved);
+        };
+    }, [fileKey, pageNumber, triggerAnnotationUpdate]);
+
     const renderSearchLayer = showSearchHighlights && searchHighlights.length > 0;
     const renderEntityLayer = showEntityHighlights && entityHighlights.length > 0;
     const renderManualLayer = showManualHighlights && manualHighlights.length > 0;
@@ -124,7 +178,7 @@ const HighlightLayerFactory: React.FC<HighlightLayerFactoryProps> = ({
             className="highlight-layer-factory"
             style={containerStyle}
             data-page={pageNumber}
-            data-file={fileKey || 'default'}
+            data-file={fileKey ?? 'default'}
             data-search-count={searchHighlights.length}
             data-entity-count={entityHighlights.length}
             data-manual-count={manualHighlights.length}
@@ -157,7 +211,6 @@ const HighlightLayerFactory: React.FC<HighlightLayerFactoryProps> = ({
     );
 };
 
-// Enhanced memo comparison function to prevent unnecessary re-renders
 // Only re-render when essential props change
 const arePropsEqual = (prevProps: HighlightLayerFactoryProps, nextProps: HighlightLayerFactoryProps) => {
     // Always re-render if fileKey changes to ensure proper file-specific rendering

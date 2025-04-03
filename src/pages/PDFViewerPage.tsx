@@ -1,11 +1,10 @@
-// src/components/pdf/PDFViewerPage.tsx (Updated)
 import React, { useState, useEffect, useRef } from "react"
 import { FileProvider } from "../contexts/FileContext"
 import { PDFViewerProvider } from "../contexts/PDFViewerContext"
 import { EditProvider } from "../contexts/EditContext"
 import { HighlightProvider } from "../contexts/HighlightContext"
 import { BatchSearchProvider } from "../contexts/SearchContext"
-import AutoProcessProvider from "../contexts/AutoProcessProvider" // Import the new provider
+import AutoProcessProvider from "../contexts/AutoProcessProvider"
 import PDFViewer from "../components/pdf/PDFViewer"
 import TabbedSidebar from "../components/pdf/pdf_component/TabbedSidebar"
 import Toolbar from "../components/pdf/pdf_component/Toolbar"
@@ -14,7 +13,6 @@ import EntityDetectionSidebar from "../components/pdf/pdf_component/EntityDetect
 import RedactionSidebar from "../components/pdf/pdf_component/RadactionSidebar"
 import Navbar from "../components/static/Navbar"
 import '../styles/modules/pdf/PDFViewerPage.css'
-import ProcessingStatus from "../components/pdf/pdf_component/ProcessingStatus";
 
 interface PDFViewerPageProps {
     theme: string
@@ -107,7 +105,6 @@ const PDFViewerPageContent: React.FC = () => {
 
                 {/* Main PDF viewer */}
                 <main className="main-content">
-                    <ProcessingStatus />
                     <PDFViewer />
                 </main>
 

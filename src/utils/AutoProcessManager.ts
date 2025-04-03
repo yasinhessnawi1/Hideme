@@ -1,7 +1,5 @@
-// src/services/AutoProcessManager.ts
 import { OptionType } from '../types/types';
 import { getFileKey } from '../contexts/PDFViewerContext';
-import { BatchSearchService } from '../services/BatchSearchService';
 import {handleAllOPtions} from "./pdfutils";
 
 /**
@@ -33,7 +31,7 @@ export interface ProcessingConfig {
 export class AutoProcessManager {
     private static instance: AutoProcessManager;
     private config: ProcessingConfig;
-    private processingQueue: Map<string, boolean> = new Map();
+    private readonly processingQueue: Map<string, boolean> = new Map();
     private _detectEntitiesCallback: ((files: File[], options: any) => Promise<Record<string, any>>) | null = null;
     private _searchCallback: ((files: File[], searchTerm: string, options: any) => Promise<void>) | null = null;
 
@@ -66,7 +64,7 @@ export class AutoProcessManager {
         this.config = {
             ...this.config,
             ...config,
-            isActive: config.isActive !== undefined ? config.isActive : this.config.isActive
+            isActive: config.isActive ?? this.config.isActive
         };
 
         console.log('[AutoProcessManager] Configuration updated:', {
@@ -246,7 +244,7 @@ export class AutoProcessManager {
             }
         }
     }
-    private processingStatus: Map<string, {
+    private readonly processingStatus: Map<string, {
         status: 'queued' | 'processing' | 'completed' | 'failed';
         error?: any;
         startTime: number;

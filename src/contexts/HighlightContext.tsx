@@ -1,4 +1,3 @@
-// src/contexts/HighlightContext.tsx - Improved version with unique IDs
 import React, {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {useFileContext} from './FileContext';
 import highlightManager from '../utils/HighlightManager';
@@ -54,7 +53,6 @@ interface HighlightContextProps {
     getAllFileAnnotations: () => FileAnnotationsMap;
     resetProcessedEntityPages: () => void;
     getFileAnnotations: (fileKey: string) => Map<number, HighlightRect[]> | undefined;
-    dumpAnnotationStats: () => void;
     deleteHighlightsByText: (text: string, fileKey?: string) => number;
     findHighlightsByText: (text: string, fileKey?: string) => HighlightRect[];
 }
@@ -99,7 +97,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
             const newFileAnnotations = new Map<string, Map<number, HighlightRect[]>>();
 
             allHighlights.forEach(highlight => {
-                const fileKey = highlight.fileKey || '_default';
+                const fileKey = highlight.fileKey ?? '_default';
                 const page = highlight.page;
 
                 // Get or create file map
@@ -123,8 +121,6 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
 
     const resetProcessedEntityPages = useCallback(() => {
         // This function will be called when we need to force re-processing of entity highlights
-        console.log('[HighlightContext] Resetting processed entity pages');
-
         // Only reset if we have entity detection results to process
         // This prevents unnecessary resets when switching files
         const fileKey = getCurrentFileKey();
@@ -153,7 +149,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
 
         // Track file changes to prevent unnecessary resets
         if (lastActiveFileRef.current !== currentFileKey) {
-            console.log(`[HighlightContext] File changed from ${lastActiveFileRef.current || 'none'} to ${currentFileKey}`);
+            console.log(`[HighlightContext] File changed from ${lastActiveFileRef.current ?? 'none'} to ${currentFileKey}`);
             lastActiveFileRef.current = currentFileKey;
 
             // We don't reset entity highlights here anymore to preserve them when switching files
@@ -163,50 +159,12 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
 
     // Generate a unique ID using the highlightManager
     const getNextHighlightId = useCallback((prefix?: string): string => {
-        return highlightManager.generateUniqueId(prefix || '');
+        return highlightManager.generateUniqueId(prefix ?? '');
     }, []);
-
-    // Debugging function to log annotation statistics
-    const dumpAnnotationStats = useCallback(() => {
-        console.log('==== ANNOTATION STATS ====');
-        console.log(`Total file entries: ${fileAnnotations.size}`);
-
-        let totalHighlights = 0;
-        let manualHighlights = 0;
-        let entityHighlights = 0;
-        let searchHighlights = 0;
-
-        fileAnnotations.forEach((fileMap, fileKey) => {
-            let fileHighlightCount = 0;
-            let fileManualCount = 0;
-            let fileEntityCount = 0;
-            let fileSearchCount = 0;
-
-            fileMap.forEach((highlights, pageNum) => {
-                fileHighlightCount += highlights.length;
-
-                highlights.forEach(h => {
-                    if (h.type === HighlightType.MANUAL) fileManualCount++;
-                    else if (h.type === HighlightType.ENTITY) fileEntityCount++;
-                    else if (h.type === HighlightType.SEARCH) fileSearchCount++;
-                });
-            });
-
-            console.log(`File ${fileKey}: ${fileHighlightCount} highlights (${fileManualCount} manual, ${fileEntityCount} entity, ${fileSearchCount} search) across ${fileMap.size} pages`);
-
-            totalHighlights += fileHighlightCount;
-            manualHighlights += fileManualCount;
-            entityHighlights += fileEntityCount;
-            searchHighlights += fileSearchCount;
-        });
-
-        console.log(`Total highlights: ${totalHighlights} (${manualHighlights} manual, ${entityHighlights} entity, ${searchHighlights} search)`);
-        console.log('=========================');
-    }, [fileAnnotations]);
 
     // Get annotations for a specific page and file
     const getAnnotations = useCallback((page: number, fileKey?: string): HighlightRect[] => {
-        const targetFileKey = fileKey || getCurrentFileKey();
+        const targetFileKey = fileKey ?? getCurrentFileKey();
         const fileMap = fileAnnotations.get(targetFileKey);
         if (!fileMap) return [];
 
@@ -223,7 +181,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
 
     // Add annotation to a specific file and page
     const addAnnotation = useCallback((page: number, ann: HighlightRect, fileKey?: string) => {
-        const targetFileKey = fileKey || getCurrentFileKey();
+        const targetFileKey = fileKey ?? getCurrentFileKey();
 
         // Ensure annotation has a unique ID and proper fileKey
         const annotationWithFileKey: HighlightRect = {
@@ -231,7 +189,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
             id: ann.id || getNextHighlightId(ann.type),
             fileKey: targetFileKey,
             // Add timestamp if not present for better tracking
-            timestamp: ann.timestamp || Date.now()
+            timestamp: ann.timestamp ?? Date.now()
         };
         // For entity highlights, check for duplicates (within a small tolerance)
         if (annotationWithFileKey.type === HighlightType.ENTITY) {
@@ -272,11 +230,11 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
 
             return newMap;
         });
-    }, [getCurrentFileKey, getNextHighlightId]);
+    }, [getCurrentFileKey, getNextHighlightId, getAnnotations]);
 
     // Remove annotation from a specific file and page
     const removeAnnotation = useCallback((page: number, id: string, fileKey?: string) => {
-        const targetFileKey = fileKey || getCurrentFileKey();
+        const targetFileKey = fileKey ?? getCurrentFileKey();
 
         // Remove from highlightManager first
         highlightManager.removeHighlightData(id);
@@ -318,13 +276,13 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
 
     // Update an existing annotation
     const updateAnnotation = useCallback((page: number, updatedAnn: HighlightRect, fileKey?: string) => {
-        const targetFileKey = fileKey || getCurrentFileKey();
+        const targetFileKey = fileKey ?? getCurrentFileKey();
 
         // Ensure the updated annotation has the right fileKey
         const annotationWithFileKey: HighlightRect = {
             ...updatedAnn,
             fileKey: targetFileKey,
-            timestamp: updatedAnn.timestamp || Date.now()
+            timestamp: updatedAnn.timestamp ?? Date.now()
         };
 
         // Update in highlightManager
@@ -357,13 +315,13 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
 
     // Clear all annotations for a specific file or current file
     const clearAnnotations = useCallback((fileKey?: string) => {
-        const targetFileKey = fileKey || getCurrentFileKey();
+        const targetFileKey = fileKey ?? getCurrentFileKey();
 
         // Get all highlights from this file
         const fileMap = fileAnnotations.get(targetFileKey);
         if (fileMap) {
             // Remove all highlights from this file from the highlightManager
-            fileMap.forEach((highlights, page) => {
+            fileMap.forEach((highlights) => {
                 highlights.forEach(highlight => {
                     highlightManager.removeHighlightData(highlight.id);
                 });
@@ -386,7 +344,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
         const fileMap = fileAnnotations.get(fileKey);
         if (fileMap) {
             // Remove all highlights from this file from the highlightManager
-            fileMap.forEach((highlights, page) => {
+            fileMap.forEach((highlights) => {
                 highlights.forEach(highlight => {
                     highlightManager.removeHighlightData(highlight.id);
                 });
@@ -414,7 +372,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
         pageNumber?: number,
         fileKey?: string
     ) => {
-        const targetFileKey = fileKey || getCurrentFileKey();
+        const targetFileKey = fileKey ?? getCurrentFileKey();
 
         setFileAnnotations(prev => {
             const newMap = new Map(prev);
@@ -488,7 +446,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
 
     // Export annotations to JSON string
     const exportAnnotations = useCallback((fileKey?: string): string => {
-        const targetFileKey = fileKey || getCurrentFileKey();
+        const targetFileKey = fileKey ?? getCurrentFileKey();
 
         // Use highlightManager to get file highlights
         const highlights = highlightManager.exportHighlights(targetFileKey);
@@ -498,7 +456,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
     // Import annotations from JSON string
     const importAnnotations = useCallback((data: string, fileKey?: string): boolean => {
         try {
-            const targetFileKey = fileKey || getCurrentFileKey();
+            const targetFileKey = fileKey ?? getCurrentFileKey();
             const parsed = JSON.parse(data) as HighlightRect[];
 
             // Ensure each highlight has the right fileKey
@@ -547,7 +505,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
 
     // Delete all highlights with the same text
     const deleteHighlightsByText = useCallback((text: string, fileKey?: string): number => {
-        const targetFileKey = fileKey || getCurrentFileKey();
+        const targetFileKey = fileKey ?? getCurrentFileKey();
         const highlightsToDelete = highlightManager.findHighlightsByText(text, targetFileKey);
 
         // Remove all matching highlights
@@ -562,7 +520,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
 
     // Find highlights with the same text
     const findHighlightsByText = useCallback((text: string, fileKey?: string): HighlightRect[] => {
-        const targetFileKey = fileKey || getCurrentFileKey();
+        const targetFileKey = fileKey ?? getCurrentFileKey();
         return highlightManager.findHighlightsByText(text, targetFileKey);
     }, [getCurrentFileKey]);
 
@@ -610,7 +568,6 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
                 getAllFileAnnotations,
                 resetProcessedEntityPages,
                 getFileAnnotations,
-                dumpAnnotationStats,
                 deleteHighlightsByText,
                 findHighlightsByText
             }}

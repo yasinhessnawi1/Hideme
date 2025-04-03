@@ -22,7 +22,7 @@ interface ToolbarProps {
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({ toggleSidebar, isSidebarCollapsed }) => {
-    const { currentFile, addFile, isAutoProcessingEnabled, setAutoProcessingEnabled } = useFileContext();
+    const { currentFile, addFile } = useFileContext();
 
     const {
         zoomLevel,
@@ -461,25 +461,6 @@ const Toolbar: React.FC<ToolbarProps> = ({ toggleSidebar, isSidebarCollapsed }) 
                             </div>
                         </div>
                     )}
-                </div>
-            </div>
-            <div className="dropdown-section">
-                <h5 className="dropdown-title">Auto Processing</h5>
-                <div className="dropdown-item">
-                    <label onClick={(e) => e.stopPropagation()}>
-                        <input
-                            type="checkbox"
-                            checked={isAutoProcessingEnabled}
-                            onChange={(e) => setAutoProcessingEnabled(e.target.checked)}
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                        Auto-process new files
-                    </label>
-                    <div className="setting-description">
-                        {isAutoProcessingEnabled ?
-                            "New files will inherit current entity and search settings" :
-                            "New files will not be automatically processed"}
-                    </div>
                 </div>
             </div>
 

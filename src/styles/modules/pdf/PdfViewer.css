@@ -20,7 +20,22 @@ These styles control the main PDF viewer container and pages
     align-items: center;
     transition: background-color var(--transition-speed) var(--transition-function);
     scroll-behavior: smooth;
+    will-change: scroll-position;
+    overscroll-behavior: none; /* Prevent scroll chaining */
+
+    -webkit-overflow-scrolling: touch;
+
+
+    /* Hint to browser about scrolling intentions */
+    scrollbar-width: thin;
+
+    /* Improve performance for fixed elements within scroll container */
+    transform-style: preserve-3d;
+
+    /* Prevent unwanted touch behaviors on mobile */
+    touch-action: pan-y;
 }
+
 /* Dark mode styling */
 .pdf-dark-mode .react-pdf__Page__canvas {
     filter: invert(1) hue-rotate(180deg);
@@ -140,19 +155,33 @@ These styles control the main PDF viewer container and pages
     background-color: white;
     box-shadow: var(--shadow-md);
     border-radius: var(--border-radius-sm);
-    transition: all 0.3s ease;
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     width: fit-content;
     border: 4px solid transparent; /* Transparent border by default */
+    contain: layout paint style;
+    will-change: transform, border-color, box-shadow;
+    transform: translateZ(0);
+
+    /* Prevent paint flickering on scroll */
+    backface-visibility: hidden;
+
 }
 
 /* Stronger visual indication for active page */
 .pdf-page-wrapper.active {
-    border-color: var(--primary); /* Use primary color for border */
+    border-color: var(--primary);
     box-shadow: 0 0 0 2px var(--primary), var(--shadow-lg);
     z-index: 10; /* Ensure active page is above others */
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
-
-
+@keyframes activePagePulse {
+    0% { box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.8), var(--shadow-lg); }
+    50% { box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.4), var(--shadow-lg); }
+    100% { box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.8), var(--shadow-lg); }
+}
+.pdf-page-wrapper.active.just-activated {
+    animation: activePagePulse 1.5s ease-in-out;
+}
 /* Make page number indicator always visible for active page */
 .pdf-page-wrapper.active .page-number-indicator {
     opacity: 1;
@@ -207,13 +236,17 @@ These styles control the main PDF viewer container and pages
     font-size: var(--font-size-xs);
     z-index: 5;
     opacity: 0;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .pdf-page-wrapper:hover .page-number-indicator,
 .pdf-page-wrapper.active .page-number-indicator {
-    opacity: 0.8;
+    opacity: 1;
+    background-color: var(--primary);
+    color: white;
+    font-weight: bold;
     transform: translateX(-50%) translateY(-5px);
+    box-shadow: var(--shadow-sm);
 }
 
 
@@ -302,6 +335,14 @@ These styles control the main PDF viewer container and pages
     box-shadow: var(--shadow-md);
 }
 
+.pdf-page canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    background-color: white;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
 .file-upload-icon {
     color: var(--muted-foreground);
     transition: transform var(--transition-speed) var(--transition-function);
@@ -376,7 +417,14 @@ These styles control the main PDF viewer container and pages
 .pdf-viewer-container.show-scroll-hint::after {
     display: block;
 }
-
+.pdf-page-loading-placeholder {
+    background-color: var(--background);
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+}
 /* Media queries for responsive design */
 @media (max-width: 768px) {
     .pdf-page-wrapper {
@@ -439,11 +487,20 @@ MULTI-PDF DISPLAY STYLES
 */
 
 .multi-pdf-container {
-    display: flex;
     flex-direction: column;
     gap: var(--spacing-xl);
     width: 100%;
     padding: var(--spacing-lg);
+    contain: style layout;
+
+    /* Optimize for scrolling */
+    transform: translateZ(0);
+
+    /* Create a new formatting context */
+    display: flow-root;
+}
+body.is-scrolling .pdf-file-container:not(.current) {
+    visibility: hidden;
 }
 
 .pdf-file-container {
@@ -457,6 +514,14 @@ MULTI-PDF DISPLAY STYLES
     position: relative;
     margin-bottom: var(--spacing-xl);
     box-shadow: var(--shadow-sm);
+    will-change: transform; /* Optimize GPU rendering */
+    contain: content; /* Improve rendering performance */
+    backface-visibility: hidden;
+    transform: translateZ(0);
+
+    /* Create stacking contexts for each file to prevent layer bleed */
+    isolation: isolate;
+    z-index: 1;
 }
 
 .pdf-file-container:hover {
@@ -466,8 +531,10 @@ MULTI-PDF DISPLAY STYLES
 
 .pdf-file-container.current {
     border: 2px solid var(--primary);
-    box-shadow: 0 0 0 2px rgba(39, 171, 111, 0.2), var(--shadow-md);
+    box-shadow: 0 0 0 1px rgba(39, 171, 111, 0.2), var(--shadow-md);
+    z-index: 2;
 }
+
 
 .pdf-file-header {
     padding: var(--spacing-md) var(--spacing-lg);
@@ -476,6 +543,10 @@ MULTI-PDF DISPLAY STYLES
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(5px);
 }
 
 .pdf-file-title {
@@ -533,4 +604,210 @@ MULTI-PDF DISPLAY STYLES
     .pdf-file-header {
         padding: var(--spacing-sm);
     }
+}
+
+
+/*
+LOADING
+ */
+
+/* CSS for per-file loading states */
+
+/* Styling for the per-file loading indicator */
+.pdf-file-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    background-color: var(--background);
+    border-radius: var(--border-radius-md);
+    margin: 1.5rem 0;
+    min-height: 200px;
+}
+
+.pdf-file-loading p {
+    margin-top: 1rem;
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+}
+
+/* Animation for the loading spinner */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1.5s linear infinite;
+}
+
+
+/* Subtle visual indication that a file is currently loading */
+.pdf-file-container.loading {
+    opacity: 0.8;
+}
+
+/* Keep the height of each file container consistent during loading and after loaded */
+.pdf-document-container,
+.pdf-file-loading {
+    min-height: 200px;
+}
+
+/* Ensure loading placeholder maintains the correct size */
+.pdf-loading-placeholder {
+    background-color: var(--button-bg);
+    border-radius: var(--border-radius-sm);
+    min-height: 200px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Apply styles to global loading container (for when there are no files) */
+.pdf-loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 2rem;
+}
+
+
+.pdf-error h3 {
+    font-size: var(--font-size-lg);
+    margin-bottom: 0.5rem;
+}
+
+.pdf-error p {
+    font-size: var(--font-size-sm);
+    margin-bottom: 0.25rem;
+}
+
+/* Make the loading spinner visible with higher contrast */
+.loading-spinner {
+    color: var(--primary);
+    opacity: 0.8;
+}
+
+/* Ensure proper spacing between multiple PDF containers */
+.pdf-file-container + .pdf-file-container {
+    margin-top: 2rem;
+}
+
+
+/*
+Navigator
+ */
+
+
+/* Add these to your PdfViewer.css file */
+
+
+
+/* Enhance page transitions for better visibility */
+
+
+/* Active page highlighting with pulse animation */
+
+
+/* Just activated animation for better user feedback */
+@keyframes activePagePulse {
+    0% {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.8), var(--shadow-lg);
+    }
+    50% {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.4), var(--shadow-lg);
+    }
+    100% {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.8), var(--shadow-lg);
+    }
+}
+
+.pdf-page-wrapper.just-activated {
+    animation: activePagePulse 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+
+
+.pdf-page-wrapper:hover .page-number-indicator {
+    opacity: 0.8;
+    transform: translateX(-50%) translateY(-5px);
+}
+
+
+
+
+
+
+
+/* Smooth thumbnail transitions */
+.thumbnail-wrapper {
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1),
+    box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1),
+    background-color 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    will-change: transform, box-shadow, background-color;
+}
+
+/* Enhanced thumbnail hover effect */
+.thumbnail-wrapper:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: var(--shadow-sm);
+    background-color: var(--dropdown-hover);
+    z-index: 5;
+}
+
+/* Thumbnail pulse animation for better feedback when navigating */
+@keyframes thumbnailPulse {
+    0% {
+        transform: translateY(-2px) scale(1.05);
+        background-color: rgba(var(--primary-rgb), 0.1);
+    }
+    50% {
+        transform: translateY(-3px) scale(1.08);
+        background-color: rgba(var(--primary-rgb), 0.2);
+    }
+    100% {
+        transform: translateY(-2px) scale(1.05);
+        background-color: rgba(var(--primary-rgb), 0.1);
+    }
+}
+
+.thumbnail-wrapper.highlight-pulse {
+    animation: thumbnailPulse 1s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Ensure the PDF pages load progressively for better UX */
+.react-pdf__Page.react-pdf__Page--loading {
+    min-height: 400px;
+    background-color: var(--background);
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.react-pdf__Page.react-pdf__Page--loading::after {
+    content: '';
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid var(--primary);
+    border-top-color: transparent;
+    animation: spinner 1s linear infinite;
+}
+
+@keyframes spinner {
+    to { transform: rotate(360deg); }
 }

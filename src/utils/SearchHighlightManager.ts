@@ -8,21 +8,21 @@ import { v4 as uuidv4 } from 'uuid';
  * Optimized with better logging and duplicate prevention
  */
 export class SearchHighlightManager {
-    private searchResults: SearchResult[];
-    private addAnnotation: (page: number, annotation: any, fileKey?: string) => void;
-    private fileKey?: string;
-    private processingTimestamp: number;
-    private processedIds: Set<string> = new Set();
-    private options: { forceReprocess?: boolean } = {};
+    private readonly searchResults: SearchResult[];
+    private readonly addAnnotation: (page: number, annotation: any, fileKey?: string) => void;
+    private readonly fileKey?: string;
+    private readonly processingTimestamp: number;
+    private readonly processedIds: Set<string> = new Set();
+    private readonly options: { forceReprocess?: boolean } = {};
 
     // Static tracking of processed pages by file to prevent reprocessing
-    private static processedPagesByFile: Map<string, Set<number>> = new Map();
+    private static readonly processedPagesByFile: Map<string, Set<number>> = new Map();
     // Static tracking of processed search results by file
-    private static processedSearchIdsByFile: Map<string, Set<string>> = new Map();
+    private static readonly processedSearchIdsByFile: Map<string, Set<string>> = new Map();
     // Track reset operations to prevent cascades
-    private static lastResetTimestamps: Map<string, number> = new Map();
+    private static readonly lastResetTimestamps: Map<string, number> = new Map();
     // Define a reset throttle time (milliseconds)
-    private static RESET_THROTTLE_TIME = 2000; // 2 seconds
+    private static readonly RESET_THROTTLE_TIME = 2000; // 2 seconds
 
     constructor(
         searchResults: SearchResult[],
@@ -37,7 +37,7 @@ export class SearchHighlightManager {
         this.options = options;
 
         // Initialize file-specific processed search IDs set if not exists
-        const fileMarker = this.fileKey || 'default';
+        const fileMarker = this.fileKey ?? 'default';
         if (!SearchHighlightManager.processedSearchIdsByFile.has(fileMarker)) {
             SearchHighlightManager.processedSearchIdsByFile.set(fileMarker, new Set<string>());
         }
@@ -60,14 +60,6 @@ export class SearchHighlightManager {
         }
     }
 
-    /**
-     * Check if a page has already been processed for a specific file
-     */
-    public static isPageProcessedForFile(fileKey: string, pageNumber: number): boolean {
-        const fileMarker = fileKey || 'default';
-        const processedPages = SearchHighlightManager.processedPagesByFile.get(fileMarker);
-        return processedPages ? processedPages.has(pageNumber) : false;
-    }
 
     /**
      * Mark a page as processed for a specific file
@@ -92,7 +84,7 @@ export class SearchHighlightManager {
         const now = Date.now();
 
         // Check if we've reset this file recently to prevent cascades
-        const lastReset = SearchHighlightManager.lastResetTimestamps.get(fileMarker) || 0;
+        const lastReset = SearchHighlightManager.lastResetTimestamps.get(fileMarker) ?? 0;
         if (now - lastReset < SearchHighlightManager.RESET_THROTTLE_TIME) {
             // Skip this reset if it's too soon after the last one
             console.log(`[SearchHighlightManager] Throttling reset for file ${fileMarker} - last reset was ${now - lastReset}ms ago`);
@@ -137,7 +129,7 @@ export class SearchHighlightManager {
      */
     private generateUniqueSearchId(result: SearchResult): string {
         const { page,text } = result;
-        const fileMarker = this.fileKey || 'default';
+        const fileMarker = this.fileKey ?? 'default';
 
         // Use UUID for guaranteed uniqueness
         const uuid = uuidv4();
@@ -151,7 +143,7 @@ export class SearchHighlightManager {
      * Process search results into highlights with duplicate prevention
      */
     public processHighlights(): void {
-        const fileMarker = this.fileKey || 'default';
+        const fileMarker = this.fileKey ?? 'default';
         console.log(`[SearchHighlightManager] Processing ${this.searchResults.length} search highlights for ${fileMarker}`);
 
         if (!this.searchResults || this.searchResults.length === 0) {
@@ -229,7 +221,6 @@ export class SearchHighlightManager {
      */
     private processBatch(results: SearchResult[], pageNumber: number): void {
         // Create processed annotations array
-        const processedAnnotations: any[] = [];
         const batchSize = 10; // Process in smaller batches
 
         // Process in batches to prevent UI freezing
@@ -248,7 +239,7 @@ export class SearchHighlightManager {
                     type: HighlightType.SEARCH,
                     id: uniqueId,
                     page: pageNumber,
-                    fileKey: this.fileKey || result.fileKey, // Ensure fileKey is set
+                    fileKey: this.fileKey ?? result.fileKey, // Ensure fileKey is set
                     timestamp: this.processingTimestamp,
                     opacity: 0.4 // Consistent opacity for search highlights
                 };
