@@ -6,7 +6,7 @@ import {createRedactionRequest} from "../utils/redactionUtils";
 import JSZip from 'jszip';
 
 // Base API URL - ensure this is consistent across services
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://api.hidemeai.com';
 
 /**
  * Calls the batch hybrid detection API endpoint.

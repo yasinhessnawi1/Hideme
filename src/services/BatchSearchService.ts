@@ -3,7 +3,7 @@ import { apiRequest } from './apiService';
 import { HighlightType } from '../contexts/HighlightContext';
 import { v4 as uuidv4 } from 'uuid';
 // Base API URL - ensure this is consistent across services
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://api.hidemeai.com';
 
 // Types
 export interface SearchBatchSummary {

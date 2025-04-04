@@ -11,7 +11,7 @@
 import axios from 'axios';
 import apiClient from './apiClient';
 
-const API_URL = 'http://localhost:8080/api';
+const API_URL = 'https://goapi.hidemeai.com/api';
 const AUTH_URL = `${API_URL}/auth`;
 
 /**
