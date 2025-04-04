@@ -1,7 +1,7 @@
-// src/pages/AboutPage.tsx
 import React from 'react';
 import Navbar from '../components/static/Navbar';
-import '../styles/pages/AboutPage.css';
+import '../styles/AboutPage.css';
+// @ts-ignore
 import ntnuCampus from '../assets/ntnu-campus.png';
 
 interface AboutPageProps {

@@ -1,0 +1,104 @@
+/*
+  HighlightContextMenu.css
+  Styling for the right-click context menu on highlights
+*/
+
+.highlight-context-menu {
+    position: fixed;
+    z-index: 9999; /* Ensure it's above all other elements */
+    background-color: var(--background);
+    box-shadow: var(--shadow-md);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border);
+    padding: 4px 0;
+    min-width: 180px;
+    animation: contextMenuFadeIn 0.15s ease;
+    user-select: none;
+    pointer-events: auto !important; /* Ensure the menu receives clicks */
+}
+
+.context-menu-header {
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: var(--font-size-sm);
+    color: var(--muted-foreground);
+    background-color: var(--button-bg);
+}
+
+.context-menu-header button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-foreground);
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.context-menu-header button:hover {
+    background-color: var(--button-hover);
+    color: var(--foreground);
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    color: var(--foreground);
+    font-size: var(--font-size-sm);
+    pointer-events: auto !important; /* Ensure menu items receive clicks */
+}
+
+.context-menu-item:hover {
+    background-color: var(--primary);
+    color: white;
+}
+
+.context-menu-item svg {
+    opacity: 0.8;
+    transition: transform 0.2s ease;
+}
+
+.context-menu-item:hover svg {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.context-menu-item-info {
+    padding: 4px 16px;
+    font-size: var(--font-size-xs);
+    color: var(--muted-foreground);
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+}
+
+.context-menu-divider {
+    height: 1px;
+    background-color: var(--border);
+    margin: 4px 0;
+}
+
+@keyframes contextMenuFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .highlight-context-menu {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}

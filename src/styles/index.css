@@ -3,14 +3,13 @@
   -------------------------------------------------- */
 :root {
   /* Color Palette - Base Colors */
-  --lime-green: #1cc780;
+  --lime-green: #0aa624;
   --dark-pastel-green: #070707;
   --dark-pastel-green-2: #000000;
   --jade: #27AB6F;
   --persian-green: #1FA28B;
   --blue-munsell: #1898A6;
   --blue-ncs: #108FC2;
-
   /* Light Mode Colors */
   --light-background: #ffffff;
   --light-foreground: #1a202c;
@@ -23,6 +22,7 @@
   --ligh-button-hover: var(--lime-green);
 
   /* Dark Mode Colors */
+
   --dark-background: #15202B;
   --dark-foreground: #f0f0f0;
   --dark-primary: var(--jade);
@@ -58,9 +58,9 @@
   --ring: var(--light-foreground);
 
   /* Typography */
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-md: 1rem;
+  --font-size-xs: 0.5rem;
+  --font-size-sm: 0.7rem;
+  --font-size-md: 0.9rem;
   --font-size-lg: 1.125rem;
   --font-size-xl: 1.25rem;
   --font-weight-regular: 400;
@@ -119,7 +119,11 @@
   --sidebar-bg: var(--background);
   --sidebar-border: var(--border);
   --upload-bg: #f5f5f5;
+
+  --primary-rgb: 39, 171, 111; /* RGB values for #27AB6F (jade) */
+  --destructive-bg: rgba(229, 62, 62, 0.1); /* Light red background for destructive actions */
 }
+
 
 /*
   2) Dark Theme Override
@@ -132,7 +136,9 @@
   --card-foreground: var(--dark-foreground);
   --popover: var(--dark-background);
   --popover-foreground: var(--dark-foreground);
-
+  --destructive-bg: rgba(229, 62, 62, 0.15); /* Slightly more opaque for dark theme */
+  --warning-bg: var(--destructive-bg);
+  --warning: var(--secondary);
   --primary: var(--dark-primary);
   --primary-foreground: #ffffff;
   --secondary: var(--dark-secondary);

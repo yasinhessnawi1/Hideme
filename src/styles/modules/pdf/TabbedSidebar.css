@@ -1,0 +1,94 @@
+/*
+==============================================
+TABBED SIDEBAR STYLES
+==============================================
+*/
+
+.tabbed-sidebar {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
+    transition: all var(--transition-speed) var(--transition-function);
+}
+
+/* Tabs at the top of the sidebar */
+.left-sidebar-tabs {
+    display: flex;
+    flex-direction: row;
+    border-bottom: 1px solid var(--sidebar-border);
+    background-color: var(--sidebar-bg);
+    z-index: 5;
+}
+
+.sidebar-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-sm);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted-foreground);
+    transition: all var(--transition-speed) var(--transition-function);
+    position: relative;
+    gap: var(--spacing-xs);
+}
+
+.sidebar-tab:hover {
+    color: var(--foreground);
+    background-color: var(--dropdown-hover);
+}
+
+.sidebar-tab.active {
+    color: var(--primary);
+    background-color: var(--sidebar-bg);
+}
+
+.sidebar-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--primary);
+    animation: slideIn var(--transition-speed) var(--transition-function);
+}
+
+.tab-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
+
+
+.tab-panel {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.tab-panel.active {
+    opacity: 1;
+}
+/* Animation for active tab indicator */
+@keyframes slideIn {
+    from {
+        width: 0;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    to {
+        width: 100%;
+        left: 0;
+        transform: translateX(0);
+    }
+}
+
+/* Make sure PageThumbnails and FileSelector components take up the full height */
+.sidebar-content > * {
+    flex: 1;
+    overflow-y: auto;
+}

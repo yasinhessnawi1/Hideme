@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { FileText } from "lucide-react"
-import "../../styles/pages/landing/FloatingPaper.css"
+import "../../styles/modules/landing/FloatingPaper.css"
 
 export function FloatingPaper({ count = 10 }) {
     const [dimensions, setDimensions] = useState({ width: 1200, height: 800 })

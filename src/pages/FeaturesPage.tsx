@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Navbar from '../components/static/Navbar';
-import '../styles/pages/FeaturesPage.css';
+import '../styles/FeaturesPage.css';
 
 interface OptionType {
     value: string;

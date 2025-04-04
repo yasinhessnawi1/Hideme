@@ -6,35 +6,45 @@ export interface ApiRequestOptions {
     method: HttpMethod;
     url: string;
     body?: any;
+    formData?: FormData;
     headers?: Record<string, string>;
-    responseType?: 'json' | 'blob';
+    responseType?: 'json' | 'blob' | 'arraybuffer';
 }
 
 /**
- * Generic API request helper.
- * It automatically sets JSON headers if a body is provided and handles errors.
+ * Enhanced API request helper that supports both JSON and FormData
  */
 export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
-    const { method, url, body, headers = {}, responseType = 'json' } = options;
+    const { method, url, body, formData, headers = {}, responseType = 'json' } = options;
 
     const config: RequestInit = {
         method,
         headers: {
             'Accept': 'application/json',
-            ...(body ? { 'Content-Type': 'application/json' } : {}),
+            ...(!formData && body ? { 'Content-Type': 'application/json' } : {}),
             ...headers,
         },
-        body: body ? JSON.stringify(body) : undefined,
+        body: formData || (body ? JSON.stringify(body) : undefined),
     };
 
     try {
         const response = await fetch(url, config);
+
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Request failed with status ${response.status}: ${errorText}`);
+            let errorMessage: string;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || `Request failed with status ${response.status}`;
+            } catch {
+                errorMessage = `Request failed with status ${response.status}: ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
         }
+
         if (responseType === 'blob') {
             return (await response.blob()) as unknown as T;
+        } else if (responseType === 'arraybuffer') {
+            return (await response.arrayBuffer()) as unknown as T;
         } else {
             return (await response.json()) as T;
         }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import '../styles/pages/login/LoginPage.css';
+import '../styles/modules/login/LoginPage.css';
 import LoginForm from '../components/forms/LoginForm';
+// @ts-ignore
 import login_video from '../assets/login-video.mp4';
 import { useSearchParams, useLocation } from 'react-router-dom';
 
