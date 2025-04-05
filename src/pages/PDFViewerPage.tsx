@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from "react"
-import { FileProvider } from "../contexts/FileContext"
-import { PDFViewerProvider } from "../contexts/PDFViewerContext"
-import { EditProvider } from "../contexts/EditContext"
-import { HighlightProvider } from "../contexts/HighlightContext"
-import { BatchSearchProvider } from "../contexts/SearchContext"
+import React, {useEffect, useRef, useState} from "react"
+import {FileProvider} from "../contexts/FileContext"
+import {PDFViewerProvider} from "../contexts/PDFViewerContext"
+import {EditProvider} from "../contexts/EditContext"
+import {HighlightProvider} from "../contexts/HighlightContext"
+import {BatchSearchProvider} from "../contexts/SearchContext"
 import AutoProcessProvider from "../contexts/AutoProcessProvider"
 import PDFViewer from "../components/pdf/PDFViewer"
 import TabbedSidebar from "../components/pdf/pdf_component/TabbedSidebar"
@@ -13,14 +13,12 @@ import EntityDetectionSidebar from "../components/pdf/pdf_component/EntityDetect
 import RedactionSidebar from "../components/pdf/pdf_component/RadactionSidebar"
 import Navbar from "../components/static/Navbar"
 import '../styles/modules/pdf/PDFViewerPage.css'
-
-interface PDFViewerPageProps {
-    theme: string
-    toggleTheme: () => void
-}
+import {ThemeProvider} from "../contexts/ThemeContext"
+import {UserContextProvider} from "../contexts/UserContext";
+import ErrorBoundary from "../contexts/ErrorBoundary";
 
 const PDFViewerPageContent: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'entities' | 'search' | 'redact'>('entities')
+    const [activeTab, setActiveTab] = useState<'detection' | 'search' | 'redact'>('detection')
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true) // Set to true by default
     const [isHoveringOnSidebar, setIsHoveringOnSidebar] = useState(false)
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -82,7 +80,7 @@ const PDFViewerPageContent: React.FC = () => {
         <>
             {/* Header with Navbar and Toolbar */}
             <header className="viewer-header">
-                <Toolbar toggleSidebar={toggleSidebar} isSidebarCollapsed={isSidebarCollapsed} />
+                <Toolbar toggleSidebar={toggleSidebar} isSidebarCollapsed={isSidebarCollapsed}/>
             </header>
 
             {/* Main content area */}
@@ -100,12 +98,12 @@ const PDFViewerPageContent: React.FC = () => {
                     ref={sidebarRef}
                     onMouseLeave={handleSidebarLeave}
                 >
-                    <TabbedSidebar isSidebarCollapsed={isSidebarCollapsed} />
+                    <TabbedSidebar isSidebarCollapsed={isSidebarCollapsed}/>
                 </aside>
 
                 {/* Main PDF viewer */}
                 <main className="main-content">
-                    <PDFViewer />
+                    <PDFViewer/>
                 </main>
 
                 {/* Right sidebar - Static */}
@@ -113,10 +111,10 @@ const PDFViewerPageContent: React.FC = () => {
                     <div className="sidebar-tabs">
                         <div className="tabs-header">
                             <button
-                                className={`tab-button ${activeTab === 'entities' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('entities')}
+                                className={`tab-button ${activeTab === 'detection' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('detection')}
                             >
-                                Entities
+                                Detection
                             </button>
                             <button
                                 className={`tab-button ${activeTab === 'search' ? 'active' : ''}`}
@@ -133,7 +131,7 @@ const PDFViewerPageContent: React.FC = () => {
                         </div>
 
                         <div className="tabs-content">
-                            <div className={`tab-panel ${activeTab === 'entities' ? 'active' : ''}`}>
+                            <div className={`tab-panel ${activeTab === 'detection' ? 'active' : ''}`}>
                                 <EntityDetectionSidebar/>
                             </div>
                             <div className={`tab-panel ${activeTab === 'search' ? 'active' : ''}`}>
@@ -150,23 +148,29 @@ const PDFViewerPageContent: React.FC = () => {
     );
 };
 
-const PDFViewerPage: React.FC<PDFViewerPageProps> = ({ theme, toggleTheme }) => {
+const PDFViewerPage = () => {
     return (
-        <div className={`pdf-viewer-page ${theme === 'dark' ? 'dark-theme' : 'light-theme'}`}>
-            <Navbar theme={theme} toggleTheme={toggleTheme} />
-            <FileProvider>
-                <PDFViewerProvider>
-                    <HighlightProvider>
-                        <EditProvider>
-                            <BatchSearchProvider>
-                                <AutoProcessProvider>
-                                    <PDFViewerPageContent />
-                                </AutoProcessProvider>
-                            </BatchSearchProvider>
-                        </EditProvider>
-                    </HighlightProvider>
-                </PDFViewerProvider>
-            </FileProvider>
+        <div className={`pdf-viewer-page `}>
+            <ErrorBoundary>
+                <UserContextProvider>
+                    <ThemeProvider>
+                        <Navbar/>
+                        <FileProvider>
+                            <PDFViewerProvider>
+                                <HighlightProvider>
+                                    <EditProvider>
+                                        <BatchSearchProvider>
+                                            <AutoProcessProvider>
+                                                <PDFViewerPageContent/>
+                                            </AutoProcessProvider>
+                                        </BatchSearchProvider>
+                                    </EditProvider>
+                                </HighlightProvider>
+                            </PDFViewerProvider>
+                        </FileProvider>
+                    </ThemeProvider>
+                </UserContextProvider>
+            </ErrorBoundary>
         </div>
     );
 };

@@ -351,7 +351,7 @@ const SearchSidebar: React.FC = () => {
     return (
         <div className="search-sidebar">
             <div className="sidebar-header search-header">
-                <h3>Batch Search</h3>
+                <h3>Search</h3>
                 {activeQueries.length > 0 && (
                     <div className="search-badge">
                         {searchStats.totalMatches} matches

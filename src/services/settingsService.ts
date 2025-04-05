@@ -26,9 +26,8 @@ export interface UserSettings {
     id: number;
     user_id: number;
     theme: string;
-    auto_detect: boolean;
-    default_detection_method_id: number;
-    default_redaction_color: string;
+    auto_processing: boolean;
+    remove_images: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -44,9 +43,8 @@ export interface UserSettings {
  */
 export interface UserSettingsUpdate {
     theme?: string;
-    auto_detect?: boolean;
-    default_detection_method_id?: number;
-    default_redaction_color?: string;
+    auto_processing?: boolean;
+    remove_images?: boolean;
 }
 
 /**
@@ -177,12 +175,12 @@ const settingsService = {
             const duration = performance.now() - startTime;
 
             console.log(`✅ [SETTINGS] User settings fetched successfully`, {
-                settingsId: response.data.id,
-                theme: response.data.theme,
+                settingsId: response.data.data.id,
+                theme: response.data.data.theme,
                 duration: `${duration.toFixed(2)}ms`
             });
 
-            return response.data;
+            return response.data.data;
         } catch (error: any) {
             const duration = performance.now() - startTime;
 
@@ -248,10 +246,15 @@ const settingsService = {
         try {
             const response = await apiClient.get('/settings/ban-list');
             const duration = performance.now() - startTime;
-
+            if (response?.data?.words?.length > 0) {
+                console.log(`🔍 [SETTINGS] Ban list contains ${response.data.words.length} words`);
+                return response.data;
+            } else {
+                console.log(`✅ [SETTINGS] Ban list is empty`);
+                return { id: response.data.id, words: [] };
+            }
             console.log(`✅ [SETTINGS] Ban list fetched successfully`, {
                 banListId: response.data.id,
-                wordCount: response.data.words.length,
                 duration: `${duration.toFixed(2)}ms`
             });
 

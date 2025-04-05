@@ -34,9 +34,9 @@ export interface UserUpdate {
  * @property {string} confirmPassword - Confirmation of new password
  */
 export interface PasswordChange {
-    currentPassword: string;
-    newPassword: string;
-    confirmPassword: string;
+    current_password: string;
+    new_password: string;
+    confirm_password: string;
 }
 
 /**

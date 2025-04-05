@@ -2,12 +2,8 @@ import React, {useEffect} from 'react';
 import Navbar from '../components/static/Navbar'; // Import your Navbar component
 import '../styles/HowToPage.css'; // Import your styles
 
-interface HowToPageProps {
-    theme: string;
-    toggleTheme: () => void;
-}
 
-const HowToPage: React.FC<HowToPageProps> = ({theme, toggleTheme}) => {
+const HowToPage = () => {
     // Ensure iframe loads properly and handles messaging if needed
     useEffect(() => {
         const handleMessage = (event: { origin: string; data: any; }) => {
@@ -25,7 +21,7 @@ const HowToPage: React.FC<HowToPageProps> = ({theme, toggleTheme}) => {
 
     return (
         <div className="how-to-page">
-            <Navbar theme={theme} toggleTheme={toggleTheme}/>
+            <Navbar />
 
             <div className="how-to-container">
                 <div className="how-to-header">

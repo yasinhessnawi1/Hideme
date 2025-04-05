@@ -1,20 +1,18 @@
-import React from 'react'
+import React, {useEffect} from 'react'
 import { InteractiveGridPattern } from '../components/LandingComponents/InteractiveGrid'
 import Navbar from '../components/static/Navbar'
 import Hero from '../components/LandingComponents/Hero'
 import '../styles/modules/landing/LandingPage.css'
+import {useNavigate} from "react-router-dom";
+import {useUserContext} from "../contexts/UserContext";
 
-interface LandingPageProps {
-    theme: string
-    toggleTheme: () => void
-}
 
-const LandingPage: React.FC<LandingPageProps> = ({ theme, toggleTheme }) => {
+const LandingPage = () => {
     return (
         <main className="landing-page">
             <InteractiveGridPattern className={"grid"}/>
             <div className="content">
-                <Navbar theme={theme} toggleTheme={toggleTheme} />
+                <Navbar />
                 <Hero />
             </div>
         </main>

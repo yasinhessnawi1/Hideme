@@ -376,9 +376,9 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                             aria-label={isSelected ? "Deselect file" : "Select file"}
                                         >
                                             {isSelected ? (
-                                                <CheckSquare size={16} className="select-icon"/>
+                                                <CheckSquare size={16} className="select-file-icon"/>
                                             ) : (
-                                                <Square size={16} className="select-icon"/>
+                                                <Square size={16} className="select-file-icon"/>
                                             )}
                                         </button>
 

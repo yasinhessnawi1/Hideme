@@ -14,13 +14,9 @@ interface FeatureCardProps {
     isSafeForData: boolean;
     entities: OptionType[];
     precision: string;
-    theme: string;
 }
 
-interface FeaturesPageProps {
-    theme: string;
-    toggleTheme: () => void;
-}
+
 
 // Feature Card Component
 const FeatureCard: React.FC<FeatureCardProps> = ({
@@ -30,7 +26,6 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
                                                      isSafeForData,
                                                      entities,
                                                      precision,
-                                                     theme
                                                  }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -101,7 +96,7 @@ const ToolFeatureCard: React.FC<{ title: string; description: string; icon: stri
     );
 };
 
-const FeaturesPage: React.FC<FeaturesPageProps> = ({ theme, toggleTheme }) => {
+const FeaturesPage= () => {
     // Presidio ML entity options
     const presidioOptions: OptionType[] = [
         { value: 'CRYPTO', label: 'Crypto Wallet' },
@@ -177,7 +172,7 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ theme, toggleTheme }) => {
 
     return (
         <div className="features-page">
-            <Navbar theme={theme} toggleTheme={toggleTheme} />
+            <Navbar  />
 
             <div className="features-hero">
                 <div className="features-hero-content">
@@ -237,7 +232,6 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ theme, toggleTheme }) => {
                             isSafeForData={false}
                             entities={geminiOptions}
                             precision="Testing in progress"
-                            theme={theme}
                         />
 
                         <FeatureCard
@@ -247,7 +241,6 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ theme, toggleTheme }) => {
                             isSafeForData={true}
                             entities={glinerOptions}
                             precision="Testing in progress"
-                            theme={theme}
                         />
 
                         <FeatureCard
@@ -257,7 +250,6 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ theme, toggleTheme }) => {
                             isSafeForData={true}
                             entities={presidioOptions}
                             precision="Testing in progress"
-                            theme={theme}
                         />
                     </div>
                 </section>

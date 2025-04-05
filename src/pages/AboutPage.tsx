@@ -4,10 +4,6 @@ import '../styles/AboutPage.css';
 // @ts-ignore
 import ntnuCampus from '../assets/ntnu-campus.png';
 
-interface AboutPageProps {
-    theme: string;
-    toggleTheme: () => void;
-}
 
 const NtnuLogo = () => (
     <svg
@@ -52,10 +48,10 @@ const NtnuLogo = () => (
     </svg>
 );
 
-const AboutPage: React.FC<AboutPageProps> = ({ theme, toggleTheme }) => {
+const AboutPage= () => {
     return (
         <div className="about-page">
-            <Navbar theme={theme} toggleTheme={toggleTheme} />
+            <Navbar  />
 
             <div className="about-hero">
                 <div className="about-hero-content">

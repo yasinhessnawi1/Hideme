@@ -41,6 +41,14 @@
     display: flex;
     align-items: center;
 }
+.select-file-icon{
+position: absolute;
+top: 50%;
+transform: translateY(-50%);
+pointer-events: none;
+color: var(--muted-foreground);
+transition: transform 0.2s;
+}
 
 .select-all-button {
     background: none;

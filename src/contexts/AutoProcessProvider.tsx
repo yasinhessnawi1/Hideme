@@ -1,37 +1,26 @@
 import React, { useEffect } from 'react';
 import { useAutoProcess } from '../hooks/useAutoProcess';
-import { useBatchSearch } from './SearchContext';
-import { useEditContext } from './EditContext';
+
 
 /**
  * Provider component that initializes and connects the auto-processing system
  * This component doesn't render anything visible - it just connects contexts
  */
 export const AutoProcessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { activeQueries } = useBatchSearch();
-    const {
-        selectedMlEntities,
-        selectedGlinerEntities,
-        selectedAiEntities
-    } = useEditContext();
 
-    // Initialize the auto-processing hook
-    useAutoProcess();
+    const { getConfig } = useAutoProcess();
 
     // Log current configuration for debugging
     useEffect(() => {
-        console.log('[AutoProcessProvider] Current configuration:', {
-            searchQueries: activeQueries.length,
-            presidioEntities: selectedMlEntities.length,
-            glinerEntities: selectedGlinerEntities.length,
-            geminiEntities: selectedAiEntities.length
+        const currentConfig = getConfig();
+        console.log('[AutoProcessProvider] Initialized. Current AutoProcessManager config:', {
+            isActive: currentConfig.isActive,
+            searchQueries: currentConfig.searchQueries.length,
+            presidioEntities: currentConfig.presidioEntities.length,
+            glinerEntities: currentConfig.glinerEntities.length,
+            geminiEntities: currentConfig.geminiEntities.length
         });
-    }, [
-        activeQueries,
-        selectedMlEntities,
-        selectedGlinerEntities,
-        selectedAiEntities
-    ]);
+    }, [getConfig]); // Dependency on getConfig
 
     // Simply render children - this component is just for initialization
     return <>{children}</>;

@@ -132,8 +132,6 @@ export interface UseUserReturn {
     // API key functions
     /** The current user's API keys */
     apiKeys: APIKey[];
-    /** Fetches the current user's API keys */
-    getAPIKeys: () => Promise<void>;
     /** Creates a new API key */
     createAPIKey: (data: APIKeyCreationRequest) => Promise<APIKey>;
     /** Deletes an API key */
@@ -786,7 +784,7 @@ export const useUser = (): UseUserReturn => {
             console.log('✅ [USE_USER] User settings fetched successfully', {
                 settingsId: userSettings.id,
                 theme: userSettings.theme,
-                autoDetect: userSettings.auto_detect,
+                autoDetect: userSettings.auto_processing,
                 duration: `${duration.toFixed(2)}ms`
             });
         } catch (err: any) {
@@ -1308,48 +1306,7 @@ export const useUser = (): UseUserReturn => {
         }
     }, []);
 
-    /**
-     * Fetches the current user's API keys.
-     * API keys are used for programmatic access to the application.
-     * Only works when the user is authenticated.
-     */
-    const getAPIKeys = useCallback(async () => {
-        if (!isAuthenticated) {
-            console.warn('⚠️ [USE_USER] getAPIKeys called but user is not authenticated');
-            return;
-        }
 
-        console.log('🔑 [USE_USER] Fetching API keys');
-
-        const startTime = performance.now();
-        setIsLoading(true);
-
-        try {
-            const keys = await authService.listAPIKeys();
-            const duration = performance.now() - startTime;
-
-            setApiKeys(keys);
-
-            console.log('✅ [USE_USER] API keys fetched successfully', {
-                keyCount: keys.length,
-                duration: `${duration.toFixed(2)}ms`
-            });
-        } catch (err: any) {
-            const duration = performance.now() - startTime;
-            const errorMessage = err.response?.data?.message || 'Failed to fetch API keys';
-
-            console.error('❌ [USE_USER] Failed to fetch API keys', {
-                error: errorMessage,
-                status: err.response?.status,
-                data: err.response?.data,
-                duration: `${duration.toFixed(2)}ms`
-            });
-
-            setError(errorMessage);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [isAuthenticated]);
 
     /**
      * Creates a new API key for the current user.
@@ -1458,7 +1415,6 @@ export const useUser = (): UseUserReturn => {
                         getSettings(),
                         getBanList(),
                         getSearchPatterns(),
-                        getAPIKeys()
                     ]);
 
                     const duration = performance.now() - startTime;
@@ -1475,7 +1431,7 @@ export const useUser = (): UseUserReturn => {
                 setError('Failed to load user data. Please refresh the page and try again.');
             });
         }
-    }, [isAuthenticated, getSettings, getBanList, getSearchPatterns, getAPIKeys]);
+    }, [isAuthenticated, getSettings, getBanList, getSearchPatterns]);
 
     // Construct the return object with all state and functions
     return {
@@ -1526,7 +1482,6 @@ export const useUser = (): UseUserReturn => {
 
         // API key functions
         apiKeys,
-        getAPIKeys,
         createAPIKey,
         deleteAPIKey,
 

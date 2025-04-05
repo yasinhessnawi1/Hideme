@@ -21,6 +21,7 @@
   --light-border: #e2e8f0;
   --ligh-button-hover: var(--lime-green);
 
+  --radius: 0.5rem;
   /* Dark Mode Colors */
 
   --dark-background: #15202B;
