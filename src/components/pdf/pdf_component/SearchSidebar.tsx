@@ -39,8 +39,12 @@ const SearchSidebar: React.FC = () => {
     const [contextMenuVisible, setContextMenuVisible] = useState(false);
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
     const [contextMenuSearchTerm, setContextMenuSearchTerm] = useState('');
+
     // Ref for the context menu
     const contextMenuRef = useRef<HTMLDivElement>(null);
+
+    // Add ref for the search input field
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
     // Get current search statistics
     const searchStats = getSearchResultsStats();
@@ -53,6 +57,46 @@ const SearchSidebar: React.FC = () => {
         results: [],
         currentIndex: -1
     });
+
+    // Create a function to focus the search input
+    const focusSearchInput = useCallback(() => {
+        // Use setTimeout to ensure DOM is fully rendered
+        setTimeout(() => {
+            if (searchInputRef.current) {
+                searchInputRef.current.focus();
+            }
+        }, 50);
+    }, []);
+
+    // Use Intersection Observer to detect when the search sidebar becomes visible
+    useEffect(() => {
+        // Create a reference to the container element
+        const searchSidebarRef = document.querySelector('.search-sidebar');
+        if (!searchSidebarRef) return;
+
+        // Create an observer that will monitor the visibility of the search sidebar
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // When the search sidebar becomes visible
+                if (entry.isIntersecting) {
+                    focusSearchInput();
+                }
+            });
+        }, { threshold: 0.1 }); // Trigger when at least 10% of the element is visible
+
+        // Start observing the search sidebar
+        observer.observe(searchSidebarRef);
+
+        // Cleanup function
+        return () => {
+            observer.disconnect();
+        };
+    }, [focusSearchInput]);
+
+    // Also focus on initial mount
+    useEffect(() => {
+        focusSearchInput();
+    }, [focusSearchInput]);
 
     // Set error from API if available
     useEffect(() => {
@@ -114,9 +158,10 @@ const SearchSidebar: React.FC = () => {
 
             if (isExistingTerm) {
                 setLocalSearchError(`"${searchTermToUse}" is already in your search terms`);
+                // Keep focus on search input even when showing error
+                searchInputRef.current?.focus();
                 return;
             }
-
 
             await runBatchSearch(
                 filesToSearch,
@@ -126,7 +171,6 @@ const SearchSidebar: React.FC = () => {
                     isRegexSearch
                 }
             );
-
 
             await batchSearch(
                 filesToSearch,
@@ -153,9 +197,14 @@ const SearchSidebar: React.FC = () => {
                 if (newExpandedSet.size > 0) {
                     setExpandedFileSummaries(newExpandedSet);
                 }
+
+                // Refocus the search input after search completes
+                searchInputRef.current?.focus();
             }, 100);
         } catch (error: any) {
             setLocalSearchError(error.message || 'Error performing search');
+            // Refocus input even when there's an error
+            searchInputRef.current?.focus();
         }
     }, [
         tempSearchTerm,
@@ -172,6 +221,10 @@ const SearchSidebar: React.FC = () => {
 
     const removeSearchTerm = (term: string) => {
         clearSearch(term);
+        // Refocus the search input after removing a search term
+        setTimeout(() => {
+            searchInputRef.current?.focus();
+        }, 0);
     };
 
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -183,6 +236,10 @@ const SearchSidebar: React.FC = () => {
     const handleClearAllSearches = () => {
         clearAllSearches();
         setTempSearchTerm('');
+        // Refocus the search input after clearing all searches
+        setTimeout(() => {
+            searchInputRef.current?.focus();
+        }, 0);
     };
     // Simple navigation to a page
     const navigateToPage = useCallback((fileKey: string, pageNumber: number) => {
@@ -199,6 +256,8 @@ const SearchSidebar: React.FC = () => {
         pdfNavigation.navigateToPage(pageNumber, getFileKey(file), {
             // Use auto behavior for better UX when changing files
             behavior: isChangingFile ? 'auto' : 'smooth',
+            // Always align to top for consistency
+            alignToTop: true,
             // Always highlight the thumbnail
             highlightThumbnail: true
         });
@@ -238,6 +297,10 @@ const SearchSidebar: React.FC = () => {
     const handleChangeSearchScope = (scope: 'current' | 'selected' | 'all') => {
         if (scope === searchScope) return;
         setSearchScope(scope);
+        // Refocus search input after changing scope
+        setTimeout(() => {
+            searchInputRef.current?.focus();
+        }, 0);
     };
 
     // Toggle file summary expansion
@@ -291,6 +354,8 @@ const SearchSidebar: React.FC = () => {
         // This is a placeholder - would typically save current settings to user preferences
         alert(`Search term "${contextMenuSearchTerm}" saved to settings!`);
         setContextMenuVisible(false);
+        // Return focus to search input after closing context menu
+        searchInputRef.current?.focus();
     };
 
     // Handle document click to close context menu
@@ -371,6 +436,7 @@ const SearchSidebar: React.FC = () => {
                                 placeholder="Enter search term..."
                                 className="search-input"
                                 disabled={isSearching}
+                                ref={searchInputRef}
                             />
                             <button
                                 type="submit"
