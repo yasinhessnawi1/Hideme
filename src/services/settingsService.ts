@@ -26,9 +26,8 @@ export interface UserSettings {
     id: number;
     user_id: number;
     theme: string;
-    auto_detect: boolean;
-    default_detection_method_id: number;
-    default_redaction_color: string;
+    auto_processing: boolean;
+    remove_images: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -44,9 +43,8 @@ export interface UserSettings {
  */
 export interface UserSettingsUpdate {
     theme?: string;
-    auto_detect?: boolean;
-    default_detection_method_id?: number;
-    default_redaction_color?: string;
+    auto_processing?: boolean;
+    remove_images?: boolean;
 }
 
 /**
@@ -177,19 +175,19 @@ const settingsService = {
             const duration = performance.now() - startTime;
 
             console.log(`✅ [SETTINGS] User settings fetched successfully`, {
-                settingsId: response.data.id,
-                theme: response.data.theme,
+                settingsId: response.data.data.id,
+                theme: response.data.data.theme,
                 duration: `${duration.toFixed(2)}ms`
             });
 
-            return response.data;
+            return response.data.data;
         } catch (error: any) {
             const duration = performance.now() - startTime;
 
             console.error(`❌ [SETTINGS] Failed to fetch settings`, {
                 duration: `${duration.toFixed(2)}ms`,
-                status: error.response?.status,
-                error: error.response?.data || error.message
+                status: error.response?.data?.data?.status,
+                error: error.response?.data?.data || error.message
             });
 
             throw error;
@@ -215,20 +213,20 @@ const settingsService = {
             const duration = performance.now() - startTime;
 
             console.log(`✅ [SETTINGS] User settings updated successfully`, {
-                settingsId: response.data.id,
+                settingsId: response.data.data.id,
                 fieldsUpdated: Object.keys(data),
                 duration: `${duration.toFixed(2)}ms`
             });
 
-            return response.data;
+            return response.data.data;
         } catch (error: any) {
             const duration = performance.now() - startTime;
 
             console.error(`❌ [SETTINGS] Failed to update settings`, {
                 fieldsAttempted: Object.keys(data),
                 duration: `${duration.toFixed(2)}ms`,
-                status: error.response?.status,
-                error: error.response?.data || error.message
+                status: error.response?.data?.data?.status,
+                error: error.response?.data?.data || error.message
             });
 
             throw error;
@@ -247,22 +245,20 @@ const settingsService = {
 
         try {
             const response = await apiClient.get('/settings/ban-list');
-            const duration = performance.now() - startTime;
-
-            console.log(`✅ [SETTINGS] Ban list fetched successfully`, {
-                banListId: response.data.id,
-                wordCount: response.data.words.length,
-                duration: `${duration.toFixed(2)}ms`
-            });
-
-            return response.data;
+            if (response?.data?.data?.words?.length > 0) {
+                console.log(`🔍 [SETTINGS] Ban list contains ${response.data.data.words.length} words`);
+                return response.data.data;
+            } else {
+                console.log(`✅ [SETTINGS] Ban list is empty`);
+                return { id: response.data.data.id, words: [] };
+            }
         } catch (error: any) {
             const duration = performance.now() - startTime;
 
             console.error(`❌ [SETTINGS] Failed to fetch ban list`, {
                 duration: `${duration.toFixed(2)}ms`,
-                status: error.response?.status,
-                error: error.response?.data || error.message
+                status: error.response?.data?.data?.status,
+                error: error.response?.data?.data.data || error.message
             });
 
             throw error;
@@ -288,21 +284,21 @@ const settingsService = {
             const duration = performance.now() - startTime;
 
             console.log(`✅ [SETTINGS] Words added to ban list successfully`, {
-                banListId: response.data.id,
+                banListId: response.data.data.id,
                 addedCount: data.words.length,
-                totalWords: response.data.words.length,
+                totalWords: response.data.data.words.length,
                 duration: `${duration.toFixed(2)}ms`
             });
 
-            return response.data;
+            return response.data.data;
         } catch (error: any) {
             const duration = performance.now() - startTime;
 
             console.error(`❌ [SETTINGS] Failed to add words to ban list`, {
                 wordCount: data.words.length,
                 duration: `${duration.toFixed(2)}ms`,
-                status: error.response?.status,
-                error: error.response?.data || error.message
+                status: error.response?.data?.data?.status,
+                error: error.response?.data?.data || error.message
             });
 
             throw error;
@@ -328,21 +324,21 @@ const settingsService = {
             const duration = performance.now() - startTime;
 
             console.log(`✅ [SETTINGS] Words removed from ban list successfully`, {
-                banListId: response.data.id,
-                removedCount: data.words.length,
-                remainingWords: response.data.words.length,
+                banListId: response.data.data.id,
+                removedCount: data.words?.length,
+                remainingWords: response.data.data.words?.length,
                 duration: `${duration.toFixed(2)}ms`
             });
 
-            return response.data;
+            return response.data.data;
         } catch (error: any) {
             const duration = performance.now() - startTime;
 
             console.error(`❌ [SETTINGS] Failed to remove words from ban list`, {
                 wordCount: data.words.length,
                 duration: `${duration.toFixed(2)}ms`,
-                status: error.response?.status,
-                error: error.response?.data || error.message
+                status: error.response?.data?.data?.status,
+                error: error.response?.data?.data || error.message
             });
 
             throw error;
@@ -364,18 +360,18 @@ const settingsService = {
             const duration = performance.now() - startTime;
 
             console.log(`✅ [SETTINGS] Search patterns fetched successfully`, {
-                patternCount: response.data.length,
+                patternCount: response.data.data?.length || 0,
                 duration: `${duration.toFixed(2)}ms`
             });
 
-            return response.data;
+            return response.data.data;
         } catch (error: any) {
             const duration = performance.now() - startTime;
 
             console.error(`❌ [SETTINGS] Failed to fetch search patterns`, {
                 duration: `${duration.toFixed(2)}ms`,
-                status: error.response?.status,
-                error: error.response?.data || error.message
+                status: error.response?.data?.data?.status,
+                error: error.response?.data?.data || error.message
             });
 
             throw error;
@@ -402,20 +398,20 @@ const settingsService = {
             const duration = performance.now() - startTime;
 
             console.log(`✅ [SETTINGS] Search pattern created successfully`, {
-                patternId: response.data.id,
-                patternType: response.data.pattern_type,
+                patternId: response.data.data.id,
+                patternType: response.data.data.pattern_type,
                 duration: `${duration.toFixed(2)}ms`
             });
 
-            return response.data;
+            return response.data.data;
         } catch (error: any) {
             const duration = performance.now() - startTime;
 
             console.error(`❌ [SETTINGS] Failed to create search pattern`, {
                 patternType: data.pattern_type,
                 duration: `${duration.toFixed(2)}ms`,
-                status: error.response?.status,
-                error: error.response?.data || error.message
+                status: error.response?.data?.data?.status,
+                error: error.response?.data?.data || error.message
             });
 
             throw error;
@@ -443,13 +439,13 @@ const settingsService = {
             const duration = performance.now() - startTime;
 
             console.log(`✅ [SETTINGS] Search pattern updated successfully`, {
-                patternId: response.data.id,
-                patternType: response.data.pattern_type,
+                patternId: response.data.data.id,
+                patternType: response.data.data.pattern_type,
                 fieldsUpdated: Object.keys(data),
                 duration: `${duration.toFixed(2)}ms`
             });
 
-            return response.data;
+            return response.data.data;
         } catch (error: any) {
             const duration = performance.now() - startTime;
 
@@ -457,8 +453,8 @@ const settingsService = {
                 patternId,
                 fieldsAttempted: Object.keys(data),
                 duration: `${duration.toFixed(2)}ms`,
-                status: error.response?.status,
-                error: error.response?.data || error.message
+                status: error.response?.data?.data?.status,
+                error: error.response?.data?.data || error.message
             });
 
             throw error;
@@ -490,8 +486,8 @@ const settingsService = {
             console.error(`❌ [SETTINGS] Failed to delete search pattern`, {
                 patternId,
                 duration: `${duration.toFixed(2)}ms`,
-                status: error.response?.status,
-                error: error.response?.data || error.message
+                status: error.response?.data?.data?.status,
+                error: error.response?.data?.data || error.message
             });
 
             throw error;
@@ -515,20 +511,14 @@ const settingsService = {
 
             console.log(`✅ [SETTINGS] Model entities fetched successfully`, {
                 methodId,
-                entityCount: response.data.length,
+                entityCount: response.data.data.length,
                 duration: `${duration.toFixed(2)}ms`
             });
 
-            return response.data;
+            return response.data.data;
         } catch (error: any) {
-            const duration = performance.now() - startTime;
 
-            console.error(`❌ [SETTINGS] Failed to fetch model entities`, {
-                methodId,
-                duration: `${duration.toFixed(2)}ms`,
-                status: error.response?.status,
-                error: error.response?.data || error.message
-            });
+
 
             throw error;
         }
@@ -555,11 +545,11 @@ const settingsService = {
 
             console.log(`✅ [SETTINGS] Model entities added successfully`, {
                 methodId: data.method_id,
-                addedCount: response.data.length,
+                addedCount: response.data.data.length,
                 duration: `${duration.toFixed(2)}ms`
             });
 
-            return response.data;
+            return response.data.data;
         } catch (error: any) {
             const duration = performance.now() - startTime;
 
@@ -567,8 +557,8 @@ const settingsService = {
                 methodId: data.method_id,
                 entityCount: data.entity_texts.length,
                 duration: `${duration.toFixed(2)}ms`,
-                status: error.response?.status,
-                error: error.response?.data || error.message
+                status: error.response?.data?.data?.status,
+                error: error.response?.data?.data || error.message
             });
 
             throw error;
@@ -600,8 +590,8 @@ const settingsService = {
             console.error(`❌ [SETTINGS] Failed to delete model entity`, {
                 entityId,
                 duration: `${duration.toFixed(2)}ms`,
-                status: error.response?.status,
-                error: error.response?.data || error.message
+                status: error.response?.data?.data?.status,
+                error: error.response?.data?.data || error.message
             });
 
             throw error;

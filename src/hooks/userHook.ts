@@ -132,8 +132,6 @@ export interface UseUserReturn {
     // API key functions
     /** The current user's API keys */
     apiKeys: APIKey[];
-    /** Fetches the current user's API keys */
-    getAPIKeys: () => Promise<void>;
     /** Creates a new API key */
     createAPIKey: (data: APIKeyCreationRequest) => Promise<APIKey>;
     /** Deletes an API key */
@@ -746,13 +744,8 @@ export const useUser = (): UseUserReturn => {
             const duration = performance.now() - startTime;
             const errorMessage = err.response?.data?.message || 'Failed to invalidate session';
 
-            console.error('❌ [USE_USER] Failed to invalidate session', {
-                sessionId,
-                error: errorMessage,
-                status: err.response?.status,
-                data: err.response?.data,
-                duration: `${duration.toFixed(2)}ms`
-            });
+            //todo: add toast failed to retrieve search patterns or not found not found or empty
+
 
             setError(errorMessage);
             throw err;
@@ -786,19 +779,14 @@ export const useUser = (): UseUserReturn => {
             console.log('✅ [USE_USER] User settings fetched successfully', {
                 settingsId: userSettings.id,
                 theme: userSettings.theme,
-                autoDetect: userSettings.auto_detect,
+                autoDetect: userSettings.auto_processing,
                 duration: `${duration.toFixed(2)}ms`
             });
         } catch (err: any) {
             const duration = performance.now() - startTime;
             const errorMessage = err.response?.data?.message || 'Failed to fetch settings';
 
-            console.error('❌ [USE_USER] Failed to fetch user settings', {
-                error: errorMessage,
-                status: err.response?.status,
-                data: err.response?.data,
-                duration: `${duration.toFixed(2)}ms`
-            });
+           //todo: add toast failed to retrieve search patterns or not found not found or empty
 
             setError(errorMessage);
         } finally {
@@ -834,13 +822,8 @@ export const useUser = (): UseUserReturn => {
             const duration = performance.now() - startTime;
             const errorMessage = err.response?.data?.message || 'Failed to update settings';
 
-            console.error('❌ [USE_USER] Failed to update user settings', {
-                fieldsAttempted: Object.keys(data),
-                error: errorMessage,
-                status: err.response?.status,
-                data: err.response?.data,
-                duration: `${duration.toFixed(2)}ms`
-            });
+            //todo: add toast failed to retrieve search patterns or not found not found or empty
+
 
             setError(errorMessage);
             throw err;
@@ -880,12 +863,8 @@ export const useUser = (): UseUserReturn => {
             const duration = performance.now() - startTime;
             const errorMessage = err.response?.data?.message || 'Failed to fetch ban list';
 
-            console.error('❌ [USE_USER] Failed to fetch ban list', {
-                error: errorMessage,
-                status: err.response?.status,
-                data: err.response?.data,
-                duration: `${duration.toFixed(2)}ms`
-            });
+            //todo: add toast failed to retrieve search patterns or not found not found or empty
+
 
             setError(errorMessage);
         } finally {
@@ -959,7 +938,7 @@ export const useUser = (): UseUserReturn => {
             console.log('✅ [USE_USER] Words removed from ban list successfully', {
                 banListId: updatedList.id,
                 removedCount: words.length,
-                remainingWords: updatedList.words.length,
+                remainingWords: updatedList.words?.length,
                 duration: `${duration.toFixed(2)}ms`
             });
         } catch (err: any) {
@@ -1008,15 +987,20 @@ export const useUser = (): UseUserReturn => {
                 duration: `${duration.toFixed(2)}ms`
             });
         } catch (err: any) {
-            const duration = performance.now() - startTime;
-            const errorMessage = err.response?.data?.message || 'Failed to fetch search patterns';
+            if (err.response?.status === 401) {
+                console.warn('⚠️ [USE_USER] Unauthorized access to search patterns');
+                setError('You are not authorized to view search patterns.');
+                return;
+            }
+            if (searchPatterns.length === 0) {
+                console.warn('⚠️ [USE_USER] No search patterns found');
+                return;
+            }
+            const errorMessage = err.response?.data?.message || 'not found';
 
-            console.error('❌ [USE_USER] Failed to fetch search patterns', {
-                error: errorMessage,
-                status: err.response?.status,
-                data: err.response?.data,
-                duration: `${duration.toFixed(2)}ms`
-            });
+
+            //todo: add toast failed to retrieve search patterns or not found not found or empty
+
 
             setError(errorMessage);
         } finally {
@@ -1041,8 +1025,11 @@ export const useUser = (): UseUserReturn => {
         try {
             const newPattern = await settingsService.createSearchPattern(data);
             const duration = performance.now() - startTime;
-
-            setSearchPatterns(prev => [...prev, newPattern]);
+            if (newPattern == null ) {
+                console.warn('⚠️ [USE_USER] Created search pattern is null');
+                return;
+            }
+            setSearchPatterns(prev => [...prev || [], newPattern]);
 
             console.log('✅ [USE_USER] Search pattern created successfully', {
                 patternId: newPattern.id,
@@ -1053,13 +1040,7 @@ export const useUser = (): UseUserReturn => {
             const duration = performance.now() - startTime;
             const errorMessage = err.response?.data?.message || 'Failed to create search pattern';
 
-            console.error('❌ [USE_USER] Failed to create search pattern', {
-                patternType: data.pattern_type,
-                error: errorMessage,
-                status: err.response?.status,
-                data: err.response?.data,
-                duration: `${duration.toFixed(2)}ms`
-            });
+            //todo: add toast failed to retrieve search patterns or not found not found or empty
 
             setError(errorMessage);
             throw err;
@@ -1101,14 +1082,8 @@ export const useUser = (): UseUserReturn => {
             const duration = performance.now() - startTime;
             const errorMessage = err.response?.data?.message || 'Failed to update search pattern';
 
-            console.error('❌ [USE_USER] Failed to update search pattern', {
-                patternId,
-                fieldsAttempted: Object.keys(data),
-                error: errorMessage,
-                status: err.response?.status,
-                data: err.response?.data,
-                duration: `${duration.toFixed(2)}ms`
-            });
+            //todo: add toast failed to retrieve search patterns or not found not found or empty
+
 
             setError(errorMessage);
             throw err;
@@ -1139,16 +1114,9 @@ export const useUser = (): UseUserReturn => {
                 duration: `${duration.toFixed(2)}ms`
             });
         } catch (err: any) {
-            const duration = performance.now() - startTime;
             const errorMessage = err.response?.data?.message || 'Failed to delete search pattern';
 
-            console.error('❌ [USE_USER] Failed to delete search pattern', {
-                patternId,
-                error: errorMessage,
-                status: err.response?.status,
-                data: err.response?.data,
-                duration: `${duration.toFixed(2)}ms`
-            });
+            //todo: add toast failed to retrieve search patterns or not found not found or empty
 
             setError(errorMessage);
             throw err;
@@ -1189,16 +1157,8 @@ export const useUser = (): UseUserReturn => {
                 duration: `${duration.toFixed(2)}ms`
             });
         } catch (err: any) {
-            const duration = performance.now() - startTime;
-            const errorMessage = err.response?.data?.message || 'Failed to fetch model entities';
-
-            console.error('❌ [USE_USER] Failed to fetch model entities', {
-                methodId,
-                error: errorMessage,
-                status: err.response?.status,
-                data: err.response?.data,
-                duration: `${duration.toFixed(2)}ms`
-            });
+            const errorMessage = err.response?.data?.message || '';
+            //todo: add toast failed to retrieve model entities or model entities not found or empty
 
             setError(errorMessage);
         } finally {
@@ -1241,14 +1201,8 @@ export const useUser = (): UseUserReturn => {
             const duration = performance.now() - startTime;
             const errorMessage = err.response?.data?.message || 'Failed to add model entities';
 
-            console.error('❌ [USE_USER] Failed to add model entities', {
-                methodId: data.method_id,
-                entityCount: data.entity_texts.length,
-                error: errorMessage,
-                status: err.response?.status,
-                data: err.response?.data,
-                duration: `${duration.toFixed(2)}ms`
-            });
+            //todo: add toast failed to retrieve search patterns or not found not found or empty
+
 
             setError(errorMessage);
             throw err;
@@ -1308,48 +1262,7 @@ export const useUser = (): UseUserReturn => {
         }
     }, []);
 
-    /**
-     * Fetches the current user's API keys.
-     * API keys are used for programmatic access to the application.
-     * Only works when the user is authenticated.
-     */
-    const getAPIKeys = useCallback(async () => {
-        if (!isAuthenticated) {
-            console.warn('⚠️ [USE_USER] getAPIKeys called but user is not authenticated');
-            return;
-        }
 
-        console.log('🔑 [USE_USER] Fetching API keys');
-
-        const startTime = performance.now();
-        setIsLoading(true);
-
-        try {
-            const keys = await authService.listAPIKeys();
-            const duration = performance.now() - startTime;
-
-            setApiKeys(keys);
-
-            console.log('✅ [USE_USER] API keys fetched successfully', {
-                keyCount: keys.length,
-                duration: `${duration.toFixed(2)}ms`
-            });
-        } catch (err: any) {
-            const duration = performance.now() - startTime;
-            const errorMessage = err.response?.data?.message || 'Failed to fetch API keys';
-
-            console.error('❌ [USE_USER] Failed to fetch API keys', {
-                error: errorMessage,
-                status: err.response?.status,
-                data: err.response?.data,
-                duration: `${duration.toFixed(2)}ms`
-            });
-
-            setError(errorMessage);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [isAuthenticated]);
 
     /**
      * Creates a new API key for the current user.
@@ -1384,14 +1297,8 @@ export const useUser = (): UseUserReturn => {
             const duration = performance.now() - startTime;
             const errorMessage = err.response?.data?.message || 'Failed to create API key';
 
-            console.error('❌ [USE_USER] Failed to create API key', {
-                name: data.name,
-                duration: data.duration,
-                error: errorMessage,
-                status: err.response?.status,
-                data: err.response?.data,
-                requestDuration: `${duration.toFixed(2)}ms`
-            });
+            //todo: add toast failed to retrieve search patterns or not found not found or empty
+
 
             setError(errorMessage);
             throw err;
@@ -1458,7 +1365,6 @@ export const useUser = (): UseUserReturn => {
                         getSettings(),
                         getBanList(),
                         getSearchPatterns(),
-                        getAPIKeys()
                     ]);
 
                     const duration = performance.now() - startTime;
@@ -1475,7 +1381,7 @@ export const useUser = (): UseUserReturn => {
                 setError('Failed to load user data. Please refresh the page and try again.');
             });
         }
-    }, [isAuthenticated, getSettings, getBanList, getSearchPatterns, getAPIKeys]);
+    }, [isAuthenticated, getSettings, getBanList, getSearchPatterns]);
 
     // Construct the return object with all state and functions
     return {
@@ -1526,7 +1432,6 @@ export const useUser = (): UseUserReturn => {
 
         // API key functions
         apiKeys,
-        getAPIKeys,
         createAPIKey,
         deleteAPIKey,
 

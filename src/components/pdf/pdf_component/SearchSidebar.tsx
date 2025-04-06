@@ -32,7 +32,7 @@ const SearchSidebar: React.FC = () => {
 
     const [tempSearchTerm, setTempSearchTerm] = useState('');
     const [searchScope, setSearchScope] = useState<'current' | 'selected' | 'all'>('current');
-    const [isRegexSearch, setIsRegexSearch] = useState(false);
+    const [isAiSearch, setIsAiSearch] = useState(false);
     const [isCaseSensitive, setIsCaseSensitive] = useState(false);
     const [localSearchError, setLocalSearchError] = useState<string | null>(null);
     const [expandedFileSummaries, setExpandedFileSummaries] = useState<Set<string>>(new Set());
@@ -153,7 +153,7 @@ const SearchSidebar: React.FC = () => {
             const isExistingTerm = activeQueries.some(
                 query => query.term === searchTermToUse &&
                     query.caseSensitive === isCaseSensitive &&
-                    query.isRegex === isRegexSearch
+                    query.isAiSearch === isAiSearch
             );
 
             if (isExistingTerm) {
@@ -168,7 +168,7 @@ const SearchSidebar: React.FC = () => {
                 searchTermToUse,
                 {
                     isCaseSensitive,
-                    isRegexSearch
+                    isRegexSearch: isAiSearch
                 }
             );
 
@@ -177,7 +177,7 @@ const SearchSidebar: React.FC = () => {
                 searchTermToUse,
                 {
                     caseSensitive: isCaseSensitive,
-                    regex: isRegexSearch
+                    regex: isAiSearch
                 }
             );
 
@@ -213,7 +213,7 @@ const SearchSidebar: React.FC = () => {
         runBatchSearch,
         batchSearch,
         isCaseSensitive,
-        isRegexSearch,
+        isAiSearch,
         getSearchResultsStats,
         activeQueries,
         expandedFileSummaries
@@ -416,7 +416,7 @@ const SearchSidebar: React.FC = () => {
     return (
         <div className="search-sidebar">
             <div className="sidebar-header search-header">
-                <h3>Batch Search</h3>
+                <h3>Search</h3>
                 {activeQueries.length > 0 && (
                     <div className="search-badge">
                         {searchStats.totalMatches} matches
@@ -451,12 +451,12 @@ const SearchSidebar: React.FC = () => {
                             <label className="checkbox-label">
                                 <input
                                     type="checkbox"
-                                    checked={isRegexSearch}
-                                    onChange={() => setIsRegexSearch(!isRegexSearch)}
+                                    checked={isAiSearch}
+                                    onChange={() => setIsAiSearch(!isAiSearch)}
                                     disabled={isSearching}
                                 />
                                 <span className="checkmark"></span>
-                                Regex search
+                                Ai search
                             </label>
                             <label className="checkbox-label">
                                 <input
@@ -530,7 +530,7 @@ const SearchSidebar: React.FC = () => {
                                             <span>{query.term}</span>
                                             <div className="search-term-options">
                                                 {query.caseSensitive && <span className="search-term-option">Aa</span>}
-                                                {query.isRegex && <span className="search-term-option">.*</span>}
+                                                {query.isAiSearch && <span className="search-term-option">.*</span>}
                                             </div>
                                         </div>
                                         <button

@@ -4,6 +4,7 @@ import { autoProcessManager } from '../utils/AutoProcessManager';
 import pdfStorageService from '../services/PDFStorageService';
 import { pdfjs } from 'react-pdf';
 import { cleanupFileHighlights } from '../utils/highlightUtils';
+import useUser from "../hooks/userHook";
 
 // Ensure PDF.js worker is loaded
 const loadPdfWorker = () => {
@@ -56,9 +57,7 @@ interface FileContextProps {
     toggleActiveFile: (file: File) => void;
     isFileActive: (file: File) => boolean;
 
-    // Auto-processing settings
-    isAutoProcessingEnabled: boolean;
-    setAutoProcessingEnabled: (enabled: boolean) => void;
+
 
     // Storage-related properties and functions
     isStoragePersistenceEnabled: boolean;
@@ -89,7 +88,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [currentFile, setCurrentFile] = useState<File | null>(null);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [activeFiles, setActiveFiles] = useState<File[]>([]); // Files currently displayed
-    const [isAutoProcessingEnabled, setIsAutoProcessingEnabled] = useState<boolean>(true);
     const [isStoragePersistenceEnabled, setIsStoragePersistenceEnabled] = useState<boolean>(false);
     const [storageStats, setStorageStats] = useState<{
         totalSize: string;
@@ -113,7 +111,8 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Ref to track storage loading attempts
     const storageLoadAttempted = useRef<boolean>(false);
-
+    const { settings, isLoading: userSettingsLoading } = useUser();
+    const isAutoProcessingActuallyEnabled = settings?.auto_processing ?? false; // Default to false if no settings
     // Initialize PDF.js worker first
     useEffect(() => {
         const initializeWorker = async () => {
@@ -329,10 +328,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, []);
 
-    // Update auto-processing settings
-    useEffect(() => {
-        autoProcessManager.updateConfig({ isActive: isAutoProcessingEnabled });
-    }, [isAutoProcessingEnabled]);
 
     // Functions to manage active files (files currently displayed in the viewer)
     const addToActiveFiles = useCallback((file: File) => {
@@ -340,7 +335,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (prev.some(f => f.name === file.name && f.lastModified === file.lastModified)) {
                 return prev;
             }
-            return [...prev, file];
+            return [ file, ...prev];
         });
     }, []);
 
@@ -442,7 +437,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             // Otherwise add to array
-            const newFiles = [...prevFiles, file];
+            const newFiles = [file, ...prevFiles ];
 
             // Automatically set as current file if it's the first one
             if (prevFiles.length === 0) {
@@ -472,13 +467,12 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }, 100);
 
             // Queue file for auto-processing with current settings
-            if (isAutoProcessingEnabled) {
+            if (!userSettingsLoading && isAutoProcessingActuallyEnabled) {
                 processingQueue.current.push(file);
-
-                // Trigger queue processing with our state trigger
                 setQueueTrigger(prev => prev + 1);
-
-                console.log(`[FileContext] Queued new file for auto-processing: ${file.name}`);
+                console.log(`[FileContext] Queued new file for auto-processing (User Setting Enabled): ${file.name}`);
+            } else {
+                console.log(`[FileContext] Auto-processing disabled (User Setting: ${settings?.auto_processing}), skipping queue for: ${file.name}`);
             }
 
             // Store file in persistent storage if enabled
@@ -498,7 +492,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             return newFiles;
         });
-    }, [addToActiveFiles, isAutoProcessingEnabled, isStoragePersistenceEnabled, setCurrentFile]);
+    }, [addToActiveFiles, userSettingsLoading, isStoragePersistenceEnabled, setCurrentFile, settings?.auto_processing]);
 
     const addFiles = useCallback((newFiles: File[], replace = false) => {
         setFiles((prevFiles) => {
@@ -514,7 +508,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 )
             );
 
-            const updatedFiles = [...baseFiles, ...uniqueNewFiles];
+            const updatedFiles = [...uniqueNewFiles,...baseFiles];
 
             if ((replace || !currentFile) && updatedFiles.length > 0) {
                 setActiveFiles([])
@@ -561,18 +555,17 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
 
             // Queue new files for auto-processing with current settings
-            if (isAutoProcessingEnabled && uniqueNewFiles.length > 0) {
+            if (!userSettingsLoading && isAutoProcessingActuallyEnabled && uniqueNewFiles.length > 0) {
                 processingQueue.current.push(...uniqueNewFiles);
-
-                // Trigger queue processing with our state trigger
                 setQueueTrigger(prev => prev + 1);
-
-                console.log(`[FileContext] Queued ${uniqueNewFiles.length} new files for auto-processing`);
+                console.log(`[FileContext] Queued ${uniqueNewFiles.length} new files for auto-processing (User Setting Enabled)`);
+            } else {
+                console.log(`[FileContext] Auto-processing disabled (User Setting: ${settings?.auto_processing}), skipping queue for new files`);
             }
 
             return updatedFiles;
         });
-    }, [currentFile, addToActiveFiles, isAutoProcessingEnabled, isStoragePersistenceEnabled, setCurrentFile]);
+    }, [currentFile, addToActiveFiles, isStoragePersistenceEnabled, setCurrentFile, userSettingsLoading, settings?.auto_processing]);
 
 
     const removeFile = useCallback((fileIndex: number) => {
@@ -610,9 +603,10 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // If we removed the current file, select a new one
             if (currentFile === removedFile) {
+                // Select the next file, or the previous if we removed the last one, or null if empty
+                let newIndex = -1;
                 if (newFiles.length > 0) {
-                    // Select the next file, or the previous if we removed the last one
-                    const newIndex = fileIndex >= newFiles.length ? newFiles.length - 1 : fileIndex;
+                    newIndex = fileIndex >= newFiles.length ? newFiles.length - 1 : fileIndex;
                     setCurrentFile(newFiles[newIndex]);
                 } else {
                     setCurrentFile(null);
@@ -721,9 +715,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 toggleActiveFile,
                 isFileActive,
 
-                // Auto-processing settings
-                isAutoProcessingEnabled,
-                setAutoProcessingEnabled: setIsAutoProcessingEnabled,
 
                 // Storage-related properties and functions
                 isStoragePersistenceEnabled,

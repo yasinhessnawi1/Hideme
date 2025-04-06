@@ -9,6 +9,7 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
     margin-bottom: var(--spacing-md);
     position: relative;
     transition: all 0.3s ease;
+
 }
 
 .entity-select-header {
@@ -27,6 +28,7 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
 
 .entity-select-section:hover .entity-select-header h4 {
     color: var(--primary);
+
 }
 
 .color-dot {
@@ -41,6 +43,10 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
 
 .entity-select-section:hover .color-dot {
     box-shadow: 0 0 0 2px rgba(var(--foreground), 0.2);
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+    background-color: var(--background);
+    transition: background-color var(--transition-speed) var(--transition-function),
 }
 
 /* Entity detection header specific */
@@ -193,6 +199,7 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
     overflow: hidden;
     transition: all 0.3s ease;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+
 }
 
 .entities-by-section:hover {
@@ -269,9 +276,9 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
 .detect-button {
     width: 100%;
     padding: var(--spacing-md);
-    background-color: var(--primary);
-    color: var(--primary-foreground);
-    border: none;
+    background-color: var(--muted);
+    color: var(--primary);
+    border: 1px solid var(--primary);
     border-radius: var(--border-radius-md);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
@@ -301,6 +308,7 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
 .detect-button:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+
 }
 
 .detect-button:active:not(:disabled) {
@@ -311,6 +319,7 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
 .detect-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    border: 1px solid var(--destructive);
 }
 
 .progress-container {

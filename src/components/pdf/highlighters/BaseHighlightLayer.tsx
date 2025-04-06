@@ -253,6 +253,7 @@ function getTooltipContent(highlight: HighlightRect): string {
     }
 }
 
+// In BaseHighlightLayer.tsx, modify the React.memo comparison function
 export default React.memo(BaseHighlightLayer, (prevProps, nextProps) => {
     // Always re-render if the file key changes
     if (prevProps.fileKey !== nextProps.fileKey) {
@@ -269,13 +270,24 @@ export default React.memo(BaseHighlightLayer, (prevProps, nextProps) => {
         return false;
     }
 
+    // Re-render if viewport changes significantly
+    if (prevProps.viewport !== nextProps.viewport) {
+        return false;
+    }
+
+    // For entity layers, always re-render when entity highlights are involved
+    if (prevProps.layerClass === 'entity') {
+        // Always re-render entity layers to ensure fresh highlighting
+        // This is a critical fix for the highlighting issues
+        return false;
+    }
+
     // Re-render if the highlight count changes
     if (prevProps.highlights.length !== nextProps.highlights.length) {
         return false;
     }
 
-    // We need a more thorough comparison for search highlights
-    // since they might change even when count stays the same
+    // For search layers, do more thorough comparison
     if (prevProps.layerClass === 'search' && prevProps.highlights.length > 0) {
         // Create sets of IDs for comparison
         const prevIds = new Set(prevProps.highlights.map(h => h.id));

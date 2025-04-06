@@ -34,9 +34,9 @@ export interface UserUpdate {
  * @property {string} confirmPassword - Confirmation of new password
  */
 export interface PasswordChange {
-    currentPassword: string;
-    newPassword: string;
-    confirmPassword: string;
+    current_password: string;
+    new_password: string;
+    confirm_password: string;
 }
 
 /**
@@ -84,13 +84,13 @@ const userService = {
             const duration = performance.now() - startTime;
 
             console.log(`✅ [USER] User profile fetched successfully`, {
-                userId: response.data.id,
-                username: response.data.username,
-                email: response.data.email,
+                userId: response.data.data.id,
+                username: response.data.data.username,
+                email: response.data.data.email,
                 duration: `${duration.toFixed(2)}ms`
             });
 
-            return response.data;
+            return response.data.data;
         } catch (error: any) {
             const duration = performance.now() - startTime;
 

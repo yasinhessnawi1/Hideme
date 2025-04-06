@@ -311,8 +311,8 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
     const allSelected = selectedFiles.length === files.length && files.length > 0;
 
     return (
-        <>
-            <div className="dropdown-section">
+        <div className={`file-selector-container ${className ?? ''}`}>
+            <div className={`dropdown-section ${className ?? ''}`}>
                 <AutoProcessControls/>
             </div>
 
@@ -430,9 +430,9 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                             aria-label={isSelected ? "Deselect file" : "Select file"}
                                         >
                                             {isSelected ? (
-                                                <CheckSquare size={16} className="select-icon"/>
+                                                <CheckSquare size={16} className="select-file-icon"/>
                                             ) : (
-                                                <Square size={16} className="select-icon"/>
+                                                <Square size={16} className="select-file-icon"/>
                                             )}
                                         </button>
 
@@ -573,7 +573,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                     </div>
                 )}
             </div>
-        </>
+        </div>
     );
 };
 

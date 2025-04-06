@@ -10,8 +10,8 @@
     gap: var(--spacing-md);
     position: sticky;
     top: 0;
-    z-index: 100;
     transition: all var(--transition-speed) var(--transition-function);
+    z-index: 50;
 }
 
 .toolbar-section {

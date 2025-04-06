@@ -5,7 +5,7 @@
  * where needed. It integrates with the authentication context to determine user state
  * and handles redirects for authenticated and unauthenticated routes.
  */
-import React from 'react'
+import React, {JSX} from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import LandingPage from '../pages/LandingPage'
 import LoginPage from '../pages/LoginPage'
@@ -13,6 +13,7 @@ import PDFViewerPage from "../pages/PDFViewerPage";
 import HowToPage from "../pages/HowToPage";
 import FeaturesPage from "../pages/FeaturesPage";
 import AboutPage from "../pages/AboutPage";
+import UserSettingsPage from "../pages/SettingsPage"; // We'll create this page next
 import ProtectedRoute from './ProtectedRoute';
 import { useUserContext } from '../contexts/UserContext';
 
@@ -40,12 +41,12 @@ interface AppRouterProps {
  * @param {AppRouterProps} props - Component properties
  * @returns {JSX.Element} The configured router component
  */
-const AppRouter: React.FC<AppRouterProps> = ({ theme, toggleTheme }) => {
+const AppRouter = (): JSX.Element => {
     const { isAuthenticated } = useUserContext();
 
     return (
         <Routes>
-            <Route path="/" element={<LandingPage theme={theme} toggleTheme={toggleTheme} />} />
+            <Route path="/" element={<LandingPage />} />
 
             {/* Authentication routes with redirect if already logged in */}
             <Route
@@ -70,15 +71,25 @@ const AppRouter: React.FC<AppRouterProps> = ({ theme, toggleTheme }) => {
                 path="/playground"
                 element={
                     <ProtectedRoute>
-                        <PDFViewerPage theme={theme} toggleTheme={toggleTheme}/>
+                        <PDFViewerPage />
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* User settings route (protected) */}
+            <Route
+                path="/user/settings"
+                element={
+                    <ProtectedRoute>
+                        <UserSettingsPage />
                     </ProtectedRoute>
                 }
             />
 
             {/* Public routes */}
-            <Route path="/how-to" element={<HowToPage theme={theme} toggleTheme={toggleTheme} />} />
-            <Route path="/features" element={<FeaturesPage theme={theme} toggleTheme={toggleTheme} />} />
-            <Route path="/about" element={<AboutPage theme={theme} toggleTheme={toggleTheme} />} />
+            <Route path="/how-to" element={<HowToPage />} />
+            <Route path="/features" element={<FeaturesPage  />} />
+            <Route path="/about" element={<AboutPage  />} />
 
             {/* Fallback route */}
             <Route path="*" element={<Navigate to="/" replace />} />

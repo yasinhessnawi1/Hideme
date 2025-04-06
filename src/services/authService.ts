@@ -247,7 +247,7 @@ const authService = {
                 duration: `${duration.toFixed(2)}ms`
             });
 
-            return response.data;
+            return response.data.data;
         } catch (error: any) {
             const duration = performance.now() - startTime;
 

@@ -14,6 +14,7 @@
     margin-bottom: 8px;
 }
 
+
 .control-label {
     display: flex;
     align-items: center;
@@ -24,7 +25,18 @@
 .control-label input[type="checkbox"] {
     margin-right: 10px;
 }
+.control-label input[type="checkbox"]:hover {
+    background-color: var(--muted);
+}
+.control-label.disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
 
+.loading-indicator {
+    margin-left: 8px;
+    color: var(--primary);
+}
 .label-text {
     font-weight: var(--font-weight-medium);
 }
@@ -51,7 +63,7 @@
 }
 
 .toggle-advanced-button:hover {
-    background-color: var(--input-hover-border-color);
+    scale: 1.03;
 }
 
 .toggle-advanced-button span {

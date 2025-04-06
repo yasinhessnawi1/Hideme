@@ -4,6 +4,7 @@ import LoginForm from '../components/forms/LoginForm';
 // @ts-ignore
 import login_video from '../assets/login-video.mp4';
 import { useSearchParams, useLocation } from 'react-router-dom';
+import Navbar from "../components/static/Navbar";
 
 interface LoginPageProps {
   initialSignUp?: boolean;
@@ -39,7 +40,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ initialSignUp = false }) => {
   }, [searchParams, location, initialSignUp]);
 
   return (
+      <>
+
+      <Navbar />
       <div className="login-page">
+
         {/* Left section: contains the form and related text */}
         <div className="login-left">
           <div className="login-container">
@@ -76,6 +81,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ initialSignUp = false }) => {
           />
         </div>
       </div>
+      </>
   );
 };
 

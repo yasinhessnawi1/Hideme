@@ -197,7 +197,6 @@ export const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fi
         setFileRenderedPages
     } = usePDFViewerContext();
 
-    const { dumpAnnotationStats } = useHighlightContext();
     const [loadError, setLoadError] = useState<Error | null>(null);
 
     // Track if this component has loaded the PDF
@@ -276,13 +275,11 @@ export const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fi
                 setRenderedPages(pagesToRender);
             }
 
-            // For debugging
-            dumpAnnotationStats();
         } catch (error) {
             console.error(`[PDFDocumentWrapper] Error in onDocumentLoadSuccess:`, error);
             setLoadError(error instanceof Error ? error : new Error('Unknown error loading PDF'));
         }
-    }, [setNumPages, setRenderedPages, setFileNumPages, setFileRenderedPages, dumpAnnotationStats]);
+    }, [setNumPages, setRenderedPages, setFileNumPages, setFileRenderedPages]);
 
     const onDocumentLoadError = useCallback((error: Error) => {
         console.error(`[PDFDocumentWrapper] Error loading document:`, error);

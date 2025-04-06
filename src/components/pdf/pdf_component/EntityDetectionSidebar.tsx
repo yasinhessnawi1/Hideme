@@ -94,7 +94,7 @@ const geminiOptions: OptionType[] = [
 ];
 
 // Define model colors for dots
-const MODEL_COLORS = {
+export const MODEL_COLORS = {
     presidio: '#f8ca4c', // Yellow
     gliner: '#f67575',   // Red
     gemini: '#7571ff'    // Blue
@@ -154,7 +154,7 @@ const customSelectStyles = {
 };
 
 // Component for the colored dot indicator
-const ColorDot: React.FC<{ color: string }> = ({ color }) => (
+export const ColorDot: React.FC<{ color: string }> = ({ color }) => (
     <span
         className="color-dot"
         style={{

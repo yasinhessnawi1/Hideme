@@ -5,23 +5,34 @@ import { PDFViewerProvider } from './contexts/PDFViewerContext';
 import { EditProvider } from './contexts/EditContext';
 import { HighlightProvider } from './contexts/HighlightContext';
 import { UserContextProvider } from './contexts/UserContext';
-import useTheme from './hooks/useTheme';
+import { ThemeProvider } from './contexts/ThemeContext';
+import ErrorBoundary from "./contexts/ErrorBoundary";
+import {BatchSearchProvider} from "./contexts/SearchContext";
+import AutoProcessProvider from "./contexts/AutoProcessProvider";
 
 const App: React.FC = () => {
-    const { theme, toggleTheme } = useTheme('light');
 
     return (
-        <UserContextProvider>
-            <FileProvider>
-                <PDFViewerProvider>
-                    <EditProvider>
-                        <HighlightProvider>
-                            <AppRouter theme={theme} toggleTheme={toggleTheme} />
-                        </HighlightProvider>
-                    </EditProvider>
-                </PDFViewerProvider>
-            </FileProvider>
-        </UserContextProvider>
+        <ErrorBoundary>
+            <UserContextProvider>
+                <ThemeProvider >
+                    <FileProvider>
+                        <PDFViewerProvider>
+                            <HighlightProvider>
+                                <EditProvider>
+                                    <BatchSearchProvider>
+                                        <AutoProcessProvider>
+                                            <AppRouter/>
+                                        </AutoProcessProvider>
+                                    </BatchSearchProvider>
+                                </EditProvider>
+                            </HighlightProvider>
+                        </PDFViewerProvider>
+                    </FileProvider>
+                </ThemeProvider>
+            </UserContextProvider>
+        </ErrorBoundary>
+
     );
 };
 

@@ -1,0 +1,923 @@
+/*
+  Settings Page Styles
+  Based on the provided settings.css content.
+
+  NOTE: This file redefines CSS variables (:root, .dark).
+  This might override your global theme variables defined elsewhere (e.g., index.css).
+  Consider consolidating variable definitions into your global CSS for better consistency.
+*/
+
+/* Base styles - May override global variables */
+/* Layout Utilities */
+.container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem; /* Default padding */
+    padding-right: 1rem;
+}
+
+/* Responsive Container Widths */
+@media (min-width: 640px) { .container { max-width: 640px; } }
+@media (min-width: 768px) { .container { max-width: 768px; } }
+@media (min-width: 1024px) { .container { max-width: 1024px; } }
+@media (min-width: 1280px) { .container { max-width: 1280px; } }
+
+.mx-auto { margin-left: auto; margin-right: auto; }
+.py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.max-w-5xl { max-width: 64rem; } /* For the main content area */
+
+/* Margin Utilities */
+.mb-6 { margin-bottom: 1.5rem; }
+.mb-8 { margin-bottom: 2rem; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.mt-6 { margin-top: 1.5rem; }
+.mr-1 { margin-right: 0.25rem; }
+.mr-2 { margin-right: 0.5rem; }
+.ml-auto { margin-left: auto; }
+
+/* Sizing Utilities */
+.w-full { width: 100%; }
+.h-2 { height: 0.5rem; }
+.h-4 { height: 1rem; }
+.h-12 { height: 3rem; }
+.h-16 { height: 4rem; }
+.h-24 { height: 6rem; }
+.w-24 { width: 6rem; }
+.h-full { height: 100%; }
+.min-h-screen { min-height: 100vh; }
+
+/* Flexbox & Grid Utilities */
+.flex { display: flex; }
+.flex-1 { flex: 1 1 0%; }
+.flex-col { flex-direction: column; }
+.flex-shrink-0 { flex-shrink: 0; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.gap-4 { gap: 1rem; }
+.gap-6 { gap: 1.5rem; }
+.grid { display: grid; }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+/* Spacing Utilities */
+/* Apply margin between direct children */
+.space-y-0\.5 > * + * { margin-top: 0.125rem; }
+.space-y-2 > * + * { margin-top: 0.5rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-x-1 > * + * { margin-left: 0.25rem; }
+.space-x-2 > * + * { margin-left: 0.5rem; }
+.space-x-6 > * + * { margin-left: 1.5rem; }
+
+/* Typography Utilities */
+.text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-base { font-size: 1rem; line-height: 1.5rem; } /* Added base size */
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-muted-foreground { color: var(--muted-foreground); }
+.text-destructive { color: var(--destructive); }
+.leading-none { line-height: 1; }
+
+/* Background Utilities */
+.bg-background { background-color: var(--background); }
+.bg-muted { background-color: var(--muted); }
+.bg-amber-50 { background-color: #fffbeb; } /* Specific color for alerts */
+.bg-amber-950 { background-color: #451a03; } /* Dark amber for dark mode */
+.text-amber-800 { color: #92400e; }
+.text-amber-300 { color: #fcd34d; }
+
+/* Border Utilities */
+.border { border: 1px solid var(--border); }
+.border-b { border-bottom: 1px solid var(--border); }
+.border-destructive { border-color: var(--destructive); }
+.border-dashed { border-style: dashed; }
+.rounded-md { border-radius: 0.375rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Shadow Utilities */
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+.shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+
+/* Padding Utilities */
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 0.75rem; }
+.p-4 { padding: 1rem; }
+.p-6 { padding: 1.5rem; }
+.py-0 { padding-top: 0; padding-bottom: 0; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.pt-2 { padding-top: 0.5rem; }
+.pl-8 { padding-left: 2rem; } /* Used in accordions */
+.go-back-button {
+    /* Positioning - Simple approach: Place before title block */
+    display: inline-flex; /* Use inline-flex to contain the icon properly */
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem; /* Add space below the button, above the title */
+    margin-left: -0.5rem; /* Align slightly left of the main content padding */
+
+    /* Appearance */
+    background: none;
+    border: none;
+    padding: 0.5rem; /* Make the clickable area larger than just the icon */
+    cursor: pointer;
+    color: var(--muted-foreground); /* Use a less prominent color */
+    border-radius: 50%; /* Make it round */
+    width: 40px; /* Explicit size */
+    height: 40px;
+    transition: background-color 0.2s, color 0.2s;
+    outline: none; /* Remove default outline */
+}
+
+.go-back-button:hover {
+    background-color: var(--muted); /* Use muted background on hover */
+    color: var(--foreground); /* Use main text color on hover */
+}
+
+.go-back-button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+}
+
+
+.settings-container {
+  position: relative;
+  padding-top: 4rem; // Add padding to container top if button is absolute
+}
+
+.go-back-button {
+  position: absolute;
+  top: 1.5rem; // Adjust as needed
+  left: 1rem;  // Adjust based on container padding
+  z-index: 10; // Ensure it's above other content if needed
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: var(--muted-foreground);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  transition: background-color 0.2s, color 0.2s;
+}
+.go-back-button:hover {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
+/* Card Component Styles */
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--card);
+    color: var(--card-foreground);
+    border-radius: var(--radius); /* Use variable */
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm); /* Use variable */
+    overflow: hidden; /* Prevent content overflow */
+}
+
+.card-header {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    padding-bottom: 0; /* Remove bottom padding from header */
+    gap: 0.25rem; /* Smaller gap */
+}
+
+.card-title {
+    font-size: 1.25rem; /* text-xl */
+    font-weight: 600; /* font-semibold */
+    line-height: 1.2; /* Tighter line height */
+    letter-spacing: -0.01em; /* Slight tightening */
+}
+
+.card-description {
+    color: var(--muted-foreground);
+    font-size: 0.875rem; /* text-sm */
+    margin-top: 0.25rem; /* mt-1 */
+}
+
+.card-content {
+    padding: 1.5rem;
+    /* No padding-top: 0; anymore, spacing handled by elements inside */
+    flex-grow: 1; /* Allow content to grow */
+}
+
+/* Tabs Component Styles */
+.tabs {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.tabs-list {
+    display: flex; /* Use flex for horizontal layout */
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    gap: 0.25rem; /* Small gap between tabs */
+    margin-bottom: 1.5rem; /* space below tabs */
+    background-color: var(--muted);
+    border-radius: var(--radius);
+    padding: 0.25rem;
+    border: 1px solid var(--border); /* Add subtle border */
+}
+
+.tab-trigger {
+    flex-grow: 1; /* Make tabs share space */
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    font-size: 0.875rem; /* text-sm */
+    line-height: 1.25rem;
+    font-weight: 500; /* font-medium */
+    padding: 0.6rem 1rem; /* Slightly more vertical padding */
+    background-color: transparent;
+    color: var(--muted-foreground);
+    border: none;
+    border-radius: 0.375rem; /* rounded-md */
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+    outline: none; /* Remove default outline */
+}
+
+.tab-trigger:hover:not([data-state="active"]) {
+    background-color: rgba(0, 0, 0, 0.05); /* Subtle hover */
+    color: var(--foreground);
+}
+.dark .tab-trigger:hover:not([data-state="active"]) {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+
+.tab-trigger[data-state="active"] {
+    background-color: var(--background);
+    color: var(--primary); /* Use primary color for active text */
+    box-shadow: var(--shadow-sm); /* Use variable */
+    font-weight: 600; /* font-semibold */
+}
+
+/* Make tabs responsive */
+@media (max-width: 768px) {
+    .tabs-list {
+        display: grid; /* Switch to grid on smaller screens */
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Responsive grid */
+    }
+    .tab-trigger {
+        padding: 0.75rem 0.5rem; /* Adjust padding */
+    }
+}
+
+
+.tab-content {
+    margin-top: 1rem; /* Space between tabs list and content */
+    /* The active state is handled by SettingsLayout.tsx conditional rendering */
+    display: none; /* Hide inactive tabs */
+}
+.tab-content.active { /* Add a class for the active tab */
+    display: block;
+    animation: fadeIn 0.3s ease-out;
+}
+
+
+/* Form Element Styles */
+.form-group {
+    margin-bottom: 1.25rem; /* Consistent spacing */
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem; /* text-sm */
+    font-weight: 500; /* font-medium */
+    margin-bottom: 0.5rem;
+    color: var(--foreground);
+}
+
+.form-input {
+    display: flex;
+    width: 100%;
+    height: 2.5rem; /* Consistent height */
+    padding: 0 0.75rem;
+    background-color: var(--background);
+    color: var(--foreground);
+    border: 1px solid var(--input);
+    border-radius: 0.375rem; /* rounded-md */
+    font-size: 0.875rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary); /* Use primary color for ring */
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb, 15, 23, 42), 0.2); /* Use primary color with opacity */
+}
+
+/* Add primary RGB values to root if not already defined */
+/* :root { --primary-rgb: 15, 23, 42; } /* Example, use your actual primary color RGB */
+/* .dark { --primary-rgb: 248, 250, 252; } /* Example for dark */
+
+.form-input::placeholder {
+    color: var(--muted-foreground);
+    opacity: 0.8;
+}
+
+.form-input:disabled {
+    background-color: var(--muted);
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.form-helper {
+    font-size: 0.75rem; /* text-xs */
+    color: var(--muted-foreground);
+    margin-top: 0.35rem;
+}
+
+/* Switch Component Styles */
+.switch-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0; /* Add some padding */
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px; /* Slightly smaller */
+    height: 22px;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--muted);
+    border: 1px solid var(--border);
+    transition: background-color 0.3s ease;
+    border-radius: 22px; /* Fully rounded */
+}
+
+.switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px; /* Smaller handle */
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease;
+    border-radius: 50%;
+}
+
+.dark .switch-slider:before {
+    background-color: #ccc; /* Darker handle for dark mode */
+}
+
+input:checked + .switch-slider {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+input:focus + .switch-slider {
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb, 15, 23, 42), 0.3);
+}
+
+input:checked + .switch-slider:before {
+    transform: translateX(18px); /* Adjust translation distance */
+    background-color: white;
+}
+
+input:disabled + .switch-slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Button Component Styles */
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    border-radius: 0.375rem; /* rounded-md */
+    font-size: 0.875rem; /* text-sm */
+    font-weight: 500; /* font-medium */
+    height: 2.5rem; /* Standard height */
+    padding-left: 1rem;
+    padding-right: 1rem;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+    cursor: pointer;
+    border: 1px solid transparent;
+    user-select: none; /* Prevent text selection */
+    outline: none; /* Remove default outline */
+}
+
+.button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+
+.button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.button-primary {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
+}
+
+.button-primary:hover:not(:disabled) {
+    opacity: 0.9;
+    /* background-color: var(--primary-hover); Optional darker hover */
+}
+
+.button-outline {
+    background-color: transparent;
+    border: 1px solid var(--border);
+    color: var(--foreground);
+}
+
+.button-outline:hover:not(:disabled) {
+    background-color: var(--muted);
+    border-color: var(--input); /* Slightly darker border on hover */
+}
+
+.button-destructive {
+    background-color: var(--destructive);
+    color: var(--destructive-foreground);
+    border-color: var(--destructive);
+}
+
+.button-destructive:hover:not(:disabled) {
+    opacity: 0.9;
+    /* background-color: darken(var(--destructive), 10%); */
+}
+
+.button-ghost {
+    background-color: transparent;
+    border-color: transparent;
+    color: var(--foreground);
+}
+
+.button-ghost:hover:not(:disabled) {
+    background-color: var(--muted);
+    color: var(--foreground); /* Ensure text color remains */
+}
+.button-ghost.text-destructive:hover:not(:disabled) {
+    background-color: var(--destructive-bg);
+    color: var(--destructive);
+}
+
+
+/* Button Sizes */
+.button-sm {
+    height: 2rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    font-size: 0.75rem; /* text-xs */
+}
+
+.button-lg {
+    height: 3rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    font-size: 1rem; /* text-base */
+}
+
+/* Icon within Button */
+.button-icon {
+    margin-right: 0.5rem;
+    width: 1em; /* Make icon size relative to font size */
+    height: 1em;
+}
+.button-icon:only-child { /* If only icon, remove margin */
+    margin-right: 0;
+}
+.button .animate-spin { /* Ensure spinner within button aligns */
+    margin-right: 0.5rem;
+}
+.button.button-sm .button-icon {
+    margin-right: 0.3rem;
+}
+
+/* Separator Component Style */
+.separator {
+    height: 1px;
+    background-color: var(--border);
+    margin: 1.5rem 0; /* More vertical margin */
+}
+
+/* Alert Component Styles */
+.alert {
+    position: relative;
+    display: flex;
+    gap: 0.75rem; /* Gap between icon and content */
+    padding: 1rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background-color: var(--background); /* Use card background */
+}
+
+.alert-destructive {
+    background-color: var(--destructive-bg); /* Use variable */
+    border-color: var(--destructive);
+    color: var(--destructive);
+}
+/* Add success variant if needed */
+.alert-success {
+    background-color: rgba(var(--primary-rgb, 15, 23, 42), 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.alert-icon {
+    flex-shrink: 0; /* Prevent icon from shrinking */
+    height: 1.25rem; /* Slightly larger icon */
+    width: 1.25rem;
+    margin-top: 0.1rem; /* Align icon better with text */
+}
+
+.alert-title {
+    font-weight: 600; /* font-semibold */
+    margin-bottom: 0.25rem;
+    line-height: 1.3;
+}
+
+.alert-description {
+    font-size: 0.875rem; /* text-sm */
+    line-height: 1.4;
+    color: var(--foreground); /* Default text color */
+}
+.alert-destructive .alert-description {
+    color: var(--destructive); /* Destructive text color */
+}
+.alert-success .alert-description {
+    color: var(--primary); /* Primary text color for success */
+}
+
+
+/* Avatar Component Styles */
+.avatar {
+    position: relative;
+    display: inline-flex; /* Changed to inline-flex */
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    width: 4rem; /* Slightly smaller default */
+    height: 4rem;
+    border-radius: 9999px; /* rounded-full */
+    background-color: var(--muted);
+    border: 2px solid var(--background); /* Add border to lift it */
+    box-shadow: var(--shadow-sm);
+}
+
+.avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensure image covers area */
+}
+
+.avatar-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background-color: var(--muted);
+    color: var(--muted-foreground);
+    font-weight: 500;
+}
+
+/* Progress Component Style */
+.progress {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--muted);
+    border-radius: 9999px;
+    height: 0.5rem;
+    width: 100%;
+}
+
+.progress-value {
+    height: 100%;
+    background-color: var(--primary);
+    transition: width 0.4s ease; /* Smoother transition */
+    border-radius: 9999px;
+}
+
+/* Badge Component Styles */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px; /* rounded-full */
+    padding: 0.15rem 0.6rem; /* Adjust padding */
+    height: 1.4rem; /* Slightly taller */
+    font-size: 0.7rem; /* Slightly smaller text */
+    font-weight: 500; /* font-medium */
+    line-height: 1;
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.badge-outline {
+    background-color: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted-foreground); /* Muted color for outline */
+    font-weight: 400;
+}
+
+/* Accordion Component Styles */
+.accordion {
+    width: 100%;
+}
+
+.accordion-item {
+    border-bottom: 1px solid var(--border);
+}
+.accordion-item:last-child {
+    border-bottom: none; /* Remove border from last item */
+}
+
+.accordion-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 1rem 0; /* Consistent padding */
+    text-align: left;
+    background: none;
+    border: none;
+    font-size: 1rem; /* text-base */
+    font-weight: 500; /* font-medium */
+    color: var(--foreground);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.accordion-trigger:hover {
+    color: var(--primary);
+}
+
+.accordion-trigger-icon {
+    transition: transform 0.2s ease-in-out;
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+}
+.accordion-trigger[data-state="open"] .accordion-trigger-icon {
+    transform: rotate(180deg);
+}
+
+/* Accordion content animation */
+.accordion-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, padding-top 0.3s ease-out, padding-bottom 0.3s ease-out;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.accordion-content.open { /* Add class for open state */
+    max-height: 500px; /* Adjust as needed, should be larger than content */
+    padding-bottom: 1rem; /* Add padding when open */
+}
+
+/* Checkbox Component Styles */
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer; /* Make whole container clickable */
+    padding: 0.25rem 0; /* Add slight vertical padding */
+}
+
+.checkbox {
+    appearance: none;
+    display: inline-flex; /* Use inline-flex */
+    align-items: center;
+    justify-content: center;
+    width: 1.1rem; /* Slightly larger */
+    height: 1.1rem;
+    border: 1px solid var(--input); /* Use input border */
+    border-radius: 0.25rem;
+    background-color: var(--background);
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.checkbox:hover {
+    border-color: var(--primary);
+}
+
+.checkbox:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb, 15, 23, 42), 0.2);
+}
+
+.checkbox:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* Checkmark using ::after pseudo-element */
+.checkbox:checked::after {
+    content: '';
+    display: block;
+    width: 0.3rem; /* Adjust checkmark size */
+    height: 0.6rem;
+    border: solid var(--primary-foreground);
+    border-width: 0 2px 2px 0;
+    transform: translateY(-1px) rotate(45deg); /* Position checkmark */
+}
+
+.checkbox:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: var(--border);
+}
+.checkbox:disabled:hover {
+    border-color: var(--border);
+}
+
+.checkbox-label {
+    font-size: 0.875rem; /* text-sm */
+    color: var(--foreground);
+    cursor: pointer;
+    user-select: none; /* Prevent text selection */
+}
+
+/* Select (Dropdown) Component Styles */
+.select-container {
+    position: relative;
+}
+
+.select {
+    display: flex; /* Use flex for consistency */
+    width: 100%;
+    height: 2.5rem; /* Same as input */
+    padding: 0 2.5rem 0 0.75rem; /* Adjust padding for icon */
+    background-color: var(--background);
+    color: var(--foreground);
+    border: 1px solid var(--input);
+    border-radius: 0.375rem; /* rounded-md */
+    font-size: 0.875rem; /* text-sm */
+    appearance: none; /* Remove default arrow */
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb, 15, 23, 42), 0.2);
+}
+
+.select:disabled {
+    background-color: var(--muted);
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.select-icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--muted-foreground); /* Use muted color */
+    transition: transform 0.2s;
+}
+.select-container:focus-within .select-icon { /* Rotate icon on focus */
+    /* transform: translateY(-50%) rotate(180deg); */ /* Optional rotation */
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+    position: relative;
+    width: 90%; /* Responsive width */
+    max-width: 32rem; /* Max width */
+    background-color: var(--background);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-lg);
+    animation: slideIn 0.3s ease-out; /* Add slide-in animation */
+    max-height: 90vh; /* Prevent modal from being too tall */
+    overflow-y: auto; /* Allow scrolling if content is too long */
+}
+
+/* Responsive Styles */
+@media (max-width: 767px) { /* Mobile styles */
+    .flex-col-mobile {
+        flex-direction: column;
+    }
+    .hidden-mobile {
+        display: none;
+    }
+    .grid-cols-2 { /* Force single column on mobile for checkbox grids etc */
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+    .md\:grid-cols-3 {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+    .card-content .md\:flex-row {
+        flex-direction: column; /* Stack avatar and form on mobile in AccountSettings */
+    }
+    .card-content .md\:items-end {
+        align-items: center; /* Center avatar stack */
+    }
+}
+
+@media (min-width: 768px) { /* Tablet and Desktop */
+    .md\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .md\:grid-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .md\:flex-row {
+        flex-direction: row;
+    }
+    .md\:items-end { /* Restore alignment for desktop */
+        align-items: flex-end;
+    }
+
+    .md\:block { display: block; }
+    .md\:hidden { display: none; }
+    .md\:min-h-min { min-height: min-content; }
+}
+
+/* Dark Mode Specific Alert Backgrounds */
+.dark .alert-destructive {
+    background-color: rgba(239, 68, 68, 0.15); /* Slightly more opaque */
+}
+.dark .alert-success {
+    background-color: rgba(var(--primary-rgb, 39, 171, 111), 0.15); /* Use primary RGB */
+}
+
+/* Additional helper for loading spinners */
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Make settings container full height potentially */
+.settings-container {
+    min-height: calc(100vh - var(--header-height, 60px)); /* Adjust header height if you have one */
+}

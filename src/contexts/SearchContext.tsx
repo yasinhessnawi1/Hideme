@@ -10,7 +10,7 @@ import highlightManager from '../utils/HighlightManager';
 interface SearchQuery {
     term: string;
     caseSensitive: boolean;
-    isRegex: boolean;
+    isAiSearch: boolean;
 }
 
 interface SearchState {
@@ -35,7 +35,10 @@ interface BatchSearchContextProps {
     batchSearch: (
         files: File[],
         searchTerm: string,
-        options?: { caseSensitive?: boolean; regex?: boolean }
+        options?: { case_sensitive?: boolean;
+            isCaseSensitive?: boolean;
+            isAiSearch?: boolean;
+            ai_search?: boolean; }
     ) => Promise<void>;
 
     clearSearch: (searchTerm?: string) => void;
@@ -200,7 +203,10 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const batchSearch = useCallback(async (
             files: File[],
             searchTerm: string,
-            options: { caseSensitive?: boolean; regex?: boolean } = {}
+            options: { case_sensitive?: boolean;
+                isCaseSensitive?: boolean;
+                isAiSearch?: boolean;
+                ai_search?: boolean; } = {}
         ) => {
             if (!files.length || !searchTerm.trim()) {
                 setSearchState(prev => ({
@@ -213,8 +219,8 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
             // Check if this search is already active (with same case sensitivity and regex options)
             const isExistingSearch = searchStateRef.current.activeQueries.some(
                 query => query.term === searchTerm &&
-                    query.caseSensitive === !!options.caseSensitive &&
-                    query.isRegex === !!options.regex
+                    query.caseSensitive === !!options.isCaseSensitive &&
+                    query.isAiSearch === !!options.isAiSearch
             );
 
             // If it's already an active search, clear existing highlights first to prevent duplicates
@@ -262,8 +268,8 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
             try {
                 // Execute the search using the PDF API hook
                 const response = await runBatchSearch(files, searchTerm, {
-                    isCaseSensitive: options.caseSensitive,
-                    isRegexSearch: options.regex
+                    isCaseSensitive: options.isCaseSensitive,
+                    isAiSearch: options.isAiSearch,
                 });
 
                 // Transform API results to highlight-compatible format
@@ -272,8 +278,8 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 // Add the new search query to active queries
                 const newQuery: SearchQuery = {
                     term: searchTerm,
-                    caseSensitive: !!options.caseSensitive,
-                    isRegex: !!options.regex
+                    caseSensitive: !!options.isCaseSensitive,
+                    isAiSearch: !!options.isAiSearch
                 };
 
                 // Update the search results in state

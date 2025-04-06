@@ -26,7 +26,7 @@ export class EntityHighlightManager {
     // Track reset operations to prevent cascades
     private static readonly lastResetTimestamps: Map<string, number> = new Map();
     // Define a reset throttle time (milliseconds)
-    private static readonly RESET_THROTTLE_TIME = 2000; // 2 seconds
+    private static readonly RESET_THROTTLE_TIME = 500; // 0.5
 
     constructor(
         pageNumber: number,
@@ -168,11 +168,21 @@ export class EntityHighlightManager {
     public processHighlights(): void {
         const fileMarker = this.fileKey ?? 'default';
 
-        // Verify that the detection mapping belongs to this file
+        // Check if this is an auto-processed file
+        const isAutoProcessed = sessionStorage.getItem(`auto-processed-${fileMarker}`) === 'true';
+
+        // Verify that the detection mapping belongs to this file - but allow auto-processed to proceed
         if (this.detectionMapping?.fileKey &&
-            this.detectionMapping.fileKey !== fileMarker) {
+            this.detectionMapping.fileKey !== fileMarker && !isAutoProcessed) {
             console.warn(`[EntityDebug] Detection mapping belongs to file ${this.detectionMapping.fileKey} but processing for ${fileMarker}, skipping`);
             return;
+        }
+        
+        // For auto-processed files, update the fileKey to match this file if needed
+        if (isAutoProcessed && this.detectionMapping?.fileKey && 
+            this.detectionMapping.fileKey !== fileMarker) {
+            console.log(`[EntityDebug] Auto-processed file. Fixing detection mapping fileKey from ${this.detectionMapping.fileKey} to ${fileMarker}`);
+            this.detectionMapping.fileKey = fileMarker;
         }
 
         // Check if this page has already been processed for this file

@@ -21,8 +21,10 @@ interface UseHighlightsProps {
 // GLOBAL STATE to track processed pages across ALL components
 // This is critical for preventing processing loops
 const GLOBAL_PROCESSED_PAGES = new Map<string, Set<number>>();
-// Set a very aggressive throttle time to break processing loops
-const GLOBAL_THROTTLE_TIME = 5000; // 5 seconds between processing same page
+// Set a throttle time to break processing loops, but allow for auto-processed files
+const GLOBAL_THROTTLE_TIME = 500; // 0.5 seconds between processing same page
+// Special lower throttle time for auto-processed files
+const AUTO_PROCESS_THROTTLE_TIME = 100; // 0.1 seconds between processing auto-processed files
 const GLOBAL_LAST_PROCESSED = new Map<string, number>();
 
 // Add the global reset function type to the Window interface
@@ -207,10 +209,14 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
         const now = Date.now();
         const key = `${fileKey}-${page}`;
         const lastProcessed = GLOBAL_LAST_PROCESSED.get(key) ?? 0;
+        
+        // Check if this is an auto-processed file (needs shorter throttle time)
+        const isAutoProcessed = sessionStorage.getItem(`auto-processed-${fileKey}`) === 'true';
+        const throttleTime = isAutoProcessed ? AUTO_PROCESS_THROTTLE_TIME : GLOBAL_THROTTLE_TIME;
 
         // If too recent, skip processing
-        if (now - lastProcessed < GLOBAL_THROTTLE_TIME) {
-            console.log(`[useHighlights] Throttling processing for page ${page} of file ${fileKey} - last processed ${now - lastProcessed}ms ago`);
+        if (now - lastProcessed < throttleTime) {
+            console.log(`[useHighlights] Throttling processing for page ${page} of file ${fileKey} - last processed ${now - lastProcessed}ms ago (${isAutoProcessed ? 'auto-processed' : 'standard'} mode)`);
             return false;
         }
 
@@ -252,9 +258,13 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
     const handleResetWithThrottle = useCallback((eventFileKey: string, resetType: string): boolean => {
         const now = Date.now();
         const lastReset = lastResetTimeRef.current.get(eventFileKey) ?? 0;
+        
+        // Check if this is an auto-processed file (needs special handling)
+        const isAutoProcessed = sessionStorage.getItem(`auto-processed-${eventFileKey}`) === 'true';
+        const throttleTime = isAutoProcessed ? AUTO_PROCESS_THROTTLE_TIME : RESET_THROTTLE_TIME;
 
-        // Skip if this file was reset too recently
-        if (now - lastReset < RESET_THROTTLE_TIME) {
+        // Skip if this file was reset too recently, unless it's specifically an auto-process mapping event
+        if (now - lastReset < throttleTime && resetType !== 'mapping-applied' && !isAutoProcessed) {
             console.log(`[useHighlights] Throttling reset for file ${eventFileKey} - last reset was ${now - lastReset}ms ago`);
             return false;
         }
@@ -265,9 +275,11 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
         // Reset processed entity pages
         processedEntityPagesRef.current.delete(eventFileKey);
 
-        // Clear global tracking for this file if this is a force reset
-        if (resetType === 'force-reset' || resetType === 'new-file-init') {
+        // Clear global tracking for this file if this is a force reset or auto-processed mapping
+        if (resetType === 'force-reset' || resetType === 'new-file-init' || 
+            resetType === 'mapping-applied' || isAutoProcessed) {
             GLOBAL_PROCESSED_PAGES.delete(eventFileKey);
+            console.log(`[useHighlights] Cleared global processing tracking for file ${eventFileKey} (${resetType})`);
         }
 
         console.log(`[useHighlights] Reset processed entity pages for file ${eventFileKey} (${resetType})`);
@@ -421,36 +433,67 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
             const eventFileKey = detail.fileKey;
             const source = detail.source || 'unknown';
             const forceProcess = detail.forceProcess || false;
+            const runId = detail.runId || 'unknown';
 
             if (!eventFileKey || !fileKey) return;
 
             // Only process if this applies to our file
             if (eventFileKey === fileKey) {
-                console.log(`[useHighlights] Detection completed for file: ${eventFileKey} from ${source}`);
+                console.log(`[useHighlights] Detection completed for file: ${eventFileKey} from ${source} (runId: ${runId})`);
 
-                // Clear global processing tracking on detection completion
-                if (forceProcess) {
+                // Check if this is an auto-processed file
+                const isAutoProcessed = sessionStorage.getItem(`auto-processed-${eventFileKey}`) === 'true';
+
+                // Always clear global processing for auto-processed or force process
+                if (forceProcess || isAutoProcessed || source.includes('auto-process')) {
                     GLOBAL_PROCESSED_PAGES.delete(eventFileKey);
+                    console.log(`[useHighlights] Cleared global processing for auto-processed file: ${eventFileKey}`);
                 }
 
-                // Use throttled reset to prevent cascades
+                // Use throttled reset with reduced throttling for auto-processed files
                 handleResetWithThrottle(eventFileKey, `detection-complete-${source}`);
+                
+                // For auto-processed files, force a delay then trigger a second reset to ensure all highlights appear
+                if (isAutoProcessed || source.includes('auto-process')) {
+                    setTimeout(() => {
+                        console.log(`[useHighlights] Delayed second reset for auto-processed file: ${eventFileKey}`);
+                        handleResetWithThrottle(eventFileKey, 'auto-process-delayed-reset');
+                    }, 400);
+                }
             }
         };
 
-        // Handler for detection mapping completed events
+        // Handler for detection mapping events
         const handleApplyDetectionMappingCompleted = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { fileKey: eventFileKey } = customEvent.detail || {};
+            const detail = customEvent.detail || {};
+            const eventFileKey = detail.fileKey;
+            const source = detail.source || 'unknown';
+            const runId = detail.runId || 'unknown';
+            const mapping = detail.mapping || null;
 
             if (!eventFileKey || !fileKey) return;
 
             // Only process if this applies to our file
             if (eventFileKey === fileKey) {
-                console.log(`[useHighlights] Mapping applied for file: ${eventFileKey}`);
+                console.log(`[useHighlights] Mapping applied for file: ${eventFileKey} from ${source} (runId: ${runId})`);
 
-                // Clear global processing tracking on mapping completion
+                // Check if this is an auto-processed file
+                const isAutoProcessed = sessionStorage.getItem(`auto-processed-${eventFileKey}`) === 'true';
+
+                // Always clear global processing tracking on mapping completion
                 GLOBAL_PROCESSED_PAGES.delete(eventFileKey);
+                
+                // If this is auto-processed, ensure mapping has correct fileKey
+                if (isAutoProcessed && mapping && mapping.fileKey && mapping.fileKey !== eventFileKey) {
+                    console.log(`[useHighlights] Auto-processed detection mapping had mismatched fileKey. Fixing from ${mapping.fileKey} to ${eventFileKey}`);
+                    mapping.fileKey = eventFileKey;
+                }
+
+                // Special handling for auto-processed files
+                if (isAutoProcessed || source === 'auto-process') {
+                    console.log(`[useHighlights] Auto-processed detection mapping received - triggering reset`);
+                }
 
                 // Use throttled reset to prevent cascades
                 handleResetWithThrottle(eventFileKey, 'mapping-applied');
@@ -460,13 +503,13 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
         // Register event listeners
         window.addEventListener('reset-entity-highlights', handleResetEntityHighlights);
         window.addEventListener('entity-detection-complete', handleEntityDetectionComplete as EventListener);
-        window.addEventListener('apply-detection-mapping-completed', handleApplyDetectionMappingCompleted as EventListener);
+        window.addEventListener('apply-detection-mapping', handleApplyDetectionMappingCompleted as EventListener); // FIXED: correct event name to match what AutoProcessManager dispatches
 
         // Cleanup
         return () => {
             window.removeEventListener('reset-entity-highlights', handleResetEntityHighlights);
             window.removeEventListener('entity-detection-complete', handleEntityDetectionComplete as EventListener);
-            window.removeEventListener('apply-detection-mapping-completed', handleApplyDetectionMappingCompleted as EventListener);
+            window.removeEventListener('apply-detection-mapping', handleApplyDetectionMappingCompleted as EventListener); // FIXED: correct event name for cleanup
             eventHandlersRegisteredRef.current = false;
         };
     }, [fileKey, handleResetWithThrottle]);
@@ -652,14 +695,23 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
                 return;
             }
 
-            // Verify the mapping belongs to this file
+            // Verify the mapping belongs to this file, but check for auto-processed exception
+            const isAutoProcessed = sessionStorage.getItem(`auto-processed-${fileKey1}`) === 'true';
+            
             if ((detectionMappingForFile).fileKey &&
-                (detectionMappingForFile).fileKey !== fileKey) {
+                (detectionMappingForFile).fileKey !== fileKey && !isAutoProcessed) {
                 console.warn(`[useHighlights] Detection mapping belongs to file ${(detectionMappingForFile).fileKey} but processing for ${fileKey}, skipping`);
 
                 // CRITICAL: Mark as processed globally despite mismatch
                 markPageAsProcessedGlobally(fileKey1, pageNumber);
                 return;
+            }
+            
+            // If auto-processed, update the mapping's fileKey to match this file for proper processing
+            if (isAutoProcessed && (detectionMappingForFile).fileKey && 
+                (detectionMappingForFile).fileKey !== fileKey) {
+                console.log(`[useHighlights] Auto-processed file detected. Updating mapping fileKey from ${(detectionMappingForFile).fileKey} to ${fileKey}`);
+                (detectionMappingForFile).fileKey = fileKey;
             }
 
             // Log found mapping
@@ -683,16 +735,30 @@ export const useHighlights = ({ pageNumber, viewport, textContent, fileKey }: Us
                 detectionMappingToUse,
                 () => getNextHighlightId(),
                 (page, annotation) => {
+                    // Add a timestamp to track when this highlight was created
+                    const annotationWithTimestamp = {
+                        ...annotation,
+                        timestamp: Date.now(),
+                        autoProcessed: isAutoProcessed || false
+                    };
+                    
                     // Add to annotations
-                    addAnnotation(page, annotation, fileKey);
+                    addAnnotation(page, annotationWithTimestamp, fileKey);
 
                     // Store in our local cache
                     const fileCache = ensureFileCache(fileKey1);
                     const pageHighlights = fileCache.get(page) || [];
-                    fileCache.set(page, [...pageHighlights, annotation]);
+                    fileCache.set(page, [...pageHighlights, annotationWithTimestamp]);
+                    
+                    if (isAutoProcessed) {
+                        console.log(`[useHighlights] Created auto-processed highlight on page ${page} for entity: ${annotation.entity || 'unknown'}`);
+                    }
                 },
                 fileKey,
-                { forceReprocess: isNewFile(fileKey1) || isAutoProcessed }
+                { 
+                    forceReprocess: isNewFile(fileKey1) || isAutoProcessed,
+                    pageNumber: isAutoProcessed ? pageNumber : undefined // Only process this page for auto-processed files
+                }
             );
 
             // Process entity highlights

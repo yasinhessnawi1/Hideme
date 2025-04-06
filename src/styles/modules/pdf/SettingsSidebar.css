@@ -385,8 +385,8 @@ including entity detection, redaction, and search.
 }
 
 .scope-button.active {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
+    background-color: var(--button-active);
+    color: var(--primary);
     border-color: var(--primary);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
