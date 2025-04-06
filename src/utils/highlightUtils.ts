@@ -1,3 +1,4 @@
+
 import highlightManager from './HighlightManager';
 
 /**
