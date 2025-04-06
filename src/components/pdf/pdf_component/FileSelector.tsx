@@ -135,6 +135,96 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
         }
     };
 
+    // Function to print specific files - handles both single and multiple files
+    const printFiles = async (filesToPrint: File[]) => {
+        if (filesToPrint.length === 0) {
+            setShowNotification({message: 'No files to print', type: 'error'});
+            setTimeout(() => setShowNotification(null), 3000);
+            return;
+        }
+
+        try {
+            setShowNotification({message: 'Preparing print...', type: 'success'});
+
+            // If only one file, use simple approach
+            if (filesToPrint.length === 1) {
+                const url = URL.createObjectURL(filesToPrint[0]);
+                const printWindow = window.open(url, '_blank');
+
+                if (printWindow) {
+                    printWindow.onload = () => {
+                        printWindow.print();
+                        // Clean up after printing
+                        setTimeout(() => URL.revokeObjectURL(url), 100);
+                    };
+                } else {
+                    // If popup blocked, show instructions
+                    setShowNotification({message: 'Please allow popups to print files', type: 'error'});
+                }
+            }
+            // If multiple files, merge them before printing
+            else {
+                try {
+                    // Dynamic import of pdf-lib
+                    const { PDFDocument } = await import('pdf-lib');
+
+                    // Create a new PDF document
+                    const mergedPdf = await PDFDocument.create();
+
+                    // Process each file
+                    for (const file of filesToPrint) {
+                        // Convert File to ArrayBuffer
+                        const fileArrayBuffer = await file.arrayBuffer();
+
+                        // Load the PDF
+                        const pdf = await PDFDocument.load(fileArrayBuffer);
+
+                        // Get all pages
+                        const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+
+                        // Add pages to the merged PDF
+                        pages.forEach(page => mergedPdf.addPage(page));
+                    }
+
+                    // Save the merged PDF
+                    const mergedPdfBytes = await mergedPdf.save();
+
+                    // Convert to Blob and create URL
+                    const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+
+                    // Open in new window and print
+                    const printWindow = window.open(url, '_blank');
+
+                    if (printWindow) {
+                        printWindow.onload = () => {
+                            printWindow.print();
+                            // Clean up after printing
+                            setTimeout(() => URL.revokeObjectURL(url), 100);
+                        };
+                    } else {
+                        // If popup blocked, show instructions
+                        setShowNotification({message: 'Please allow popups to print files', type: 'error'});
+                    }
+                } catch (error) {
+                    console.error('Error merging PDFs:', error);
+                    setShowNotification({message: 'Error merging PDFs for printing. Make sure pdf-lib is installed.', type: 'error'});
+                }
+            }
+        } catch (error) {
+            console.error('Error printing files:', error);
+            setShowNotification({message: 'Error printing files', type: 'error'});
+        } finally {
+            setTimeout(() => setShowNotification(null), 3000);
+        }
+    };
+
+    // Print selected files using the common print function
+    const handlePrintFiles = () => {
+        const filesToPrint = selectedFiles.length > 0 ? selectedFiles : currentFile ? [currentFile] : [];
+        printFiles(filesToPrint);
+    };
+
     // Download selected files
     const handleDownloadFiles = async () => {
         const filesToDownload = selectedFiles.length > 0 ? selectedFiles : currentFile ? [currentFile] : [];
@@ -195,42 +285,6 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
             }
         } catch (error) {
             setShowNotification({message: 'Error downloading files', type: 'error'});
-        } finally {
-            setTimeout(() => setShowNotification(null), 3000);
-        }
-    };
-
-    // Print selected files
-    const handlePrintFiles = () => {
-        const filesToPrint = selectedFiles.length > 0 ? selectedFiles : currentFile ? [currentFile] : [];
-
-        if (filesToPrint.length === 0) {
-            setShowNotification({message: 'No files selected for printing', type: 'error'});
-            setTimeout(() => setShowNotification(null), 3000);
-            return;
-        }
-
-        try {
-            setShowNotification({message: 'Preparing print...', type: 'success'});
-
-            // For each file, create a new window and print it
-            filesToPrint.forEach(file => {
-                const url = URL.createObjectURL(file);
-                const printWindow = window.open(url, '_blank');
-
-                if (printWindow) {
-                    printWindow.onload = () => {
-                        printWindow.print();
-                        // Clean up after printing
-                        setTimeout(() => URL.revokeObjectURL(url), 100);
-                    };
-                } else {
-                    // If popup blocked, show instructions
-                    setShowNotification({message: 'Please allow popups to print files', type: 'error'});
-                }
-            });
-        } catch (error) {
-            setShowNotification({message: 'Error printing files', type: 'error'});
         } finally {
             setTimeout(() => setShowNotification(null), 3000);
         }
@@ -482,15 +536,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                                     className="dropdown-button"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        const filesToPrint = [file];
-                                                        const url = URL.createObjectURL(file);
-                                                        const printWindow = window.open(url, '_blank');
-                                                        if (printWindow) {
-                                                            printWindow.onload = () => {
-                                                                printWindow.print();
-                                                                setTimeout(() => URL.revokeObjectURL(url), 100);
-                                                            };
-                                                        }
+                                                        printFiles([file]);
                                                     }}
                                                 >
                                                     Print file
