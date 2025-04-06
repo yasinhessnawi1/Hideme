@@ -255,8 +255,10 @@ export const usePDFApi = () => {
         files: File[],
         searchTerm: string,
         options: {
+            case_sensitive?: boolean;
             isCaseSensitive?: boolean;
-            isRegexSearch?: boolean;
+            isAiSearch?: boolean;
+            ai_search?: boolean;
         } = {}
     ): Promise<any> => {
         // Implementation unchanged
@@ -292,8 +294,8 @@ export const usePDFApi = () => {
                 files,
                 searchTerm,
                 {
-                    caseSensitive: options.isCaseSensitive,
-                    regex: options.isRegexSearch
+                    case_sensitive: options.isCaseSensitive,
+                    ai_search: options.isAiSearch
                 }
             );
 

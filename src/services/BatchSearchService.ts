@@ -76,8 +76,10 @@ export class BatchSearchService {
         files: File[],
         searchTerm: string,
         options: {
-            caseSensitive?: boolean;
-            regex?: boolean;
+            case_sensitive?: boolean;
+            isCaseSensitive?: boolean;
+            isAiSearch?: boolean;
+            ai_search?: boolean;
         } = {}
     ): Promise<BatchSearchResponse> {
         if (!files.length || !searchTerm.trim()) {
@@ -94,8 +96,8 @@ export class BatchSearchService {
             });
 
             // Add search options
-            formData.append('case_sensitive', options.caseSensitive? 'true' : 'false');
-            formData.append('ai_search', options.regex? 'true' : 'false');
+            formData.append('case_sensitive', options.case_sensitive? 'true' : 'false');
+            formData.append('ai_search', options.ai_search? 'true' : 'false');
 
             // Add search parameters
             formData.append('search_terms', searchTerm);
@@ -106,11 +108,11 @@ export class BatchSearchService {
             // Add search parameters
             formData.append('search_terms', searchTerm);
 
-            if (options.caseSensitive) {
+            if (options.case_sensitive || options.isCaseSensitive) {
                 formData.append('case_sensitive', 'true');
             }
 
-            if (options.regex) {
+            if (options.ai_search || options.isAiSearch) {
                 formData.append('regex', 'true');
             }
 

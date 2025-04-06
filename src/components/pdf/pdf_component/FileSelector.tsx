@@ -257,8 +257,8 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
     const allSelected = selectedFiles.length === files.length && files.length > 0;
 
     return (
-        <>
-            <div className="dropdown-section">
+        <div className={`file-selector-container ${className ?? ''}`}>
+            <div className={`dropdown-section ${className ?? ''}`}>
                 <AutoProcessControls/>
             </div>
 
@@ -527,7 +527,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                     </div>
                 )}
             </div>
-        </>
+        </div>
     );
 };
 

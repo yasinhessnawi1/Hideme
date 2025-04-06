@@ -111,13 +111,6 @@ export default function BanListSettings() {
 
     return (
         <div className="space-y-6">
-            {localError && (
-                <div className="alert alert-destructive">
-                    <AlertTriangle className="alert-icon" size={16} />
-                    <div className="alert-description">{localError}</div>
-                </div>
-            )}
-
             <div className="card">
                 <div className="card-header">
                     <h2 className="card-title">Banned Words List</h2>

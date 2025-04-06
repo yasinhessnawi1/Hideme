@@ -11,7 +11,7 @@
 import axios from 'axios';
 import apiClient from './apiClient';
 
-const API_URL = 'https://goapi.hidemeai.com/api';
+const API_URL = 'http://localhost:8080/api';
 const AUTH_URL = `${API_URL}/auth`;
 
 /**
@@ -247,7 +247,7 @@ const authService = {
                 duration: `${duration.toFixed(2)}ms`
             });
 
-            return response.data;
+            return response.data.data;
         } catch (error: any) {
             const duration = performance.now() - startTime;
 

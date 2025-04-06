@@ -1,7 +1,7 @@
 import { OptionType } from '../types/types';
 import { getFileKey } from '../contexts/PDFViewerContext';
 import {handleAllOPtions} from "./pdfutils";
-
+import { v4 as uuidv4 } from 'uuid';
 /**
  * Configuration for automatic file processing
  */
@@ -14,8 +14,8 @@ export interface ProcessingConfig {
     // Search settings
     searchQueries: {
         term: string;
-        caseSensitive: boolean;
-        isRegex: boolean;
+        case_sensitive: boolean;
+        ai_search: boolean;
     }[];
 
     // Processing status
@@ -302,17 +302,114 @@ export class AutoProcessManager {
         return filesToProcess.length;
     }
 
+    /**
+     * Process entity detection for a file
+     * Extracts entity values correctly from entity objects
+     *
+     * @param file File to process
+     * @returns Promise that resolves when detection is complete
+     */
+    // In AutoProcessManager.ts, modify processEntityDetection method
+    private async processEntityDetection(file: File): Promise<void> {
+        if (!this._detectEntitiesCallback) return;
+
+        console.log('[AutoProcessManager] Running entity detection for file:', file.name);
+
+        // Extract entity values from the option objects
+        const options = {
+            presidio: this.config.presidioEntities.map(e => typeof e === 'object' ? (e.value || '') : e)
+                .filter(Boolean),
+            gliner: this.config.glinerEntities.map(e => typeof e === 'object' ? (e.value || '') : e)
+                .filter(Boolean),
+            gemini: this.config.geminiEntities.map(e => typeof e === 'object' ? (e.value || '') : e)
+                .filter(Boolean)
+        };
+
+        try {
+            // Run detection and get results
+            const results = await this._detectEntitiesCallback([file], options);
+            const fileKey = getFileKey(file);
+            const detectionResult = results[fileKey];
+
+            if (detectionResult) {
+                const mappingToSet = detectionResult.redaction_mapping || detectionResult;
+
+                // Add a processing ID and timestamp to track this specific detection run
+                const processRunId = uuidv4();
+                (mappingToSet as any).processRunId = processRunId;
+                (mappingToSet as any).processTimestamp = Date.now();
+                (mappingToSet as any).fileKey = fileKey;
+
+                console.log(`[AutoProcessManager] Got detection results for file ${file.name}, applying to context (run ID: ${processRunId})`);
+
+                // Clear processing flag to ensure highlights update properly
+                if (typeof window.removeFileHighlightTracking === 'function') {
+                    window.removeFileHighlightTracking(fileKey);
+                }
+
+                // Mark this file as auto-processed in session storage for special handling
+                sessionStorage.setItem(`auto-processed-${fileKey}`, 'true');
+
+                // Dispatch event to store the mapping
+                window.dispatchEvent(new CustomEvent('apply-detection-mapping', {
+                    detail: {
+                        fileKey,
+                        mapping: mappingToSet,
+                        timestamp: Date.now(),
+                        runId: processRunId,
+                        source: 'auto-process'
+                    }
+                }));
+
+                // Add delay before triggering highlight updates
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('entity-detection-complete', {
+                        detail: {
+                            fileKey,
+                            source: 'auto-process',
+                            timestamp: Date.now(),
+                            runId: processRunId,
+                            forceProcess: true
+                        }
+                    }));
+                }, 300);
+            } else {
+                console.warn(`[AutoProcessManager] No detection results returned for ${file.name}`);
+            }
+        } catch (error) {
+            console.error('[AutoProcessManager] Entity detection error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Process entity detection for multiple files
+     *
+     * @param files Files to process
+     * @returns Promise that resolves when detection is complete
+     */
     private async batchProcessEntityDetection(files: File[]): Promise<void> {
         if (!this._detectEntitiesCallback) return;
 
         console.log('[AutoProcessManager] Running batch entity detection for files:', files.map(f => f.name));
 
-        // Use entities from the manager's config
+        // Extract entity values from the option objects in the same way as individual processing
         const options = {
-            presidio: this.config.presidioEntities.map(e => e.value),
-            gliner: this.config.glinerEntities.map(e => e.value),
-            gemini: this.config.geminiEntities.map(e => e.value),
+            presidio: this.config.presidioEntities.map(e => typeof e === 'object' ? (e.value || '') : e)
+                .filter(Boolean),
+            gliner: this.config.glinerEntities.map(e => typeof e === 'object' ? (e.value  || '') : e)
+                .filter(Boolean),
+            gemini: this.config.geminiEntities.map(e => typeof e === 'object' ? (e.value  || '') : e)
+                .filter(Boolean)
         };
+
+        // Log entity counts for debugging
+        console.log('[AutoProcessManager] Using entity values for batch detection:', {
+            presidioCount: options.presidio.length,
+            glinerCount: options.gliner.length,
+            geminiCount: options.gemini.length,
+            fileCount: files.length
+        });
 
         try {
             // Run detection and get results
@@ -346,80 +443,13 @@ export class AutoProcessManager {
         }
     }
 
-    private async batchProcessSearchQueries(files: File[]): Promise<void> {
-        if (!this._searchCallback || this.config.searchQueries.length === 0) return;
-
-        console.log(`[AutoProcessManager] Running ${this.config.searchQueries.length} search queries for batch of ${files.length} files`);
-
-        // Process each search query against the batch of files
-        for (const query of this.config.searchQueries) {
-            try {
-                await this._searchCallback(files, query.term, {
-                    caseSensitive: query.caseSensitive,
-                    regex: query.isRegex
-                });
-                // Add a small delay between different search terms if needed
-                await new Promise(resolve => setTimeout(resolve, 100));
-            } catch (error) {
-                console.error(`[AutoProcessManager] Batch search error for term "${query.term}":`, error);
-                // Decide if one search failure should stop others - currently continues
-            }
-        }
-    }
-
-    private async processEntityDetection(file: File): Promise<void> {
-        if (!this._detectEntitiesCallback) return;
-
-        console.log('[AutoProcessManager] Running entity detection for file:', file.name);
-
-        const options = handleAllOPtions(this.config.geminiEntities, this.config.glinerEntities, this.config.presidioEntities)
-
-        try {
-            // Run detection and get results
-            const results = await this._detectEntitiesCallback([file], options);
-
-            // Get the file key
-            const fileKey = getFileKey(file);
-
-            // Extract the detection mapping for this file
-            const detectionResult = results[fileKey];
-
-            // If we have results, ensure they are in the correct format
-            if (detectionResult) {
-                // The API might return a structure with redaction_mapping inside
-                const mappingToSet = detectionResult.redaction_mapping || detectionResult;
-
-                console.log(`[AutoProcessManager] Got detection results for file ${file.name}, applying to context`);
-
-                // Dispatch an event to store the mapping in the EditContext
-                window.dispatchEvent(new CustomEvent('apply-detection-mapping', {
-                    detail: {
-                        fileKey,
-                        mapping: mappingToSet,
-                        timestamp: Date.now()
-                    }
-                }));
-
-                // Allow a moment for the mapping to be applied before triggering highlight updates
-                setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('entity-detection-complete', {
-                        detail: {
-                            fileKey,
-                            source: 'auto-process',
-                            timestamp: Date.now(),
-                            forceProcess: true
-                        }
-                    }));
-                }, 200);
-            } else {
-                console.warn(`[AutoProcessManager] No detection results returned for ${file.name}`);
-            }
-        } catch (error) {
-            console.error('[AutoProcessManager] Entity detection error:', error);
-            throw error; // Rethrow for proper error handling
-        }
-    }
-
+    /**
+     * Process search queries for a file
+     * Handles different query formats and ensures proper extraction of search parameters
+     *
+     * @param file File to search
+     * @returns Promise that resolves when all searches are complete
+     */
     private async processSearchQueries(file: File): Promise<void> {
         if (!this._searchCallback || this.config.searchQueries.length === 0) return;
 
@@ -428,15 +458,77 @@ export class AutoProcessManager {
         // Process each search query sequentially
         for (const query of this.config.searchQueries) {
             try {
-                await this._searchCallback([file], query.term, {
-                    caseSensitive: query.caseSensitive,
-                    regex: query.isRegex
-                });
+                // Check if query has the proper structure
+                if (!query.term) {
+                    console.warn(`[AutoProcessManager] Invalid search query format, missing term:`, query);
+                    continue;
+                }
+
+                // Extract search parameters safely with defaults
+                const searchTerm = query.term;
+                const searchOptions = {
+                    case_sensitive: query.case_sensitive,
+                    ai_search: query.ai_search,  // Map ai_search to regex parameter expected by the API
+                    isAiSearch: query.ai_search ,// Alternative name some APIs might expect
+                    isCaseSensitive: query.case_sensitive // Alternative name some APIs might expect
+                };
+
+                console.log(`[AutoProcessManager] Searching for "${searchTerm}" with options:`, searchOptions);
+
+                // Call the search callback with proper parameters
+                await this._searchCallback([file], searchTerm, searchOptions);
+
             } catch (error) {
-                console.error(`[AutoProcessManager] Search error for term "${query.term}":`, error);
+                console.error(`[AutoProcessManager] Search error for query:`, query, error);
             }
         }
     }
+
+    /**
+     * Process search queries for multiple files
+     *
+     * @param files Files to search
+     * @returns Promise that resolves when all searches are complete
+     */
+    private async batchProcessSearchQueries(files: File[]): Promise<void> {
+        if (!this._searchCallback || this.config.searchQueries.length === 0) return;
+
+        console.log(`[AutoProcessManager] Running ${this.config.searchQueries.length} search queries for batch of ${files.length} files`);
+
+        // Process each search query against the batch of files
+        for (const query of this.config.searchQueries) {
+            try {
+                // Check if query has the proper structure
+                if (!query.term) {
+                    console.warn(`[AutoProcessManager] Invalid search query format, missing term:`, query);
+                    continue;
+                }
+
+                // Extract search parameters safely with defaults
+                const searchTerm = query.term;
+                const searchOptions = {
+                    case_sensitive: query.case_sensitive,
+                    ai_search: query.ai_search,  // Map ai_search to regex parameter expected by the API
+                    isAiSearch: query.ai_search ,// Alternative name some APIs might expect
+                    isCaseSensitive: query.case_sensitive // Alternative name some APIs might expect
+                };
+
+                console.log(`[AutoProcessManager] Batch searching for "${searchTerm}" with options:`, searchOptions);
+
+                await this._searchCallback(files, searchTerm, searchOptions);
+
+                // Add a small delay between different search terms if needed
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+            } catch (error) {
+                console.error(`[AutoProcessManager] Batch search error for query:`, query, error);
+                // Decide if one search failure should stop others - currently continues
+            }
+        }
+    }
+
+
+
     private readonly processingStatus: Map<string, {
         status: 'queued' | 'processing' | 'completed' | 'failed';
         error?: any;

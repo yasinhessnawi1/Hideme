@@ -140,15 +140,6 @@ export default function GeneralSettings() {
                     </div>
                 </div>
             )}
-            {userError && !isSaving && (
-                <div className="alert alert-destructive">
-                    <AlertTriangle className="alert-icon" size={16} />
-                    <div>
-                        <div className="alert-title">Error</div>
-                        <div className="alert-description">{userError}</div>
-                    </div>
-                </div>
-            )}
 
             {/* Appearance Card */}
             <div className="card">

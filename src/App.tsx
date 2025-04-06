@@ -7,7 +7,6 @@ import { HighlightProvider } from './contexts/HighlightContext';
 import { UserContextProvider } from './contexts/UserContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ErrorBoundary from "./contexts/ErrorBoundary";
-import Navbar from "./components/static/Navbar";
 import {BatchSearchProvider} from "./contexts/SearchContext";
 import AutoProcessProvider from "./contexts/AutoProcessProvider";
 

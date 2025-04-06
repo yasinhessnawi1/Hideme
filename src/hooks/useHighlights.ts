@@ -22,7 +22,7 @@ interface UseHighlightsProps {
 // This is critical for preventing processing loops
 const GLOBAL_PROCESSED_PAGES = new Map<string, Set<number>>();
 // Set a very aggressive throttle time to break processing loops
-const GLOBAL_THROTTLE_TIME = 5000; // 5 seconds between processing same page
+const GLOBAL_THROTTLE_TIME = 1000; // 1 seconds between processing same page
 const GLOBAL_LAST_PROCESSED = new Map<string, number>();
 
 // Add the global reset function type to the Window interface

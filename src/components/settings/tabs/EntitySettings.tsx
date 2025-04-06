@@ -392,15 +392,6 @@ return (
                 </div>
             </div>
         )}
-        {userError && !isSaving && (
-            <div className="alert alert-destructive">
-                <AlertTriangle className="alert-icon" size={16}/>
-                <div>
-                    <div className="alert-title">Error</div>
-                    <div className="alert-description">{userError}</div>
-                </div>
-            </div>
-        )}
 
         <div className="card">
             <div className="card-header">

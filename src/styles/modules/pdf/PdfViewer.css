@@ -30,7 +30,6 @@ These styles control the main PDF viewer container and pages
     scrollbar-width: thin;
 
     /* Improve performance for fixed elements within scroll container */
-    transform-style: preserve-3d;
 
     /* Prevent unwanted touch behaviors on mobile */
     touch-action: pan-y;
@@ -701,20 +700,6 @@ LOADING
     margin-top: 2rem;
 }
 
-
-/*
-Navigator
- */
-
-
-/* Add these to your PdfViewer.css file */
-
-
-
-/* Enhance page transitions for better visibility */
-
-
-/* Active page highlighting with pulse animation */
 
 
 /* Just activated animation for better user feedback */

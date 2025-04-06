@@ -1,42 +1,35 @@
 import {OptionType} from '../types/types';
 
-export function handleAllOPtions(selectedAiEntities : OptionType[], selectedGlinerEntities : OptionType[], selectedMlEntities : OptionType[]): {
-    gemini: string[];
-    gliner: string[];
-    presidio: string[]
-} {
-    // Handle "ALL" entity selections
-    let presidioEntitiesToSend: string[] = [];
-    let glinerEntitiesToSend: string[] = [];
-    let geminiEntitiesToSend: string[] = [];
-
-    // Process presidio entities
-    if (selectedMlEntities.some(e => e.value === 'ALL')) {
-        // If ALL is selected, send null which the backend interprets as all entities
-        presidioEntitiesToSend = [];
-    } else if (selectedMlEntities.length > 0) {
-        // Otherwise send the selected entities
-        presidioEntitiesToSend = selectedMlEntities.map(e => e.value);
-    }
-
-    // Process gliner entities
-    if (selectedGlinerEntities.some(e => e.value === 'ALL')) {
-        glinerEntitiesToSend = [];
-    } else if (selectedGlinerEntities.length > 0) {
-        glinerEntitiesToSend = selectedGlinerEntities.map(e => e.value);
-    }
-
-    // Process gemini entities
-    if (selectedAiEntities.some(e => e.value === 'ALL')) {
-        geminiEntitiesToSend = [];
-    } else if (selectedAiEntities.length > 0) {
-        geminiEntitiesToSend = selectedAiEntities.map(e => e.value);
-    }
-
-    // Prepare entity selections for each model
+/**
+ * Safely creates API options object from entity arrays
+ * Handles different object formats and ensures proper extraction of entity values
+ *
+ * @param geminiEntities Array of Gemini entities
+ * @param glinerEntities Array of Gliner entities
+ * @param presidioEntities Array of Presidio entities
+ * @returns Object with arrays of entity values by method
+ */
+export const handleAllOPtions = (
+    geminiEntities: any[] | null | undefined,
+    glinerEntities: any[] | null | undefined,
+    presidioEntities: any[] | null | undefined
+) => {
     return {
-        presidio: presidioEntitiesToSend,
-        gliner: glinerEntitiesToSend,
-        gemini: geminiEntitiesToSend
+        // Safely process each entity type, handling different object formats
+        presidio: Array.isArray(presidioEntities) ? presidioEntities.map(entity => {
+            if (!entity) return null;
+            // Handle both { value: "..." } and { entity_text: "..." } formats
+            return entity.value || entity.entity_text || null;
+        }).filter(Boolean) : [],
+
+        gliner: Array.isArray(glinerEntities) ? glinerEntities.map(entity => {
+            if (!entity) return null;
+            return entity.value || entity.entity_text || null;
+        }).filter(Boolean) : [],
+
+        gemini: Array.isArray(geminiEntities) ? geminiEntities.map(entity => {
+            if (!entity) return null;
+            return entity.value || entity.entity_text || null;
+        }).filter(Boolean) : []
     };
-}
+};

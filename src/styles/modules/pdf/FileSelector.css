@@ -151,8 +151,8 @@ transition: transform 0.2s;
     gap: var(--spacing-xs);
     width: 100%;
     padding: var(--spacing-sm);
-    overflow-y: auto;
     flex: 1;
+    overflow-y: visible;
 }
 
 .file-item {
@@ -281,9 +281,8 @@ transition: transform 0.2s;
 
 /* Tooltip for full file name */
 .file-name-tooltip {
-    position: absolute;
-    left: 0;
-    top: -30px;
+    position: fixed;
+    bottom: 100%;
     background-color: var(--foreground);
     color: var(--background);
     padding: var(--spacing-xs) var(--spacing-sm);

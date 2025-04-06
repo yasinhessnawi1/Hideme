@@ -1,21 +1,28 @@
 // src/hooks/useAutoProcess.ts
 
-import { useEffect, useCallback } from 'react';
+import {useEffect, useCallback, useState} from 'react';
 import { autoProcessManager } from '../utils/AutoProcessManager';
 import { useEditContext } from '../contexts/EditContext';
 import { useBatchSearch } from '../contexts/SearchContext';
 import { usePDFApi } from './usePDFApi';
 import { useUser } from './userHook'; // Import useUser
 import { SearchPattern, ModelEntity } from '../services/settingsService'; // Import types
+
 export const useAutoProcess = () => {
     const {
         settings,
         searchPatterns,
         modelEntities, // This holds Record<number, ModelEntity[]>
         isAuthenticated,
-        isLoading: userLoading
+        isLoading: userLoading,
+        getModelEntities
     } = useUser();
-
+    // Track if we've fetched model entities
+    const [entitiesFetched, setEntitiesFetched] = useState({
+        presidio: false,
+        gliner: false,
+        gemini: false
+    });
     const {
         batchSearch
     } = useBatchSearch();
@@ -36,6 +43,39 @@ export const useAutoProcess = () => {
         autoProcessManager.setSearchCallback(batchSearch);
     }, [batchSearch]);
 
+    useEffect(() => {
+        if (userLoading || !isAuthenticated || !settings) {
+            return;
+        }
+
+        // Only fetch entities if not already fetching and auto-processing is enabled
+        if (settings.auto_processing) {
+            // Fetch presidio entities if not already fetched
+            if (!entitiesFetched.presidio && (!modelEntities[1] || !Array.isArray(modelEntities[1]))) {
+                console.log('[useAutoProcess] Fetching Presidio entities (Method ID: 1)');
+                getModelEntities(1)
+                    .then(() => setEntitiesFetched(prev => ({ ...prev, presidio: true })))
+                    .catch(err => console.error('[useAutoProcess] Error fetching Presidio entities:', err));
+            }
+
+            // Fetch gliner entities if not already fetched
+            if (!entitiesFetched.gliner && (!modelEntities[2] || !Array.isArray(modelEntities[2]))) {
+                console.log('[useAutoProcess] Fetching Gliner entities (Method ID: 2)');
+                getModelEntities(2)
+                    .then(() => setEntitiesFetched(prev => ({ ...prev, gliner: true })))
+                    .catch(err => console.error('[useAutoProcess] Error fetching Gliner entities:', err));
+            }
+
+            // Fetch gemini entities if not already fetched
+            if (!entitiesFetched.gemini && (!modelEntities[3] || !Array.isArray(modelEntities[3]))) {
+                console.log('[useAutoProcess] Fetching Gemini entities (Method ID: 3)');
+                getModelEntities(3)
+                    .then(() => setEntitiesFetched(prev => ({ ...prev, gemini: true })))
+                    .catch(err => console.error('[useAutoProcess] Error fetching Gemini entities:', err));
+            }
+        }
+    }, [isAuthenticated, userLoading, settings, modelEntities, getModelEntities, entitiesFetched]);
+
     // Update configuration when entity detection settings change
     useEffect(() => {
         if (userLoading || !isAuthenticated || !settings) {
@@ -45,48 +85,67 @@ export const useAutoProcess = () => {
                 glinerEntities: [],
                 geminiEntities: [],
                 searchQueries: [],
-                isActive: false // Default to inactive if no settings
+                isActive: true // Default to inactive if no settings
             });
             return;
         }
 
         // 1. Format Search Queries from user.searchPatterns
         let formattedSearchQueries: any[] = [];
-        if (searchPatterns && searchPatterns.length > 0) {
-             formattedSearchQueries = searchPatterns.map((pattern: SearchPattern) => ({
-                    setting_id: pattern.setting_id,
-                    pattern_text: pattern.pattern_text,
-                    pattern_type: pattern.pattern_type,
-                }));
+        if (searchPatterns && Array.isArray(searchPatterns) && searchPatterns.length > 0) {
+            formattedSearchQueries = searchPatterns.map((pattern: SearchPattern) => ({
+                term: pattern.pattern_text, // Add the term field with pattern_text
+                pattern_type: pattern.pattern_type,
+                setting_id: pattern.setting_id,
+                // Set appropriate flags based on pattern_type
+                caseSensitive: pattern.pattern_type === 'case_sensitive',
+                ai_search: pattern.pattern_type === 'ai_search'
+            }));
         } else {
             console.warn('[useAutoProcess] No search patterns found in user settings.');
             formattedSearchQueries = [];
         }
 
-        // 2. Format Entities from user.modelEntities
-        // Assuming method IDs: 1=Presidio, 2=Gliner, 3=Gemini (adjust if different)
-        const presidioEntities = (modelEntities[1] || []).map((entity: ModelEntity) => ({
-            value: entity.entity_text,
-            label: entity.entity_text, // Label might need better formatting
-        }));
-        const glinerEntities = (modelEntities[2] || []).map((entity: ModelEntity) => ({
-            value: entity.entity_text,
-            label: entity.entity_text,
-        }));
-        const geminiEntities = (modelEntities[3] || []).map((entity: ModelEntity) => ({
-            value: entity.entity_text,
-            label: entity.entity_text,
-        }));
+        // 2. Safely create entity arrays from modelEntities
+        // These helper functions safely transform the entities or return empty arrays if invalid
+        const createEntityList = (methodEntities: any[] | undefined | null) => {
+            if (!methodEntities || !Array.isArray(methodEntities)) return [];
 
-        // Log the derived config
+            return methodEntities.map(entity => ({
+                value: entity?.entity_text || '',
+                label: entity?.entity_text || ''
+            })).filter(entity => entity.value); // Filter out empty values
+        };
+
+        const presidioEntities = createEntityList(modelEntities[1]);
+        const glinerEntities = createEntityList(modelEntities[2]);
+        const geminiEntities = createEntityList(modelEntities[3]);
+
+        // Log the derived config with counts for debugging
         console.log('[useAutoProcess] Updating AutoProcessManager config from User Settings:', {
-            presidioEntities: presidioEntities.map(e => e.value),
-            glinerEntities: glinerEntities.map(e => e.value),
-            geminiEntities: geminiEntities.map(e => e.value),
-            searchQueries: formattedSearchQueries.map(q => q.term),
+            presidioEntities: `${presidioEntities.length} entities`,
+            presidioValues: presidioEntities.map(e => e.value),
+            glinerEntities: `${glinerEntities.length} entities`,
+            glinerValues: glinerEntities.map(e => e.value),
+            geminiEntities: `${geminiEntities.length} entities`,
+            geminiValues: geminiEntities.map(e => e.value),
+            searchQueries: `${formattedSearchQueries.length} queries`,
+            searchTerms: formattedSearchQueries.map(q => q.term),
             isActive: settings.auto_processing ?? false
         });
 
+        // For troubleshooting, log the raw model entities object
+        console.log('[useAutoProcess] Raw modelEntities object:', {
+            hasPresidio: !!modelEntities[1],
+            presidioIsArray: Array.isArray(modelEntities[1]),
+            presidioLength: Array.isArray(modelEntities[1]) ? modelEntities[1].length : 'not an array',
+            hasGliner: !!modelEntities[2],
+            glinerIsArray: Array.isArray(modelEntities[2]),
+            glinerLength: Array.isArray(modelEntities[2]) ? modelEntities[2].length : 'not an array',
+            hasGemini: !!modelEntities[3],
+            geminiIsArray: Array.isArray(modelEntities[3]),
+            geminiLength: Array.isArray(modelEntities[3]) ? modelEntities[3].length : 'not an array',
+        });
 
         // 3. Update AutoProcessManager Config
         autoProcessManager.updateConfig({
@@ -94,7 +153,7 @@ export const useAutoProcess = () => {
             glinerEntities,
             geminiEntities,
             searchQueries: formattedSearchQueries,
-            isActive: settings.auto_processing ?? false, // Use fetched setting
+            isActive: settings.auto_processing ?? true, // Use fetched setting
         });
 
     }, [
@@ -102,22 +161,17 @@ export const useAutoProcess = () => {
         searchPatterns,
         modelEntities,
         isAuthenticated,
-        userLoading
+        userLoading,
+        entitiesFetched // Add dependency on entitiesFetched
     ]);
 
-
-    // Function to enable/disable auto-processing (now redundant? Kept for potential direct calls)
-    // This function *might* conflict if called directly, as the useEffect above overrides it based on settings.
-    // Ideally, this should be removed or refactored to call `updateSettings`.
-    // For now, let's leave it but be aware of the potential conflict. A better approach
-    // would be to remove this and rely solely on the toggle updating the persisted setting.
+    // Function to enable/disable auto-processing
     const setAutoProcessingEnabled = useCallback((enabled: boolean) => {
         console.warn('[useAutoProcess] setAutoProcessingEnabled called directly. This might be overridden by user settings. Use the settings toggle instead.');
         autoProcessManager.updateConfig({
             isActive: enabled
         });
     }, []);
-
 
     // Expose the necessary functions with proper typing
     return {

@@ -11,6 +11,7 @@
     position: sticky;
     top: 0;
     transition: all var(--transition-speed) var(--transition-function);
+    z-index: 50;
 }
 
 .toolbar-section {

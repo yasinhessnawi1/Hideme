@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
 import { Menu, LogOut, Settings } from 'lucide-react'
 import "../../styles/components/Navbar.css"
-import ThemeToggler from "../common/ThemeToggler"
 import { Button } from "../common/Button"
 import { useUserContext } from '../../contexts/UserContext'
 
@@ -39,6 +38,14 @@ export default function Navbar() {
             console.error('Logout failed:', error)
         }
     }
+    let localUser;
+    const getUserFromLocalStorage = () => {
+        const userData = localStorage.getItem('user_data')
+        if (userData) {
+            return JSON.parse(userData).data
+        }
+        return null
+    }
 
     return (
         <motion.nav initial={{ y: -100 }} animate={{ y: 0 }} className="navbar">
@@ -71,7 +78,7 @@ export default function Navbar() {
                                     <path d="M222.324 959.994c0.65-74.688 29.145-144.534 80.868-197.979 53.219-54.995 126.117-84.134 201.904-84.794 74.199-0.646 145.202 29.791 197.979 80.867 54.995 53.219 84.13 126.119 84.79 201.905 0.603 68.932 107.549 68.99 106.947 0-1.857-213.527-176.184-387.865-389.716-389.721-213.551-1.854-387.885 178.986-389.721 389.721-0.601 68.991 106.349 68.933 106.949 0.001z" fill="#4ee47b"></path>
                                 </svg>
                             </div>
-                            <span className="user-name">{user.username}</span>
+                            <span className="user-name">{user.username  || getUserFromLocalStorage()?.username || 'user'}</span>
                         </button>
 
                         {isDropdownOpen && (

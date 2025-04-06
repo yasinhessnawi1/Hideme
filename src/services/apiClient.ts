@@ -65,7 +65,7 @@ const getUserFriendlyErrorMessage = (error: any): string => {
  * 4. Transform technical errors into user-friendly messages
  */
 const apiClient = axios.create({
-    baseURL: 'https://goapi.hidemeai.com/api',
+    baseURL: 'http://localhost:8080/api',
     withCredentials: true,
     headers: {
         'Content-Type': 'application/json',

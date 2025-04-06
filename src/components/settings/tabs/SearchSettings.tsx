@@ -20,7 +20,7 @@ export default function SearchSettings() {
     const [localPatterns, setLocalPatterns] = useState<SearchPattern[]>([]);
     const [newSearchTerm, setNewSearchTerm] = useState("");
     const [isCaseSensitive, setIsCaseSensitive] = useState(false); // Keep for potential future backend support
-    const [isRegexSearch, setIsRegexSearch] = useState(false);
+    const [isAiSearch, setIsAiSearch] = useState(false);
     const [localError, setLocalError] = useState("");
     const [isAdding, setIsAdding] = useState(false);
     const [isDeleting, setIsDeleting] = useState<number | null>(null); // Store ID being deleted
@@ -68,9 +68,7 @@ export default function SearchSettings() {
 
         const newPatternData: SearchPatternCreate = {
             pattern_text: newSearchTerm.trim(),
-            pattern_type: isRegexSearch ? 'Regex' : 'Normal',
-            // Add case sensitivity if your backend supports it in SearchPatternCreate
-            // case_sensitive: isCaseSensitive,
+            pattern_type: isAiSearch ? 'ai_search' : isCaseSensitive ? 'case_sensitive' :  'normal',
         };
 
         // Prevent adding exact duplicates (check local state for responsiveness)
@@ -78,7 +76,6 @@ export default function SearchSettings() {
         const currentLocalPatterns = Array.isArray(localPatterns) ? localPatterns : [];
         const termExists = currentLocalPatterns.some(
             (p) => p.pattern_text === newPatternData.pattern_text && p.pattern_type === newPatternData.pattern_type
-            // && p.case_sensitive === newPatternData.case_sensitive // If applicable
         );
 
         if (termExists) {
@@ -92,7 +89,7 @@ export default function SearchSettings() {
             // State updates via useEffect watching `searchPatterns` from useUser hook
             setNewSearchTerm("");
             setIsCaseSensitive(false); // Reset options after adding
-            setIsRegexSearch(false);
+            setIsAiSearch(false);
             setLocalError(""); // Clear error on success
         } catch (err: any) {
             setLocalError(err.userMessage || err.message || "Failed to add search term.");
@@ -151,13 +148,6 @@ export default function SearchSettings() {
 
     return (
         <div className="space-y-6">
-            {localError && (
-                <div className="alert alert-destructive mb-4"> {/* Added margin */}
-                    <AlertTriangle className="alert-icon" size={16} />
-                    <div className="alert-description">{localError}</div>
-                </div>
-            )}
-
             <div className="card">
                 <div className="card-header">
                     <h2 className="card-title">Saved Search Terms</h2>
@@ -186,30 +176,48 @@ export default function SearchSettings() {
                                     onClick={handleAddSearchTerm}
                                     disabled={isLoading || !newSearchTerm.trim()}
                                 >
-                                    {isAdding ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Search size={16} className="button-icon" />}
+                                    {isAdding ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
+                                        <Search size={16} className="button-icon"/>}
                                     {isAdding ? 'Adding...' : 'Add Term'}
                                 </button>
                             </div>
 
                             <div className="flex items-center space-x-6 pt-2">
-                                {/* Case Sensitive Toggle (Optional based on backend) */}
-                                {/* <div className="flex items-center space-x-2"> ... </div> */}
                                 <div className="flex items-center space-x-2">
                                     <label className="switch">
                                         <input
                                             type="checkbox"
-                                            id="regex-search"
-                                            checked={isRegexSearch}
-                                            onChange={(e) => setIsRegexSearch(e.target.checked)}
+                                            id="ai-search"
+                                            checked={isAiSearch}
+                                            onChange={(e) => setIsAiSearch(e.target.checked)}
                                             disabled={isLoading}
                                         />
                                         <span className="switch-slider"></span>
                                     </label>
-                                    <label className="checkbox-label" htmlFor="regex-search"> {/* Use checkbox-label style */}
-                                        Regular Expression
+                                    <label className="checkbox-label"
+                                           htmlFor="ai-search"> {/* Use checkbox-label style */}
+                                        Ai Search
+                                    </label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <label className="switch">
+                                        <input
+                                            type="checkbox"
+                                            id="case-sensitive-search"
+                                            checked={isCaseSensitive}
+                                            onChange={(e) => setIsCaseSensitive(e.target.checked)}
+                                            disabled={isLoading}
+                                        />
+                                        <span className="switch-slider"></span>
+                                    </label>
+                                    <label className="checkbox-label"
+                                           htmlFor="case-sensitive-search"> {/* Use checkbox-label style */}
+                                        Case Sensitive
                                     </label>
                                 </div>
                             </div>
+
+
                         </div>
 
                         <div className="separator"></div>
@@ -224,7 +232,8 @@ export default function SearchSettings() {
                                         onClick={handleClearAllSearchTerms}
                                         disabled={isLoading}
                                     >
-                                        {isClearingAll ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Trash2 size={14} className="button-icon" />}
+                                        {isClearingAll ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
+                                            <Trash2 size={14} className="button-icon"/>}
                                         {isClearingAll ? 'Clearing...' : 'Clear All'}
                                     </button>
                                 )}

@@ -109,6 +109,7 @@ SEARCH SIDEBAR SPECIFIC STYLES
 
 /* Search options styling */
 .search-options {
+    justify-content: space-between;
     display: flex;
     margin-top: var(--spacing-sm);
     gap: var(--spacing-lg);

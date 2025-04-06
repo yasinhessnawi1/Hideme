@@ -26,7 +26,7 @@ export class EntityHighlightManager {
     // Track reset operations to prevent cascades
     private static readonly lastResetTimestamps: Map<string, number> = new Map();
     // Define a reset throttle time (milliseconds)
-    private static readonly RESET_THROTTLE_TIME = 2000; // 2 seconds
+    private static readonly RESET_THROTTLE_TIME = 500; // 0.5
 
     constructor(
         pageNumber: number,
