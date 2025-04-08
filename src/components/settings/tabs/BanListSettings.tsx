@@ -1,8 +1,6 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Save, Plus, X, AlertTriangle, Trash2, Loader2 } from "lucide-react";
-import { useUser } from "../../../hooks/userHook"; // Adjust path
+import { useUser } from "../../../hooks/userHook"; // Adjust path if needed
 
 export default function BanListSettings() {
     const {
@@ -22,23 +20,34 @@ export default function BanListSettings() {
     const [deletingWord, setDeletingWord] = useState<string | null>(null); // Store word being deleted
     const [isClearingAll, setIsClearingAll] = useState(false);
 
-    // Load banned words when hook provides them
+    // Add a ref to track initial loading
+    const initialLoadAttemptedRef = useRef(false);
+
+    // Load banned words when hook provides them or fetch if needed
     useEffect(() => {
-        // Fetch ban list if the hook hasn't loaded it yet
-        if (!banList && !isUserLoading) {
+        // Only fetch ban list once when component mounts and not already loading
+        if (!initialLoadAttemptedRef.current && !isUserLoading) {
+            console.log("[BanListSettings] Initial fetch of ban list");
             getBanList();
+            initialLoadAttemptedRef.current = true;
+            return;
         }
-        setLocalBannedWords(banList?.words || []);
+
+        // Update local state when banList changes
+        if (banList) {
+            console.log("[BanListSettings] Setting localBannedWords from banList. Count:", banList.words?.length || 0);
+            setLocalBannedWords(banList.words || []);
+        }
     }, [banList, getBanList, isUserLoading]);
 
     // Clear local error when hook error changes or is cleared
     useEffect(() => {
         if (userError) {
             setLocalError(userError);
-        } else {
-            setLocalError(""); // Clear local error if hook error is cleared
+        } else if (localError === userError) { // Clear local error only if it matches the hook's cleared error
+            setLocalError("");
         }
-    }, [userError]);
+    }, [userError, localError]);
 
     const handleAddBannedWord = async () => {
         const wordToAdd = newBannedWord.trim().toLowerCase(); // Normalize word
@@ -163,7 +172,7 @@ export default function BanListSettings() {
                                 )}
                             </div>
 
-                            {isUserLoading && localBannedWords.length === 0 && (
+                            {isUserLoading && localBannedWords.length === 0 && !initialLoadAttemptedRef.current && (
                                 <div className="flex justify-center items-center py-6">
                                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                                     <span className="ml-2 text-muted-foreground">Loading ban list...</span>
@@ -195,14 +204,6 @@ export default function BanListSettings() {
                     </div>
                 </div>
             </div>
-
-            {/* Save Changes Button (Optional) */}
-            {/* <div className="flex justify-end gap-4">
-                 <button className="button button-primary">
-                    <Save size={16} className="button-icon" />
-                    Save Changes
-                 </button>
-             </div> */}
         </div>
     );
 }

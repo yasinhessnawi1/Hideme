@@ -1,13 +1,10 @@
-// src/components/settings/tabs/GeneralSettings.tsx
-// NO "use client"; directive needed here for Vite/React
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Save, ChevronDown, ChevronUp, AlertTriangle, Database, HardDrive, Trash2, Loader2 } from "lucide-react";
 import { useUser } from "../../../hooks/userHook"; // Adjust path if needed
 import { useFileContext } from "../../../contexts/FileContext"; // Adjust path if needed
 import { useAutoProcess } from "../../../hooks/useAutoProcess"; // Adjust path if needed
-import {ThemePreference } from "../../../hooks/useTheme";
-import {useThemeContext} from "../../../contexts/ThemeContext"; // Adjust path if needed
+import { ThemePreference } from "../../../hooks/useTheme";
+import { useThemeContext } from "../../../contexts/ThemeContext"; // Adjust path if needed
 
 export default function GeneralSettings() {
     const { settings, updateSettings, isLoading: isUserLoading, error: userError, clearError: clearUserError } = useUser();

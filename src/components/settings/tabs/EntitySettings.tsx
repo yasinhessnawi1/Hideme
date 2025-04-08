@@ -1,12 +1,9 @@
-"use client";
-
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useState, useRef} from "react";
 import {AlertTriangle, ChevronDown, Loader2, Save} from "lucide-react";
-import {useUser} from "../../../hooks/userHook"; // Adjust path
+import {useUser} from "../../../hooks/userHook"; // Adjust path if needed
 import { ModelEntity } from "../../../services/settingsService";
 
-// Mock entity options - ideally fetch these from a config or API
-// Keep the 'ALL' options for UI convenience
+// Mock entity options
 const presidioOptions = [
     {value: 'ALL_PRESIDIO', label: 'All Presidio Entities'},
     {value: 'PERSON', label: 'Person'},
@@ -82,8 +79,7 @@ const geminiOptions = [
     {value: 'CONTEXT-G', label: 'Context'},
 ];
 
-
-// Map frontend values to backend method IDs (ASSUMPTION - adjust these IDs if different)
+// Map frontend values to backend method IDs
 const METHOD_ID_MAP: { [key: string]: number } = {
     presidio: 1,
     gliner: 2,
@@ -95,7 +91,7 @@ const METHOD_ID_REVERSE_MAP: { [key: number]: string } = {
     3: 'gemini',
 };
 
-// Define interface for entity options used in the component
+// Define interface for entity options
 interface EntityOption {
     value: string;
     label: string;
@@ -104,7 +100,7 @@ interface EntityOption {
 export default function EntitySettings() {
     const {
         settings,
-        modelEntities, // Record<number, ModelEntity[]>
+        modelEntities,
         getModelEntities,
         addModelEntities,
         deleteModelEntity,
@@ -122,59 +118,64 @@ export default function EntitySettings() {
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
-    const [initialEntitiesLoaded, setInitialEntitiesLoaded] = useState(false);
+
+    // Add refs to track initialization
+    const initialEntitiesLoadedRef = useRef(false);
+    const entityFetchAttemptsRef = useRef<Set<number>>(new Set());
 
     // --- Effects ---
 
     // Fetch entities when component mounts or user changes
     useEffect(() => {
-        const fetchAllEntities = async () => {
-            // Check if already loaded to prevent redundant fetches
-            if (initialEntitiesLoaded || isUserLoading) return;
+        const fetchEntityMethod = async (methodId: number) => {
+            if (entityFetchAttemptsRef.current.has(methodId) || isUserLoading) {
+                return;
+            }
 
-            console.log("[EntitySettings] Fetching initial entities...");
+            console.log(`[EntitySettings] Fetching entities for method ${methodId}`);
+            entityFetchAttemptsRef.current.add(methodId);
+
             try {
-                await Promise.all([
-                    getModelEntities(METHOD_ID_MAP.presidio),
-                    getModelEntities(METHOD_ID_MAP.gliner),
-                    getModelEntities(METHOD_ID_MAP.gemini)
-                ]);
-                setInitialEntitiesLoaded(true);
-                console.log("[EntitySettings] Initial entities fetched.");
+                await getModelEntities(methodId);
             } catch (error) {
-                console.error("[EntitySettings] Failed to fetch initial entities", error);
-                setInitialEntitiesLoaded(true); // Mark as loaded even on error to prevent loops
+                console.error(`[EntitySettings] Failed to fetch entities for method ${methodId}`, error);
             }
         };
-        // Fetch only if modelEntities is empty or hasn't been loaded yet and hook isn't loading
-        if (!initialEntitiesLoaded && Object.keys(modelEntities).length === 0 && !isUserLoading) {
-            fetchAllEntities();
-        } else if (Object.keys(modelEntities).length > 0 && !initialEntitiesLoaded) {
-            // Mark as loaded if data already exists from the hook (e.g., from initial load)
-            setInitialEntitiesLoaded(true);
-            console.log("[EntitySettings] Entities already present in hook state.");
-        }
-    }, [getModelEntities, modelEntities, isUserLoading, initialEntitiesLoaded]);
 
+        // Only attempt to fetch if not already loaded
+        if (!initialEntitiesLoadedRef.current && !isUserLoading) {
+            console.log("[EntitySettings] Starting initial entity fetch");
+
+            // Fetch each method's entities with small delays
+            fetchEntityMethod(METHOD_ID_MAP.presidio);
+
+            setTimeout(() => {
+                fetchEntityMethod(METHOD_ID_MAP.gliner);
+            }, 300);
+
+            setTimeout(() => {
+                fetchEntityMethod(METHOD_ID_MAP.gemini);
+                initialEntitiesLoadedRef.current = true;
+            }, 600);
+        }
+    }, [getModelEntities, isUserLoading]);
 
     // Sync local selections with fetched/updated entities from useUser hook
-    // *** THIS IS THE CORRECTED useEffect ***
     useEffect(() => {
-        if (initialEntitiesLoaded) {
-            console.log("[EntitySettings] Syncing local state with modelEntities:", modelEntities);
+        if (initialEntitiesLoadedRef.current || entityFetchAttemptsRef.current.size > 0) {
+            console.log("[EntitySettings] Syncing local state with modelEntities");
 
             const syncSelection = (methodKey: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
                 const methodId = METHOD_ID_MAP[methodKey];
-                const entitiesForMethod = modelEntities[methodId]; // Get the potential array
+                const entitiesForMethod = modelEntities[methodId];
 
                 // Check if entitiesForMethod is actually an array before mapping
                 if (Array.isArray(entitiesForMethod)) {
                     console.log(`[EntitySettings] Syncing ${methodKey}: Found ${entitiesForMethod.length} entities.`);
                     setter(entitiesForMethod.map(e => e.entity_text));
                 } else {
-                    // If it's not an array (e.g., undefined or null), set to empty array
-                    console.warn(`[EntitySettings] Data for method ${methodKey} (ID: ${methodId}) is not an array. Setting selection to empty.`);
-                    setter([]);
+                    // If it's not an array (e.g., undefined or null), keep current selection
+                    console.log(`[EntitySettings] No entities found for ${methodKey} (ID: ${methodId})`);
                 }
             };
 
@@ -182,8 +183,7 @@ export default function EntitySettings() {
             syncSelection('gliner', setSelectedGliner);
             syncSelection('gemini', setSelectedGemini);
         }
-    }, [modelEntities, initialEntitiesLoaded]); // Depends only on modelEntities and the loaded flag
-
+    }, [modelEntities]);
 
     // --- UI Interaction Handlers ---
 
@@ -194,7 +194,7 @@ export default function EntitySettings() {
     // Generic toggle handler for checkboxes
     const createToggleHandler = (
         setter: React.Dispatch<React.SetStateAction<string[]>>,
-        options: EntityOption[] // Use the defined interface
+        options: EntityOption[]
     ) => (value: string) => {
         setter(prevSelected => {
             let newSelection: string[];
@@ -222,10 +222,9 @@ export default function EntitySettings() {
 
     // Select/Clear All handlers
     const createSelectAllHandler = (
-        options: EntityOption[], // Use the defined interface
+        options: EntityOption[],
         setter: React.Dispatch<React.SetStateAction<string[]>>
     ) => () => {
-        // Select all actual entity values, exclude the "ALL_" placeholder
         setter(options.filter(opt => !opt.value.startsWith('ALL_')).map(opt => opt.value));
         setSaveSuccess(false);
         setSaveError(null);
@@ -246,7 +245,6 @@ export default function EntitySettings() {
     const selectAllGemini = createSelectAllHandler(geminiOptions, setSelectedGemini);
     const clearAllGemini = createClearAllHandler(setSelectedGemini);
 
-
     // --- Save Changes ---
     const handleSaveChanges = async () => {
         setIsSaving(true);
@@ -255,7 +253,7 @@ export default function EntitySettings() {
         clearUserError();
 
         try {
-            // 2. Sync Model Entities (Add new, Delete removed)
+            // Sync Model Entities (Add new, Delete removed)
             const syncEntities = async (
                 methodKey: string,
                 localSelection: string[],
@@ -264,14 +262,14 @@ export default function EntitySettings() {
 
                 try {
                     // Log the actual value to help debugging
-                    console.log(`[EntitySettings] Raw modelEntities data for method ${methodKey}:`, {
+                    console.log(`[EntitySettings] Syncing entities for method ${methodKey}:`, {
                         methodId,
-                        data: modelEntities[methodId]
+                        localSelection: localSelection.length
                     });
 
                     // Create empty arrays as fallbacks
                     let currentEntities: ModelEntity[] = [];
-                    let currentEntityTexts: string | string[] = [];
+                    let currentEntityTexts: string[] = [];
 
                     // Try to safely extract entity data
                     if (modelEntities[methodId]) {
@@ -316,283 +314,260 @@ export default function EntitySettings() {
                 }
             };
 
-        await Promise.all([
-            syncEntities('presidio', selectedPresidio),
-            syncEntities('gliner', selectedGliner),
-            syncEntities('gemini', selectedGemini),
-        ]);
+            await Promise.all([
+                syncEntities('presidio', selectedPresidio),
+                syncEntities('gliner', selectedGliner),
+                syncEntities('gemini', selectedGemini),
+            ]);
 
-        // Refetch entities after changes to update the main state
-        console.log("[EntitySettings] Refetching entities after save...");
-        await Promise.all([
-            getModelEntities(METHOD_ID_MAP.presidio),
-            getModelEntities(METHOD_ID_MAP.gliner),
-            getModelEntities(METHOD_ID_MAP.gemini),
-        ]);
+            // Refetch entities after changes to update the main state
+            console.log("[EntitySettings] Refetching entities after save...");
+            await Promise.all([
+                getModelEntities(METHOD_ID_MAP.presidio),
+                getModelEntities(METHOD_ID_MAP.gliner),
+                getModelEntities(METHOD_ID_MAP.gemini),
+            ]);
 
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
 
-    }
-catch
-    (err: any)
-    {
-        const message = err.userMessage || err.message || "Failed to save entity settings.";
-        setSaveError(message);
-        console.error("Error saving entity settings:", err);
-    }
-finally
-    {
-        setIsSaving(false);
-    }
-};
+        } catch (err: any) {
+            const message = err.userMessage || err.message || "Failed to save entity settings.";
+            setSaveError(message);
+            console.error("Error saving entity settings:", err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
-// Determine combined loading state
-const isLoading = isUserLoading || !initialEntitiesLoaded;
+    // Determine combined loading state
+    const isLoading = isUserLoading || !initialEntitiesLoadedRef.current;
 
-// Helper component for the colored dot indicator
-const ColorDot: React.FC<{ color: string }> = ({color}) => (
-    <span
-        style={{
-            display: 'inline-block',
-            width: '10px',
-            height: '10px',
-            borderRadius: '50%',
-            backgroundColor: color,
-            marginRight: '8px',
-            verticalAlign: 'middle'
-        }}
-    />
-);
+    // Helper component for the colored dot indicator
+    const ColorDot: React.FC<{ color: string }> = ({color}) => (
+        <span
+            style={{
+                display: 'inline-block',
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                backgroundColor: color,
+                marginRight: '8px',
+                verticalAlign: 'middle'
+            }}
+        />
+    );
 
-// Define model colors for dots
-const MODEL_COLORS = {
-    presidio: '#ffd771', // Yellow (Using the color from EditContext)
-    gliner: '#ff7171',   // Red
-    gemini: '#7171ff'    // Blue
-};
+    // Define model colors for dots
+    const MODEL_COLORS = {
+        presidio: '#ffd771', // Yellow
+        gliner: '#ff7171',   // Red
+        gemini: '#7171ff'    // Blue
+    };
 
-
-return (
-    <div className="space-y-6">
-        {saveError && (
-            <div className="alert alert-destructive">
-                <AlertTriangle className="alert-icon" size={16}/>
-                <div>
-                    <div className="alert-title">Save Error</div>
-                    <div className="alert-description">{saveError}</div>
-                </div>
-            </div>
-        )}
-        {saveSuccess && (
-            <div className="alert alert-success"> {/* Add success styling */}
-                <div>
-                    <div className="alert-title">Success</div>
-                    <div className="alert-description">Entity settings saved successfully!</div>
-                </div>
-            </div>
-        )}
-
-        <div className="card">
-            <div className="card-header">
-                <h2 className="card-title">Entity Detection Settings</h2>
-                <p className="card-description">Configure which entities are detected in your documents</p>
-            </div>
-            <div className="card-content space-y-6">
-                {isLoading && (
-                    <div className="flex justify-center items-center py-6">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary"/>
-                        <span className="ml-2 text-muted-foreground">Loading entity data...</span>
+    return (
+        <div className="space-y-6">
+            {saveError && (
+                <div className="alert alert-destructive">
+                    <AlertTriangle className="alert-icon" size={16}/>
+                    <div>
+                        <div className="alert-title">Save Error</div>
+                        <div className="alert-description">{saveError}</div>
                     </div>
-                )}
+                </div>
+            )}
+            {saveSuccess && (
+                <div className="alert alert-success">
+                    <div>
+                        <div className="alert-title">Success</div>
+                        <div className="alert-description">Entity settings saved successfully!</div>
+                    </div>
+                </div>
+            )}
 
-                {!isLoading && (
-                    <>
-                        <div className="form-group">
-                            <label className="form-label" htmlFor="default-model">
-                                Default Detection Model
-                            </label>
+            <div className="card">
+                <div className="card-header">
+                    <h2 className="card-title">Entity Detection Settings</h2>
+                    <p className="card-description">Configure which entities are detected in your documents</p>
+                </div>
+                <div className="card-content space-y-6">
+                    {isLoading && (
+                        <div className="flex justify-center items-center py-6">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary"/>
+                            <span className="ml-2 text-muted-foreground">Loading entity data...</span>
                         </div>
+                    )}
 
-                        <div className="separator"></div>
+                    {!isLoading && (
+                        <>
+                            <div className="form-group">
+                                <label className="form-label" htmlFor="default-model">
+                                    Default Detection Model
+                                </label>
+                            </div>
 
-                        {/* Accordions for each model */}
-                        <div className="accordion">
-                            {/* Presidio */}
-                            <div className="accordion-item">
-                                <button
-                                    className="accordion-trigger"
-                                    onClick={() => toggleAccordion("presidio")}
-                                    aria-expanded={openAccordions.includes("presidio")}
-                                >
-                                    <span><ColorDot color={MODEL_COLORS.presidio}/>Presidio Machine Learning</span>
-                                    <ChevronDown
-                                        className={`accordion-trigger-icon transition-transform duration-200 ${openAccordions.includes("presidio") ? 'rotate-180' : ''}`}
-                                        size={16}
-                                    />
-                                </button>
-                                <div
-                                    className={`accordion-content ${openAccordions.includes("presidio") ? 'open' : ''}`}
-                                >
-                                    <div className="space-y-4 py-2 px-1"> {/* Added padding */}
-                                        <div className="flex justify-between gap-2">
-                                            <button className="button button-outline button-sm"
-                                                    onClick={selectAllPresidio} disabled={isSaving}>Select All
-                                            </button>
-                                            <button className="button button-outline button-sm"
-                                                    onClick={clearAllPresidio} disabled={isSaving}>Clear All
-                                            </button>
+                            <div className="separator"></div>
+
+                            {/* Accordions for each model */}
+                            <div className="accordion">
+                                {/* Presidio */}
+                                <div className="accordion-item">
+                                    <button
+                                        className="accordion-trigger"
+                                        onClick={() => toggleAccordion("presidio")}
+                                        aria-expanded={openAccordions.includes("presidio")}
+                                    >
+                                        <span><ColorDot color={MODEL_COLORS.presidio}/>Presidio Machine Learning</span>
+                                        <ChevronDown
+                                            className={`accordion-trigger-icon transition-transform duration-200 ${openAccordions.includes("presidio") ? 'rotate-180' : ''}`}
+                                            size={16}
+                                        />
+                                    </button>
+                                    <div
+                                        className={`accordion-content ${openAccordions.includes("presidio") ? 'open' : ''}`}
+                                    >
+                                        <div className="space-y-4 py-2 px-1"> {/* Added padding */}
+                                            <div className="flex justify-between gap-2">
+                                                <button className="button button-outline button-sm"
+                                                        onClick={selectAllPresidio} disabled={isSaving}>Select All
+                                                </button>
+                                                <button className="button button-outline button-sm"
+                                                        onClick={clearAllPresidio} disabled={isSaving}>Clear All
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                                {presidioOptions.filter(opt => !opt.value.startsWith('ALL_')).map((option) => (
+                                                    <div key={option.value} className="checkbox-container">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="checkbox"
+                                                            id={`presidio-${option.value}`}
+                                                            checked={selectedPresidio.includes(option.value)}
+                                                            onChange={() => togglePresidio(option.value)}
+                                                            disabled={isSaving}
+                                                        />
+                                                        <label className="checkbox-label"
+                                                               htmlFor={`presidio-${option.value}`}>
+                                                            {option.label}
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                            {/* Render Checkbox for "ALL" option visually, but handle logic separately */}
-                                            {/*
-                                                <div key="ALL_PRESIDIO" className="checkbox-container">
-                                                      <input
-                                                        type="checkbox"
-                                                        className="checkbox"
-                                                        id={`presidio-ALL_PRESIDIO`}
-                                                        // Checked state depends on whether all individual options are checked
-                                                        checked={presidioOptions.filter(o => !o.value.startsWith('ALL_')).length > 0 && presidioOptions.filter(o => !o.value.startsWith('ALL_')).every(o => selectedPresidio.includes(o.value))}
-                                                        onChange={() => togglePresidio('ALL_PRESIDIO')}
-                                                        disabled={isSaving}
-                                                    />
-                                                     <label className="checkbox-label font-semibold" htmlFor={`presidio-ALL_PRESIDIO`}>
-                                                        All Presidio Entities
-                                                    </label>
-                                                 </div>
-                                                 */}
-                                            {presidioOptions.filter(opt => !opt.value.startsWith('ALL_')).map((option) => (
-                                                <div key={option.value} className="checkbox-container">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="checkbox"
-                                                        id={`presidio-${option.value}`}
-                                                        checked={selectedPresidio.includes(option.value)}
-                                                        onChange={() => togglePresidio(option.value)}
-                                                        disabled={isSaving}
-                                                    />
-                                                    <label className="checkbox-label"
-                                                           htmlFor={`presidio-${option.value}`}>
-                                                        {option.label}
-                                                    </label>
-                                                </div>
-                                            ))}
+                                    </div>
+                                </div>
+
+                                {/* Gliner */}
+                                <div className="accordion-item">
+                                    <button
+                                        className="accordion-trigger"
+                                        onClick={() => toggleAccordion("gliner")}
+                                        aria-expanded={openAccordions.includes("gliner")}
+                                    >
+                                        <span><ColorDot color={MODEL_COLORS.gliner}/>Gliner Machine Learning</span>
+                                        <ChevronDown
+                                            className={`accordion-trigger-icon transition-transform duration-200 ${openAccordions.includes("gliner") ? 'rotate-180' : ''}`}
+                                            size={16}
+                                        />
+                                    </button>
+                                    <div
+                                        className={`accordion-content ${openAccordions.includes("gliner") ? 'open' : ''}`}
+                                    >
+                                        <div className="space-y-4 py-2 px-1"> {/* Added padding */}
+                                            <div className="flex justify-between gap-2">
+                                                <button className="button button-outline button-sm"
+                                                        onClick={selectAllGliner} disabled={isSaving}>Select All
+                                                </button>
+                                                <button className="button button-outline button-sm" onClick={clearAllGliner}
+                                                        disabled={isSaving}>Clear All
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                                {glinerOptions.filter(opt => !opt.value.startsWith('ALL_')).map((option) => (
+                                                    <div key={option.value} className="checkbox-container">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="checkbox"
+                                                            id={`gliner-${option.value}`}
+                                                            checked={selectedGliner.includes(option.value)}
+                                                            onChange={() => toggleGliner(option.value)}
+                                                            disabled={isSaving}
+                                                        />
+                                                        <label className="checkbox-label"
+                                                               htmlFor={`gliner-${option.value}`}>
+                                                            {option.label}
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Gemini */}
+                                <div className="accordion-item">
+                                    <button
+                                        className="accordion-trigger"
+                                        onClick={() => toggleAccordion("gemini")}
+                                        aria-expanded={openAccordions.includes("gemini")}
+                                    >
+                                        <span><ColorDot color={MODEL_COLORS.gemini}/>Gemini AI</span>
+                                        <ChevronDown
+                                            className={`accordion-trigger-icon transition-transform duration-200 ${openAccordions.includes("gemini") ? 'rotate-180' : ''}`}
+                                            size={16}
+                                        />
+                                    </button>
+                                    <div
+                                        className={`accordion-content ${openAccordions.includes("gemini") ? 'open' : ''}`}
+                                    >
+                                        <div className="space-y-4 py-2 px-1"> {/* Added padding */}
+                                            <div className="flex justify-between gap-2">
+                                                <button className="button button-outline button-sm"
+                                                        onClick={selectAllGemini} disabled={isSaving}>Select All
+                                                </button>
+                                                <button className="button button-outline button-sm" onClick={clearAllGemini}
+                                                        disabled={isSaving}>Clear All
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                                {geminiOptions.filter(opt => !opt.value.startsWith('ALL_')).map((option) => (
+                                                    <div key={option.value} className="checkbox-container">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="checkbox"
+                                                            id={`gemini-${option.value}`}
+                                                            checked={selectedGemini.includes(option.value)}
+                                                            onChange={() => toggleGemini(option.value)}
+                                                            disabled={isSaving}
+                                                        />
+                                                        <label className="checkbox-label"
+                                                               htmlFor={`gemini-${option.value}`}>
+                                                            {option.label}
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        </>
+                    )}
+                </div>
+            </div>
 
-                            {/* Gliner */}
-                            <div className="accordion-item">
-                                <button
-                                    className="accordion-trigger"
-                                    onClick={() => toggleAccordion("gliner")}
-                                    aria-expanded={openAccordions.includes("gliner")}
-                                >
-                                    <span><ColorDot color={MODEL_COLORS.gliner}/>Gliner Machine Learning</span>
-                                    <ChevronDown
-                                        className={`accordion-trigger-icon transition-transform duration-200 ${openAccordions.includes("gliner") ? 'rotate-180' : ''}`}
-                                        size={16}
-                                    />
-                                </button>
-                                <div
-                                    className={`accordion-content ${openAccordions.includes("gliner") ? 'open' : ''}`}
-                                >
-                                    <div className="space-y-4 py-2 px-1"> {/* Added padding */}
-                                        <div className="flex justify-between gap-2">
-                                            <button className="button button-outline button-sm"
-                                                    onClick={selectAllGliner} disabled={isSaving}>Select All
-                                            </button>
-                                            <button className="button button-outline button-sm" onClick={clearAllGliner}
-                                                    disabled={isSaving}>Clear All
-                                            </button>
-                                        </div>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                            {glinerOptions.filter(opt => !opt.value.startsWith('ALL_')).map((option) => (
-                                                <div key={option.value} className="checkbox-container">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="checkbox"
-                                                        id={`gliner-${option.value}`}
-                                                        checked={selectedGliner.includes(option.value)}
-                                                        onChange={() => toggleGliner(option.value)}
-                                                        disabled={isSaving}
-                                                    />
-                                                    <label className="checkbox-label"
-                                                           htmlFor={`gliner-${option.value}`}>
-                                                        {option.label}
-                                                    </label>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Gemini */}
-                            <div className="accordion-item">
-                                <button
-                                    className="accordion-trigger"
-                                    onClick={() => toggleAccordion("gemini")}
-                                    aria-expanded={openAccordions.includes("gemini")}
-                                >
-                                    <span><ColorDot color={MODEL_COLORS.gemini}/>Gemini AI</span>
-                                    <ChevronDown
-                                        className={`accordion-trigger-icon transition-transform duration-200 ${openAccordions.includes("gemini") ? 'rotate-180' : ''}`}
-                                        size={16}
-                                    />
-                                </button>
-                                <div
-                                    className={`accordion-content ${openAccordions.includes("gemini") ? 'open' : ''}`}
-                                >
-                                    <div className="space-y-4 py-2 px-1"> {/* Added padding */}
-                                        <div className="flex justify-between gap-2">
-                                            <button className="button button-outline button-sm"
-                                                    onClick={selectAllGemini} disabled={isSaving}>Select All
-                                            </button>
-                                            <button className="button button-outline button-sm" onClick={clearAllGemini}
-                                                    disabled={isSaving}>Clear All
-                                            </button>
-                                        </div>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                            {geminiOptions.filter(opt => !opt.value.startsWith('ALL_')).map((option) => (
-                                                <div key={option.value} className="checkbox-container">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="checkbox"
-                                                        id={`gemini-${option.value}`}
-                                                        checked={selectedGemini.includes(option.value)}
-                                                        onChange={() => toggleGemini(option.value)}
-                                                        disabled={isSaving}
-                                                    />
-                                                    <label className="checkbox-label"
-                                                           htmlFor={`gemini-${option.value}`}>
-                                                        {option.label}
-                                                    </label>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </>
-                )}
+            {/* Save Button */}
+            <div className="flex justify-end gap-4 mt-6"> {/* Added margin-top */}
+                <button
+                    className="button button-primary"
+                    onClick={handleSaveChanges}
+                    disabled={isSaving || isLoading}
+                >
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
+                        <Save size={16} className="button-icon"/>}
+                    {isSaving ? 'Saving...' : 'Save Entity Settings'}
+                </button>
             </div>
         </div>
-
-        {/* Save Button */}
-        <div className="flex justify-end gap-4 mt-6"> {/* Added margin-top */}
-            <button
-                className="button button-primary"
-                onClick={handleSaveChanges}
-                disabled={isSaving || isLoading}
-            >
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
-                    <Save size={16} className="button-icon"/>}
-                {isSaving ? 'Saving...' : 'Save Entity Settings'}
-            </button>
-        </div>
-    </div>
-);
+    );
 }

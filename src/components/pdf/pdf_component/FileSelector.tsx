@@ -312,8 +312,8 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
 
     return (
         <div className={`file-selector-container ${className ?? ''}`}>
-            <div className={`dropdown-section ${className ?? ''}`}>
-                <AutoProcessControls/>
+            <div className={`main-content ${className ?? ''}`}>
+                <AutoProcessControls />
             </div>
 
             <div className={`file-selector ${className ?? ''}`}>
@@ -421,7 +421,9 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                         setShowActions(null);
                                         setShowTooltip(null);
                                     }}
-                                >
+                                > {
+
+
                                     <div className="file-controls">
                                         <button
                                             className="file-select-button"
@@ -448,7 +450,8 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                                 <EyeOff size={16} className="visibility-icon"/>
                                             )}
                                         </button>
-                                    </div>
+                                    </div> }
+
 
                                     <div className="file-info">
                                         <FileIcon size={18} className="file-icon"/>

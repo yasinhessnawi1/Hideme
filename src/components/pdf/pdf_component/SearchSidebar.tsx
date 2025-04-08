@@ -163,21 +163,14 @@ const SearchSidebar: React.FC = () => {
                 return;
             }
 
-            await runBatchSearch(
-                filesToSearch,
-                searchTermToUse,
-                {
-                    isCaseSensitive,
-                    isRegexSearch: isAiSearch
-                }
-            );
+
 
             await batchSearch(
                 filesToSearch,
                 searchTermToUse,
                 {
-                    caseSensitive: isCaseSensitive,
-                    regex: isAiSearch
+                    isCaseSensitive: isCaseSensitive,
+                    isAiSearch: isAiSearch
                 }
             );
 

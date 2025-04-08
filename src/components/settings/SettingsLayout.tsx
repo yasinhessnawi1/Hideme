@@ -1,8 +1,5 @@
-// src/components/settings/SettingsLayout.tsx
-// REMOVE "use client"; if it was at the top
-
-import React, { useState, useEffect } from "react";
-import { useNavigate } from 'react-router-dom'; // *** CHANGE THIS IMPORT ***
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from "lucide-react";
 import GeneralSettings from "./tabs/GeneralSettings";
 import AccountSettings from "./tabs/AccountSettings";
@@ -15,16 +12,70 @@ import { useUser } from "../../hooks/userHook"; // Ensure this path is correct
 export default function SettingsLayout() {
     const [activeTab, setActiveTab] = useState("general");
     const { isLoading: isUserLoading, error: userError, settings, getSettings } = useUser();
-    const navigate = useNavigate(); // *** USE useNavigate ***
+    const navigate = useNavigate();
 
+    // Add a ref to track initial settings loading
+    const initialLoadingRef = useRef(true);
+    const settingsLoadAttemptedRef = useRef(false);
+
+    // Unified loading state to reduce flicker
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+    // Load settings once on mount, with better safeguards
     useEffect(() => {
-        if (!settings && !isUserLoading) {
-            getSettings();
+        let isMounted = true;
+
+        // Only fetch settings if not already loading and haven't tried yet
+        if (!settingsLoadAttemptedRef.current && !isUserLoading) {
+            settingsLoadAttemptedRef.current = true;
+
+            // Small delay to allow auth to complete if needed
+            const timeoutId = setTimeout(() => {
+                if (isMounted) {
+                    console.log("[SettingsLayout] Fetching initial settings");
+                    getSettings()
+                        .finally(() => {
+                            if (isMounted) {
+                                initialLoadingRef.current = false;
+                                setIsInitialLoading(false);
+                            }
+                        });
+                }
+            }, 100);
+
+            return () => {
+                clearTimeout(timeoutId);
+                isMounted = false;
+            };
+        } else if (!isUserLoading && (settings || userError)) {
+            // If we either have settings or an error, we're done loading
+            initialLoadingRef.current = false;
+            setIsInitialLoading(false);
         }
-    }, [settings, getSettings, isUserLoading]);
+    }, [settings, getSettings, isUserLoading, userError]);
 
     const handleGoBack = () => {
-        navigate(-1); // *** CHANGE THIS to navigate(-1) ***
+        navigate(-1);
+    };
+
+    // Lazy loading for tab components to reduce initial render time
+    const renderTabContent = () => {
+        if (isInitialLoading) return null;
+
+        switch (activeTab) {
+            case "general":
+                return <GeneralSettings />;
+            case "account":
+                return <AccountSettings />;
+            case "entity":
+                return <EntitySettings />;
+            case "search":
+                return <SearchSettings />;
+            case "banlist":
+                return <BanListSettings />;
+            default:
+                return null;
+        }
     };
 
     return (
@@ -44,14 +95,14 @@ export default function SettingsLayout() {
                     <p className="text-muted-foreground mt-1">Manage your account settings and preferences</p>
                 </div>
 
-                {isUserLoading && !settings && (
+                {isInitialLoading && (
                     <div className="flex justify-center items-center py-10">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         <span className="ml-2 text-muted-foreground">Loading settings...</span>
                     </div>
                 )}
 
-                {userError && !isUserLoading && (
+                {userError && !isUserLoading && !isInitialLoading && (
                     <div className="alert alert-destructive mb-6">
                         <div>
                             <div className="alert-title">Error Loading Settings</div>
@@ -60,7 +111,7 @@ export default function SettingsLayout() {
                     </div>
                 )}
 
-                {!isUserLoading && (
+                {!isInitialLoading && (
                     <div className="tabs">
                         <div className="tabs-list">
                             {/* Tab Triggers */}
@@ -101,21 +152,9 @@ export default function SettingsLayout() {
                             </button>
                         </div>
 
-                        {/* Tab Content Panels */}
-                        <div className={`tab-content ${activeTab === "general" ? 'active' : ''}`} data-state={activeTab === "general" ? "active" : "inactive"}>
-                            {activeTab === "general" && <GeneralSettings />}
-                        </div>
-                        <div className={`tab-content ${activeTab === "account" ? 'active' : ''}`} data-state={activeTab === "account" ? "active" : "inactive"}>
-                            {activeTab === "account" && <AccountSettings />}
-                        </div>
-                        <div className={`tab-content ${activeTab === "entity" ? 'active' : ''}`} data-state={activeTab === "entity" ? "active" : "inactive"}>
-                            {activeTab === "entity" && <EntitySettings />}
-                        </div>
-                        <div className={`tab-content ${activeTab === "search" ? 'active' : ''}`} data-state={activeTab === "search" ? "active" : "inactive"}>
-                            {activeTab === "search" && <SearchSettings />}
-                        </div>
-                        <div className={`tab-content ${activeTab === "banlist" ? 'active' : ''}`} data-state={activeTab === "banlist" ? "active" : "inactive"}>
-                            {activeTab === "banlist" && <BanListSettings />}
+                        {/* Single Tab Content Panel with conditional rendering based on activeTab */}
+                        <div className="tab-content active" data-state="active">
+                            {renderTabContent()}
                         </div>
                     </div>
                 )}

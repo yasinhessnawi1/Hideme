@@ -17,6 +17,10 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
     align-items: center;
     margin-bottom: var(--spacing-sm);
 }
+.scope-section:hover h4 {
+      color: var(--primary);
+ }
+
 
 .entity-select-header h4 {
     margin: 0;

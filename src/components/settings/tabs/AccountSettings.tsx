@@ -1,8 +1,6 @@
-"use client";
-
 import React, { useState, useEffect } from "react";
 import { Save, User, AlertCircle, Loader2 } from "lucide-react";
-import { useUser } from "../../../hooks/userHook"; // Adjust path
+import { useUser } from "../../../hooks/userHook"; // Adjust path if needed
 
 export default function AccountSettings() {
     const {
@@ -17,7 +15,7 @@ export default function AccountSettings() {
 
     // Profile Info State
     const [name, setName] = useState("");
-    const [surname, setSurname] = useState(""); // Assuming surname isn't directly in User model, might need adjustment
+    const [surname, setSurname] = useState("");
     const [email, setEmail] = useState("");
 
     // Password Change State
@@ -43,14 +41,13 @@ export default function AccountSettings() {
     // Load user data when available
     useEffect(() => {
         if (user?.username && user?.email) {
-            // Assuming 'name' might be derived or stored differently. Adjust as needed.
-            // If username is the main identifier, maybe split it? Or add name fields to User model.
+            // Extract name parts from username if needed
             const nameParts = user.username.split(' ');
             if (nameParts.length < 2) {
-               setName(user.username);
-            }else{
-                setName(nameParts[0] || user.username); // Simple split, adjust logic if needed
-                setSurname(nameParts.slice(1).join(' ') || ''); // Simple split
+                setName(user.username);
+            } else {
+                setName(nameParts[0] || user.username);
+                setSurname(nameParts.slice(1).join(' ') || '');
             }
 
             setEmail(user.email);
@@ -76,12 +73,11 @@ export default function AccountSettings() {
         clearUserError();
 
         // Construct name/username as needed by your backend
-        const combinedName = `${name} ${surname}`.trim(); // Example: Combine name/surname for username update
+        const combinedName = `${name} ${surname}`.trim();
 
         try {
             await updateUserProfile({
-                // Decide how to map frontend name/surname to backend fields (e.g., username)
-                username: combinedName || user?.username, // Fallback to existing if empty
+                username: combinedName || user?.username,
                 email: email,
             });
             setProfileSaveSuccess(true);
@@ -167,7 +163,6 @@ export default function AccountSettings() {
         // Don't reset loading state on success, as user should be logged out/redirected
     };
 
-
     const isLoading = isUserLoading || isSavingProfile || isChangingPassword || isDeletingAccount;
 
     return (
@@ -182,7 +177,7 @@ export default function AccountSettings() {
                 </div>
             )}
             {profileSaveSuccess && (
-                <div className="alert alert-success"> {/* Add success styling */}
+                <div className="alert alert-success">
                     <div>
                         <div className="alert-title">Success</div>
                         <div className="alert-description">Profile updated successfully!</div>
@@ -241,7 +236,6 @@ export default function AccountSettings() {
                                     placeholder="Enter your email address"
                                     disabled={isLoading}
                                 />
-                                {/* <p className="form-helper">We'll never share your email with anyone else.</p> */}
                             </div>
                             <div className="flex justify-end">
                                 <button
@@ -275,7 +269,7 @@ export default function AccountSettings() {
                         </div>
                     )}
                     {passwordSuccess && (
-                        <div className="alert alert-success"> {/* Add success styling */}
+                        <div className="alert alert-success">
                             <div>
                                 <div className="alert-title">Success</div>
                                 <div className="alert-description">Password updated successfully!</div>

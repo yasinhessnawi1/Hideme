@@ -23,19 +23,29 @@ including the sidebars, content areas, and responsive behavior.
 }
 
 .viewer-content {
-    display: flex;
-    flex: 1;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    height: calc(100vh - 60px); /* Adjust for header height */
     overflow: hidden;
     position: relative;
 }
 /* Main sidebar containers - make these the ONLY scrollable elements */
 .left-sidebar,
 .right-sidebar {
-    overflow-y: auto !important; /* Force this to be the only scrollable element */
-    height: 100% !important;
     display: flex !important;
     flex-direction: column !important;
+    background-color: var(--sidebar-bg);
+    border-color: var(--sidebar-border);
+    transition: width var(--transition-speed) var(--transition-function),
+    transform var(--transition-speed) var(--transition-function);
+    position: relative;
+    height: 100% !important;
+    z-index: 10;
+    max-width: 320px;
+    will-change: width; /* Optimize performance */
 }
+
+
 .sidebar-content,
 .entity-detection-sidebar,
 .search-sidebar,
@@ -59,9 +69,10 @@ including the sidebars, content areas, and responsive behavior.
     transform var(--transition-speed) var(--transition-function),
     opacity var(--transition-speed) var(--transition-function),
     background-color var(--transition-speed) var(--transition-function);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
     position: relative;
     z-index: 5;
-    width: 20rem;
+    width: 20vw;
 }
 
 .left-sidebar.collapsed {
@@ -98,13 +109,24 @@ including the sidebars, content areas, and responsive behavior.
 
 /* Right sidebar styling */
 .right-sidebar {
-    width: 320px;
+    width: 20vw;
     overflow-y: hidden;
     border-left: 1px solid var(--sidebar-border);
     background-color: var(--sidebar-bg);
     transition: width var(--transition-speed) var(--transition-function),
     background-color var(--transition-speed) var(--transition-function);
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
 }
+.right-sidebar.collapsed {
+    width: 0 !important;
+    opacity: 0;
+    transform: translateX(-20px);
+    overflow: hidden;
+}
+.sidebar-hover-sensor.left {
+    left: 0;
+}
+
 
 /* Tabs in right sidebar */
 .sidebar-tabs {

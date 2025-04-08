@@ -17,11 +17,18 @@ import { HighlightType, useHighlightContext } from '../../../contexts/HighlightC
 import '../../../styles/modules/pdf/Toolbar.css';
 
 interface ToolbarProps {
-    toggleSidebar: () => void;
-    isSidebarCollapsed: boolean;
+    toggleLeftSidebar: () => void;
+    isLeftSidebarCollapsed: boolean;
+    toggleRightSidebar: () => void;
+    isRightSidebarCollapsed: boolean;
 }
 
-const Toolbar: React.FC<ToolbarProps> = ({ toggleSidebar, isSidebarCollapsed }) => {
+const Toolbar: React.FC<ToolbarProps> = ({
+                                             toggleLeftSidebar,
+                                             isLeftSidebarCollapsed,
+                                             toggleRightSidebar,
+                                             isRightSidebarCollapsed
+                                         }) => {
     const { currentFile, addFile } = useFileContext();
 
     const {
@@ -217,6 +224,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ toggleSidebar, isSidebarCollapsed }) 
         e.stopPropagation();
         setHighlightColor(e.target.value);
     };
+
     const handleResetEntityColors = (e: React.MouseEvent) => {
         e.stopPropagation();
         setPresidioColor('#ffd771'); // Yellow
@@ -225,7 +233,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ toggleSidebar, isSidebarCollapsed }) 
     };
 
     // Custom sidebar toggle icons
-    const SidebarOpenIcon = () => (
+    const LeftSidebarOpenIcon = () => (
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
             <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
@@ -241,7 +249,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ toggleSidebar, isSidebarCollapsed }) 
         </svg>
     );
 
-    const SidebarCloseIcon = () => (
+    const LeftSidebarCloseIcon = () => (
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
             <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
@@ -257,16 +265,49 @@ const Toolbar: React.FC<ToolbarProps> = ({ toggleSidebar, isSidebarCollapsed }) 
         </svg>
     );
 
+    // Right sidebar toggle icons (mirrored from left)
+    const RightSidebarOpenIcon = () => (
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+            <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+            <g id="SVGRepo_iconCarrier">
+                <path
+                    d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
+                    stroke="#292D32" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                <path d="M7.97 2V22" stroke="#292D32" strokeWidth="1.5" strokeLinecap="round"
+                      strokeLinejoin="round"></path>
+                <path d="M16.97 9.43994L14.41 11.9999L16.97 14.5599" stroke="#292D32" strokeWidth="1.5"
+                      strokeLinecap="round" strokeLinejoin="round"></path>
+            </g>
+        </svg>
+    );
+
+    const RightSidebarCloseIcon = () => (
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+            <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+            <g id="SVGRepo_iconCarrier">
+                <path
+                    d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
+                    stroke="#292D32" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                <path d="M14.97 2V22" stroke="#292D32" strokeWidth="1.5" strokeLinecap="round"
+                      strokeLinejoin="round"></path>
+                <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="#292D32" strokeWidth="1.5"
+                      strokeLinecap="round" strokeLinejoin="round"></path>
+            </g>
+        </svg>
+    );
+
     return (
         <div className="enhanced-toolbar">
-            {/* Custom sidebar toggle button */}
+            {/* Left sidebar toggle button */}
             <button
-                onClick={toggleSidebar}
-                className={`toolbar-button sidebar-toggle ${isSidebarCollapsed ? 'collapsed' : ''}`}
-                title={isSidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
-                style={{backgroundColor: 'transparent', border: 'none'}} // Add margin to the right
+                onClick={toggleLeftSidebar}
+                className={`toolbar-button sidebar-toggle left ${isLeftSidebarCollapsed ? 'collapsed' : ''}`}
+                title={isLeftSidebarCollapsed ? "Show left sidebar" : "Hide left sidebar"}
+                style={{backgroundColor: 'transparent', border: 'none'}}
             >
-                {isSidebarCollapsed ? <SidebarOpenIcon/> : <SidebarCloseIcon/>}
+                {isLeftSidebarCollapsed ? <LeftSidebarOpenIcon/> : <LeftSidebarCloseIcon/>}
             </button>
 
             <div className="toolbar-section">
@@ -493,6 +534,16 @@ const Toolbar: React.FC<ToolbarProps> = ({ toggleSidebar, isSidebarCollapsed }) 
                     <span className="button-label">Reset</span>
                 </button>
             </div>
+
+            {/* Right sidebar toggle button */}
+            <button
+                onClick={toggleRightSidebar}
+                className={`toolbar-button sidebar-toggle right ${isRightSidebarCollapsed ? 'collapsed' : ''}`}
+                title={isRightSidebarCollapsed ? "Show right sidebar" : "Hide right sidebar"}
+                style={{backgroundColor: 'transparent', border: 'none'}}
+            >
+                {isRightSidebarCollapsed ? <RightSidebarOpenIcon/> : <RightSidebarCloseIcon/>}
+            </button>
         </div>
     );
 };

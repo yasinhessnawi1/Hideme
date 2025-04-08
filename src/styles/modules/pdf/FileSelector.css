@@ -180,7 +180,7 @@ transition: transform 0.2s;
     background-color: var(--active-bg);
     border-color: var(--primary);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .file-item.current::after {
@@ -209,6 +209,7 @@ transition: transform 0.2s;
     align-items: center;
     gap: var(--spacing-xs);
     margin-right: var(--spacing-sm);
+    position: relative;
 }
 
 .file-select-button,

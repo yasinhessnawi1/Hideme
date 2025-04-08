@@ -19,86 +19,107 @@ import ErrorBoundary from "../contexts/ErrorBoundary";
 
 const PDFViewerPageContent: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'detection' | 'search' | 'redact'>('detection')
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true) // Set to true by default
-    const [isHoveringOnSidebar, setIsHoveringOnSidebar] = useState(false)
-    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-    const sidebarRef = useRef<HTMLDivElement>(null)
-    const hoverSensorRef = useRef<HTMLDivElement>(null)
 
-    // Toggle sidebar visibility through button click
-    const toggleSidebar = () => {
-        setIsSidebarCollapsed(!isSidebarCollapsed);
+    // Left sidebar state with hover functionality
+    const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(true)
+    const [isHoveringOnLeftSidebar, setIsHoveringOnLeftSidebar] = useState(false)
+    const leftHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const leftSidebarRef = useRef<HTMLDivElement>(null)
+    const leftHoverSensorRef = useRef<HTMLDivElement>(null)
+
+    // Right sidebar state - static, no hover functionality
+    const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(true) // Default closed
+
+    // Toggle left sidebar visibility through button click
+    const toggleLeftSidebar = () => {
+        // Clear any hover-related timeouts
+        if (leftHoverTimeoutRef.current) {
+            clearTimeout(leftHoverTimeoutRef.current);
+        }
+        // Toggle state and reset hover state
+        setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed);
+        setIsHoveringOnLeftSidebar(false);
     };
 
-    // Handle mouse enter on the hover sensor area
-    const handleHoverSensorEnter = () => {
-        if (isSidebarCollapsed) {
+    // Toggle right sidebar visibility - simple toggle, no hover logic
+    const toggleRightSidebar = () => {
+        setIsRightSidebarCollapsed(!isRightSidebarCollapsed);
+    };
+
+    // Handle mouse enter on the left hover sensor area
+    const handleLeftHoverSensorEnter = () => {
+        if (isLeftSidebarCollapsed) {
             // Clear any existing timeout
-            if (hoverTimeoutRef.current) {
-                clearTimeout(hoverTimeoutRef.current);
+            if (leftHoverTimeoutRef.current) {
+                clearTimeout(leftHoverTimeoutRef.current);
             }
 
             // Set timeout to prevent accidental triggers
-            hoverTimeoutRef.current = setTimeout(() => {
-                setIsHoveringOnSidebar(true);
-                setIsSidebarCollapsed(false);
+            leftHoverTimeoutRef.current = setTimeout(() => {
+                setIsHoveringOnLeftSidebar(true);
+                setIsLeftSidebarCollapsed(false);
             }, 300); // 300ms delay before opening
         }
     };
 
-    // Handle mouse leave from the sidebar
-    const handleSidebarLeave = () => {
+    // Handle mouse leave from the left sidebar
+    const handleLeftSidebarLeave = () => {
         // Only auto-close if it was opened by hover
-        if (isHoveringOnSidebar) {
+        if (isHoveringOnLeftSidebar) {
             // Add delay before closing to give user time to interact
-            hoverTimeoutRef.current = setTimeout(() => {
-                setIsHoveringOnSidebar(false);
-                setIsSidebarCollapsed(true);
+            leftHoverTimeoutRef.current = setTimeout(() => {
+                setIsHoveringOnLeftSidebar(false);
+                setIsLeftSidebarCollapsed(true);
             }, 500); // 500ms delay before closing
         }
     };
 
-    // Clear timeout on component unmount
+    // Clear timeouts on component unmount
     useEffect(() => {
         return () => {
-            if (hoverTimeoutRef.current) {
-                clearTimeout(hoverTimeoutRef.current);
+            if (leftHoverTimeoutRef.current) {
+                clearTimeout(leftHoverTimeoutRef.current);
             }
         };
     }, []);
 
-    // Cancel timeout if user manually toggles sidebar
+    // Cancel timeout if user manually toggles left sidebar
     useEffect(() => {
-        if (!isSidebarCollapsed) {
-            if (hoverTimeoutRef.current) {
-                clearTimeout(hoverTimeoutRef.current);
+        if (!isLeftSidebarCollapsed) {
+            if (leftHoverTimeoutRef.current) {
+                clearTimeout(leftHoverTimeoutRef.current);
             }
         }
-    }, [isSidebarCollapsed]);
+    }, [isLeftSidebarCollapsed]);
 
     return (
         <>
             {/* Header with Navbar and Toolbar */}
             <header className="viewer-header">
-                <Toolbar toggleSidebar={toggleSidebar} isSidebarCollapsed={isSidebarCollapsed}/>
+                <Toolbar
+                    toggleLeftSidebar={toggleLeftSidebar}
+                    isLeftSidebarCollapsed={isLeftSidebarCollapsed}
+                    toggleRightSidebar={toggleRightSidebar}
+                    isRightSidebarCollapsed={isRightSidebarCollapsed}
+                />
             </header>
 
             {/* Main content area */}
             <div className="viewer-content">
-                {/* Hover sensor - small area that detects mouse enter */}
+                {/* Left hover sensor - small area that detects mouse enter */}
                 <div
-                    className="sidebar-hover-sensor"
-                    ref={hoverSensorRef}
-                    onMouseEnter={handleHoverSensorEnter}
+                    className="sidebar-hover-sensor left"
+                    ref={leftHoverSensorRef}
+                    onMouseEnter={handleLeftHoverSensorEnter}
                 ></div>
 
                 {/* Left sidebar - Tabbed with File Selector and Page Thumbnails */}
                 <aside
-                    className={`left-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}
-                    ref={sidebarRef}
-                    onMouseLeave={handleSidebarLeave}
+                    className={`left-sidebar ${isLeftSidebarCollapsed ? 'collapsed' : ''}`}
+                    ref={leftSidebarRef}
+                    onMouseLeave={handleLeftSidebarLeave}
                 >
-                    <TabbedSidebar isSidebarCollapsed={isSidebarCollapsed}/>
+                    <TabbedSidebar isSidebarCollapsed={isLeftSidebarCollapsed}/>
                 </aside>
 
                 {/* Main PDF viewer */}
@@ -106,8 +127,10 @@ const PDFViewerPageContent: React.FC = () => {
                     <PDFViewer/>
                 </main>
 
-                {/* Right sidebar - Static */}
-                <aside className="right-sidebar">
+                {/* Right sidebar - Static, no hover sensor */}
+                <aside
+                    className={`right-sidebar ${isRightSidebarCollapsed ? 'collapsed' : ''}`}
+                >
                     <div className="sidebar-tabs">
                         <div className="tabs-header">
                             <button

@@ -35,10 +35,10 @@ interface BatchSearchContextProps {
     batchSearch: (
         files: File[],
         searchTerm: string,
-        options?: { case_sensitive?: boolean;
+        options?: {
             isCaseSensitive?: boolean;
             isAiSearch?: boolean;
-            ai_search?: boolean; }
+            }
     ) => Promise<void>;
 
     clearSearch: (searchTerm?: string) => void;

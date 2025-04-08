@@ -332,13 +332,13 @@
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+
 .form-input:focus {
     outline: none;
     border-color: var(--primary); /* Use primary color for ring */
     box-shadow: 0 0 0 2px rgba(var(--primary-rgb, 15, 23, 42), 0.2); /* Use primary color with opacity */
 }
 
-/* Add primary RGB values to root if not already defined */
 /* :root { --primary-rgb: 15, 23, 42; } /* Example, use your actual primary color RGB */
 /* .dark { --primary-rgb: 248, 250, 252; } /* Example for dark */
 

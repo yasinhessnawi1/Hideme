@@ -19,6 +19,84 @@ including entity detection, redaction, and search.
     transition: background-color var(--transition-speed) var(--transition-function),
     color var(--transition-speed) var(--transition-function);
 }
+/* Add these to enhance the right sidebar tabs */
+
+/* Right sidebar tabs container */
+.sidebar-tabs {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Tab header styles */
+.tabs-header {
+    display: flex;
+    flex-direction: row;
+    border-bottom: 1px solid var(--sidebar-border);
+    background-color: var(--sidebar-bg);
+    z-index: 5;
+}
+
+.tab-button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-sm);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted-foreground);
+    transition: all var(--transition-speed) var(--transition-function);
+    position: relative;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
+
+.tab-button:hover {
+    color: var(--foreground);
+    background-color: var(--dropdown-hover);
+}
+
+.tab-button.active {
+    color: var(--primary);
+    background-color: var(--sidebar-bg);
+}
+
+.tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--primary);
+    animation: slideIn var(--transition-speed) var(--transition-function);
+}
+
+
+
+.tab-panel.active {
+    opacity: 1;
+    visibility: visible;
+    z-index: 1;
+}
+
+/* Animation for active tab indicator */
+@keyframes slideIn {
+    from {
+        width: 0;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    to {
+        width: 100%;
+        left: 0;
+        transform: translateX(0);
+    }
+}
 
 /* Sidebar header */
 .sidebar-header {

@@ -255,10 +255,8 @@ export const usePDFApi = () => {
         files: File[],
         searchTerm: string,
         options: {
-            case_sensitive?: boolean;
             isCaseSensitive?: boolean;
             isAiSearch?: boolean;
-            ai_search?: boolean;
         } = {}
     ): Promise<any> => {
         // Implementation unchanged

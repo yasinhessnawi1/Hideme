@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Save, Search, X, AlertTriangle, Trash2, Loader2 } from "lucide-react";
 import { useUser } from "../../../hooks/userHook"; // Adjust path
 import { SearchPattern, SearchPatternCreate } from "../../../services/settingsService"; // Adjust path
@@ -26,25 +24,29 @@ export default function SearchSettings() {
     const [isDeleting, setIsDeleting] = useState<number | null>(null); // Store ID being deleted
     const [isClearingAll, setIsClearingAll] = useState(false);
 
-    // Load patterns when hook provides them or fetch if needed
+    // Add a ref to track if initial fetch has happened
+    const initialFetchDoneRef = useRef(false);
+
+    // Load patterns when hook provides them or fetch if needed - WITH FIXES
     useEffect(() => {
-        console.log("[SearchSettings] useEffect triggered. isUserLoading:", isUserLoading, "searchPatterns:", searchPatterns);
-        // Fetch patterns only if the hook data is confirmed empty (and not just loading)
-        if (!isUserLoading && (!searchPatterns || searchPatterns.length === 0)) {
-            console.log("[SearchSettings] Fetching search patterns...");
+        // Only fetch patterns once when component mounts
+        if (!initialFetchDoneRef.current && !isUserLoading) {
+            console.log("[SearchSettings] Initial fetch of search patterns");
             getSearchPatterns();
+            initialFetchDoneRef.current = true;
+            return;
         }
 
-        // *** FIX: Ensure searchPatterns is an array before setting local state ***
+        // Safely update local state when searchPatterns change
         if (Array.isArray(searchPatterns)) {
             console.log("[SearchSettings] Setting localPatterns from searchPatterns (array). Count:", searchPatterns.length);
             setLocalPatterns(searchPatterns);
-        } else {
-            // If searchPatterns is not an array (e.g., null/undefined initially), set an empty array
-            console.warn("[SearchSettings] searchPatterns from useUser is not an array, setting localPatterns to []. Value:", searchPatterns);
-            setLocalPatterns([]); // Default to empty array if hook data isn't ready/valid
+        } else if (searchPatterns === null || searchPatterns === undefined) {
+            // Only set empty array on first load or when explicitly null/undefined
+            console.log("[SearchSettings] searchPatterns is null/undefined, setting empty array");
+            setLocalPatterns([]);
         }
-    }, [searchPatterns, getSearchPatterns, isUserLoading]); // Dependencies: hook state and fetch function
+    }, [searchPatterns, getSearchPatterns, isUserLoading]);
 
     // Sync local error with hook error
     useEffect(() => {
@@ -148,6 +150,15 @@ export default function SearchSettings() {
 
     return (
         <div className="space-y-6">
+            {localError && (
+                <div className="alert alert-destructive">
+                    <AlertTriangle className="alert-icon" size={16}/>
+                    <div>
+                        <div className="alert-title">Save Error</div>
+                        <div className="alert-description">{localError}</div>
+                    </div>
+                </div>
+            )}
             <div className="card">
                 <div className="card-header">
                     <h2 className="card-title">Saved Search Terms</h2>
@@ -216,8 +227,6 @@ export default function SearchSettings() {
                                     </label>
                                 </div>
                             </div>
-
-
                         </div>
 
                         <div className="separator"></div>
@@ -240,7 +249,7 @@ export default function SearchSettings() {
                             </div>
 
                             {/* Loading State */}
-                            {isUserLoading && patternsToRender.length === 0 && (
+                            {isUserLoading && patternsToRender.length === 0 && !initialFetchDoneRef.current && (
                                 <div className="flex justify-center items-center py-6">
                                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                                     <span className="ml-2 text-muted-foreground">Loading terms...</span>
@@ -261,7 +270,8 @@ export default function SearchSettings() {
                                             <div className="flex items-center space-x-2 flex-1 min-w-0">
                                                 <span className="font-medium truncate" title={pattern.pattern_text}>{pattern.pattern_text}</span>
                                                 <div className="flex space-x-1 flex-shrink-0">
-                                                    {/* {pattern.case_sensitive && <span className="badge badge-outline">Aa</span>} */}
+                                                    {pattern.pattern_type === 'case_sensitive' && <span className="badge badge-outline">Aa</span>}
+                                                    {pattern.pattern_type === 'ai_search' && <span className="badge badge-outline">AI</span>}
                                                     {pattern.pattern_type === 'regex' && <span className="badge badge-outline">Regex</span>}
                                                 </div>
                                             </div>
