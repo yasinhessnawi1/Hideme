@@ -10,7 +10,6 @@ import {useUserContext} from "../contexts/UserContext";
 const LandingPage = () => {
     return (
         <main className="landing-page">
-            <InteractiveGridPattern className={"grid"}/>
             <div className="content">
                 <Navbar />
                 <Hero />

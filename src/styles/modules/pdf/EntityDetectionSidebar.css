@@ -9,7 +9,6 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
     margin-bottom: var(--spacing-md);
     position: relative;
     transition: all 0.3s ease;
-
 }
 
 .entity-select-header {
@@ -17,10 +16,6 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
     align-items: center;
     margin-bottom: var(--spacing-sm);
 }
-.scope-section:hover h4 {
-      color: var(--primary);
- }
-
 
 .entity-select-header h4 {
     margin: 0;
@@ -30,27 +25,107 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
     transition: color 0.2s ease;
 }
 
-.entity-select-section:hover .entity-select-header h4 {
-    color: var(--primary);
+/* Add this new rule specifically for react-select */
+.entity-select {
+    width: 100%;
+    z-index: 5; /* Ensure select has a reasonable z-index */
+    position: relative;
+}
 
+/* Important styles to ensure react-select components are visible */
+.entity-select__menu {
+    z-index: 9999 !important; /* Force high z-index */
+    position: absolute !important;
+}
+
+.entity-select__control {
+    background-color: var(--background) !important;
+    border-color: var(--border) !important;
+    min-height: 38px !important;
+}
+
+.entity-select__control:hover {
+    border-color: var(--primary) !important;
+}
+
+.entity-select__control--is-focused {
+    box-shadow: 0 0 0 1px var(--primary) !important;
+    border-color: var(--primary) !important;
+}
+
+.entity-select__value-container {
+    padding: 2px 8px !important;
+}
+
+.entity-select__indicators {
+    cursor: pointer !important;
+}
+
+.entity-select__menu {
+    background-color: var(--background) !important;
+    border-radius: var(--border-radius-md) !important;
+    box-shadow: var(--shadow-md) !important;
+    margin-top: 4px !important;
+}
+
+.entity-select__option {
+    padding: 8px 12px !important;
+    cursor: pointer !important;
+}
+
+.entity-select__option--is-focused {
+    background-color: var(--button-hover) !important;
+}
+
+.entity-select__option--is-selected {
+    background-color: var(--primary) !important;
+    color: white !important;
+}
+
+.entity-select__multi-value {
+    background-color: var(--active-bg) !important;
+    border-radius: 4px !important;
+    margin: 2px !important;
+}
+
+.entity-select__multi-value__label {
+    padding: 2px 6px !important;
+    color: var(--foreground) !important;
+    font-size: 0.85em !important;
+}
+
+.entity-select__multi-value__remove {
+    cursor: pointer !important;
+    padding: 2px !important;
+    color: var(--muted-foreground) !important;
+}
+
+.entity-select__multi-value__remove:hover {
+    background-color: var(--destructive) !important;
+    color: white !important;
+    border-radius: 0 2px 2px 0 !important;
+}
+
+.entity-select__placeholder {
+    color: var(--muted-foreground) !important;
+    opacity: 0.8 !important;
+}
+
+/* End of react-select specific styles */
+
+.entity-select-section:hover .color-dot {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px rgba(var(--foreground-rgb, 15, 23, 42), 0.2);
 }
 
 .color-dot {
-    margin-right: var(--spacing-sm);
     display: inline-block;
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    box-shadow: 0 0 0 1px rgba(var(--foreground), 0.1);
+    margin-right: var(--spacing-sm);
+    box-shadow: 0 0 0 1px rgba(var(--foreground-rgb, 15, 23, 42), 0.1);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.entity-select-section:hover .color-dot {
-    box-shadow: 0 0 0 2px rgba(var(--foreground), 0.2);
-    border-bottom: 1px solid var(--border);
-    color: var(--foreground);
-    background-color: var(--background);
-    transition: background-color var(--transition-speed) var(--transition-function),
 }
 
 /* Entity detection header specific */
@@ -63,6 +138,7 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
     padding: var(--spacing-md);
     position: relative;
     overflow: hidden;
+    z-index: 20; /* Ensure header is above other elements */
 }
 
 .entity-header::after {
@@ -103,6 +179,7 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
     font-weight: var(--font-weight-medium);
     transition: all 0.3s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 10;
 }
 
 .entity-header:hover .entity-badge {
@@ -203,7 +280,6 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
     overflow: hidden;
     transition: all 0.3s ease;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-
 }
 
 .entities-by-section:hover {
@@ -312,7 +388,6 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
 .detect-button:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-
 }
 
 .detect-button:active:not(:disabled) {
@@ -385,70 +460,6 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
 
 .save-button:hover svg {
     transform: scale(1.2);
-}
-
-/* Custom select styles */
-.entity-select .select__control {
-    background-color: var(--background);
-    border-color: var(--border);
-    transition: all 0.2s ease;
-}
-
-.entity-select .select__control:hover {
-    border-color: var(--primary);
-}
-
-.entity-select .select__control--is-focused {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 1px var(--primary);
-}
-
-.entity-select .select__menu {
-    background-color: var(--background);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-md);
-    z-index: 100;
-    animation: fadeIn 0.2s ease;
-}
-
-.entity-select .select__option {
-    background-color: var(--background);
-    color: var(--foreground);
-    transition: all 0.2s ease;
-}
-
-.entity-select .select__option--is-focused {
-    background-color: var(--button-hover);
-}
-
-.entity-select .select__option--is-selected {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
-}
-
-.entity-select .select__multi-value {
-    background-color: var(--active-bg);
-    border-radius: 4px;
-    transition: all 0.2s ease;
-}
-
-.entity-select .select__multi-value:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.entity-select .select__multi-value__label {
-    color: var(--foreground);
-}
-
-.entity-select .select__multi-value__remove {
-    color: var(--muted-foreground);
-    transition: all 0.2s ease;
-}
-
-.entity-select .select__multi-value__remove:hover {
-    background-color: var(--destructive);
-    color: white;
 }
 
 /* Loading state */

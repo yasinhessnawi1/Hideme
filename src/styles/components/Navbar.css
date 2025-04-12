@@ -21,8 +21,8 @@ NAVBAR STYLES
 .logo {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
     text-decoration: none;
+    font-size: 0.5rem;
     color: var(--foreground);
     margin-right: 20px;
     transition: transform 0.3s ease;
@@ -30,23 +30,6 @@ NAVBAR STYLES
 
 .logo:hover {
     transform: scale(1.02);
-}
-
-.logo-icon {
-    width: 2rem;
-    height: 2rem;
-    color: var(--primary);
-    transition: transform 0.3s ease;
-}
-
-.logo:hover .logo-icon {
-    transform: rotate(5deg);
-}
-
-.logo-text {
-    font-weight: var(--font-weight-bold);
-    font-size: 2rem;
-    color: var(--foreground);
 }
 
 .menu-button {

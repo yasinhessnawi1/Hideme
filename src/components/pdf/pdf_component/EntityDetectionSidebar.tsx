@@ -7,7 +7,7 @@ import { getFileKey } from '../../../contexts/PDFViewerContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
 import { OptionType } from '../../../types/types';
 import '../../../styles/modules/pdf/SettingsSidebar.css';
-import '../../../styles/modules/pdf/EntityDetctionSidebar.css';
+import '../../../styles/modules/pdf/EntityDetectionSidebar.css';
 import {handleAllOPtions} from '../../../utils/pdfutils'
 import { ChevronUp, ChevronDown, Save, AlertTriangle, ChevronRight } from 'lucide-react';
 import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
@@ -100,59 +100,6 @@ export const MODEL_COLORS = {
     gemini: '#7571ff'    // Blue
 };
 
-// Define interface for entity summary
-interface EntitySummary {
-    total: number;
-    by_type: Record<string, number>;
-    by_page: Record<string, number>;
-}
-
-interface PerformanceStats {
-    words_count: number;
-    pages_count: number;
-    entity_density: number;
-    sanitize_time: number;
-}
-
-interface FileDetectionResult {
-    fileKey: string;
-    fileName: string;
-    entities_detected?: EntitySummary;
-    performance?: PerformanceStats;
-}
-
-// Custom select styles to match design
-const customSelectStyles = {
-    control: (provided: any, state: any) => ({
-        ...provided,
-        backgroundColor: 'var(--background)',
-        borderColor: state.isFocused ? 'var(--primary)' : 'var(--border)',
-        boxShadow: state.isFocused ? '0 0 0 1px var(--primary)' : null,
-        '&:hover': {
-            borderColor: 'var(--primary)'
-        }
-    }),
-    menu: (provided: any) => ({
-        ...provided,
-        backgroundColor: 'var(--background)',
-        borderRadius: 'var(--border-radius-md)',
-        boxShadow: 'var(--shadow-md)',
-        zIndex: 100
-    }),
-    option: (provided: any, state: any) => ({
-        ...provided,
-        backgroundColor: state.isSelected
-            ? 'var(--primary)'
-            : state.isFocused
-                ? 'var(--button-hover)'
-                : 'var(--background)',
-        color: state.isSelected ? 'white' : 'var(--foreground)',
-        '&:hover': {
-            backgroundColor: state.isSelected ? 'var(--primary)' : 'var(--button-hover)'
-        }
-    })
-};
-
 // Component for the colored dot indicator
 export const ColorDot: React.FC<{ color: string }> = ({ color }) => (
     <span
@@ -167,6 +114,28 @@ export const ColorDot: React.FC<{ color: string }> = ({ color }) => (
         }}
     />
 );
+
+class FileDetectionResult {
+    fileKey: string;
+    fileName: string;
+    entities_detected: {
+        total: number;
+        by_type: Record<string, number>;
+        by_page: Record<string, number>;
+    };
+    performance: {
+        pages_count: number;
+        words_count: number;
+        entity_density: number;
+    };
+
+    constructor(fileKey: string, fileName: string, entities_detected: any, performance: any) {
+        this.fileKey = fileKey;
+        this.fileName = fileName;
+        this.entities_detected = entities_detected;
+        this.performance = performance;
+    }
+}
 
 const EntityDetectionSidebar: React.FC = () => {
     const {
@@ -207,6 +176,63 @@ const EntityDetectionSidebar: React.FC = () => {
         runBatchHybridDetect,
         resetErrors
     } = usePDFApi();
+
+    // Custom select styles to match design
+    const customSelectStyles = {
+        control: (provided: any, state: { isFocused: any; }) => ({
+            ...provided,
+            backgroundColor: 'var(--background)',
+            borderColor: state.isFocused ? 'var(--primary)' : 'var(--border)',
+            boxShadow: state.isFocused ? '0 0 0 1px var(--primary)' : null,
+            '&:hover': {
+                borderColor: 'var(--primary)'
+            }
+        }),
+        menu: (provided: any) => ({
+            ...provided,
+            backgroundColor: 'var(--background)',
+            borderRadius: 'var(--border-radius-md)',
+            boxShadow: 'var(--shadow-md)',
+            zIndex: 100
+        }),
+        option: (provided: any, state: { isSelected: any; isFocused: any; }) => ({
+            ...provided,
+            backgroundColor: state.isSelected
+                ? 'var(--primary)'
+                : state.isFocused
+                    ? 'var(--button-hover)'
+                    : 'var(--background)',
+            color: state.isSelected ? 'white' : 'var(--foreground)',
+            '&:hover': {
+                backgroundColor: state.isSelected ? 'var(--primary)' : 'var(--button-hover)'
+            }
+        }),
+        multiValue: (provided: any) => ({
+            ...provided,
+            backgroundColor: 'var(--active-bg)',
+            borderRadius: '4px',
+        }),
+        multiValueLabel: (provided: any) => ({
+            ...provided,
+            color: 'var(--foreground)',
+        }),
+        multiValueRemove: (provided: any) => ({
+            ...provided,
+            color: 'var(--muted-foreground)',
+            '&:hover': {
+                backgroundColor: 'var(--destructive)',
+                color: 'white',
+            },
+        }),
+        container: (provided: any) => ({
+            ...provided,
+            zIndex: 10 // Ensure the select has a reasonable z-index
+        }),
+        menuPortal: (provided: any) => ({
+            ...provided,
+            zIndex: 9999 // High z-index to ensure it appears above other elements
+        })
+    };
 
     // Get files to process based on selected scope
     const getFilesToProcess = useCallback((): File[] => {
@@ -255,8 +281,7 @@ const EntityDetectionSidebar: React.FC = () => {
 
     }, [pdfNavigation, files, currentFile]);
 
-
-// Batch entity detection across multiple files
+    // Batch entity detection across multiple files
     const handleDetect = useCallback(async () => {
         const filesToProcess = getFilesToProcess();
 
@@ -287,7 +312,6 @@ const EntityDetectionSidebar: React.FC = () => {
             });
             await new Promise(resolve => setTimeout(resolve, 50));
             const detectionOptions = handleAllOPtions(selectedAiEntities, selectedGlinerEntities, selectedMlEntities);
-
 
             // Use the consolidated batch hybrid detection from the hook
             const results = await runBatchHybridDetect(filesToProcess, detectionOptions);
@@ -542,14 +566,16 @@ const EntityDetectionSidebar: React.FC = () => {
                         <ColorDot color={MODEL_COLORS.presidio} />
                         <h4>Presidio Machine Learning</h4>
                     </div>
+                    {/* Added key prop for forcing re-render and increased z-index */}
                     <Select
+                        key="presidio-select"
                         isMulti
                         options={presidioOptions}
                         value={selectedMlEntities}
                         onChange={handlePresidioChange}
-                        placeholder="Select entities to dectect..."
+                        placeholder="Select entities to detect..."
                         className="entity-select"
-                        classNamePrefix="select"
+                        classNamePrefix="entity-select"
                         isDisabled={isCurrentlyDetecting}
                         closeMenuOnSelect={false}
                         menuPortalTarget={document.body}
@@ -562,14 +588,16 @@ const EntityDetectionSidebar: React.FC = () => {
                         <ColorDot color={MODEL_COLORS.gliner} />
                         <h4>Gliner Machine Learning</h4>
                     </div>
+                    {/* Added key prop for forcing re-render and increased z-index */}
                     <Select
+                        key="gliner-select"
                         isMulti
                         options={glinerOptions}
                         value={selectedGlinerEntities}
                         onChange={handleGlinerChange}
-                        placeholder="Select entities to dectect..."
+                        placeholder="Select entities to detect..."
                         className="entity-select"
-                        classNamePrefix="select"
+                        classNamePrefix="entity-select"
                         isDisabled={isCurrentlyDetecting}
                         closeMenuOnSelect={false}
                         menuPortalTarget={document.body}
@@ -582,14 +610,16 @@ const EntityDetectionSidebar: React.FC = () => {
                         <ColorDot color={MODEL_COLORS.gemini} />
                         <h4>Gemini AI</h4>
                     </div>
+                    {/* Added key prop for forcing re-render and increased z-index */}
                     <Select
+                        key="gemini-select"
                         isMulti
                         options={geminiOptions}
                         value={selectedAiEntities}
                         onChange={handleGeminiChange}
-                        placeholder="Select entities to dectect..."
+                        placeholder="Select entities to detect..."
                         className="entity-select"
-                        classNamePrefix="select"
+                        classNamePrefix="entity-select"
                         isDisabled={isCurrentlyDetecting}
                         closeMenuOnSelect={false}
                         menuPortalTarget={document.body}
@@ -720,7 +750,7 @@ const EntityDetectionSidebar: React.FC = () => {
                                                                             className="nav-button"
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
-                                                                                // Find first page with this entity type
+                                                                                // Find the first page with this entity type
                                                                                 const pages = Object.keys(entitiesDetected.by_page);
                                                                                 if (pages.length > 0) {
                                                                                     const pageNumber = parseInt(pages[0].split('_')[1], 10);

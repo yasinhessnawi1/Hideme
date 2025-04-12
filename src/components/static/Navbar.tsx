@@ -1,4 +1,3 @@
-"use client"
 
 import React, { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
@@ -7,6 +6,8 @@ import { Menu, LogOut, Settings } from 'lucide-react'
 import "../../styles/components/Navbar.css"
 import { Button } from "../common/Button"
 import { useUserContext } from '../../contexts/UserContext'
+
+import TrueFocus from './TrueFocus';
 
 
 
@@ -46,11 +47,18 @@ export default function Navbar() {
         }
         return null
     }
-
     return (
         <motion.nav initial={{ y: -100 }} animate={{ y: 0 }} className="navbar">
-            <Link to="/" className="logo">
-                <span className="logo-text">HIDE ME</span>
+            <Link to="/"  className="logo">
+                <TrueFocus
+                    sentence="Hide Me"
+                    manualMode={true}
+                    blurAmount={5}
+                    borderColor="limegreen"
+                    animationDuration={1}
+                    pauseBetweenAnimations={5}
+                />
+
             </Link>
 
             <div className="nav-links" >
