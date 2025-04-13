@@ -57,7 +57,7 @@ export const useEditContext = () => {
 export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentFile } = useFileContext();
 
-    const [isEditingMode, setIsEditingMode] = useState(true);
+    const [isEditingMode, setIsEditingMode] = useState(false);
     const [highlightColor, setHighlightColor] = useState('#00ff15');
     const [searchQueries, setSearchQueries] = useState<string[]>([]);
     const [isRegexSearch, setIsRegexSearch] = useState(false);
@@ -73,6 +73,33 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [presidioColor, setPresidioColor] = useState('#ffd771'); // Yellow
     const [glinerColor, setGlinerColor] = useState('#ff7171'); // Red
     const [geminiColor, setGeminiColor] = useState('#7171ff'); // Blue
+    
+    // Set up a listener for double-click to toggle edit mode
+    useEffect(() => {
+        const handleDoubleClick = (e: MouseEvent) => {
+            // Only trigger if double-clicking on PDF pages or viewers
+            const target = e.target as HTMLElement;
+            const isPdfArea = 
+                target.closest('.pdf-viewer-container') ||
+                target.closest('.page-container') ||
+                target.closest('.pdf-page');
+                
+            if (isPdfArea) {
+                setIsEditingMode(prev => !prev);
+                // Prevent default behavior and stop propagation
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        };
+        
+        // Add the event listener
+        document.addEventListener('dblclick', handleDoubleClick);
+        
+        // Clean up
+        return () => {
+            document.removeEventListener('dblclick', handleDoubleClick);
+        };
+    }, []);
 
     // Store detection mappings for each file
     const [fileDetectionMappings, setFileDetectionMappings] = useState<Map<string, RedactionMapping>>(new Map());

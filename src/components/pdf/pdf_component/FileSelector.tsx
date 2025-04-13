@@ -63,12 +63,40 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
         });
 
         setCurrentFile(file);
+        
+        // Preload highlights for the selected file with improved handling
+        import('../../../utils/highlightUtils')
+            .then(({ preloadFileHighlights }) => {
+                console.log(`[FileSelector] Preloading highlights for file: ${fileKey}`);
+                
+                // Use the async preloading with proper error handling and status callback
+                preloadFileHighlights(fileKey)
+                    .then(highlightsCount => {
+                        console.log(`[FileSelector] Successfully preloaded ${highlightsCount} highlights for file: ${fileKey}`);
+                        
+                        // If there are highlights, dispatch an event to notify components
+                        if (highlightsCount > 0) {
+                            window.dispatchEvent(new CustomEvent('highlights-preloaded', {
+                                detail: {
+                                    fileKey,
+                                    count: highlightsCount
+                                }
+                            }));
+                        }
+                    })
+                    .catch(error => {
+                        console.error(`[FileSelector] Error preloading highlights for file: ${fileKey}`, error);
+                    });
+            })
+            .catch(error => {
+                console.error('[FileSelector] Error importing highlightUtils:', error);
+            });
     }, [pdfNavigation, setCurrentFile]);
 
     // For handling file deletion
     const handleFileDelete = (index: number, e: React.MouseEvent) => {
         e.stopPropagation();
-        removeFile(index, clearAnnotations);
+        removeFile(index);
         setShowNotification({message: 'File removed successfully', type: 'success'});
         setTimeout(() => setShowNotification(null), 3000);
     };
@@ -126,7 +154,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
 
             selectedIndexes.forEach(index => {
                 if (index !== -1) {
-                    removeFile(index, clearAnnotations);
+                    removeFile(index);
                 }
             });
 

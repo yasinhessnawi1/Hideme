@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { File, Layers } from 'lucide-react';
 import PageThumbnails from './PageThumbnails';
 import FileSelector from './FileSelector';
@@ -12,6 +12,27 @@ type TabType = 'thumbnails' | 'files';
 
 const TabbedSidebar: React.FC<TabbedSidebarProps> = ({ isSidebarCollapsed }) => {
     const [activeTab, setActiveTab] = useState<TabType>('thumbnails');
+
+    // Listen for tab navigation events from toolbar or other components
+    useEffect(() => {
+        const handleActivatePanel = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { navigateToTab } = customEvent.detail || {};
+            
+            if (navigateToTab === 'files') {
+                setActiveTab('files');
+            } else if (navigateToTab === 'thumbnails' || navigateToTab === 'pages') {
+                setActiveTab('thumbnails');
+            }
+        };
+        
+        // Listen for navigation events
+        window.addEventListener('activate-left-panel', handleActivatePanel);
+        
+        return () => {
+            window.removeEventListener('activate-left-panel', handleActivatePanel);
+        };
+    }, []);
 
     if (isSidebarCollapsed) {
         return null;

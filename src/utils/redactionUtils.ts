@@ -1,5 +1,5 @@
 // src/utils/redactionUtils.ts
-import { HighlightRect, HighlightType } from "../contexts/HighlightContext";
+import { HighlightRect, HighlightType } from "../types/pdfTypes";
 import { RedactionMapping, Page, Sensitive, FileInfo, FileResult } from "../types/types";
 import { getFileKey } from "../contexts/PDFViewerContext";
 

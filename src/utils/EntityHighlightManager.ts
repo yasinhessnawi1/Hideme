@@ -1,11 +1,5 @@
-import { HighlightType } from "../contexts/HighlightContext";
-import { PDFPageViewport, TextContent } from "../types/pdfTypes";
+import { HighlightType, PDFPageViewport, TextContent, EntityOptions } from "../types/pdfTypes";
 import { v4 as uuidv4 } from 'uuid';
-
-export interface EntityOptions {
-    pageNumber?: number; // Optional page number to only process a specific page
-    forceReprocess?: boolean; // Force reprocessing even if already processed
-}
 
 export class EntityHighlightManager {
     private readonly pageNumber: number;

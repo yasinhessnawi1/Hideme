@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useHighlightContext, HighlightRect } from '../../../contexts/HighlightContext';
+import { useHighlightContext } from '../../../contexts/HighlightContext';
 import { useEditContext } from '../../../contexts/EditContext';
+import { usePDFViewerContext } from '../../../contexts/PDFViewerContext';
 import HighlightContextMenu from './HighlightContextMenu';
 import highlightManager from '../../../utils/HighlightManager';
 import '../../../styles/modules/pdf/HighlightLayer.css';
+import { HighlightRect } from '../../../types/pdfTypes';
 
 interface BaseHighlightLayerProps {
     pageNumber: number;
@@ -25,6 +27,8 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                                                                }) => {
     const { selectedAnnotation, setSelectedAnnotation, removeAnnotation } = useHighlightContext();
     const { isEditingMode, getColorForModel, getSearchColor } = useEditContext();
+    // Get zoom level from context
+    const { zoomLevel } = usePDFViewerContext();
 
     // Create ref for the container to use with viewport sizing
     const containerRef = useRef<HTMLDivElement>(null);
@@ -34,6 +38,9 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
         annotation: HighlightRect;
         position: { x: number; y: number };
     } | null>(null);
+
+    // Current zoom level state for scaling highlights
+    const [currentZoom, setCurrentZoom] = useState(zoomLevel);
 
     // New state for context menu
     const [contextMenuState, setContextMenuState] = useState<{
@@ -125,6 +132,36 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
         return highlight.color;
     }, [getColorForModel, getSearchColor]);
 
+    // Listen for zoom level changes and update accordingly with improved scaling
+    useEffect(() => {
+        // Set zoom level from context
+        setCurrentZoom(zoomLevel);
+        
+        // Listen for highlight scale change events from the utility service
+        const handleHighlightScaleChange = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { zoomLevel } = customEvent.detail || {};
+            if (zoomLevel) {
+                console.log(`[BaseHighlightLayer] Scaling highlights to zoom level: ${zoomLevel}`);
+                setCurrentZoom(zoomLevel);
+            }
+        };
+        
+        // Add event listener for scaling events
+        window.addEventListener('highlight-scale-change', handleHighlightScaleChange);
+        
+        // Log initial scaling to help with debugging
+        if (viewport) {
+            console.log(`[BaseHighlightLayer] Page ${pageNumber} - Initial viewport: ${viewport.width}x${viewport.height} at scale ${viewport.scale}`);
+        }
+        
+        console.log(`[BaseHighlightLayer] Page ${pageNumber} - Setting zoom level: ${zoomLevel}`);
+        
+        return () => {
+            window.removeEventListener('highlight-scale-change', handleHighlightScaleChange);
+        };
+    }, [zoomLevel, pageNumber, viewport]);
+
     useEffect(() => {
         // Cleanup function
         return () => {
@@ -157,10 +194,10 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                     }`}
                     style={{
                         position: 'absolute',
-                        left: highlight.x,
-                        top: highlight.y,
-                        width: highlight.w,
-                        height: highlight.h,
+                        left: highlight.x * currentZoom,
+                        top: highlight.y * currentZoom,
+                        width: highlight.w * currentZoom,
+                        height: highlight.h * currentZoom,
                         backgroundColor: getHighlightColor(highlight),
                         opacity: highlight.opacity ?? 0.4,
                         cursor: isEditingMode ? 'pointer' : 'default',
@@ -181,7 +218,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                 />
             );
         });
-    }, [filteredHighlights, layerClass, isEditingMode, getHighlightColor, pageNumber, handleHighlightClick, handleHighlightDoubleClick, handleHighlightMouseEnter, handleHighlightMouseLeave, handleContextMenu, selectedAnnotation?.id]);
+    }, [filteredHighlights, layerClass, isEditingMode, getHighlightColor, pageNumber, handleHighlightClick, handleHighlightDoubleClick, handleHighlightMouseEnter, handleHighlightMouseLeave, handleContextMenu, selectedAnnotation?.id, currentZoom]);
 
     return (
         <div
@@ -232,7 +269,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                     onClose={closeContextMenu}
                     wrapperRef={containerRef}
                     viewport={viewport}
-                    zoomLevel={1.0} // You might want to pass the actual zoom level here
+                    zoomLevel={currentZoom}
                 />
             )}
         </div>
@@ -274,6 +311,8 @@ export default React.memo(BaseHighlightLayer, (prevProps, nextProps) => {
     if (prevProps.viewport !== nextProps.viewport) {
         return false;
     }
+    
+    // Re-render when zoom level changes - this is handled internally now through the context
 
     // For entity layers, always re-render when entity highlights are involved
     if (prevProps.layerClass === 'entity') {

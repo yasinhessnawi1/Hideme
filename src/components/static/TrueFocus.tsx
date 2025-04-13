@@ -31,7 +31,7 @@ const TrueFocus: React.FC<TrueFocusProps> = ({
     const words = sentence.split(" ");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [lastActiveIndex, setLastActiveIndex] = useState<number | null>(null);
-    const containerRef: RefObject<HTMLDivElement> = useRef(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
     const wordRefs: React.MutableRefObject<(HTMLSpanElement | null)[]> = useRef([]);
     const [focusRect, setFocusRect] = useState<FocusRect>({ x: 0, y: 0, width: 0, height: 0 });
 
@@ -82,7 +82,7 @@ const TrueFocus: React.FC<TrueFocusProps> = ({
                 return (
                     <span
                         key={index}
-                        ref={(el) => (wordRefs.current[index] = el)}
+                        ref={(el: HTMLSpanElement | null) => { wordRefs.current[index] = el; }}
                         className={`focus-word ${manualMode ? "manual" : ""} ${isActive && !manualMode ? "active" : ""
                         }`}
                         style={{

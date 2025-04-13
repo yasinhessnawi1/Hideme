@@ -1,4 +1,4 @@
-import { HighlightRect, HighlightType } from '../contexts/HighlightContext';
+import { HighlightRect, HighlightType } from '../types/pdfTypes';
 import { v4 as uuidv4 } from 'uuid';
 
 /**

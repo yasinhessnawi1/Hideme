@@ -1,6 +1,7 @@
 // src/services/PDFStorageService.ts
 import {DBSchema, IDBPDatabase, openDB} from 'idb';
 import {getFileKey} from '../contexts/PDFViewerContext';
+import { HighlightRect, StorageStats } from '../types/pdfTypes';
 
 /**
  * Schema definition for our PDF storage database
@@ -19,6 +20,17 @@ interface PDFStorageDB extends DBSchema {
             metadata?: Record<string, any>;
         };
         indexes: { 'by-timestamp': number };
+    };
+    'pdf-highlights': {
+        key: string; // Highlight ID
+        value: HighlightRect;
+        indexes: { 
+            'by-fileKey': string; 
+            'by-page': number;
+            'by-type': string;
+            'by-fileKey-page': [string, number];
+            'by-fileKey-type': [string, string];
+        };
     };
     'storage-settings': {
         key: string;
@@ -41,7 +53,7 @@ interface PDFStorageDB extends DBSchema {
 class PDFStorageService {
     private db: IDBPDatabase<PDFStorageDB> | null = null;
     private readonly dbName = 'pdf-storage-db';
-    private readonly dbVersion = 1;
+    private readonly dbVersion = 2; // Increment version to trigger database upgrade
     private isInitialized = false;
     private initPromise: Promise<boolean> | null = null;
 
@@ -67,6 +79,16 @@ class PDFStorageService {
                     if (!db.objectStoreNames.contains('pdf-files')) {
                         const pdfStore = db.createObjectStore('pdf-files', { keyPath: 'id' });
                         pdfStore.createIndex('by-timestamp', 'timestamp');
+                    }
+
+                    // Create highlights store
+                    if (!db.objectStoreNames.contains('pdf-highlights')) {
+                        const highlightStore = db.createObjectStore('pdf-highlights', { keyPath: 'id' });
+                        highlightStore.createIndex('by-fileKey', 'fileKey');
+                        highlightStore.createIndex('by-page', 'page');
+                        highlightStore.createIndex('by-type', 'type');
+                        highlightStore.createIndex('by-fileKey-page', ['fileKey', 'page']);
+                        highlightStore.createIndex('by-fileKey-type', ['fileKey', 'type']);
                     }
 
                     // Create settings store
@@ -379,18 +401,12 @@ class PDFStorageService {
     /**
      * Get storage statistics in a human-readable format
      */
-    public async getStorageStats(): Promise<{
-        totalSizeFormatted: string;
-        fileCount: number;
-        maxSizeFormatted: string;
-        percentUsed: number;
-    }> {
+    public async getStorageStats(): Promise<StorageStats> {
         const { totalSize, fileCount, maxSize, percentUsed } = await this.getStorageUsage();
 
         return {
-            totalSizeFormatted: this.formatBytes(totalSize),
+            totalSizeFormatted: totalSize,
             fileCount,
-            maxSizeFormatted: this.formatBytes(maxSize),
             percentUsed
         };
     }

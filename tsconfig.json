@@ -29,7 +29,7 @@
     // }
   },
   "include": ["src",
-    "src/types/pdfTypes.d.ts", "src/types/declarations.d.ts"
+    "src/types/*.ts", "src/types/*.d.ts"
   ],
   "exclude": ["node_modules", "dist"]
 }

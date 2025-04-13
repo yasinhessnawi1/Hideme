@@ -1,7 +1,8 @@
 // src/contexts/BatchSearchContext.tsx - Updated with unique ID handling
 import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
 import { useFileContext } from './FileContext';
-import { useHighlightContext, HighlightType } from './HighlightContext';
+import { useHighlightContext } from './HighlightContext';
+import { HighlightType } from '../types/pdfTypes';
 import { getFileKey } from './PDFViewerContext';
 import { BatchSearchService, SearchResult, BatchSearchResponse } from '../services/BatchSearchService';
 import { usePDFApi } from "../hooks/usePDFApi";

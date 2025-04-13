@@ -1,7 +1,8 @@
 // src/components/pdf/highlighters/HighlightContextMenu.tsx - Updated to use highlightUtils
 import React, { useState, useEffect, useRef } from 'react';
 import { Trash2, Highlighter, X } from 'lucide-react';
-import { HighlightRect, useHighlightContext } from '../../../contexts/HighlightContext';
+import { useHighlightContext } from '../../../contexts/HighlightContext';
+import { HighlightRect } from '../../../types/pdfTypes';
 import { useViewportSize } from '../../../hooks/useViewportSize';
 import '../../../styles/modules/pdf/HighlightContextMenu.css'
 import highlightManager from "../../../utils/HighlightManager";
@@ -212,8 +213,8 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             [file],
             highlight.text,
             {
-                caseSensitive: false,
-                regex: false
+                isCaseSensitive: false,
+                isAiSearch: false
             }
         ).then(() => {
             console.log(`[HighlightContextMenu] Successfully highlighted all occurrences of "${highlight.text}"`);

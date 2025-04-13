@@ -2,6 +2,7 @@ import {useCallback, useEffect, useRef} from 'react';
 import {useFileContext} from '../contexts/FileContext';
 import {getFileKey, usePDFViewerContext} from '../contexts/PDFViewerContext';
 import scrollingService from '../services/UnifiedScrollingService';
+import { NavigationOptions } from '../types/pdfTypes';
 
 /**
  * Custom hook to provide PDF navigation capabilities with
@@ -149,12 +150,7 @@ export const usePDFNavigation = (sourceName: string = 'component') => {
     const navigateToPage = useCallback((
         pageNumber: number,
         fileKey?: string,
-        options?: {
-            behavior?: ScrollBehavior,
-            alignToTop?: boolean,
-            highlightThumbnail?: boolean,
-            forceFileChange?: boolean
-        }
+        options?: NavigationOptions
     ) => {
         // Avoid rapid repeated navigation (debounce)
         const now = Date.now();
@@ -376,11 +372,7 @@ export const usePDFNavigation = (sourceName: string = 'component') => {
     const navigateToFile = useCallback((
         fileKey: string,
         pageNumber?: number,
-        options?: {
-            behavior?: ScrollBehavior,
-            alignToTop?: boolean,
-            highlightThumbnail?: boolean
-        }
+        options?: NavigationOptions
     ) => {
         const file = files.find(f => getFileKey(f) === fileKey);
         if (!file) {

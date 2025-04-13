@@ -464,6 +464,9 @@ const useDirectAuth = () => {
     };
 };
 
+// Track instances of the hook to prevent duplicate initializations
+const hookInstances = new Set<string>();
+
 /**
  * Main hook that provides comprehensive user functionality.
  * Combines authentication state with additional user-related features like
@@ -476,7 +479,26 @@ const useDirectAuth = () => {
  * @returns A comprehensive set of user-related state and functions
  */
 export const useUser = (): UseUserReturn => {
-    console.log('🔧 [USE_USER] Initializing useUser hook');
+    // Generate a unique ID for this component instance
+    const componentIdRef = useRef<string>(`useUser_${Math.random().toString(36).substring(2, 11)}`);
+    
+    // Check if this is the first render for this component instance
+    const isFirstRender = useRef<boolean>(true);
+    
+    // Log only on first render
+    if (isFirstRender.current) {
+        console.log('🔧 [USE_USER] Initializing useUser hook', componentIdRef.current);
+        hookInstances.add(componentIdRef.current);
+        isFirstRender.current = false;
+    }
+    
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            hookInstances.delete(componentIdRef.current);
+            console.log('🧹 [USE_USER] Cleaning up useUser hook', componentIdRef.current);
+        };
+    }, []);
 
     // Use the direct auth implementation to avoid circular dependencies
     const {
@@ -754,18 +776,38 @@ export const useUser = (): UseUserReturn => {
         }
     }, []);
 
+    // Track settings fetch request in progress
+    const settingsFetchInProgressRef = useRef<boolean>(false);
+    
     /**
      * Fetches the current user's application settings.
      * Settings contain user preferences like theme, auto-detection, etc.
      * Only works when the user is authenticated.
+     * Includes protection against duplicate calls.
      */
     const getSettings = useCallback(async () => {
         if (!isAuthenticated) {
             console.warn('⚠️ [USE_USER] getSettings called but user is not authenticated');
             return;
         }
+        
+        // If fetch already in progress, skip this request
+        if (settingsFetchInProgressRef.current) {
+            console.log('⏱️ [USE_USER] Settings fetch already in progress, skipping duplicate request');
+            return;
+        }
+        
+        // If settings already loaded, use cached data
+        if (settings !== null) {
+            console.log('📋 [USE_USER] Settings already loaded, using cached data', {
+                settingsId: settings.id,
+                theme: settings.theme
+            });
+            return;
+        }
 
         console.log('⚙️ [USE_USER] Fetching user settings');
+        settingsFetchInProgressRef.current = true;
 
         const startTime = performance.now();
         setIsLoading(true);
@@ -787,12 +829,12 @@ export const useUser = (): UseUserReturn => {
             const errorMessage = err.response?.data?.message || 'Failed to fetch settings';
 
            //todo: add toast failed to retrieve search patterns or not found not found or empty
-
             setError(errorMessage);
         } finally {
             setIsLoading(false);
+            settingsFetchInProgressRef.current = false;
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, settings]);
 
     /**
      * Updates the current user's application settings.
@@ -832,18 +874,38 @@ export const useUser = (): UseUserReturn => {
         }
     }, []);
 
+    // Track ban list fetch request in progress
+    const banListFetchInProgressRef = useRef<boolean>(false);
+    
     /**
      * Fetches the current user's word ban list.
      * The ban list contains words that the user wants to automatically redact.
      * Only works when the user is authenticated.
+     * Includes protection against duplicate calls.
      */
     const getBanList = useCallback(async () => {
         if (!isAuthenticated) {
             console.warn('⚠️ [USE_USER] getBanList called but user is not authenticated');
             return;
         }
+        
+        // If fetch already in progress, skip this request
+        if (banListFetchInProgressRef.current) {
+            console.log('⏱️ [USE_USER] Ban list fetch already in progress, skipping duplicate request');
+            return;
+        }
+        
+        // If banList already exists, no need to fetch again
+        if (banList !== null) {
+            console.log('📋 [USE_USER] Ban list already loaded, using cached data', {
+                banListId: banList.id,
+                wordCount: banList.words?.length || 0
+            });
+            return;
+        }
 
         console.log('📋 [USE_USER] Fetching ban list');
+        banListFetchInProgressRef.current = true;
 
         const startTime = performance.now();
         setIsLoading(true);
@@ -856,7 +918,7 @@ export const useUser = (): UseUserReturn => {
 
             console.log('✅ [USE_USER] Ban list fetched successfully', {
                 banListId: list.id,
-                wordCount: list.words.length,
+                wordCount: list.words?.length || 0,
                 duration: `${duration.toFixed(2)}ms`
             });
         } catch (err: any) {
@@ -864,13 +926,12 @@ export const useUser = (): UseUserReturn => {
             const errorMessage = err.response?.data?.message || 'Failed to fetch ban list';
 
             //todo: add toast failed to retrieve search patterns or not found not found or empty
-
-
             setError(errorMessage);
         } finally {
             setIsLoading(false);
+            banListFetchInProgressRef.current = false;
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, banList]);
 
     /**
      * Adds words to the current user's ban list.
@@ -960,18 +1021,37 @@ export const useUser = (): UseUserReturn => {
         }
     }, []);
 
+    // Track search patterns fetch request in progress
+    const searchPatternsFetchInProgressRef = useRef<boolean>(false);
+    
     /**
      * Fetches the current user's search patterns.
      * Search patterns are used for regular expression or text pattern matching.
      * Only works when the user is authenticated.
+     * Includes protection against duplicate calls.
      */
     const getSearchPatterns = useCallback(async () => {
         if (!isAuthenticated) {
             console.warn('⚠️ [USE_USER] getSearchPatterns called but user is not authenticated');
             return;
         }
+        
+        // If fetch already in progress, skip this request
+        if (searchPatternsFetchInProgressRef.current) {
+            console.log('⏱️ [USE_USER] Search patterns fetch already in progress, skipping duplicate request');
+            return;
+        }
+        
+        // If search patterns already loaded and non-empty, use cached data
+        if (searchPatterns.length > 0) {
+            console.log('📋 [USE_USER] Search patterns already loaded, using cached data', {
+                patternCount: searchPatterns.length
+            });
+            return;
+        }
 
         console.log('🔍 [USE_USER] Fetching search patterns');
+        searchPatternsFetchInProgressRef.current = true;
 
         const startTime = performance.now();
         setIsLoading(true);
@@ -998,15 +1078,13 @@ export const useUser = (): UseUserReturn => {
             }
             const errorMessage = err.response?.data?.message || 'not found';
 
-
             //todo: add toast failed to retrieve search patterns or not found not found or empty
-
-
             setError(errorMessage);
         } finally {
             setIsLoading(false);
+            searchPatternsFetchInProgressRef.current = false;
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, searchPatterns.length]);
 
     /**
      * Creates a new search pattern for the current user.
@@ -1125,9 +1203,13 @@ export const useUser = (): UseUserReturn => {
         }
     }, []);
 
+    // Track model entities fetch requests in progress
+    const modelEntitiesFetchInProgressRef = useRef<Record<number, boolean>>({});
+    
     /**
      * Fetches model entities for a specific detection method.
      * Model entities are predefined patterns for entity detection like "PERSON", "EMAIL", etc.
+     * Includes protection against duplicate calls.
      *
      * @param methodId - ID of the detection method to fetch entities for
      */
@@ -1136,8 +1218,29 @@ export const useUser = (): UseUserReturn => {
             console.warn('⚠️ [USE_USER] getModelEntities called but user is not authenticated');
             return;
         }
+        
+        // If fetch already in progress for this method, skip this request
+        if (modelEntitiesFetchInProgressRef.current[methodId]) {
+            console.log('⏱️ [USE_USER] Model entities fetch already in progress for method', methodId);
+            return;
+        }
+        
+        // If entities already exist for this method, use cached data
+        if (modelEntities[methodId] && modelEntities[methodId].length > 0) {
+            console.log('📋 [USE_USER] Model entities already loaded for method', {
+                methodId,
+                entityCount: modelEntities[methodId].length
+            });
+            return;
+        }
 
         console.log('🔍 [USE_USER] Fetching model entities', { methodId });
+        
+        // Mark this method as being fetched
+        modelEntitiesFetchInProgressRef.current = {
+            ...modelEntitiesFetchInProgressRef.current,
+            [methodId]: true
+        };
 
         const startTime = performance.now();
         setIsLoading(true);
@@ -1159,12 +1262,17 @@ export const useUser = (): UseUserReturn => {
         } catch (err: any) {
             const errorMessage = err.response?.data?.message || '';
             //todo: add toast failed to retrieve model entities or model entities not found or empty
-
             setError(errorMessage);
         } finally {
             setIsLoading(false);
+            
+            // Clear in-progress flag for this method
+            modelEntitiesFetchInProgressRef.current = {
+                ...modelEntitiesFetchInProgressRef.current,
+                [methodId]: false
+            };
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, modelEntities]);
 
     /**
      * Adds new model entities for a specific detection method.

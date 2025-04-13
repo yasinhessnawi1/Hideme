@@ -37,6 +37,21 @@ class UnifiedScrollingService {
     // Event tracking for debugging
     private readonly eventHistory: {event: string, timestamp: number, details: any}[] = [];
     private readonly maxEvents: number = 20;
+    
+    // Method to record events for debugging
+    private recordEvent(event: string, details?: any): void {
+        // Add the event to history
+        this.eventHistory.unshift({
+            event,
+            timestamp: Date.now(),
+            details: details || {}
+        });
+        
+        // Trim history to keep it from growing too large
+        if (this.eventHistory.length > this.maxEvents) {
+            this.eventHistory.pop();
+        }
+    }
 
     // Prevent external instantiation
     private constructor() {
@@ -157,8 +172,35 @@ class UnifiedScrollingService {
         // Otherwise find it in the DOM
         const container = document.querySelector('.pdf-viewer-container') as HTMLElement | null;
 
+        if (!container) {
+            console.warn('[ScrollService] Could not find main container element, using fallback');
+            // Try alternative selectors as fallback
+            const fallbackContainer = document.querySelector('.pdf-container') as HTMLElement | null;
+            
+            if (fallbackContainer) {
+                this.elementCache.set('main-container', fallbackContainer);
+                return fallbackContainer;
+            }
+        }
+
         // Cache the result
         this.elementCache.set('main-container', container);
+        
+        // Add a DOM change listener to invalidate cache when the DOM changes
+        const observer = new MutationObserver(() => {
+            // Clear the container cache when DOM changes
+            this.elementCache.delete('main-container');
+            // Stop observing
+            observer.disconnect();
+        });
+        
+        if (container) {
+            // Observe changes to the container
+            observer.observe(container, { 
+                childList: true, 
+                subtree: true 
+            });
+        }
 
         return container;
     }
@@ -477,12 +519,29 @@ class UnifiedScrollingService {
                     // Adjusted area takes into account both visibility and center position
                     const adjustedArea = visibleArea * centerFactor;
 
+                    // Extra visibility debugging for troubleshooting scroll issues
+                    if (pageVisibilityRatio > 0.5) {
+                        // Store the page element ID in cache for faster access later
+                        const pageElementId = `page-${fileKey}-${pageNumber}`;
+                        this.elementCache.set(pageElementId, pageEl as HTMLElement);
+                        
+                        console.debug(`Page ${pageNumber} visibility: ${(pageVisibilityRatio * 100).toFixed(0)}% (${adjustedArea.toFixed(0)})`);
+                    }
+
                     // Only consider pages that meet the visibility threshold
                     if (pageVisibilityRatio >= visibilityThreshold && adjustedArea > maxVisibleArea) {
                         maxVisibleArea = adjustedArea;
                         maxVisibilityRatio = pageVisibilityRatio;
                         mostVisibleFileKey = fileKey;
                         mostVisiblePage = pageNumber;
+                        
+                        // Add this data to our lastEvent history for debugging
+                        this.recordEvent('page-visibility-change', { 
+                            fileKey, 
+                            pageNumber, 
+                            visibilityRatio: pageVisibilityRatio,
+                            area: adjustedArea
+                        });
                     }
                 });
             }

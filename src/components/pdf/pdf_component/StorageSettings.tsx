@@ -88,7 +88,7 @@ const StorageSettings: React.FC = () => {
                             />
                         </div>
                         <div className="usage-text">
-                            {storageStats.totalSize} used
+                            {storageStats.totalSizeFormatted} used
                             ({storageStats.fileCount} file{storageStats.fileCount !== 1 ? 's' : ''})
                         </div>
                     </div>

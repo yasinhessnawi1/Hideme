@@ -20,13 +20,15 @@ export const batchHybridDetect = async (
     files: File[],
     options: {
         presidio?: string[] | null;
-        gliner?: string[]| null;
-        gemini?: string[]| null;
+        gliner?: string[] | null;
+        gemini?: string[] | null;
+        threshold?: number;
+        banlist?: string[] | null;
     } = {}
 ): Promise<Record<string, any>> => {
     try {
         const formData = new FormData();
-        let requested_entities  = new Array<string>();
+        let requested_entities = new Array<string>();
         // Append all files to the formData
         files.forEach(file => {
             formData.append('files', file, file.name);
@@ -38,7 +40,7 @@ export const batchHybridDetect = async (
                 entity => requested_entities.push(entity)
             );
             formData.append('use_presidio', "True")
-        }else{
+        } else {
             formData.append('use_presidio', "False")
         }
 
@@ -47,7 +49,6 @@ export const batchHybridDetect = async (
                 entity => requested_entities.push(entity)
             );
             formData.append('use_gliner', "True")
-
         }
 
         if (options.gemini && Array.isArray(options.gemini) && options.gemini.length > 0) {
@@ -55,12 +56,21 @@ export const batchHybridDetect = async (
                 entity => requested_entities.push(entity)
             );
             formData.append('use_gemini', "True")
-
         }
+        
         // Add the requested entities to the form data
-
-
         formData.append('requested_entities', JSON.stringify(requested_entities));
+        
+        // Add detection threshold if provided (value between 0.0 and 1.0)
+        if (options.threshold !== undefined) {
+            const threshold = Math.max(0, Math.min(1, options.threshold)); // Clamp between 0 and 1
+            formData.append('detection_threshold', threshold.toString());
+        }
+        
+        // Add banlist words if provided
+        if (options.banlist && Array.isArray(options.banlist) && options.banlist.length > 0) {
+            formData.append('remove_words', JSON.stringify(options.banlist));
+        }
 
         const result = await apiRequest<any>({
             method: 'POST',

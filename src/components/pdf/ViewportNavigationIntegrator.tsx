@@ -1,36 +1,44 @@
-import React, {useEffect, useRef} from 'react';
-import {useFileContext} from '../../contexts/FileContext';
-import {getFileKey, usePDFViewerContext} from '../../contexts/PDFViewerContext';
-import {usePDFNavigation} from '../../hooks/usePDFNavigation';
+import React, { useEffect, useRef, useCallback } from 'react';
+import { useFileContext } from '../../contexts/FileContext';
+import { getFileKey, usePDFViewerContext } from '../../contexts/PDFViewerContext';
+import { usePDFNavigation } from '../../hooks/usePDFNavigation';
+import { NavigationOptions } from '../../types/pdfTypes';
+
+interface PendingNavigation {
+    fileKey: string;
+    pageNumber: number;
+    options: NavigationOptions;
+}
 
 /**
- * Component that improves navigation precision using viewport calculations.
- * This component doesn't render anything visible but enhances navigation
- * by connecting viewport size information with scrolling logic.
+ * ViewportNavigationIntegrator component
+ * 
+ * This component enhances navigation precision using viewport calculations.
+ * It doesn't render anything visible but improves the PDF viewing experience by:
+ * 
+ * - Providing viewport-aware page navigation
+ * - Handling navigation requests and tracking page initialization
+ * - Patching the navigation hook to use viewport calculations
+ * - Observing page rendering completion for reliable navigation timing
+ * - Supporting deferred navigation to pages that aren't rendered yet
  */
 const ViewportNavigationIntegrator: React.FC = () => {
     const { currentFile } = useFileContext();
-    const {
-        mainContainerRef,
-    } = usePDFViewerContext();
+    const { mainContainerRef } = usePDFViewerContext();
 
     // Use our navigation hook
     const navigation = usePDFNavigation('viewport-integrator');
 
     // Track if there are pending navigation requests
-    const pendingNavigationRef = useRef<{
-        fileKey: string;
-        pageNumber: number;
-        options: any;
-    } | null>(null);
+    const pendingNavigationRef = useRef<PendingNavigation | null>(null);
 
     // Reference to track page elements that have been initialized
     const initializedPagesRef = useRef<Set<string>>(new Set());
 
     /**
-     * Helper to calculate exact position for a page
+     * Calculate exact scroll position for a page to center it in the viewport
      */
-    const calculatePagePosition = (pageElement: HTMLElement): number | null => {
+    const calculatePagePosition = useCallback((pageElement: HTMLElement): number | null => {
         if (!mainContainerRef.current) return null;
 
         try {
@@ -47,12 +55,12 @@ const ViewportNavigationIntegrator: React.FC = () => {
             console.error('[ViewportIntegrator] Error calculating page position:', error);
             return null;
         }
-    };
+    }, [mainContainerRef.current]);
 
     /**
-     * Perform precise scrolling to a page
+     * Perform precise scrolling to a page using viewport calculations
      */
-    const scrollToPageWithViewport = (
+    const scrollToPageWithViewport = useCallback((
         pageNumber: number,
         fileKey: string,
         behavior: ScrollBehavior = 'smooth',
@@ -100,7 +108,7 @@ const ViewportNavigationIntegrator: React.FC = () => {
         }, 1500);
 
         return true;
-    };
+    }, [calculatePagePosition, mainContainerRef.current]);
 
     // Handle custom navigation events that require viewport precision
     useEffect(() => {
@@ -152,7 +160,7 @@ const ViewportNavigationIntegrator: React.FC = () => {
         return () => {
             window.removeEventListener('pdf-precise-navigation-request', handlePreciseNavigationRequest);
         };
-    }, []);
+    }, [scrollToPageWithViewport]);
 
     // Handle pending navigation requests when pages become available
     useEffect(() => {
@@ -198,9 +206,9 @@ const ViewportNavigationIntegrator: React.FC = () => {
         return () => {
             window.removeEventListener('pdf-page-render-complete', handlePageRenderComplete);
         };
-    }, []);
+    }, [scrollToPageWithViewport]);
 
-    // Helper method to expose viewport navigation globally
+    // Expose viewport navigation globally for other components to use
     useEffect(() => {
         // Add the viewport-aware navigation method to window
         (window as any).navigateToPageWithViewport = (
@@ -237,7 +245,6 @@ const ViewportNavigationIntegrator: React.FC = () => {
         initializedPagesRef.current = new Set(
             Array.from(initializedPagesRef.current).filter(key => !key.startsWith(fileKey))
         );
-
     }, [currentFile]);
 
     // Listen for page render completion events from PageRenderer components
@@ -294,7 +301,7 @@ const ViewportNavigationIntegrator: React.FC = () => {
         };
     }, []);
 
-    // Patch our navigation hook to use viewport-based navigation when appropriate
+    // Enhance the navigation hook to use viewport-based navigation when appropriate
     useEffect(() => {
         const originalNavigateToPage = navigation.navigateToPage;
 
@@ -303,8 +310,8 @@ const ViewportNavigationIntegrator: React.FC = () => {
         (navigation as any).navigateToPage = (
             pageNumber: number,
             fileKey?: string,
-            options?: any
-        ) => {
+            options?: NavigationOptions
+        ): void => {
             // If no fileKey, use the current file's key
             const targetFileKey = fileKey || (currentFile ? getFileKey(currentFile) : null);
             if (!targetFileKey) return;
@@ -334,7 +341,7 @@ const ViewportNavigationIntegrator: React.FC = () => {
         };
     }, [navigation, currentFile]);
 
-    return null; // This component doesn't render anything
+    return null; // This component doesn't render anything visible
 };
 
 export default ViewportNavigationIntegrator;

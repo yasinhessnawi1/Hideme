@@ -16,9 +16,12 @@ import apiClient from './apiClient';
  * @property {number} id - Settings unique identifier
  * @property {number} user_id - User ID the settings belong to
  * @property {string} theme - UI theme preference ('light' or 'dark')
- * @property {boolean} auto_detect - Whether automatic detection is enabled
- * @property {number} default_detection_method_id - Default detection method ID
- * @property {string} default_redaction_color - Default color for redactions
+ * @property {boolean} auto_processing - Whether automatic processing is enabled
+ * @property {boolean} remove_images - Whether to remove images during processing
+ * @property {boolean} is_ai_search - Whether AI search is enabled by default
+ * @property {boolean} is_case_sensitive - Whether search is case sensitive by default
+ * @property {string[]} default_search_terms - Default search terms to suggest
+ * @property {string[]} ml_entities - Selected ML entities for detection
  * @property {string} created_at - Settings creation timestamp
  * @property {string} updated_at - Settings last update timestamp
  */
@@ -28,6 +31,13 @@ export interface UserSettings {
     theme: string;
     auto_processing: boolean;
     remove_images: boolean;
+    is_ai_search?: boolean;
+    is_case_sensitive?: boolean;
+    default_search_terms?: string[];
+    ml_entities?: string[];
+    detection_threshold?: number;
+    use_banlist_for_detection?: boolean;
+    banList?: BanListWithWords;
     created_at: string;
     updated_at: string;
 }
@@ -37,14 +47,23 @@ export interface UserSettings {
  *
  * @interface
  * @property {string} [theme] - Optional UI theme preference
- * @property {boolean} [auto_detect] - Optional automatic detection setting
- * @property {number} [default_detection_method_id] - Optional default detection method
- * @property {string} [default_redaction_color] - Optional default redaction color
+ * @property {boolean} [auto_processing] - Optional automatic processing setting
+ * @property {boolean} [remove_images] - Optional image removal setting
+ * @property {boolean} [is_ai_search] - Optional AI search default setting
+ * @property {boolean} [is_case_sensitive] - Optional case sensitivity default setting
+ * @property {string[]} [default_search_terms] - Optional default search terms
+ * @property {string[]} [ml_entities] - Optional selected ML entities
  */
 export interface UserSettingsUpdate {
     theme?: string;
     auto_processing?: boolean;
     remove_images?: boolean;
+    is_ai_search?: boolean;
+    is_case_sensitive?: boolean;
+    default_search_terms?: string[];
+    ml_entities?: string[];
+    detection_threshold?: number;
+    use_banlist_for_detection?: boolean;
 }
 
 /**

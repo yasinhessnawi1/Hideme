@@ -1,13 +1,13 @@
 // src/hooks/useHighlights.ts - Critical fix for processing loop
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { HighlightType, useHighlightContext } from '../contexts/HighlightContext';
+import { useHighlightContext } from '../contexts/HighlightContext';
 import { useEditContext } from '../contexts/EditContext';
 import { usePDFViewerContext } from '../contexts/PDFViewerContext';
 import { useBatchSearch } from '../contexts/SearchContext';
 import { usePDFApi } from './usePDFApi';
 import { EntityHighlightManager } from '../utils/EntityHighlightManager';
 import { SearchHighlightManager } from '../utils/SearchHighlightManager';
-import { PDFPageViewport } from '../types/pdfTypes';
+import { PDFPageViewport, HighlightType } from '../types/pdfTypes';
 import { v4 as uuidv4 } from 'uuid';
 
 
