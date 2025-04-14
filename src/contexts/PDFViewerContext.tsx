@@ -122,6 +122,20 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
     }, [currentFile]);
 
+    // Import the utility service
+    const pdfUtilityService = React.useMemo(() => {
+        // Dynamically import to avoid circular dependencies
+        return import('../services/PDFUtilityService').then(module => module.default);
+    }, []);
+
+    // Handle zoom level changes to scale highlights properly
+    useEffect(() => {
+        // When zoom level changes, update highlight scaling
+        pdfUtilityService.then(service => {
+            service.scaleHighlights(zoomLevel);
+        });
+    }, [zoomLevel, pdfUtilityService]);
+
     // Update page refs array when numPages changes
     useEffect(() => {
         pageRefs.current = Array(numPages).fill(null);

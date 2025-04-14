@@ -147,13 +147,26 @@ export const useAutoProcess = () => {
             geminiLength: Array.isArray(modelEntities[3]) ? modelEntities[3].length : 'not an array',
         });
 
-        // 3. Update AutoProcessManager Config
+        // Extract threshold and banlist settings from user settings
+        const detectionThreshold = settings.detection_threshold ?? 0.5; // Default to 0.5 if not set
+        const useBanlist = settings.use_banlist_for_detection ?? false; // Default to false if not set
+        
+        // Get ban list words if enabled
+        const banlistWords = useBanlist && settings.banList && 
+                            settings.banList.words && 
+                            Array.isArray(settings.banList.words) 
+                            ? settings.banList.words : [];
+        
+        // 3. Update AutoProcessManager Config with threshold and banlist
         autoProcessManager.updateConfig({
             presidioEntities,
             glinerEntities,
             geminiEntities,
             searchQueries: formattedSearchQueries,
             isActive: settings.auto_processing ?? true, // Use fetched setting
+            detectionThreshold: detectionThreshold, // Add detection threshold
+            useBanlist: useBanlist, // Add ban list setting
+            banlistWords: banlistWords // Add actual ban list words
         });
 
     }, [

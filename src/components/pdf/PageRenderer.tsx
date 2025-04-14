@@ -4,7 +4,7 @@ import { usePDFViewerContext } from '../../contexts/PDFViewerContext';
 import { useEditContext } from '../../contexts/EditContext';
 import PageOverlay from './PageOverlay';
 import HighlightLayerFactory from './highlighters/HighlightLayerFactory';
-import { PDFPageViewport, TextContent } from '../../types/pdfTypes';
+import { PDFPageViewport, TextContent, ViewportSize } from '../../types/pdfTypes';
 import { useViewportSize } from '../../hooks/useViewportSize';
 
 interface PageRendererProps {
@@ -51,11 +51,38 @@ const PageRenderer: React.FC<PageRendererProps> = ({ pageNumber, fileKey }) => {
     const isActive = useCallback(() => {
         // If a fileKey is provided, use that
         if (fileKey) {
-            return getFileActiveScrollPage(fileKey) === pageNumber;
+            const activePage = getFileActiveScrollPage(fileKey);
+            console.log(`[PageRenderer] Checking if page ${pageNumber} is active for file ${fileKey}. Active page: ${activePage}`);
+            return activePage === pageNumber;
         }
         // Otherwise use the global activeScrollPage (for backward compatibility)
+        console.log(`[PageRenderer] Checking if page ${pageNumber} is active (global). Active page: ${activeScrollPage}`);
         return activeScrollPage === pageNumber;
     }, [fileKey, getFileActiveScrollPage, pageNumber, activeScrollPage]);
+    
+    // Also listen for page highlight events
+    useEffect(() => {
+        const handlePageHighlighted = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey: eventFileKey, pageNumber: eventPageNumber, source } = customEvent.detail || {};
+            
+            // Only process if this event applies to our page
+            if (fileKey === eventFileKey && pageNumber === eventPageNumber) {
+                console.log(`[PageRenderer] Received page highlight event for page ${pageNumber} in file ${fileKey}`);
+                
+                // Force rerender by accessing the wrapper element and updating its classes directly
+                if (wrapperRef.current) {
+                    wrapperRef.current.classList.add('active');
+                }
+            }
+        };
+        
+        window.addEventListener('page-highlighted', handlePageHighlighted);
+        
+        return () => {
+            window.removeEventListener('page-highlighted', handlePageHighlighted);
+        };
+    }, [fileKey, pageNumber]);
 
     const onPageRenderSuccess = useCallback(async (page: any) => {
         // Skip processing if component is unmounted

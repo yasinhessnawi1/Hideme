@@ -368,6 +368,56 @@ SEARCH SIDEBAR SPECIFIC STYLES
     color: #71c4ff;
 }
 
+/* Success and Error messages */
+.success-section {
+    margin: var(--spacing-sm) 0;
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    background-color: rgba(46, 204, 113, 0.1);
+    border: 1px solid rgba(46, 204, 113, 0.3);
+    animation: fadeIn 0.3s ease;
+}
+
+.success-message {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: #2ecc71;
+    font-size: var(--font-size-sm);
+}
+
+.success-icon {
+    color: #2ecc71;
+    flex-shrink: 0;
+}
+
+.error-section {
+    margin: var(--spacing-sm) 0;
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    background-color: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    animation: fadeIn 0.3s ease;
+}
+
+.error-message {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: #e74c3c;
+    font-size: var(--font-size-sm);
+}
+
+.error-icon {
+    color: #e74c3c;
+    flex-shrink: 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* Search-specific overrides for shared components */
 .search-sidebar .nav-button:hover {
     background-color: #71c4ff;

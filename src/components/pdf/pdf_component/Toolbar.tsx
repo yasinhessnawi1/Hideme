@@ -8,12 +8,17 @@ import {
     FaRegEyeSlash,
     FaSearchMinus,
     FaSearchPlus,
-    FaUpload
+    FaUpload,
+    FaSearch,
+    FaMagic,
+    FaEraser
 } from 'react-icons/fa';
 import { useFileContext } from '../../../contexts/FileContext';
 import { usePDFViewerContext } from '../../../contexts/PDFViewerContext';
 import { useEditContext } from '../../../contexts/EditContext';
-import { HighlightType, useHighlightContext } from '../../../contexts/HighlightContext';
+import { useHighlightContext } from '../../../contexts/HighlightContext';
+import { HighlightType } from '../../../types/pdfTypes';
+import pdfUtilityService from '../../../services/PDFUtilityService';
 import '../../../styles/modules/pdf/Toolbar.css';
 
 interface ToolbarProps {
@@ -29,7 +34,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                              toggleRightSidebar,
                                              isRightSidebarCollapsed
                                          }) => {
-    const { currentFile, addFile } = useFileContext();
+    const { currentFile, addFile, addFiles, files, selectedFiles } = useFileContext();
 
     const {
         zoomLevel,
@@ -53,7 +58,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
         glinerColor,
         setGlinerColor,
         geminiColor,
-        setGeminiColor
+        setGeminiColor,
+        
+        // Add entity detection settings
+        selectedMlEntities,
+        selectedAiEntities,
+        selectedGlinerEntities
     } = useEditContext();
 
     const {
@@ -117,10 +127,19 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setIsVisibilityMenuOpen(false);
     };
 
-    // Handle file upload
+    // Handle file upload - modified to support multiple files
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            addFile(e.target.files[0]);
+            // Use addFiles to handle multiple files
+            const newFiles = Array.from(e.target.files);
+            addFiles(newFiles);
+            
+            // Show notification about added files
+            setShowNotification({
+                message: `Added ${newFiles.length} file${newFiles.length > 1 ? 's' : ''}`,
+                type: 'success'
+            });
+            setTimeout(() => setShowNotification(null), 3000);
         }
     };
 
@@ -146,38 +165,239 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setIsEditingMode(!isEditingMode);
     };
 
-    // Download/save functions
-    const handleDownloadPDF = () => {
-        if (!currentFile) return;
-
-        // Create a download link for the current file
-        const url = URL.createObjectURL(currentFile);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = currentFile.name || 'document.pdf';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
-
-    const handlePrint = () => {
-        if (!currentFile) return;
-
-        // Create a temporary URL for the file
-        const url = URL.createObjectURL(currentFile);
-
-        // Open in a new window for printing
-        const printWindow = window.open(url, '_blank');
-        if (printWindow) {
-            printWindow.addEventListener('load', () => {
-                printWindow.print();
-            });
+    // State for action feedback
+    const [showNotification, setShowNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+    
+    // Download/save functions using enhanced utility service
+    const handleDownloadPDF = async () => {
+        // Always use all files instead of just selected files (by default)
+        const filesToDownload = files.length > 0 ? files : [];
+        
+        if (filesToDownload.length === 0) {
+            setShowNotification({message: 'No files available for download', type: 'error'});
+            setTimeout(() => setShowNotification(null), 3000);
+            return;
         }
-
-        // Cleanup URL after a delay
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        
+        setShowNotification({message: 'Preparing download...', type: 'success'});
+        
+        try {
+            // Use the appropriate download method based on number of files
+            const success = await pdfUtilityService.downloadMultiplePDFs(filesToDownload);
+            
+            if (success) {
+                setShowNotification({
+                    message: `${filesToDownload.length > 1 ? 'Files' : 'File'} downloaded successfully`, 
+                    type: 'success'
+                });
+            } else {
+                setShowNotification({
+                    message: 'Download failed. Please try again.',
+                    type: 'error'
+                });
+            }
+        } catch (error) {
+            console.error('Error downloading file(s):', error);
+            setShowNotification({message: 'Download failed', type: 'error'});
+        }
+        
+        setTimeout(() => setShowNotification(null), 3000);
     };
+
+    const handlePrint = async () => {
+        // Always use all files instead of just selected files (by default)
+        const filesToPrint = files.length > 0 ? files : [];
+        
+        if (filesToPrint.length === 0) {
+            setShowNotification({message: 'No files available for printing', type: 'error'});
+            setTimeout(() => setShowNotification(null), 3000);
+            return;
+        }
+        
+        setShowNotification({message: 'Preparing print job...', type: 'success'});
+        
+        try {
+            // Use the appropriate print method based on number of files
+            const success = await pdfUtilityService.printMultiplePDFs(filesToPrint);
+            
+            if (success) {
+                setShowNotification({
+                    message: 'Print job sent to browser', 
+                    type: 'success'
+                });
+            } else {
+                setShowNotification({
+                    message: 'Print failed. Please check popup blocker settings.',
+                    type: 'error'
+                });
+            }
+        } catch (error) {
+            console.error('Error printing file(s):', error);
+            setShowNotification({message: 'Print failed', type: 'error'});
+        }
+        
+        setTimeout(() => setShowNotification(null), 3000);
+    };
+    
+    // Entity detection shortcut - triggers actual detection process
+    const handleEntityDetection = () => {
+        const filesToProcess = selectedFiles.length > 0 ? selectedFiles : currentFile ? [currentFile] : [];
+        
+        if (filesToProcess.length === 0) {
+            setShowNotification({message: 'No files selected for detection', type: 'error'});
+            setTimeout(() => setShowNotification(null), 3000);
+            return;
+        }
+        
+        // Toggle right sidebar to show entity detection panel
+        if (isRightSidebarCollapsed) {
+            toggleRightSidebar();
+        }
+        
+        // Dispatch event to activate entity detection panel and navigate to detection tab
+        window.dispatchEvent(new CustomEvent('activate-detection-panel', {
+            detail: {
+                active: true,
+                source: 'toolbar',
+                navigateToTab: 'entity-detection', // Must match the tab ID in RightSidebar.tsx
+                filesToProcess: filesToProcess, // Pass files to process
+                triggerDetection: true, // This flag indicates we want to immediately run detection
+                settings: {
+                    selectedMlEntities,
+                    selectedAiEntities,
+                    selectedGlinerEntities,
+                    presidioColor,
+                    glinerColor,
+                    geminiColor
+                }
+            }
+        }));
+        
+        // Also directly trigger the entity detection process in the sidebar
+        window.dispatchEvent(new CustomEvent('trigger-entity-detection-process', {
+            detail: {
+                source: 'toolbar-button',
+                filesToProcess: filesToProcess
+            }
+        }));
+        
+        // Show feedback to the user
+        setShowNotification({
+            message: 'Running entity detection', 
+            type: 'success'
+        });
+        setTimeout(() => setShowNotification(null), 2000);
+    }
+    
+    // Search shortcut - opens the search tab and executes search with default terms
+    const [searchActive, setSearchActive] = useState(false);
+    
+    const handleSearchShortcut = () => {
+        setSearchActive(!searchActive);
+        
+        // Toggle right sidebar to show search panel
+        if (isRightSidebarCollapsed) {
+            toggleRightSidebar();
+        }
+        
+        // Dispatch event to activate search panel and navigate to search tab
+        window.dispatchEvent(new CustomEvent('activate-search-panel', {
+            detail: {
+                active: true, // Always set to true to ensure activation
+                source: 'toolbar',
+                navigateToTab: 'search', // Must match the tab ID in RightSidebar.tsx
+                autoFocus: true // Auto focus the search input
+            }
+        }));
+        
+        // Force activate the search tab 
+        window.dispatchEvent(new CustomEvent('activate-sidebar-tab', {
+            detail: {
+                tabId: 'search',
+                source: 'toolbar-button'
+            }
+        }));
+        
+        // Add a slight delay to ensure the sidebar is active
+        setTimeout(() => {
+            // Trigger search with default terms
+            window.dispatchEvent(new CustomEvent('execute-search', {
+                detail: {
+                    source: 'toolbar-button',
+                    applyDefaultTerms: true // Tell the search sidebar to apply all default terms
+                }
+            }));
+            
+            // Alternatively if there's a global function available, use it directly
+            if (typeof window.executeSearchWithDefaultTerms === 'function') {
+                window.executeSearchWithDefaultTerms();
+            }
+        }, 300);
+        
+        setShowNotification({
+            message: 'Searching with default terms', 
+            type: 'success'
+        });
+        setTimeout(() => setShowNotification(null), 2000);
+    }
+    
+    // Redaction shortcut - triggers actual redaction process
+    const [redactionActive, setRedactionActive] = useState(false);
+    
+    const handleRedaction = () => {
+        setRedactionActive(!redactionActive);
+        
+        // Toggle right sidebar to show redaction panel
+        if (isRightSidebarCollapsed) {
+            toggleRightSidebar();
+        }
+        
+        // Determine which files to use for redaction
+        const filesToProcess = selectedFiles.length > 0 ? selectedFiles : files;
+        
+        if (filesToProcess.length === 0) {
+            setShowNotification({message: 'No files available for redaction', type: 'error'});
+            setTimeout(() => setShowNotification(null), 3000);
+            return;
+        }
+        
+        // First, activate the redaction panel
+        window.dispatchEvent(new CustomEvent('activate-redaction-panel', {
+            detail: {
+                active: true, // Always set to true
+                source: 'toolbar',
+                navigateToTab: 'redaction', // Must match the tab ID in RightSidebar.tsx
+                applyToAllFiles: true, // Apply to all files by default
+                filesToProcess: filesToProcess, // Pass the files to process
+                triggerRedaction: true // This flag indicates we want to perform redaction
+            }
+        }));
+        
+        // Force activate the redaction tab
+        window.dispatchEvent(new CustomEvent('activate-sidebar-tab', {
+            detail: {
+                tabId: 'redaction',
+                source: 'toolbar-button'
+            }
+        }));
+        
+        // Wait a short time to ensure the sidebar is loaded and tab is activated
+        setTimeout(() => {
+            // Directly trigger the redaction process in the sidebar
+            window.dispatchEvent(new CustomEvent('trigger-redaction-process', {
+                detail: {
+                    source: 'toolbar-button',
+                    filesToProcess: filesToProcess
+                }
+            }));
+        }, 300);
+        
+        setShowNotification({
+            message: 'Starting redaction process', 
+            type: 'success'
+        });
+        setTimeout(() => setShowNotification(null), 2000);
+    }
 
     // Visibility toggle handlers
     const handleToggleManualHighlights = (e: React.MouseEvent<HTMLInputElement>) => {
@@ -317,11 +537,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     ref={fileInputRef}
                     onChange={handleFileUpload}
                     style={{display: 'none'}}
+                    multiple
                 />
                 <button
                     onClick={handleUploadClick}
                     className="toolbar-button"
-                    title="Upload PDF"
+                    title="Open PDF"
                 >
                     <FaUpload/>
                     <span className="button-label">Open</span>
@@ -330,8 +551,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 <button
                     onClick={handleDownloadPDF}
                     className="toolbar-button"
-                    title="Download PDF"
-                    disabled={!currentFile}
+                    title="Save PDF"
+                    disabled={files.length === 0}
                 >
                     <FaFileDownload/>
                     <span className="button-label">Save</span>
@@ -341,10 +562,43 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     onClick={handlePrint}
                     className="toolbar-button"
                     title="Print PDF"
-                    disabled={!currentFile}
+                    disabled={files.length === 0}
                 >
                     <FaPrint/>
                     <span className="button-label">Print</span>
+                </button>
+            </div>
+            
+            {/* New buttons for detection and search */}
+            <div className="toolbar-section">
+                <button
+                    onClick={handleSearchShortcut}
+                    className={`toolbar-button ${searchActive ? 'active' : ''}`}
+                    title="Search PDFs"
+                    disabled={files.length === 0}
+                >
+                    <FaSearch/>
+                    <span className="button-label">Search</span>
+                </button>
+                
+                <button
+                    onClick={handleEntityDetection}
+                    className="toolbar-button"
+                    title="Detect Entities"
+                    disabled={files.length === 0}
+                >
+                    <FaMagic/>
+                    <span className="button-label">Detect</span>
+                </button>
+                
+                <button
+                    onClick={handleRedaction}
+                    className={`toolbar-button ${redactionActive ? 'active' : ''}`}
+                    title="Redact PDFs"
+                    disabled={files.length === 0}
+                >
+                    <FaEraser/>
+                    <span className="button-label">Redact</span>
                 </button>
             </div>
 
@@ -544,6 +798,20 @@ const Toolbar: React.FC<ToolbarProps> = ({
             >
                 {isRightSidebarCollapsed ? <RightSidebarOpenIcon/> : <RightSidebarCloseIcon/>}
             </button>
+            
+            {/* Notification toast */}
+            {showNotification && (
+                <div className={`notification-toast ${showNotification.type}`}>
+                    <span>{showNotification.message}</span>
+                    <button
+                        className="notification-close"
+                        onClick={() => setShowNotification(null)}
+                        aria-label="Close notification"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

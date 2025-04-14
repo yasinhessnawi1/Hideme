@@ -1,5 +1,5 @@
 // src/utils/SearchHighlightManager.ts - Fixed version
-import { HighlightType } from "../contexts/HighlightContext";
+import { HighlightType } from "../types/pdfTypes";
 import { SearchResult } from "../services/BatchSearchService";
 import { v4 as uuidv4 } from 'uuid';
 

@@ -5,6 +5,7 @@ import pdfStorageService from '../services/PDFStorageService';
 import { pdfjs } from 'react-pdf';
 import { cleanupFileHighlights } from '../utils/highlightUtils';
 import useUser from "../hooks/userHook";
+import { StorageStats } from '../types/pdfTypes';
 
 // Ensure PDF.js worker is loaded
 const loadPdfWorker = () => {
@@ -37,7 +38,7 @@ interface FileContextProps {
     currentFile: File | null;
     addFile: (file: File) => void;
     addFiles: (newFiles: File[], replace?: boolean) => void;
-    removeFile: (fileIndex: number, highlightCleaning : (fileKey?: string)=>void ) => void;
+    removeFile: (fileIndex: number) => void;
     setCurrentFile: (file: File | null) => void;
     clearFiles: () => void;
 
@@ -62,11 +63,7 @@ interface FileContextProps {
     // Storage-related properties and functions
     isStoragePersistenceEnabled: boolean;
     setStoragePersistenceEnabled: (enabled: boolean) => void;
-    storageStats: {
-        totalSize: string;
-        fileCount: number;
-        percentUsed: number;
-    } | null;
+    storageStats: StorageStats | null;
     clearStoredFiles: () => Promise<void>;
 
     // File utility functions
@@ -89,11 +86,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [activeFiles, setActiveFiles] = useState<File[]>([]); // Files currently displayed
     const [isStoragePersistenceEnabled, setIsStoragePersistenceEnabled] = useState<boolean>(false);
-    const [storageStats, setStorageStats] = useState<{
-        totalSize: string;
-        fileCount: number;
-        percentUsed: number;
-    } | null>(null);
+    const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
 
     // Add state to track if PDF worker is ready
     const [isPdfWorkerReady, setIsPdfWorkerReady] = useState<boolean>(false);
@@ -147,7 +140,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // Load storage statistics
                 const stats = await pdfStorageService.getStorageStats();
                 setStorageStats({
-                    totalSize: stats.totalSizeFormatted,
+                    totalSizeFormatted: stats.totalSizeFormatted,
                     fileCount: stats.fileCount,
                     percentUsed: stats.percentUsed
                 });
@@ -264,7 +257,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             try {
                 const stats = await pdfStorageService.getStorageStats();
                 setStorageStats({
-                    totalSize: stats.totalSizeFormatted,
+                    totalSizeFormatted: stats.totalSizeFormatted,
                     fileCount: stats.fileCount,
                     percentUsed: stats.percentUsed
                 });
@@ -300,7 +293,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Update storage stats
             const stats = await pdfStorageService.getStorageStats();
             setStorageStats({
-                totalSize: stats.totalSizeFormatted,
+                totalSizeFormatted: stats.totalSizeFormatted,
                 fileCount: stats.fileCount,
                 percentUsed: stats.percentUsed
             });
@@ -317,7 +310,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Update storage stats
             const stats = await pdfStorageService.getStorageStats();
             setStorageStats({
-                totalSize: stats.totalSizeFormatted,
+                totalSizeFormatted: stats.totalSizeFormatted,
                 fileCount: stats.fileCount,
                 percentUsed: stats.percentUsed
             });
@@ -335,7 +328,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (prev.some(f => f.name === file.name && f.lastModified === file.lastModified)) {
                 return prev;
             }
-            return [ file, ...prev];
+            return [...prev, file];
         });
     }, []);
 
@@ -437,7 +430,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             // Otherwise add to array
-            const newFiles = [file, ...prevFiles ];
+            const newFiles = [...prevFiles, file];
 
             // Automatically set as current file if it's the first one
             if (prevFiles.length === 0) {
@@ -464,6 +457,34 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         forceProcess: true
                     }
                 }));
+                
+                // Also preload any existing highlights for this file from persistent storage
+                import('../utils/highlightUtils')
+                    .then(({ preloadFileHighlights }) => {
+                        console.log(`[FileContext] Preloading highlights for new file: ${fileKey}`);
+                        
+                        preloadFileHighlights(fileKey)
+                            .then(highlightCount => {
+                                console.log(`[FileContext] Successfully preloaded ${highlightCount} highlights for file: ${fileKey}`);
+                                
+                                // If there are highlights, dispatch an event to notify components
+                                if (highlightCount > 0) {
+                                    window.dispatchEvent(new CustomEvent('file-highlights-available', {
+                                        detail: {
+                                            fileKey,
+                                            count: highlightCount,
+                                            source: 'file-add'
+                                        }
+                                    }));
+                                }
+                            })
+                            .catch(error => {
+                                console.error(`[FileContext] Error preloading highlights for file: ${fileKey}`, error);
+                            });
+                    })
+                    .catch(error => {
+                        console.error('[FileContext] Error importing highlightUtils:', error);
+                    });
             }, 100);
 
             // Queue file for auto-processing with current settings
@@ -508,7 +529,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 )
             );
 
-            const updatedFiles = [...uniqueNewFiles,...baseFiles];
+            const updatedFiles = [...baseFiles, ...uniqueNewFiles];
 
             if ((replace || !currentFile) && updatedFiles.length > 0) {
                 setActiveFiles([])
@@ -586,7 +607,9 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Clean up highlight tracking for the removed file - using our standardized util
             const fileKey = getFileKey(removedFile);
-            cleanupFileHighlights(fileKey);
+            cleanupFileHighlights(fileKey).catch(error => {
+                console.error(`[FileContext] Error cleaning up highlights for file "${removedFile.name}":`, error);
+            });
 
             // Remove file from persistent storage if enabled
             if (isStoragePersistenceEnabled) {

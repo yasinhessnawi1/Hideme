@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Save, ChevronDown, ChevronUp, AlertTriangle, Database, HardDrive, Trash2, Loader2 } from "lucide-react";
+import { Save, ChevronDown, ChevronUp, AlertTriangle, Database, HardDrive, Trash2, Loader2, Sliders } from "lucide-react";
 import { useUser } from "../../../hooks/userHook"; // Adjust path if needed
 import { useFileContext } from "../../../contexts/FileContext"; // Adjust path if needed
 import { useAutoProcess } from "../../../hooks/useAutoProcess"; // Adjust path if needed
@@ -24,6 +24,18 @@ export default function GeneralSettings() {
         return autoProcessConfig.isActive ?? true;
     });
     const [isStorageEnabled, setIsStorageEnabled] = useState(isStoragePersistenceEnabled);
+    
+    // Default threshold value: 0.5 (50%)
+    const [detectionThreshold, setDetectionThreshold] = useState<number>(() => {
+        if (settings?.detection_threshold !== undefined) return settings.detection_threshold;
+        return 0.5; // Default threshold
+    });
+    
+    // Ban list usage setting
+    const [useBanlist, setUseBanlist] = useState<boolean>(() => {
+        if (settings?.use_banlist_for_detection !== undefined) return settings.use_banlist_for_detection;
+        return false; // Default to not using ban list
+    });
 
     const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
@@ -40,12 +52,24 @@ export default function GeneralSettings() {
                 console.log("[GeneralSettings] Syncing isAutoProcessing from settings:", settings.auto_processing);
                 setIsAutoProcessing(settings.auto_processing);
             }
+            
+            // Sync detection threshold from settings
+            if (settings.detection_threshold !== undefined && settings.detection_threshold !== detectionThreshold) {
+                console.log("[GeneralSettings] Syncing detectionThreshold from settings:", settings.detection_threshold);
+                setDetectionThreshold(settings.detection_threshold);
+            }
+            
+            // Sync ban list usage setting from settings
+            if (settings.use_banlist_for_detection !== undefined && settings.use_banlist_for_detection !== useBanlist) {
+                console.log("[GeneralSettings] Syncing useBanlist from settings:", settings.use_banlist_for_detection);
+                setUseBanlist(settings.use_banlist_for_detection);
+            }
         }
         if (isStoragePersistenceEnabled !== isStorageEnabled) {
             console.log("[GeneralSettings] Syncing isStorageEnabled from context:", isStoragePersistenceEnabled);
             setIsStorageEnabled(isStoragePersistenceEnabled);
         }
-    }, [settings, isStoragePersistenceEnabled]); // Keep dependencies minimal
+    }, [settings, isStoragePersistenceEnabled, detectionThreshold, useBanlist]); // Keep dependencies minimal
 
     // Update storage context when local toggle changes it
     useEffect(() => {
@@ -76,18 +100,36 @@ export default function GeneralSettings() {
     };
 
     const handleSaveChanges = async () => {
-        // ... (Save logic remains the same as previous correction) ...
         setIsSaving(true);
         setSaveError(null);
         setSaveSuccess(false);
         clearUserError();
-        console.log("[GeneralSettings] Saving changes. Theme:", currentThemePreference, "AutoProcess:", isAutoProcessing);
+        console.log("[GeneralSettings] Saving changes. Theme:", currentThemePreference, 
+            "AutoProcess:", isAutoProcessing, 
+            "DetectionThreshold:", detectionThreshold,
+            "UseBanlist:", useBanlist);
         try {
             await updateSettings({
                 theme: currentThemePreference,
                 auto_processing: isAutoProcessing,
+                detection_threshold: detectionThreshold,
+                use_banlist_for_detection: useBanlist
             });
+            
+            // Update auto-processing hook
             setAutoProcessHookEnabled(isAutoProcessing);
+            
+            // Notify other components about detection settings change
+            window.dispatchEvent(new CustomEvent('settings-changed', {
+                detail: {
+                    type: 'entity',
+                    settings: {
+                        detectionThreshold: detectionThreshold,
+                        useBanlist: useBanlist
+                    }
+                }
+            }));
+            
             setSaveSuccess(true);
             console.log("[GeneralSettings] Save successful.");
             setTimeout(() => setSaveSuccess(false), 3000);
@@ -192,6 +234,54 @@ export default function GeneralSettings() {
                             <span className="switch-slider"></span>
                         </label>
                     </div>
+                    
+                    {/* Detection Threshold Slider */}
+                    <div className="form-group">
+                        <div className="form-header-with-icon">
+                            <Sliders size={18} className="text-primary" />
+                            <label className="form-label" htmlFor="detection-threshold">
+                                Detection Threshold ({Math.round(detectionThreshold * 100)}%)
+                            </label>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                            Higher values reduce false positives but may miss some entities
+                        </p>
+                        <div className="flex items-center gap-4">
+                            <span className="text-xs text-muted-foreground">Low</span>
+                            <input
+                                type="range"
+                                id="detection-threshold"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                value={detectionThreshold}
+                                onChange={(e) => setDetectionThreshold(parseFloat(e.target.value))}
+                                className="flex-1 accent-primary"
+                                disabled={isSaving || isUserLoading}
+                            />
+                            <span className="text-xs text-muted-foreground">High</span>
+                        </div>
+                    </div>
+                    
+                    {/* Ban List Usage Toggle */}
+                    <div className="switch-container">
+                        <div className="space-y-0.5">
+                            <label className="form-label" htmlFor="use-banlist">Use ban list for detection</label>
+                            <p className="text-sm text-muted-foreground">
+                                {useBanlist ? "Ban list words will be flagged in documents" : "Ban list will be ignored during detection"}
+                            </p>
+                        </div>
+                        <label className="switch">
+                            <input
+                                type="checkbox"
+                                id="use-banlist"
+                                checked={useBanlist}
+                                onChange={(e) => setUseBanlist(e.target.checked)}
+                                disabled={isSaving || isUserLoading}
+                            />
+                            <span className="switch-slider"></span>
+                        </label>
+                    </div>
 
                     {/* Storage Persistence Toggle */}
                     <div className="switch-container">
@@ -231,7 +321,7 @@ export default function GeneralSettings() {
                                         <div className="progress-value" style={{ width: `${Math.min(effectiveStorageStats.percentUsed, 100)}%` }}></div>
                                     </div>
                                     <div className="text-xs text-muted-foreground">
-                                        {effectiveStorageStats.totalSize} used ({effectiveStorageStats.fileCount} file{effectiveStorageStats.fileCount !== 1 ? "s" : ""})
+                                        {effectiveStorageStats.percentUsed} used ({effectiveStorageStats.fileCount} file{effectiveStorageStats.fileCount !== 1 ? "s" : ""})
                                     </div>
                                 </div>
                                 <button

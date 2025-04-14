@@ -9,9 +9,9 @@
  * - API key management
  */
 import axios from 'axios';
-import apiClient from './apiClient';
+import apiClient, {API_URL} from './apiClient';
 
-const API_URL = 'https://goapi.hidemeai.com/api';
+
 const AUTH_URL = `${API_URL}/auth`;
 
 /**

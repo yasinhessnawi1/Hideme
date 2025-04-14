@@ -2,15 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Select from 'react-select';
 import { useFileContext } from '../../../contexts/FileContext';
 import { useEditContext } from '../../../contexts/EditContext';
-import { useHighlightContext, HighlightType } from '../../../contexts/HighlightContext';
+import { useHighlightContext } from '../../../contexts/HighlightContext';
+import { HighlightType } from '../../../types/pdfTypes';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
 import { OptionType } from '../../../types/types';
 import '../../../styles/modules/pdf/SettingsSidebar.css';
 import '../../../styles/modules/pdf/EntityDetectionSidebar.css';
-import {handleAllOPtions} from '../../../utils/pdfutils'
-import { ChevronUp, ChevronDown, Save, AlertTriangle, ChevronRight } from 'lucide-react';
+import {handleAllOPtions} from '../../../utils/pdfutils';
+import { ChevronUp, ChevronDown, Save, AlertTriangle, ChevronRight, Sliders } from 'lucide-react';
 import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
+import { useUser } from '../../../hooks/userHook';
+import settingsService from '../../../services/settingsService';
 
 // Presidio ML entity options
 const presidioOptions: OptionType[] = [
@@ -159,6 +162,14 @@ const EntityDetectionSidebar: React.FC = () => {
     } = useEditContext();
 
     const {
+        settings,
+        banList,
+        modelEntities,
+        isLoading: isUserLoading,
+        isAuthenticated
+    } = useUser();
+
+    const {
         clearAnnotationsByType,
     } = useHighlightContext();
 
@@ -168,6 +179,12 @@ const EntityDetectionSidebar: React.FC = () => {
     const [detectionError, setDetectionError] = useState<string | null>(null);
     const [fileSummaries, setFileSummaries] = useState<FileDetectionResult[]>([]);
     const [expandedFileSummaries, setExpandedFileSummaries] = useState<Set<string>>(new Set());
+    const [detectionThreshold, setDetectionThreshold] = useState(() =>
+        settings?.detection_threshold !== undefined ? settings.detection_threshold : 0.5
+    );
+    const [useBanlist, setUseBanlist] = useState(() =>
+        settings?.use_banlist_for_detection !== undefined ? settings.use_banlist_for_detection : false
+    );
 
     const {
         loading,
@@ -310,8 +327,16 @@ const EntityDetectionSidebar: React.FC = () => {
                     window.removeFileHighlightTracking(fileKey);
                 }
             });
+            console.table(settings)
             await new Promise(resolve => setTimeout(resolve, 50));
-            const detectionOptions = handleAllOPtions(selectedAiEntities, selectedGlinerEntities, selectedMlEntities);
+            const detectionOptions = handleAllOPtions(
+                selectedAiEntities,
+                selectedGlinerEntities,
+                selectedMlEntities,
+                detectionThreshold,
+                useBanlist,
+                banList?.words
+            );
 
             // Use the consolidated batch hybrid detection from the hook
             const results = await runBatchHybridDetect(filesToProcess, detectionOptions);
@@ -380,7 +405,122 @@ const EntityDetectionSidebar: React.FC = () => {
         } finally {
             setIsDetecting(false);
         }
-    }, [getFilesToProcess, selectedAiEntities, selectedMlEntities, selectedGlinerEntities, runBatchHybridDetect, clearAnnotationsByType, setDetectionMapping, setFileDetectionMapping, resetErrors, currentFile, resetEntityHighlightsForFile]);
+    }, [getFilesToProcess, selectedAiEntities, selectedMlEntities, selectedGlinerEntities, runBatchHybridDetect, clearAnnotationsByType, setDetectionMapping, setFileDetectionMapping, resetErrors, currentFile, resetEntityHighlightsForFile, detectionThreshold, useBanlist, settings]);
+
+    // Listen for external detection triggers (e.g., from toolbar button)
+    useEffect(() => {
+        const handleExternalDetectionTrigger = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { source, filesToProcess } = customEvent.detail || {};
+
+            console.log(`[EntityDetectionSidebar] Received external detection trigger from ${source}`);
+
+            // Run detection process
+            handleDetect();
+        };
+
+        // Add event listener
+        window.addEventListener('trigger-entity-detection-process', handleExternalDetectionTrigger);
+
+        // Clean up
+        return () => {
+            window.removeEventListener('trigger-entity-detection-process', handleExternalDetectionTrigger);
+        };
+    }, [handleDetect]);
+
+    // Force load model entities on component mount and apply to selections
+    useEffect(() => {
+        const loadEntities = async () => {
+            if (isAuthenticated && !isUserLoading) {
+                // Check for existing entities and try to fetch them if needed
+                console.log('[EntityDetectionSidebar] Checking for model entities');
+                let entitiesUpdated = false;
+
+                try {
+                    // Try to fetch all three types of model entities directly and apply them immediately
+
+                    // Method 1: Presidio
+                    if (!modelEntities || !modelEntities[1] || modelEntities[1].length === 0) {
+                        console.log('[EntityDetectionSidebar] Fetching Presidio entities');
+                        try {
+                            const presidioEntities = await settingsService.getModelEntities(1);
+                            if (presidioEntities && presidioEntities.length > 0) {
+                                // Convert to option types
+                                const entityTexts = new Set(presidioEntities.map(e => e.entity_text));
+                                const options = presidioOptions.filter(option => entityTexts.has(option.value));
+                                if (options.length > 0) {
+                                    console.log(`[EntityDetectionSidebar] Setting ${options.length} Presidio entities directly`);
+                                    setSelectedMlEntities(options);
+                                    entitiesUpdated = true;
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Error fetching Presidio entities:', err);
+                        }
+                    }
+
+                    // Method 2: Gliner
+                    if (!modelEntities || !modelEntities[2] || modelEntities[2].length === 0) {
+                        console.log('[EntityDetectionSidebar] Fetching Gliner entities');
+                        try {
+                            const glinerEntities = await settingsService.getModelEntities(2);
+                            if (glinerEntities && glinerEntities.length > 0) {
+                                // Convert to option types
+                                const entityTexts = new Set(glinerEntities.map(e => e.entity_text));
+                                const options = glinerOptions.filter(option => entityTexts.has(option.value));
+                                if (options.length > 0) {
+                                    console.log(`[EntityDetectionSidebar] Setting ${options.length} Gliner entities directly`);
+                                    setSelectedGlinerEntities(options);
+                                    entitiesUpdated = true;
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Error fetching Gliner entities:', err);
+                        }
+                    }
+
+                    // Method 3: Gemini
+                    if (!modelEntities || !modelEntities[3] || modelEntities[3].length === 0) {
+                        console.log('[EntityDetectionSidebar] Fetching Gemini entities');
+                        try {
+                            const geminiEntities = await settingsService.getModelEntities(3);
+                            if (geminiEntities && geminiEntities.length > 0) {
+                                // Convert to option types
+                                const entityTexts = new Set(geminiEntities.map(e => e.entity_text));
+                                const options = geminiOptions.filter(option => entityTexts.has(option.value));
+                                if (options?.length > 0) {
+                                    console.log(`[EntityDetectionSidebar] Setting ${options?.length} Gemini entities directly`);
+                                    setSelectedAiEntities(options);
+                                    entitiesUpdated = true;
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Error fetching Gemini entities:', err);
+                        }
+                    }
+
+                    if (entitiesUpdated) {
+                        console.log('[EntityDetectionSidebar] Successfully applied user entity selections');
+                    }
+                } catch (err) {
+                    console.error('[EntityDetectionSidebar] Error loading model entities:', err);
+                }
+            }
+        };
+
+        // Execute the loading function
+        loadEntities();
+    }, [
+        isAuthenticated,
+        isUserLoading,
+        modelEntities,
+        presidioOptions,
+        glinerOptions,
+        geminiOptions,
+        setSelectedMlEntities,
+        setSelectedGlinerEntities,
+        setSelectedAiEntities
+    ]);
 
     // Reset selected entities and clear detection results
     const handleReset = useCallback(() => {
@@ -420,11 +560,38 @@ const EntityDetectionSidebar: React.FC = () => {
         currentFile
     ]);
 
-    // Save settings placeholder function
+    // Save detection settings to user preferences
     const handleSaveSettings = useCallback(() => {
-        // This is a placeholder - would typically save current settings to user preferences
+        if (!isAuthenticated) {
+            alert("You must be logged in to save settings.");
+            return;
+        }
+
+        // Convert selected entities to the format needed for user settings
+        const createEntityList = (selectedEntities: OptionType[], methodId: number) => {
+            return selectedEntities.map(entity => ({
+                method_id: methodId,
+                entity_text: entity.value
+            }));
+        };
+
+        // Get entities from each model
+        const presidioEntities = createEntityList(selectedMlEntities, 1);
+        const glinerEntities = createEntityList(selectedGlinerEntities, 2);
+        const geminiEntities = createEntityList(selectedAiEntities, 3);
+
+        // Dispatch event to save entity settings
+        window.dispatchEvent(new CustomEvent('save-entity-settings', {
+            detail: {
+                entities: [...presidioEntities, ...glinerEntities, ...geminiEntities],
+                detectionThreshold,
+                useBanlist,
+                source: 'entity-detection-sidebar'
+            }
+        }));
+
         alert("Settings saved successfully!");
-    }, []);
+    }, [selectedMlEntities, selectedGlinerEntities, selectedAiEntities, detectionThreshold, useBanlist, isAuthenticated]);
 
     // Toggle file summary expansion
     const toggleFileSummary = useCallback((fileKey: string) => {
@@ -506,6 +673,86 @@ const EntityDetectionSidebar: React.FC = () => {
             setDetectionError(error);
         }
     }, [error]);
+
+    // Sync with user settings when they change
+    useEffect(() => {
+        // Only update if authenticated and settings are loaded
+        if (!isUserLoading && isAuthenticated && settings) {
+            // Update detection threshold from settings
+            if (settings.detection_threshold !== undefined && settings.detection_threshold !== detectionThreshold) {
+                setDetectionThreshold(settings.detection_threshold);
+            }
+
+            // Update ban list usage from settings
+            if (settings.use_banlist_for_detection !== undefined && settings.use_banlist_for_detection !== useBanlist) {
+                setUseBanlist(settings.use_banlist_for_detection);
+            }
+        }
+    }, [
+        settings,
+        isAuthenticated,
+        isUserLoading,
+        detectionThreshold,
+        useBanlist
+    ]);
+
+    // Separate effect to apply entity selections when modelEntities state changes
+    useEffect(() => {
+        // Only execute if authenticated, not loading, and we have model entities
+        if (!isUserLoading && isAuthenticated && modelEntities) {
+            console.log('[EntityDetectionSidebar] Model entities changed, applying selections');
+
+            // Helper to convert model entities to option types
+            const createEntityOptions = (methodId: number, baseOptions: OptionType[]): OptionType[] => {
+                if (!modelEntities[methodId] || !Array.isArray(modelEntities[methodId])) {
+                    return [];
+                }
+
+                // Find matching entities in the available options
+                const entityTexts = new Set(modelEntities[methodId].map(e => e.entity_text));
+                return baseOptions.filter(option => entityTexts.has(option.value));
+            };
+
+            // Always apply all entity selections on every change
+
+            // Presidio (method ID 1)
+            if (modelEntities[1] && modelEntities[1].length > 0) {
+                const presidioEntityOptions = createEntityOptions(1, presidioOptions);
+                if (presidioEntityOptions.length > 0) {
+                    console.log(`[EntityDetectionSidebar] Setting ${presidioEntityOptions.length} Presidio entities from modelEntities`);
+                    setSelectedMlEntities(presidioEntityOptions);
+                }
+            }
+
+            // Gliner (method ID 2)
+            if (modelEntities[2] && modelEntities[2].length > 0) {
+                const glinerEntityOptions = createEntityOptions(2, glinerOptions);
+                if (glinerEntityOptions.length > 0) {
+                    console.log(`[EntityDetectionSidebar] Setting ${glinerEntityOptions.length} Gliner entities from modelEntities`);
+                    setSelectedGlinerEntities(glinerEntityOptions);
+                }
+            }
+
+            // Gemini (method ID 3)
+            if (modelEntities[3] && modelEntities[3].length > 0) {
+                const geminiEntityOptions = createEntityOptions(3, geminiOptions);
+                if (geminiEntityOptions.length > 0) {
+                    console.log(`[EntityDetectionSidebar] Setting ${geminiEntityOptions.length} Gemini entities from modelEntities`);
+                    setSelectedAiEntities(geminiEntityOptions);
+                }
+            }
+        }
+    }, [
+        isAuthenticated,
+        isUserLoading,
+        modelEntities,
+        presidioOptions,
+        glinerOptions,
+        geminiOptions,
+        setSelectedMlEntities,
+        setSelectedGlinerEntities,
+        setSelectedAiEntities
+    ]);
 
     // Combined loading state
     const isCurrentlyDetecting = isDetecting || loading;
@@ -625,6 +872,56 @@ const EntityDetectionSidebar: React.FC = () => {
                         menuPortalTarget={document.body}
                         styles={customSelectStyles}
                     />
+                </div>
+
+                {/* Detection Threshold Slider */}
+                <div className="sidebar-section entity-select-section">
+                    <div className="entity-select-header">
+                        <Sliders size={18} />
+                        <h4>Detection Settings</h4>
+                    </div>
+                    <div className="form-group mt-2">
+                        <label className="text-sm font-medium mb-2 block">
+                            Detection Threshold ({Math.round(detectionThreshold * 100)}%)
+                        </label>
+                        <p className="text-xs text-muted-foreground mb-2">
+                            Higher values reduce false positives but may miss some entities
+                        </p>
+                        <div className="flex items-center gap-4">
+                            <span className="text-xs text-muted-foreground">Low</span>
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                value={detectionThreshold}
+                                onChange={(e) => setDetectionThreshold(parseFloat(e.target.value))}
+                                className="flex-1 accent-primary"
+                                disabled={isCurrentlyDetecting}
+                            />
+                            <span className="text-xs text-muted-foreground">High</span>
+                        </div>
+                    </div>
+
+                    <div className="form-group mt-4">
+                        <div className="switch-container">
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Use Ban List</label>
+                                <p className="text-xs text-muted-foreground">
+                                    {useBanlist ? "Applying ban list to detection" : "Ban list ignored"}
+                                </p>
+                            </div>
+                            <label className="switch">
+                                <input
+                                    type="checkbox"
+                                    checked={useBanlist}
+                                    onChange={(e) => setUseBanlist(e.target.checked)}
+                                    disabled={isCurrentlyDetecting}
+                                />
+                                <span className="switch-slider"></span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="sidebar-section action-buttons">

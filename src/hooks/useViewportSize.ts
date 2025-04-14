@@ -1,21 +1,12 @@
 import React, { useState, useLayoutEffect, useRef, useCallback } from 'react';
-import { PDFPageViewport } from '../types/pdfTypes';
-
-interface PageSizeData {
-    cssWidth: number;
-    cssHeight: number;
-    offsetX: number;
-    offsetY: number;
-    scaleX: number;
-    scaleY: number;
-}
+import { PDFPageViewport, ViewportSize } from '../types/pdfTypes';
 
 export const useViewportSize = (
     wrapperRef: React.RefObject<HTMLDivElement | null>,
     viewport: PDFPageViewport | null,
     zoomLevel: number
 ) => {
-    const [viewportSize, setViewportSize] = useState<PageSizeData>({
+    const [viewportSize, setViewportSize] = useState<ViewportSize>({
         cssWidth: 0,
         cssHeight: 0,
         offsetX: 0,

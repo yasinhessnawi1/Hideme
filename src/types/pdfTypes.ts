@@ -1,4 +1,4 @@
-// src/types/pdfTypes.d.ts
+// src/types/pdfTypes.ts
 
 /**
  * PDF Viewport interface representing a page viewport from PDF.js

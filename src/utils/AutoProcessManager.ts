@@ -20,6 +20,13 @@ export interface ProcessingConfig {
 
     // Processing status
     isActive: boolean;
+    
+    // Detection threshold (0.0 to 1.0)
+    detectionThreshold?: number;
+    
+    // Ban list settings
+    useBanlist?: boolean;
+    banlistWords?: string[];
 }
 
 /**
@@ -42,6 +49,9 @@ export class AutoProcessManager {
             geminiEntities: [],
             searchQueries: [],
             isActive: true,
+            detectionThreshold: 0.5, // Default threshold
+            useBanlist: false, // Don't use ban list by default
+            banlistWords: [], // Empty ban list by default
         };
     }
 
@@ -67,6 +77,10 @@ export class AutoProcessManager {
             geminiEntities: config.geminiEntities ?? this.config.geminiEntities,
             searchQueries: config.searchQueries ?? this.config.searchQueries,
             isActive: config.isActive ?? this.config.isActive,
+            // Add threshold and ban list settings
+            detectionThreshold: config.detectionThreshold ?? this.config.detectionThreshold,
+            useBanlist: config.useBanlist ?? this.config.useBanlist,
+            banlistWords: config.banlistWords ?? this.config.banlistWords,
         };
 
         console.log('[AutoProcessManager] Configuration updated:', {
@@ -74,7 +88,11 @@ export class AutoProcessManager {
             glinerEntities: this.config.glinerEntities.length,
             geminiEntities: this.config.geminiEntities.length,
             searchQueries: this.config.searchQueries.length,
-            isActive: this.config.isActive
+            isActive: this.config.isActive,
+            detectionThreshold: this.config.detectionThreshold !== undefined ? 
+                this.config.detectionThreshold : 'default (0.5)',
+            useBanlist: this.config.useBanlist !== undefined ? this.config.useBanlist : false,
+            banlistWordCount: this.config.banlistWords ? this.config.banlistWords.length : 0
         });
     }
 
@@ -322,8 +340,23 @@ export class AutoProcessManager {
             gliner: this.config.glinerEntities.map(e => typeof e === 'object' ? (e.value || '') : e)
                 .filter(Boolean),
             gemini: this.config.geminiEntities.map(e => typeof e === 'object' ? (e.value || '') : e)
-                .filter(Boolean)
+                .filter(Boolean),
+            // Add detection threshold if configured (value between 0.0 and 1.0)
+            threshold: this.config.detectionThreshold !== undefined ? 
+                Math.max(0, Math.min(1, this.config.detectionThreshold)) : undefined,
+            // Add banlist words if enabled
+            banlist: this.config.useBanlist && this.config.banlistWords ? this.config.banlistWords : undefined
         };
+        
+        // Log detailed options for debugging
+        console.log(`[AutoProcessManager] Detection options for file ${file.name}:`, {
+            presidioEntities: options.presidio.length,
+            glinerEntities: options.gliner.length,
+            geminiEntities: options.gemini.length,
+            threshold: options.threshold !== undefined ? options.threshold : 'default (0.5)',
+            useBanlist: options.banlist !== undefined ? true : false,
+            banlistWordCount: options.banlist ? options.banlist.length : 0
+        });
 
         try {
             // Run detection and get results
@@ -400,7 +433,12 @@ export class AutoProcessManager {
             gliner: this.config.glinerEntities.map(e => typeof e === 'object' ? (e.value  || '') : e)
                 .filter(Boolean),
             gemini: this.config.geminiEntities.map(e => typeof e === 'object' ? (e.value  || '') : e)
-                .filter(Boolean)
+                .filter(Boolean),
+            // Add detection threshold if configured (value between 0.0 and 1.0)
+            threshold: this.config.detectionThreshold !== undefined ? 
+                Math.max(0, Math.min(1, this.config.detectionThreshold)) : undefined,
+            // Add banlist words if enabled
+            banlist: this.config.useBanlist && this.config.banlistWords ? this.config.banlistWords : undefined
         };
 
         // Log entity counts for debugging
@@ -408,7 +446,10 @@ export class AutoProcessManager {
             presidioCount: options.presidio.length,
             glinerCount: options.gliner.length,
             geminiCount: options.gemini.length,
-            fileCount: files.length
+            fileCount: files.length,
+            threshold: options.threshold !== undefined ? options.threshold : 'default (0.5)',
+            useBanlist: options.banlist !== undefined ? true : false,
+            banlistWordCount: options.banlist ? options.banlist.length : 0
         });
 
         try {

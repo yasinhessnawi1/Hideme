@@ -1,6 +1,6 @@
 // src/services/BatchSearchService.ts
 import { apiRequest } from './apiService';
-import { HighlightType } from '../contexts/HighlightContext';
+import { HighlightType } from '../types/pdfTypes';
 import { v4 as uuidv4 } from 'uuid';
 // Base API URL - ensure this is consistent across services
 const API_BASE_URL = 'https://api.hidemeai.com';

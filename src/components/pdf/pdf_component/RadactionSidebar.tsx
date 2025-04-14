@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useFileContext } from '../../../contexts/FileContext';
 import { useEditContext } from '../../../contexts/EditContext';
-import { useHighlightContext, HighlightType } from '../../../contexts/HighlightContext';
+import { useHighlightContext } from '../../../contexts/HighlightContext';
+import { HighlightType } from '../../../types/pdfTypes';
 import { useBatchSearch } from '../../../contexts/SearchContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
 import { createFullRedactionMapping, getRedactionStatistics, processRedactedFiles } from '../../../utils/redactionUtils';
@@ -42,7 +43,7 @@ const RedactionSidebar: React.FC = () => {
     } = usePDFApi();
 
     const [isRedacting, setIsRedacting] = useState(false);
-    const [redactionScope, setRedactionScope] = useState<'current' | 'selected' | 'all'>('current');
+    const [redactionScope, setRedactionScope] = useState<'current' | 'selected' | 'all'>('all');
     const [redactionError, setRedactionError] = useState<string | null>(null);
     const [redactionSuccess, setRedactionSuccess] = useState<string | null>(null);
     const [fileErrors, setFileErrors] = useState<Map<string, string>>(new Map());
@@ -343,6 +344,58 @@ const RedactionSidebar: React.FC = () => {
 
     // Combined loading state
     const isCurrentlyRedacting = isRedacting || isApiLoading;
+
+    // Listen for external redaction settings/options
+    useEffect(() => {
+        const handleApplyRedactionSettings = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { applyToAllFiles, triggerRedaction, source } = customEvent.detail || {};
+
+            console.log(`[RedactionSidebar] Received redaction settings from ${source}`);
+
+            // If applyToAllFiles flag is true, set the scope to 'all'
+            if (applyToAllFiles) {
+                setRedactionScope('all');
+
+                // Update redaction options for all files by default
+                setRedactionOptions(prev => ({
+                    ...prev,
+                    includeSearchHighlights: true,
+                    includeEntityHighlights: true,
+                    includeManualHighlights: true
+                }));
+
+                console.log('[RedactionSidebar] Set redaction scope to all files');
+            }
+
+            // If triggerRedaction flag is true, auto-trigger the redaction process
+            if (triggerRedaction) {
+                console.log('[RedactionSidebar] Auto-triggering redaction process from external source');
+                // Delay slightly to ensure state updates have propagated
+                setTimeout(() => {
+                    handleRedact();
+                }, 100);
+            }
+        };
+
+        // Event handler for direct redaction trigger
+        const handleTriggerRedaction = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { source } = customEvent.detail || {};
+
+            console.log(`[RedactionSidebar] Received direct redaction trigger from ${source}`);
+            handleRedact();
+        };
+
+        // Listen for settings change events
+        window.addEventListener('apply-redaction-settings', handleApplyRedactionSettings);
+        window.addEventListener('trigger-redaction-process', handleTriggerRedaction);
+
+        return () => {
+            window.removeEventListener('apply-redaction-settings', handleApplyRedactionSettings);
+            window.removeEventListener('trigger-redaction-process', handleTriggerRedaction);
+        };
+    }, [handleRedact]);
 
     return (
         <div className="redaction-sidebar">

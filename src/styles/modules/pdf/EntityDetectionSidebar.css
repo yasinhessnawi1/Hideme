@@ -348,6 +348,140 @@ ENTITY DETECTION SIDEBAR SPECIFIC STYLES
     background-color: var(--primary);
 }
 
+/* Threshold slider section styles */
+.threshold-section {
+    margin-bottom: var(--spacing-md);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    background-color: var(--background);
+    transition: all 0.2s ease;
+}
+
+.threshold-section:hover {
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.threshold-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+    gap: var(--spacing-sm);
+}
+
+.threshold-header h4 {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
+
+.threshold-slider-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.threshold-slider {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, var(--primary-lighter), var(--primary));
+    border-radius: 3px;
+    outline: none;
+}
+
+.threshold-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid var(--background);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+.threshold-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+.threshold-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid var(--background);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+.threshold-slider::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+.threshold-value {
+    font-weight: var(--font-weight-medium);
+    color: var(--primary);
+    min-width: 40px;
+    text-align: center;
+}
+
+.threshold-description {
+    font-size: var(--font-size-xs);
+    color: var(--muted-foreground);
+    font-style: italic;
+}
+
+/* Banlist section styles */
+.banlist-section {
+    margin-bottom: var(--spacing-md);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    background-color: var(--background);
+    transition: all 0.2s ease;
+}
+
+.banlist-section:hover {
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.banlist-header {
+    margin-bottom: var(--spacing-sm);
+}
+
+.banlist-header h4 {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
+
+.banlist-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+.toggle-label {
+    font-size: var(--font-size-sm);
+}
+
+.banlist-description {
+    font-size: var(--font-size-xs);
+    color: var(--muted-foreground);
+    font-style: italic;
+}
+
 /* Action buttons specific styling */
 .action-buttons {
     margin-top: var(--spacing-md);

@@ -1,7 +1,7 @@
 // src/components/pdf/highlighters/SearchHighlightLayer.tsx
 import React from 'react';
 import BaseHighlightLayer from './BaseHighlightLayer';
-import { HighlightRect } from '../../../contexts/HighlightContext';
+import { HighlightRect } from '../../../types/pdfTypes';
 
 interface SearchHighlightLayerProps {
     pageNumber: number;

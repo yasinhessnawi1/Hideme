@@ -5,21 +5,13 @@ import EntityHighlightLayer from './EntityHighlightLayer';
 import ManualHighlightLayer from './ManualHighlightLayer';
 import SearchHighlightLayer from './SearchHighlightLayer';
 import { useEditContext } from '../../../contexts/EditContext';
-import { PDFPageViewport, TextContent } from '../../../types/pdfTypes';
-import { HighlightType } from '../../../contexts/HighlightContext';
+import { PDFPageViewport, TextContent, HighlightType, ViewportSize } from '../../../types/pdfTypes';
 
 interface HighlightLayerFactoryProps {
     pageNumber: number;
     viewport: PDFPageViewport;
     textContent: TextContent;
-    pageSize: {
-        cssWidth: number;
-        cssHeight: number;
-        offsetX: number;
-        offsetY: number;
-        scaleX: number;
-        scaleY: number;
-    };
+    pageSize: ViewportSize;
     fileKey?: string; // Optional file key for multi-file support
 }
 

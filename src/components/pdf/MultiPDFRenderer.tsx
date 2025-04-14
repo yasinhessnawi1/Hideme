@@ -122,6 +122,25 @@ const MultiPDFRenderer: React.FC = () => {
             // After switching files, try to restore the saved position
             const fileKey = getFileKey(file);
             const savedPosition = scrollingService.getSavedScrollPosition(fileKey);
+            
+            // Preload highlights for the new file with improved handling
+            import('../../utils/highlightUtils')
+                .then(({ preloadFileHighlights }) => {
+                    // Show a loading message in the console
+                    console.log(`[MultiPDFRenderer] Preloading highlights for file: ${fileKey}`);
+                    
+                    // Use the async preloading with proper error handling
+                    preloadFileHighlights(fileKey)
+                        .then(highlightsCount => {
+                            console.log(`[MultiPDFRenderer] Successfully preloaded ${highlightsCount} highlights for file: ${fileKey}`);
+                        })
+                        .catch(error => {
+                            console.error(`[MultiPDFRenderer] Error preloading highlights for file: ${fileKey}`, error);
+                        });
+                })
+                .catch(error => {
+                    console.error('[MultiPDFRenderer] Error importing highlightUtils:', error);
+                });
 
             // Restore scroll position after a delay to allow rendering to complete
             setTimeout(() => {
@@ -161,12 +180,12 @@ const MultiPDFRenderer: React.FC = () => {
         try {
             const index = getFileIndex(file);
             if (index !== -1) {
-                removeFile(index, clearAnnotations);
+                removeFile(index);
             }
         } catch (error) {
             console.error("[MultiPDFRenderer] Error removing file:", error);
         }
-    }, [getFileIndex, removeFile, clearAnnotations]);
+    }, [getFileIndex, removeFile]);
 
     // Save scroll positions when they change
     useEffect(() => {
