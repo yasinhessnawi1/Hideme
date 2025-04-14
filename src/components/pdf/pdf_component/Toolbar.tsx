@@ -249,30 +249,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
             return;
         }
 
-        // Toggle right sidebar to show entity detection panel
-        if (isRightSidebarCollapsed) {
-            toggleRightSidebar();
-        }
-
-        // Dispatch event to activate entity detection panel and navigate to detection tab
-        window.dispatchEvent(new CustomEvent('activate-detection-panel', {
-            detail: {
-                active: true,
-                source: 'toolbar',
-                navigateToTab: 'entity-detection', // Must match the tab ID in RightSidebar.tsx
-                filesToProcess: filesToProcess, // Pass files to process
-                triggerDetection: true, // This flag indicates we want to immediately run detection
-                settings: {
-                    selectedMlEntities,
-                    selectedAiEntities,
-                    selectedGlinerEntities,
-                    presidioColor,
-                    glinerColor,
-                    geminiColor
-                }
-            }
-        }));
-
         // Also directly trigger the entity detection process in the sidebar
         window.dispatchEvent(new CustomEvent('trigger-entity-detection-process', {
             detail: {
