@@ -20,7 +20,7 @@ import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 const SearchSidebar: React.FC = () => {
     const { currentFile, selectedFiles, files } = useFileContext();
     const pdfNavigation = usePDFNavigation('search-sidebar');
-    const { settings: userSettings, isLoading: userSettingsLoading, updateSettings } = useUser();
+    const { settings: userSettings, isLoading: userSettingsLoading, updateSettings, createSearchPattern } = useUser();
 
     const {
         isSearching: isContextSearching,
@@ -41,7 +41,7 @@ const SearchSidebar: React.FC = () => {
     } = usePDFApi();
 
     const [tempSearchTerm, setTempSearchTerm] = useState('');
-    const [searchScope, setSearchScope] = useState<'current' | 'selected' | 'all'>('current');
+    const [searchScope, setSearchScope] = useState<'current' | 'selected' | 'all'>('all');
     const [isAiSearch, setIsAiSearch] = useState(false);
     const [isCaseSensitive, setIsCaseSensitive] = useState(false);
     const [localSearchError, setLocalSearchError] = useState<string | null>(null);
@@ -198,19 +198,19 @@ const SearchSidebar: React.FC = () => {
         // Only proceed if we have user settings and they're loaded
         if (!userSettingsLoading && userSettings) {
             console.log('[SearchSidebar] Applying user settings to search');
-            
+
             // Apply AI search setting if available
             if (userSettings.is_ai_search !== undefined) {
                 console.log('[SearchSidebar] Applying AI search setting:', userSettings.is_ai_search);
                 setIsAiSearch(userSettings.is_ai_search);
             }
-            
+
             // Apply case sensitivity setting if available
             if (userSettings.is_case_sensitive !== undefined) {
                 console.log('[SearchSidebar] Applying case sensitivity setting:', userSettings.is_case_sensitive);
                 setIsCaseSensitive(userSettings.is_case_sensitive);
             }
-            
+
             // Apply default search terms if available
             if (userSettings.default_search_terms && userSettings.default_search_terms.length > 0) {
                 // If there are no active queries, use the first default term for the search input
@@ -218,10 +218,10 @@ const SearchSidebar: React.FC = () => {
                     console.log('[SearchSidebar] Applying default search term to input:', userSettings.default_search_terms[0]);
                     setTempSearchTerm(userSettings.default_search_terms[0]);
                 }
-                
+
                 // Save the default terms for later use (e.g., with toolbar button)
                 window.defaultSearchTerms = userSettings.default_search_terms;
-                
+
                 // Calculate terms that aren't currently active
                 const activeTerms = new Set(activeQueries.map(q => q.term));
                 const defaultTermsNotSearched = userSettings.default_search_terms.filter(term => !activeTerms.has(term));
@@ -229,39 +229,39 @@ const SearchSidebar: React.FC = () => {
             }
         }
     }, [userSettings, userSettingsLoading, activeQueries.length]);
-    
+
     // Add a special method to load and apply all default search terms
     const applyAllDefaultSearchTerms = useCallback(async () => {
         if (userSettings?.default_search_terms && userSettings.default_search_terms.length > 0) {
             console.log('[SearchSidebar] Applying all default search terms');
-            
+
             // Get currently active terms
             const activeTerms = new Set(activeQueries.map(q => q.term));
-            
+
             // Get terms that aren't already active
             const termsToAdd = userSettings.default_search_terms.filter(term => !activeTerms.has(term));
-            
+
             if (termsToAdd.length === 0) {
                 console.log('[SearchSidebar] All default terms are already active');
                 setLocalSearchError('All default search terms are already active');
                 return;
             }
-            
+
             // Apply each default term that isn't already active
             let addedCount = 0;
-            
+
             for (const term of termsToAdd) {
                 if (!term.trim()) continue;
-                
+
                 try {
                     const filesToSearch = getFilesToProcess();
                     if (filesToSearch.length === 0) {
                         setLocalSearchError('No files selected for search');
                         return;
                     }
-                    
+
                     // Search with the current term using appropriate settings
-                    console.log(`[SearchSidebar] Adding default search term: "${term}"`);                    
+                    console.log(`[SearchSidebar] Adding default search term: "${term}"`);
                     await batchSearch(
                         filesToSearch,
                         term,
@@ -270,13 +270,13 @@ const SearchSidebar: React.FC = () => {
                             isAiSearch: userSettings.is_ai_search || false
                         }
                     );
-                    
+
                     addedCount++;
                 } catch (err) {
                     console.error(`[SearchSidebar] Error adding default term "${term}":`, err);
                 }
             }
-            
+
             if (addedCount > 0) {
                 setSuccessMessage(`Added ${addedCount} default search ${addedCount === 1 ? 'term' : 'terms'}`);
                 setTimeout(() => setSuccessMessage(null), 3000);
@@ -325,7 +325,7 @@ const SearchSidebar: React.FC = () => {
     useEffect(() => {
         focusSearchInput();
     }, [focusSearchInput]);
-    
+
     // Handle search term removal
 
 
@@ -336,18 +336,18 @@ const SearchSidebar: React.FC = () => {
         const handleFocusRequest = (event: Event) => {
             const customEvent = event as CustomEvent;
             const { source } = customEvent.detail || {};
-            
+
             console.log(`[SearchSidebar] Received focus request from ${source}`);
             focusSearchInput();
         };
-        
+
         // Handle search execution requests
         const handleSearchRequest = (event: Event) => {
             const customEvent = event as CustomEvent;
             const { source, applyDefaultTerms } = customEvent.detail || {};
-            
+
             console.log(`[SearchSidebar] Received search request from ${source}`);
-            
+
             if (applyDefaultTerms) {
                 // Apply all default search terms
                 console.log('[SearchSidebar] Applying all default search terms on request');
@@ -361,17 +361,17 @@ const SearchSidebar: React.FC = () => {
                 focusSearchInput();
             }
         };
-        
+
         // Register event listeners
         window.addEventListener('focus-search-input', handleFocusRequest);
         window.addEventListener('execute-search', handleSearchRequest);
-        
+
         return () => {
             window.removeEventListener('focus-search-input', handleFocusRequest);
             window.removeEventListener('execute-search', handleSearchRequest);
         };
     }, [focusSearchInput, tempSearchTerm, addSearchTerm, applyAllDefaultSearchTerms]);
-    
+
     // Define a global helper for the search-related functionality
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -379,7 +379,7 @@ const SearchSidebar: React.FC = () => {
                 applyAllDefaultSearchTerms();
             };
         }
-        
+
         return () => {
             if (typeof window !== 'undefined') {
                 delete window.executeSearchWithDefaultTerms;
@@ -397,24 +397,24 @@ const SearchSidebar: React.FC = () => {
             setLocalSearchError(null);
         }
     }, [apiError, contextSearchError]);
-    
+
     // Listen for settings changes from user preferences
     useEffect(() => {
         const handleSettingsChange = (event: Event) => {
             const customEvent = event as CustomEvent;
             const { type, settings } = customEvent.detail || {};
-            
+
             // Only apply search settings
             if (type === 'search' && settings) {
                 // Apply appropriate settings
                 if (settings.isAiSearch !== undefined) {
                     setIsAiSearch(settings.isAiSearch);
                 }
-                
+
                 if (settings.isCaseSensitive !== undefined) {
                     setIsCaseSensitive(settings.isCaseSensitive);
                 }
-                
+
                 if (settings.defaultSearchTerms && settings.defaultSearchTerms.length > 0) {
                     // Apply default search terms (if not already searched)
                     if (activeQueries.length === 0) {
@@ -424,9 +424,9 @@ const SearchSidebar: React.FC = () => {
                 }
             }
         };
-        
+
         window.addEventListener('settings-changed', handleSettingsChange);
-        
+
         return () => {
             window.removeEventListener('settings-changed', handleSettingsChange);
         };
@@ -555,40 +555,41 @@ const SearchSidebar: React.FC = () => {
             // Clear any existing messages
             setLocalSearchError(null);
             setSuccessMessage(null);
-            
+
             if (!userSettings) {
                 setLocalSearchError("Cannot save search term - settings not loaded.");
                 setContextMenuVisible(false);
                 return;
             }
-            
+
             console.log(`[SearchSidebar] Saving search term "${contextMenuSearchTerm}" to default search terms`);
-            
+
             // Also save current search options (AI search, case sensitivity)
             const currentQuery = activeQueries.find(q => q.term === contextMenuSearchTerm);
             const isAiSearchForTerm = currentQuery?.isAiSearch || isAiSearch;
             const isCaseSensitiveForTerm = currentQuery?.caseSensitive || isCaseSensitive;
-            
+
             // Create new array with the current search term added
             const searchTerms = userSettings.default_search_terms || [];
-            
+
             // Check if this term already exists
             if (!searchTerms.includes(contextMenuSearchTerm)) {
                 // Add the term to the beginning of the array (highest priority)
                 const updatedSearchTerms = [contextMenuSearchTerm, ...searchTerms];
-                
+
                 // Limit to a reasonable number of default terms (e.g., 5)
                 const limitedTerms = updatedSearchTerms.slice(0, 5);
-                
+
                 console.log(`[SearchSidebar] Updating settings with new search terms`, limitedTerms);
-                
+
                 // Update user settings with term and options
-                await updateSettings({
-                    default_search_terms: limitedTerms,
-                    is_ai_search: isAiSearchForTerm,
-                    is_case_sensitive: isCaseSensitiveForTerm
-                });
-                
+                for (const term of limitedTerms) {
+                    await createSearchPattern({
+                        pattern_text: term,
+                        pattern_type: isAiSearchForTerm ? 'ai_search' : isCaseSensitiveForTerm ? 'case_sensitive' : 'normal',
+                    });
+                }
+
                 // Dispatch an event to notify other components about the settings change
                 const event = new CustomEvent('settings-changed', {
                     detail: {
@@ -601,15 +602,15 @@ const SearchSidebar: React.FC = () => {
                     }
                 });
                 window.dispatchEvent(event);
-                
+
                 // Show success message
                 setSuccessMessage(`"${contextMenuSearchTerm}" saved as default search term with current options.`);
-                
+
                 // Auto-hide success message after 3 seconds
                 setTimeout(() => {
                     setSuccessMessage(null);
                 }, 3000);
-                
+
                 console.log(`[SearchSidebar] Search term saved to settings successfully with options: AI=${isAiSearchForTerm}, Case=${isCaseSensitiveForTerm}`);
             } else {
                 // If term exists, update its options
@@ -617,7 +618,7 @@ const SearchSidebar: React.FC = () => {
                     is_ai_search: isAiSearchForTerm,
                     is_case_sensitive: isCaseSensitiveForTerm
                 });
-                
+
                 // Dispatch event for option changes
                 const event = new CustomEvent('settings-changed', {
                     detail: {
@@ -629,21 +630,21 @@ const SearchSidebar: React.FC = () => {
                     }
                 });
                 window.dispatchEvent(event);
-                
+
                 // Term already exists
                 setSuccessMessage(`"${contextMenuSearchTerm}" options updated in search settings.`);
-                
+
                 // Auto-hide success message after 3 seconds
                 setTimeout(() => {
                     setSuccessMessage(null);
                 }, 3000);
-                
+
                 console.log(`[SearchSidebar] Search term options updated in settings`);
             }
         } catch (error) {
             console.error(`[SearchSidebar] Error saving search term to settings:`, error);
             setLocalSearchError("Failed to save search term to settings.");
-            
+
             // Auto-hide error message after 5 seconds
             setTimeout(() => {
                 setLocalSearchError(null);
@@ -853,7 +854,7 @@ const SearchSidebar: React.FC = () => {
                         </div>
                     </div>
                 )}
-                
+
                 {successMessage && (
                     <div className="sidebar-section success-section">
                         <div className="success-message">

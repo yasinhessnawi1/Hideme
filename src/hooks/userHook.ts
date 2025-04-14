@@ -481,17 +481,17 @@ const hookInstances = new Set<string>();
 export const useUser = (): UseUserReturn => {
     // Generate a unique ID for this component instance
     const componentIdRef = useRef<string>(`useUser_${Math.random().toString(36).substring(2, 11)}`);
-    
+
     // Check if this is the first render for this component instance
     const isFirstRender = useRef<boolean>(true);
-    
+
     // Log only on first render
     if (isFirstRender.current) {
         console.log('🔧 [USE_USER] Initializing useUser hook', componentIdRef.current);
         hookInstances.add(componentIdRef.current);
         isFirstRender.current = false;
     }
-    
+
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -778,7 +778,7 @@ export const useUser = (): UseUserReturn => {
 
     // Track settings fetch request in progress
     const settingsFetchInProgressRef = useRef<boolean>(false);
-    
+
     /**
      * Fetches the current user's application settings.
      * Settings contain user preferences like theme, auto-detection, etc.
@@ -790,13 +790,13 @@ export const useUser = (): UseUserReturn => {
             console.warn('⚠️ [USE_USER] getSettings called but user is not authenticated');
             return;
         }
-        
+
         // If fetch already in progress, skip this request
         if (settingsFetchInProgressRef.current) {
             console.log('⏱️ [USE_USER] Settings fetch already in progress, skipping duplicate request');
             return;
         }
-        
+
         // If settings already loaded, use cached data
         if (settings !== null) {
             console.log('📋 [USE_USER] Settings already loaded, using cached data', {
@@ -876,7 +876,7 @@ export const useUser = (): UseUserReturn => {
 
     // Track ban list fetch request in progress
     const banListFetchInProgressRef = useRef<boolean>(false);
-    
+
     /**
      * Fetches the current user's word ban list.
      * The ban list contains words that the user wants to automatically redact.
@@ -888,13 +888,13 @@ export const useUser = (): UseUserReturn => {
             console.warn('⚠️ [USE_USER] getBanList called but user is not authenticated');
             return;
         }
-        
+
         // If fetch already in progress, skip this request
         if (banListFetchInProgressRef.current) {
             console.log('⏱️ [USE_USER] Ban list fetch already in progress, skipping duplicate request');
             return;
         }
-        
+
         // If banList already exists, no need to fetch again
         if (banList !== null) {
             console.log('📋 [USE_USER] Ban list already loaded, using cached data', {
@@ -1023,7 +1023,7 @@ export const useUser = (): UseUserReturn => {
 
     // Track search patterns fetch request in progress
     const searchPatternsFetchInProgressRef = useRef<boolean>(false);
-    
+
     /**
      * Fetches the current user's search patterns.
      * Search patterns are used for regular expression or text pattern matching.
@@ -1035,15 +1035,15 @@ export const useUser = (): UseUserReturn => {
             console.warn('⚠️ [USE_USER] getSearchPatterns called but user is not authenticated');
             return;
         }
-        
+
         // If fetch already in progress, skip this request
         if (searchPatternsFetchInProgressRef.current) {
             console.log('⏱️ [USE_USER] Search patterns fetch already in progress, skipping duplicate request');
             return;
         }
-        
+
         // If search patterns already loaded and non-empty, use cached data
-        if (searchPatterns.length > 0) {
+        if (searchPatterns?.length > 0) {
             console.log('📋 [USE_USER] Search patterns already loaded, using cached data', {
                 patternCount: searchPatterns.length
             });
@@ -1063,7 +1063,7 @@ export const useUser = (): UseUserReturn => {
             setSearchPatterns(patterns);
 
             console.log('✅ [USE_USER] Search patterns fetched successfully', {
-                patternCount: patterns.length,
+                patternCount: patterns?.length,
                 duration: `${duration.toFixed(2)}ms`
             });
         } catch (err: any) {
@@ -1072,7 +1072,7 @@ export const useUser = (): UseUserReturn => {
                 setError('You are not authorized to view search patterns.');
                 return;
             }
-            if (searchPatterns.length === 0) {
+            if (searchPatterns?.length === 0) {
                 console.warn('⚠️ [USE_USER] No search patterns found');
                 return;
             }
@@ -1084,7 +1084,7 @@ export const useUser = (): UseUserReturn => {
             setIsLoading(false);
             searchPatternsFetchInProgressRef.current = false;
         }
-    }, [isAuthenticated, searchPatterns.length]);
+    }, [isAuthenticated, searchPatterns]);
 
     /**
      * Creates a new search pattern for the current user.
@@ -1205,7 +1205,7 @@ export const useUser = (): UseUserReturn => {
 
     // Track model entities fetch requests in progress
     const modelEntitiesFetchInProgressRef = useRef<Record<number, boolean>>({});
-    
+
     /**
      * Fetches model entities for a specific detection method.
      * Model entities are predefined patterns for entity detection like "PERSON", "EMAIL", etc.
@@ -1218,13 +1218,13 @@ export const useUser = (): UseUserReturn => {
             console.warn('⚠️ [USE_USER] getModelEntities called but user is not authenticated');
             return;
         }
-        
+
         // If fetch already in progress for this method, skip this request
         if (modelEntitiesFetchInProgressRef.current[methodId]) {
             console.log('⏱️ [USE_USER] Model entities fetch already in progress for method', methodId);
             return;
         }
-        
+
         // If entities already exist for this method, use cached data
         if (modelEntities[methodId] && modelEntities[methodId].length > 0) {
             console.log('📋 [USE_USER] Model entities already loaded for method', {
@@ -1235,7 +1235,7 @@ export const useUser = (): UseUserReturn => {
         }
 
         console.log('🔍 [USE_USER] Fetching model entities', { methodId });
-        
+
         // Mark this method as being fetched
         modelEntitiesFetchInProgressRef.current = {
             ...modelEntitiesFetchInProgressRef.current,
@@ -1265,7 +1265,7 @@ export const useUser = (): UseUserReturn => {
             setError(errorMessage);
         } finally {
             setIsLoading(false);
-            
+
             // Clear in-progress flag for this method
             modelEntitiesFetchInProgressRef.current = {
                 ...modelEntitiesFetchInProgressRef.current,

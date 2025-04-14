@@ -69,6 +69,8 @@ export const usePDFApi = () => {
             presidio?: string[] | null ;
             gliner?: string[] | null;
             gemini?: string[] | null;
+            threshold?: number;
+            banlist?: string[] | null;
         } = {}
     ): Promise<Record<string, any>> => {
         if (files.length === 0) {
@@ -85,11 +87,7 @@ export const usePDFApi = () => {
 
             // Check cache first
             const cachedResult = getCachedResult(cacheKey);
-            if (cachedResult) {
-                console.log(`[APIDebug] Using cached results for batch detection`);
-                setProgress(100);
-                return cachedResult;
-            }
+
 
             console.log(`[APIDebug] Starting batch hybrid detection for ${files.length} files`);
 

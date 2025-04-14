@@ -293,7 +293,7 @@ const settingsService = {
      */
     async addBanListWords(data: BanListWordBatch): Promise<BanListWithWords> {
         console.log('➕ [SETTINGS] Adding words to ban list', {
-            wordCount: data.words.length
+            wordCount: data?.words?.length
         });
 
         const startTime = performance.now();
@@ -530,7 +530,7 @@ const settingsService = {
 
             console.log(`✅ [SETTINGS] Model entities fetched successfully`, {
                 methodId,
-                entityCount: response.data.data.length,
+                entityCount: response?.data?.data?.length,
                 duration: `${duration.toFixed(2)}ms`
             });
 

@@ -10,7 +10,8 @@
  */
 import axios from 'axios';
 import authService from './authService';
-
+export const API_URL = 'https://goapi.hidemeai.com/api';
+//export const API_URL = 'http://localhost:8080/api';
 /**
  * Transforms technical API errors into user-friendly messages
  *
@@ -65,7 +66,7 @@ const getUserFriendlyErrorMessage = (error: any): string => {
  * 4. Transform technical errors into user-friendly messages
  */
 const apiClient = axios.create({
-    baseURL: 'https://goapi.hidemeai.com/api',
+    baseURL: API_URL,
     withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
