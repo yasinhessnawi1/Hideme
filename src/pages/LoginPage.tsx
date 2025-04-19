@@ -30,11 +30,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ initialSignUp = false }) => {
     // Check location state if using React Router's state
     const locationState = location.state as { isSignUp?: boolean } | null;
 
-    if (signUpParam === 'true') {
-      setIsSignUp(true);
-    } else if (locationState?.isSignUp) {
-      setIsSignUp(true);
-    } else if (initialSignUp) {
+    if (signUpParam === 'true' || locationState?.isSignUp || initialSignUp) {
       setIsSignUp(true);
     }
   }, [searchParams, location, initialSignUp]);

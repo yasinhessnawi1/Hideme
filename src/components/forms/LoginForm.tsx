@@ -26,7 +26,7 @@
  * 2. Password
  */
 
-import React, { useState } from 'react';
+import React, {JSX, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserContext } from '../../contexts/UserContext';
 
@@ -77,7 +77,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                                                setPassword,
                                                confirmPassword,
                                                setConfirmPassword,
-                                             }) => {
+                                             }: LoginFormProps): JSX.Element => {
   // Hook to navigate programmatically after successful authentication
   const navigate = useNavigate();
 
@@ -97,7 +97,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
    */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+    if (isLoading) return; // Prevent multiple submissions while loading
     // Clear any previous errors from both local state and context
     clearError();
     setFormError(null);

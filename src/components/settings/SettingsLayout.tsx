@@ -7,11 +7,11 @@ import EntitySettings from "./tabs/EntitySettings";
 import SearchSettings from "./tabs/SearchSettings";
 import BanListSettings from "./tabs/BanListSettings";
 import '../../styles/SettingsPage.css'; // Ensure this path is correct
-import { useUser } from "../../hooks/userHook"; // Ensure this path is correct
+import useSettings from "../../hooks/settings/useSettings"; // Ensure this path is correct
 
 export default function SettingsLayout() {
     const [activeTab, setActiveTab] = useState("general");
-    const { isLoading: isUserLoading, error: userError, settings, getSettings } = useUser();
+    const { isLoading: isUserLoading, error: userError, settings, getSettings } = useSettings();
     const navigate = useNavigate();
 
     // Add a ref to track initial settings loading

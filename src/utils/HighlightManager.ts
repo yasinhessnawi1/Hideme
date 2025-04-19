@@ -7,11 +7,8 @@ class HighlightManager {
     private usedIds: Set<string> = new Set();
     private storageKey = 'pdf-highlight-ids';
     private highlightData: Map<string, HighlightRect> = new Map();
-    private useIndexedDB: boolean = true; // Control whether to use IndexedDB or localStorage
-
+    private useIndexedDB: boolean = true; // Control whether to use IndexedDB
     private constructor() {
-        this.loadUsedIdsFromStorage();
-        // Initialize from both sources (IndexedDB primary, localStorage fallback)
         this.initializeFromStorage();
     }
 
@@ -21,30 +18,19 @@ class HighlightManager {
         }
         return HighlightManager.instance;
     }
-    
+
     /**
-     * Initialize highlight data from storage (IndexedDB and localStorage)
-     * Migrates data from localStorage to IndexedDB if needed
+     * Initialize highlight data from storage (IndexedDB)
      */
     private async initializeFromStorage(): Promise<void> {
         try {
-            // First, try to load from localStorage for backward compatibility
-            this.loadHighlightDataFromLocalStorage();
-            
+
             if (this.useIndexedDB) {
                 // Then load from IndexedDB and merge
                 await this.loadHighlightDataFromIndexedDB();
-                
-                // If we have data in localStorage but not yet in IndexedDB, migrate it
-                if (this.highlightData.size > 0) {
-                    const highlightArray = Array.from(this.highlightData.values());
-                    await pdfHighlightStorageService.storeHighlights(highlightArray);
-                    console.log(`[HighlightManager] Migrated ${highlightArray.length} highlights from localStorage to IndexedDB`);
-                }
             }
         } catch (error) {
             console.error('[HighlightManager] Error initializing from storage:', error);
-            // Fall back to localStorage data if IndexedDB fails
         }
     }
 
@@ -62,7 +48,6 @@ class HighlightManager {
         }
 
         this.usedIds.add(id);
-        this.saveUsedIdsToStorage();
         return id;
     }
 
@@ -71,10 +56,10 @@ class HighlightManager {
      */
     public async storeHighlightData(highlightData: HighlightRect): Promise<void> {
         this.highlightData.set(highlightData.id, highlightData);
-        
+
         // Save to storage - uses new method name
         await this.saveHighlightData();
-        
+
         // Store in IndexedDB
         if (this.useIndexedDB) {
             pdfHighlightStorageService.storeHighlight(highlightData).catch(error => {
@@ -82,15 +67,7 @@ class HighlightManager {
             });
         }
     }
-    
-    /**
-     * Legacy method for backward compatibility
-     * @deprecated Use saveHighlightData instead
-     */
-    private saveHighlightDataToStorage(): void {
-        // Redirect to new method for backward compatibility
-        this.saveHighlightData();
-    }
+
 
     /**
      * Remove highlight data by ID
@@ -98,22 +75,19 @@ class HighlightManager {
      */
     public async removeHighlightData(id: string): Promise<boolean> {
         const result = this.highlightData.delete(id);
-        
+
         if (result) {
             // Save to storage
             await this.saveHighlightData();
-            
+
             // Remove from IndexedDB
             if (this.useIndexedDB) {
                 pdfHighlightStorageService.deleteHighlight(id).catch(error => {
                     console.error(`[HighlightManager] Error removing highlight ${id} from IndexedDB:`, error);
                 });
             }
-            
-            // Note: We don't remove the ID from usedIds to prevent ID reuse
-            console.log(`[HighlightManager] Removed highlight with ID: ${id}`);
         }
-        
+
         return result;
     }
 
@@ -154,7 +128,7 @@ class HighlightManager {
         if (removedCount > 0) {
             // Save to storage
             await this.saveHighlightData();
-            
+
             // Remove from IndexedDB
             if (this.useIndexedDB) {
                 if (fileKey) {
@@ -162,7 +136,7 @@ class HighlightManager {
                         // Remove highlights for specific file and page and type
                         // First get all highlights for the file and page
                         const highlights = await pdfHighlightStorageService.getHighlightsByFilePage(fileKey, pageNumber);
-                        
+
                         // Filter by type and delete each one
                         const toDelete = highlights.filter(h => h.type === type);
                         for (const highlight of toDelete) {
@@ -186,7 +160,7 @@ class HighlightManager {
                     }
                 }
             }
-            
+
             console.log(`[HighlightManager] Removed ${removedCount} highlights of type ${type}${fileKey ? ` for file ${fileKey}` : ''}${pageNumber !== undefined ? ` on page ${pageNumber}` : ''}`);
         }
 
@@ -223,14 +197,14 @@ class HighlightManager {
         if (removedCount > 0) {
             // Save to storage
             await this.saveHighlightData();
-            
+
             // Remove from IndexedDB
             if (this.useIndexedDB) {
                 pdfHighlightStorageService.deleteHighlightsByFile(fileKey).catch(error => {
                     console.error(`[HighlightManager] Error removing highlights for file ${fileKey} from IndexedDB:`, error);
                 });
             }
-            
+
             console.log(`[HighlightManager] Removed ${removedCount} highlights for file ${fileKey}`);
         }
 
@@ -251,11 +225,11 @@ class HighlightManager {
 
         // Find highlights that match the text
         const highlights = await this.findHighlightsByText(text, fileKey);
-        
+
         if (highlights.length === 0) {
             return 0;
         }
-        
+
         // Extract IDs of highlights to remove
         const idsToRemove = highlights.map(h => h.id);
 
@@ -266,20 +240,20 @@ class HighlightManager {
 
         // Save to storage
         await this.saveHighlightData();
-        
+
         // Remove from IndexedDB
         if (this.useIndexedDB) {
-            const deletePromises = highlights.map(highlight => 
+            const deletePromises = highlights.map(highlight =>
                 pdfHighlightStorageService.deleteHighlight(highlight.id)
             );
-            
+
             Promise.all(deletePromises).catch(error => {
                 console.error(`[HighlightManager] Error removing highlights with text "${text}" from IndexedDB:`, error);
             });
         }
-        
+
         console.log(`[HighlightManager] Removed ${highlights.length} highlights with text "${text}"${fileKey ? ` for file ${fileKey}` : ''}`);
-        
+
         return highlights.length;
     }
 
@@ -323,7 +297,7 @@ class HighlightManager {
 
         // Only save if we actually removed something
         if (removedCount > 0) {
-            this.saveHighlightDataToStorage();
+            this.saveHighlightData();
             console.log(`[HighlightManager] Removed ${removedCount} highlights of type ${type} with text "${text}"${fileKey ? ` for file ${fileKey}` : ''}`);
         }
 
@@ -364,7 +338,7 @@ class HighlightManager {
 
         // Only save if we actually removed something
         if (removedCount > 0) {
-            this.saveHighlightDataToStorage();
+            this.saveHighlightData();
             console.log(`[HighlightManager] Removed ${removedCount} highlights with entity type "${entityType}"${fileKey ? ` for file ${fileKey}` : ''}`);
         }
 
@@ -421,122 +395,69 @@ class HighlightManager {
     }
 
     /**
-     * Load used IDs from localStorage
-     */
-    private loadUsedIdsFromStorage(): void {
-        try {
-            const storedIds = localStorage.getItem(this.storageKey);
-            if (storedIds) {
-                const idArray = JSON.parse(storedIds) as string[];
-                this.usedIds = new Set(idArray);
-            }
-        } catch (error) {
-            console.error('Error loading highlight IDs from storage:', error);
-            this.usedIds = new Set();
-        }
-    }
-
-    /**
-     * Save used IDs to localStorage
-     */
-    private saveUsedIdsToStorage(): void {
-        try {
-            const idArray = Array.from(this.usedIds);
-            localStorage.setItem(this.storageKey, JSON.stringify(idArray));
-        } catch (error) {
-            console.error('Error saving highlight IDs to storage:', error);
-        }
-    }
-
-    /**
-     * Load highlight data from localStorage (for backward compatibility)
-     */
-    private loadHighlightDataFromLocalStorage(): void {
-        try {
-            const storedData = localStorage.getItem('pdf-highlight-data');
-            if (storedData) {
-                const dataArray = JSON.parse(storedData) as HighlightRect[];
-                this.highlightData = new Map(
-                    dataArray.map(highlight => [highlight.id, highlight])
-                );
-
-                // Also add all IDs to the usedIds set
-                dataArray.forEach(highlight => {
-                    this.usedIds.add(highlight.id);
-                });
-                
-                console.log(`[HighlightManager] Loaded ${dataArray.length} highlights from localStorage`);
-            }
-        } catch (error) {
-            console.error('[HighlightManager] Error loading highlight data from localStorage:', error);
-            this.highlightData = new Map();
-        }
-    }
-
-    /**
      * Load highlight data from IndexedDB
      */
     private async loadHighlightDataFromIndexedDB(): Promise<void> {
         if (!this.useIndexedDB) return;
-        
+
         try {
             // Get all highlights from IndexedDB
             const count = await pdfHighlightStorageService.countAllHighlights();
-            
+
             if (count === 0) {
                 return; // No highlights in IndexedDB
             }
-            
+
             // Get highlights for all files (this could be optimized to load per file later)
             const files = new Set<string>();
-            
+
             // Use our existing data map to find files
             for (const highlight of this.highlightData.values()) {
                 if (highlight.fileKey) {
                     files.add(highlight.fileKey);
                 }
             }
-            
+
             // If we don't have file information from our local map, try to get it directly
             if (files.size === 0) {
-                // This is a workaround to efficiently get all highlights 
+                // This is a workaround to efficiently get all highlights
                 // when we can't directly query the entire store
                 const dummyHighlights = await pdfHighlightStorageService.getHighlightsByType(HighlightType.MANUAL);
                 dummyHighlights.forEach(h => {
                     if (h.fileKey) files.add(h.fileKey);
                 });
-                
+
                 const searchHighlights = await pdfHighlightStorageService.getHighlightsByType(HighlightType.SEARCH);
                 searchHighlights.forEach(h => {
                     if (h.fileKey) files.add(h.fileKey);
                 });
-                
+
                 const entityHighlights = await pdfHighlightStorageService.getHighlightsByType(HighlightType.ENTITY);
                 entityHighlights.forEach(h => {
                     if (h.fileKey) files.add(h.fileKey);
                 });
             }
-            
+
             // If we still don't have file info, log this issue
             if (files.size === 0) {
                 console.warn('[HighlightManager] Could not determine files for highlight loading');
                 return;
             }
-            
+
             let totalHighlights = 0;
-            
+
             // Load highlights for each file
             for (const fileKey of files) {
                 const fileHighlights = await pdfHighlightStorageService.getHighlightsByFile(fileKey);
-                
+
                 fileHighlights.forEach(highlight => {
                     this.highlightData.set(highlight.id, highlight);
                     this.usedIds.add(highlight.id);
                 });
-                
+
                 totalHighlights += fileHighlights.length;
             }
-            
+
             console.log(`[HighlightManager] Loaded ${totalHighlights} highlights from IndexedDB`);
         } catch (error) {
             console.error('[HighlightManager] Error loading highlight data from IndexedDB:', error);
@@ -544,14 +465,12 @@ class HighlightManager {
     }
 
     /**
-     * Save highlight data to storage (both localStorage and IndexedDB if enabled)
+     * Save highlight data to storage
      */
     private async saveHighlightData(): Promise<void> {
         try {
-            // Always save to localStorage for backward compatibility
             const dataArray = Array.from(this.highlightData.values());
-            localStorage.setItem('pdf-highlight-data', JSON.stringify(dataArray));
-            
+
             // If IndexedDB is enabled, also save there
             if (this.useIndexedDB) {
                 // We don't await this to avoid blocking
@@ -570,9 +489,6 @@ class HighlightManager {
     public async clearAllData(): Promise<void> {
         this.usedIds.clear();
         this.highlightData.clear();
-        localStorage.removeItem(this.storageKey);
-        localStorage.removeItem('pdf-highlight-data');
-        
         // Clear IndexedDB if enabled
         if (this.useIndexedDB) {
             pdfHighlightStorageService.clearAllHighlights().catch(error => {
@@ -594,7 +510,7 @@ class HighlightManager {
                 console.error(`[HighlightManager] Error exporting highlights for file ${fileKey} from IndexedDB:`, error);
             }
         }
-        
+
         // Fall back to the in-memory map
         const results: HighlightRect[] = [];
 
@@ -614,25 +530,25 @@ class HighlightManager {
      */
     public async importHighlights(highlights: HighlightRect[]): Promise<number> {
         if (highlights.length === 0) return 0;
-        
+
         try {
             console.log(`[HighlightManager] Importing ${highlights.length} highlights`);
-            
+
             // Track the number of newly added highlights vs updated ones
             let newCount = 0;
             let updatedCount = 0;
-            
+
             // Group highlights by fileKey for better logging
             const fileKeys = new Set<string>();
             highlights.forEach(h => {
                 if (h.fileKey) fileKeys.add(h.fileKey);
             });
-            
+
             // Process each highlight to ensure it has a valid ID and timestamp
             const processedHighlights = highlights.map(highlight => {
                 // Create a copy to avoid mutating the original
                 const processedHighlight = { ...highlight };
-                
+
                 // Ensure each highlight has a unique ID
                 if (!processedHighlight.id || this.usedIds.has(processedHighlight.id)) {
                     processedHighlight.id = this.generateUniqueId(processedHighlight.type);
@@ -642,22 +558,21 @@ class HighlightManager {
                     this.usedIds.add(processedHighlight.id);
                     updatedCount++;
                 }
-                
+
                 // Ensure each highlight has a timestamp
                 if (!processedHighlight.timestamp) {
                     processedHighlight.timestamp = Date.now();
                 }
-                
+
                 // Add to local map
                 this.highlightData.set(processedHighlight.id, processedHighlight);
-                
+
                 return processedHighlight;
             });
-            
+
             // Save to storage
             await this.saveHighlightData();
-            this.saveUsedIdsToStorage();
-            
+
             // Save to IndexedDB if enabled
             if (this.useIndexedDB) {
                 try {
@@ -667,67 +582,20 @@ class HighlightManager {
                     console.error('[HighlightManager] Error importing highlights to IndexedDB:', error);
                 }
             }
-            
+
             // Log summary information
             console.log(`[HighlightManager] Import complete - Added: ${newCount}, Updated: ${updatedCount}`);
             if (fileKeys.size > 0) {
                 console.log(`[HighlightManager] Imported highlights for files: ${Array.from(fileKeys).join(', ')}`);
             }
-            
+
             return processedHighlights.length;
         } catch (error) {
             console.error('[HighlightManager] Error during highlight import:', error);
             return 0;
         }
     }
-    /**
-     * Find highlights with the same entity type
-     */
-    public async findHighlightsByEntityType(entityType: string, fileKey?: string): Promise<HighlightRect[]> {
-        // If IndexedDB is enabled, try to use it
-        if (this.useIndexedDB) {
-            try {
-                // Get all highlights by file if provided
-                let highlights: HighlightRect[];
-                
-                if (fileKey) {
-                    highlights = await pdfHighlightStorageService.getHighlightsByFile(fileKey);
-                } else {
-                    // There's no direct "get all" query, so we use type as a workaround
-                    // This gets highlights of all types, which covers all highlights
-                    const manualHighlights = await pdfHighlightStorageService.getHighlightsByType(HighlightType.MANUAL);
-                    const searchHighlights = await pdfHighlightStorageService.getHighlightsByType(HighlightType.SEARCH);
-                    const entityHighlights = await pdfHighlightStorageService.getHighlightsByType(HighlightType.ENTITY);
-                    
-                    highlights = [...manualHighlights, ...searchHighlights, ...entityHighlights];
-                }
-                
-                // Filter by entity type
-                return highlights.filter(highlight => highlight.entity === entityType);
-            } catch (error) {
-                console.error(`[HighlightManager] Error finding highlights by entity type ${entityType} from IndexedDB:`, error);
-            }
-        }
-        
-        // Fall back to the in-memory map
-        const results: HighlightRect[] = [];
 
-        this.highlightData.forEach(highlight => {
-            // Only include highlights from the same file if fileKey is provided
-            if (fileKey && highlight.fileKey !== fileKey) {
-                return;
-            }
-
-            if (highlight.entity === entityType) {
-                results.push(highlight);
-            }
-        });
-
-        return results;
-    }
-
-
-    
     /**
      * Find highlights near a specific position within a tolerance range
      * Useful for finding overlapping or nearby highlights

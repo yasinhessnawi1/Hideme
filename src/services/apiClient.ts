@@ -1,141 +1,221 @@
 /**
- * @fileoverview Axios client configuration for API requests
+ * @fileoverview Enhanced Axios client with caching for API requests
  *
- * This module configures an Axios instance with base URL, default headers,
- * and interceptors for authentication. It handles:
- * - Adding authentication tokens to requests
- * - Automatic token refresh on 401 responses
- * - Redirect to log in on authentication failures
- * - Transforming technical errors into user-friendly messages
+ * This module extends the existing API client with caching capabilities.
+ * It maintains the same authentication, error handling, and user-friendly
+ * message features while adding:
+ * - Request deduplication
+ * - Response caching with TTL
+ * - Cache invalidation on mutations
  */
-import axios from 'axios';
+import apiCache from './apiCacheService';
 import authService from './authService';
-export const API_URL = 'https://goapi.hidemeai.com/api';
-//export const API_URL = 'http://localhost:8080/api';
-/**
- * Transforms technical API errors into user-friendly messages
- *
- * @param {any} error - The error object from axios
- * @returns {string} User-friendly error message
- */
-const getUserFriendlyErrorMessage = (error: any): string => {
-    // Extract response data if available
-    const responseData = error.response?.data;
-    const statusCode = error.response?.status;
+import { AxiosRequestConfig } from 'axios';
 
-    // If the API returned a specific error message, use it
-    if (responseData?.message) {
-        return responseData.message;
+// Configure TTL (time-to-live) for different endpoint groups
+const TTL_CONFIG = {
+    // Auth endpoints (shorter TTL)
+    AUTH: 5 * 60 * 1000, // 5 minutes
+
+    // User profile (medium TTL)
+    USER: 10 * 60 * 1000, // 10 minutes
+
+    // Settings (longer TTL)
+    SETTINGS: 30 * 60 * 1000, // 30 minutes
+
+    // Entity definitions (very long TTL as they rarely change)
+    ENTITIES: 60 * 60 * 1000, // 1 hour
+
+    // Default TTL for other endpoints
+    DEFAULT: 15 * 60 * 1000 // 15 minutes
+};
+
+// Helper to determine TTL based on URL path
+const getTtlForUrl = (url: string): number => {
+    if (url.includes('/auth/')) {
+        return TTL_CONFIG.AUTH;
     }
+    if (url.includes('/users/')) {
+        return TTL_CONFIG.USER;
+    }
+    if (url.includes('/settings/entities/')) {
+        return TTL_CONFIG.ENTITIES;
+    }
+    if (url.includes('/settings/')) {
+        return TTL_CONFIG.SETTINGS;
+    }
+    return TTL_CONFIG.DEFAULT;
+};
 
-    // Handle common status codes with friendly messages
-    switch (statusCode) {
-        case 400:
-            return "The information you provided was invalid. Please check your entries and try again.";
-        case 401:
-            return "Your session has expired or you're not authorized. Please log in again.";
-        case 403:
-            return "You don't have permission to access this resource.";
-        case 404:
-            return "The requested information couldn't be found. Please try again later.";
-        case 422:
-            return "The provided information couldn't be processed. Please check your entries.";
-        case 429:
-            return "You've made too many requests. Please wait a moment and try again.";
-        case 500:
-        case 502:
-        case 503:
-        case 504:
-            return "We're experiencing technical difficulties. Please try again later.";
-        default:
-            // If API is completely unreachable
-            if (!error.response) {
-                return "Unable to connect to the server. Please check your internet connection and try again.";
+// Define an interface for our config object to fix TypeScript errors
+interface RequestConfig {
+    params?: any;
+    data?: any;
+    headers?: Record<string, string>;
+}
+
+// Create request config with auth token
+const createAuthConfig = (config: RequestConfig = {}): RequestConfig => {
+    const token = authService.getToken();
+    if (token) {
+        return {
+            ...config,
+            headers: {
+                ...(config.headers || {}),
+                'Authorization': `Bearer ${token}`
             }
-            return "Something went wrong. Please try again later.";
+        };
     }
+    return config;
 };
 
 /**
- * Axios instance configured with base URL and default headers
- *
- * Uses interceptors to:
- * 1. Add authentication token to request headers when available
- * 2. Handle 401 errors by attempting token refresh
- * 3. Redirect to login page if token refresh fails
- * 4. Transform technical errors into user-friendly messages
+ * Enhanced API client with caching, deduplication, and TTL settings
+ * while maintaining the existing error handling and authentication.
  */
-const apiClient = axios.create({
-    baseURL: API_URL,
-    withCredentials: true,
-    headers: {
-        'Content-Type': 'application/json',
+const apiClient = {
+    /**
+     * GET request with caching
+     * @param url - API endpoint path
+     * @param params - Query parameters
+     * @param forceRefresh - Whether to bypass cache
+     */
+    get: <T = any>(url: string, params?: any, forceRefresh = false) => {
+        // Apply auth token to request
+        const config = createAuthConfig({ params });
 
-    }
-});
-
-/**
- * Request interceptor to add authentication token to all requests
- *
- * Retrieves the token from authService and adds it to the Authorization header
- * if a token exists
- */
-apiClient.interceptors.request.use(
-    (config) => {
-        const token = authService.getToken();
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
+        return apiCache.get<T>(url, config.params, {
+            ttl: getTtlForUrl(url),
+            forceRefresh,
+            headers: config.headers
+        });
     },
-    (error) => {
-        // Transform request errors into user-friendly messages
-        error.userMessage = getUserFriendlyErrorMessage(error);
-        return Promise.reject(error);
-    }
-);
 
-/**
- * Response interceptor to handle token expiration and refresh
- *
- * When receiving a 401 Unauthorized response, attempts to refresh the token
- * and retry the original request. If refresh fails, redirects to login page.
- * Also transforms technical errors into user-friendly messages.
- */
-apiClient.interceptors.response.use(
-    (response) => {
-        return response;
-    },
-    async (error) => {
-        const originalRequest = error.config;
+    /**
+     * POST request (non-cached by default)
+     * @param url - API endpoint path
+     * @param data - Request body
+     * @param cacheable - Whether to cache this POST request
+     */
+    post: <T = any>(url: string, data?: any, cacheable = false) => {
+        // Apply auth token to request
+        const config = createAuthConfig({ data });
 
-        // Add user-friendly error message to the error object
-        error.userMessage = getUserFriendlyErrorMessage(error);
+        const result = apiCache.post<T>(url, config.data, {
+            // Only cache certain POST requests if explicitly marked cacheable
+            ttl: cacheable ? getTtlForUrl(url) : 0,
+            headers: config.headers
+        });
 
-        // If error is 401 Unauthorized we haven't tried to refresh yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
-
-            try {
-                // Try to refresh the token
-                await authService.refreshToken();
-
-                // Set the new token in the header
-                const token = authService.getToken();
-                originalRequest.headers.Authorization = `Bearer ${token}`;
-
-                // Retry the original request with the new token
-                return axios(originalRequest);
-            } catch (refreshError) {
-                // If refresh fails, redirect to log in page with expired flag
-                authService.clearToken();
-                window.location.href = '/login?expired=true';
-                return Promise.reject(error);
-            }
+        // Invalidate related GET caches if this might change their data
+        if (!url.includes('/auth/')) {
+            const basePath = url.split('/').slice(0, -1).join('/');
+            apiCache.clearCacheEntry(basePath, 'GET');
         }
 
-        return Promise.reject(error);
+        return result;
+    },
+
+    /**
+     * PUT request (invalidates related GET caches)
+     * @param url - API endpoint path
+     * @param data - Request body
+     */
+    put: <T = any>(url: string, data?: any) => {
+        // Apply auth token to request
+        const config = createAuthConfig({ data });
+
+        const result = apiCache.put<T>(url, config.data, {
+            headers: config.headers
+        });
+
+        // Invalidate GET cache for the same URL and related patterns
+        const basePath = url.split('/').slice(0, -1).join('/');
+        apiCache.clearCacheEntry(url, 'GET');
+        apiCache.clearCacheEntry(basePath, 'GET');
+
+        return result;
+    },
+
+    /**
+     * DELETE request (invalidates related GET caches)
+     * @param url - API endpoint path
+     * @param data - Request body
+     */
+    delete: <T = any>(url: string, data?: any) => {
+        // Apply auth token to request
+        const config = createAuthConfig({ data });
+
+        const result = apiCache.delete<T>(url, config.data, {
+            headers: config.headers
+        });
+
+        // Invalidate GET cache for related patterns
+        const basePath = url.split('/').slice(0, -1).join('/');
+        apiCache.clearCacheEntry(url, 'GET');
+        apiCache.clearCacheEntry(basePath, 'GET');
+
+        return result;
+    },
+
+    // Utility methods for cache management
+
+    /**
+     * Clear the entire cache
+     */
+    clearCache: () => {
+        apiCache.clearCache();
+    },
+    /**
+     * Clear a specific cache entry
+     * @param url - API endpoint path to clear from cache
+     * @param method - HTTP method (default: 'GET')
+     * @param params - Query parameters (if applicable)
+     * @param data - Request body (if applicable)
+     */
+    clearCacheEntry: (url: string, method: string = 'GET', params?: any, data?: any) => {
+        apiCache.clearCacheEntry(url, method, params, data);
+    },
+
+    /**
+     * Clear auth-related caches
+     */
+    clearAuthCache: () => {
+        // Clear all auth endpoint caches
+        apiCache.clearCacheEntry('/auth/login', 'GET');
+        apiCache.clearCacheEntry('/auth/verify', 'GET');
+        apiCache.clearCacheEntry('/auth/refresh', 'POST');
+    },
+
+    /**
+     * Clear user-related caches
+     */
+    clearUserCache: () => {
+        apiCache.clearCacheEntry('/users/me', 'GET');
+    },
+
+    /**
+     * Clear settings-related caches
+     */
+    clearSettingsCache: () => {
+        apiCache.clearCacheEntry('/settings', 'GET');
+        apiCache.clearCacheEntry('/settings/patterns', 'GET');
+        apiCache.clearCacheEntry('/settings/ban-list', 'GET');
+    },
+
+    /**
+     * Enable or disable debug mode
+     */
+    setDebugMode: (enabled: boolean) => {
+        apiCache.setDebugMode(enabled);
+    },
+
+    /**
+     * Get the raw axios instance for advanced use cases
+     */
+    getAxiosInstance: () => {
+        return apiCache.getAxiosInstance();
     }
-);
+};
 
 export default apiClient;

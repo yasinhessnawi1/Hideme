@@ -59,7 +59,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setGlinerColor,
         geminiColor,
         setGeminiColor,
-        
+
         // Add entity detection settings
         selectedMlEntities,
         selectedAiEntities,
@@ -133,7 +133,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             // Use addFiles to handle multiple files
             const newFiles = Array.from(e.target.files);
             addFiles(newFiles);
-            
+
             // Show notification about added files
             setShowNotification({
                 message: `Added ${newFiles.length} file${newFiles.length > 1 ? 's' : ''}`,
@@ -167,27 +167,27 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     // State for action feedback
     const [showNotification, setShowNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
-    
+
     // Download/save functions using enhanced utility service
     const handleDownloadPDF = async () => {
         // Always use all files instead of just selected files (by default)
         const filesToDownload = files.length > 0 ? files : [];
-        
+
         if (filesToDownload.length === 0) {
             setShowNotification({message: 'No files available for download', type: 'error'});
             setTimeout(() => setShowNotification(null), 3000);
             return;
         }
-        
+
         setShowNotification({message: 'Preparing download...', type: 'success'});
-        
+
         try {
             // Use the appropriate download method based on number of files
             const success = await pdfUtilityService.downloadMultiplePDFs(filesToDownload);
-            
+
             if (success) {
                 setShowNotification({
-                    message: `${filesToDownload.length > 1 ? 'Files' : 'File'} downloaded successfully`, 
+                    message: `${filesToDownload.length > 1 ? 'Files' : 'File'} downloaded successfully`,
                     type: 'success'
                 });
             } else {
@@ -200,29 +200,29 @@ const Toolbar: React.FC<ToolbarProps> = ({
             console.error('Error downloading file(s):', error);
             setShowNotification({message: 'Download failed', type: 'error'});
         }
-        
+
         setTimeout(() => setShowNotification(null), 3000);
     };
 
     const handlePrint = async () => {
         // Always use all files instead of just selected files (by default)
         const filesToPrint = files.length > 0 ? files : [];
-        
+
         if (filesToPrint.length === 0) {
             setShowNotification({message: 'No files available for printing', type: 'error'});
             setTimeout(() => setShowNotification(null), 3000);
             return;
         }
-        
+
         setShowNotification({message: 'Preparing print job...', type: 'success'});
-        
+
         try {
             // Use the appropriate print method based on number of files
             const success = await pdfUtilityService.printMultiplePDFs(filesToPrint);
-            
+
             if (success) {
                 setShowNotification({
-                    message: 'Print job sent to browser', 
+                    message: 'Print job sent to browser',
                     type: 'success'
                 });
             } else {
@@ -235,44 +235,20 @@ const Toolbar: React.FC<ToolbarProps> = ({
             console.error('Error printing file(s):', error);
             setShowNotification({message: 'Print failed', type: 'error'});
         }
-        
+
         setTimeout(() => setShowNotification(null), 3000);
     };
-    
+
     // Entity detection shortcut - triggers actual detection process
     const handleEntityDetection = () => {
         const filesToProcess = selectedFiles.length > 0 ? selectedFiles : currentFile ? [currentFile] : [];
-        
+
         if (filesToProcess.length === 0) {
             setShowNotification({message: 'No files selected for detection', type: 'error'});
             setTimeout(() => setShowNotification(null), 3000);
             return;
         }
-        
-        // Toggle right sidebar to show entity detection panel
-        if (isRightSidebarCollapsed) {
-            toggleRightSidebar();
-        }
-        
-        // Dispatch event to activate entity detection panel and navigate to detection tab
-        window.dispatchEvent(new CustomEvent('activate-detection-panel', {
-            detail: {
-                active: true,
-                source: 'toolbar',
-                navigateToTab: 'entity-detection', // Must match the tab ID in RightSidebar.tsx
-                filesToProcess: filesToProcess, // Pass files to process
-                triggerDetection: true, // This flag indicates we want to immediately run detection
-                settings: {
-                    selectedMlEntities,
-                    selectedAiEntities,
-                    selectedGlinerEntities,
-                    presidioColor,
-                    glinerColor,
-                    geminiColor
-                }
-            }
-        }));
-        
+
         // Also directly trigger the entity detection process in the sidebar
         window.dispatchEvent(new CustomEvent('trigger-entity-detection-process', {
             detail: {
@@ -280,45 +256,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 filesToProcess: filesToProcess
             }
         }));
-        
+
         // Show feedback to the user
         setShowNotification({
-            message: 'Running entity detection', 
+            message: 'Running entity detection',
             type: 'success'
         });
         setTimeout(() => setShowNotification(null), 2000);
     }
-    
-    // Search shortcut - opens the search tab and executes search with default terms
-    const [searchActive, setSearchActive] = useState(false);
-    
-    const handleSearchShortcut = () => {
-        setSearchActive(!searchActive);
-        
-        // Toggle right sidebar to show search panel
-        if (isRightSidebarCollapsed) {
-            toggleRightSidebar();
-        }
-        
-        // Dispatch event to activate search panel and navigate to search tab
-        window.dispatchEvent(new CustomEvent('activate-search-panel', {
-            detail: {
-                active: true, // Always set to true to ensure activation
-                source: 'toolbar',
-                navigateToTab: 'search', // Must match the tab ID in RightSidebar.tsx
-                autoFocus: true // Auto focus the search input
-            }
-        }));
-        
-        // Force activate the search tab 
-        window.dispatchEvent(new CustomEvent('activate-sidebar-tab', {
-            detail: {
-                tabId: 'search',
-                source: 'toolbar-button'
-            }
-        }));
-        
-        // Add a slight delay to ensure the sidebar is active
+
+    const handleSearchShortcut = () => {        // Add a slight delay to ensure the sidebar is active
         setTimeout(() => {
             // Trigger search with default terms
             window.dispatchEvent(new CustomEvent('execute-search', {
@@ -327,61 +274,31 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     applyDefaultTerms: true // Tell the search sidebar to apply all default terms
                 }
             }));
-            
+
             // Alternatively if there's a global function available, use it directly
             if (typeof window.executeSearchWithDefaultTerms === 'function') {
                 window.executeSearchWithDefaultTerms();
             }
         }, 300);
-        
+
         setShowNotification({
-            message: 'Searching with default terms', 
+            message: 'Searching with default terms',
             type: 'success'
         });
         setTimeout(() => setShowNotification(null), 2000);
     }
-    
-    // Redaction shortcut - triggers actual redaction process
-    const [redactionActive, setRedactionActive] = useState(false);
-    
+
     const handleRedaction = () => {
-        setRedactionActive(!redactionActive);
-        
-        // Toggle right sidebar to show redaction panel
-        if (isRightSidebarCollapsed) {
-            toggleRightSidebar();
-        }
-        
+
         // Determine which files to use for redaction
         const filesToProcess = selectedFiles.length > 0 ? selectedFiles : files;
-        
+
         if (filesToProcess.length === 0) {
             setShowNotification({message: 'No files available for redaction', type: 'error'});
             setTimeout(() => setShowNotification(null), 3000);
             return;
         }
-        
-        // First, activate the redaction panel
-        window.dispatchEvent(new CustomEvent('activate-redaction-panel', {
-            detail: {
-                active: true, // Always set to true
-                source: 'toolbar',
-                navigateToTab: 'redaction', // Must match the tab ID in RightSidebar.tsx
-                applyToAllFiles: true, // Apply to all files by default
-                filesToProcess: filesToProcess, // Pass the files to process
-                triggerRedaction: true // This flag indicates we want to perform redaction
-            }
-        }));
-        
-        // Force activate the redaction tab
-        window.dispatchEvent(new CustomEvent('activate-sidebar-tab', {
-            detail: {
-                tabId: 'redaction',
-                source: 'toolbar-button'
-            }
-        }));
-        
-        // Wait a short time to ensure the sidebar is loaded and tab is activated
+
         setTimeout(() => {
             // Directly trigger the redaction process in the sidebar
             window.dispatchEvent(new CustomEvent('trigger-redaction-process', {
@@ -390,10 +307,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     filesToProcess: filesToProcess
                 }
             }));
-        }, 300);
-        
+        }, 10);
+
         setShowNotification({
-            message: 'Starting redaction process', 
+            message: 'Starting redaction process',
             type: 'success'
         });
         setTimeout(() => setShowNotification(null), 2000);
@@ -568,19 +485,19 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     <span className="button-label">Print</span>
                 </button>
             </div>
-            
+
             {/* New buttons for detection and search */}
             <div className="toolbar-section">
                 <button
                     onClick={handleSearchShortcut}
-                    className={`toolbar-button ${searchActive ? 'active' : ''}`}
+                    className={`toolbar-button `}
                     title="Search PDFs"
                     disabled={files.length === 0}
                 >
                     <FaSearch/>
                     <span className="button-label">Search</span>
                 </button>
-                
+
                 <button
                     onClick={handleEntityDetection}
                     className="toolbar-button"
@@ -590,10 +507,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     <FaMagic/>
                     <span className="button-label">Detect</span>
                 </button>
-                
+
                 <button
                     onClick={handleRedaction}
-                    className={`toolbar-button ${redactionActive ? 'active' : ''}`}
+                    className={`toolbar-button `}
                     title="Redact PDFs"
                     disabled={files.length === 0}
                 >
@@ -798,7 +715,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             >
                 {isRightSidebarCollapsed ? <RightSidebarOpenIcon/> : <RightSidebarCloseIcon/>}
             </button>
-            
+
             {/* Notification toast */}
             {showNotification && (
                 <div className={`notification-toast ${showNotification.type}`}>

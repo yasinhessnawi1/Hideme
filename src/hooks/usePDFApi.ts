@@ -50,6 +50,14 @@ export const usePDFApi = () => {
     }, []);
 
     /**
+     * Remove cached result
+     */
+    const removeCachedResult = useCallback((cacheKey: string) => {
+        apiResultCache.current.delete(cacheKey);
+    }
+    , []);
+
+    /**
      * Get cached detection results for a specific file
      */
     const getDetectionResults = useCallback((fileKey: string): any => {
@@ -69,6 +77,7 @@ export const usePDFApi = () => {
             presidio?: string[] | null ;
             gliner?: string[] | null;
             gemini?: string[] | null;
+            hideme?: string[] | null;
             threshold?: number;
             banlist?: string[] | null;
         } = {}
@@ -87,7 +96,9 @@ export const usePDFApi = () => {
 
             // Check cache first
             const cachedResult = getCachedResult(cacheKey);
-
+            if (cachedResult) {
+                removeCachedResult(cacheKey);
+            }
 
             console.log(`[APIDebug] Starting batch hybrid detection for ${files.length} files`);
 

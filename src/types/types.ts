@@ -1,4 +1,30 @@
 // src/types.ts
+
+/**
+ * Generic API response
+ */
+export interface ApiResponse<T> {
+    data: T;
+    message?: string;
+    status?: number;
+}
+
+/**
+ * Cache options for API requests
+ */
+export interface CacheOptions {
+    ttl?: number;
+    forceRefresh?: boolean;
+    cacheKey?: string;
+}
+
+/**
+ * Method ID mapping
+ */
+export interface MethodIdMap {
+    [key: string]: number;
+}
+
 export interface RedactionMapping {
     pages: Page[]
 }
@@ -23,7 +49,30 @@ export interface Bbox {
     x1: number
     y1: number
 }
+export interface FileDetectionResult {
+    fileKey : string
+    fileName: string
+    entities_detected: DetectionSummary
+    performance: Performance
+}
 
+export interface DetectionSummary {
+    by_type: {
+        entity_type: string
+        count: number
+    }
+    by_page: {
+        page: number
+        count: number
+    }
+    total: number
+}
+export interface Performance {
+    entity_density: number
+    words_count: number
+    pages_count: number
+    sanitize_time: number
+}
 export interface FileInfo {
     filename: string
     content_type: string

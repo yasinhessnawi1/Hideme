@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { useAutoProcess } from '../hooks/useAutoProcess';
 
-
 /**
  * Provider component that initializes and connects the auto-processing system
  * This component doesn't render anything visible - it just connects contexts
@@ -18,7 +17,11 @@ export const AutoProcessProvider: React.FC<{ children: React.ReactNode }> = ({ c
             searchQueries: currentConfig.searchQueries.length,
             presidioEntities: currentConfig.presidioEntities.length,
             glinerEntities: currentConfig.glinerEntities.length,
-            geminiEntities: currentConfig.geminiEntities.length
+            geminiEntities: currentConfig.geminiEntities.length,
+            hidemeEntities: currentConfig.hidemeEntities.length, // Added hideme entities
+            detectionThreshold: currentConfig.detectionThreshold,
+            useBanlist: currentConfig.useBanlist,
+            banlistWordsCount: currentConfig.banlistWords?.length ?? 0
         });
     }, [getConfig]); // Dependency on getConfig
 

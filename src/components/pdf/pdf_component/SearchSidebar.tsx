@@ -8,19 +8,25 @@ declare global {
     }
 }
 import { useFileContext } from '../../../contexts/FileContext';
-import {  getFileKey } from '../../../contexts/PDFViewerContext';
+import { getFileKey } from '../../../contexts/PDFViewerContext';
 import { useBatchSearch } from '../../../contexts/SearchContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
-import { useUser } from '../../../hooks/userHook';
 import '../../../styles/modules/pdf/SettingsSidebar.css';
 import '../../../styles/modules/pdf/SearchSidebar.css';
 import { Search, XCircle, ChevronUp, ChevronDown, ChevronRight, Save, AlertTriangle, CheckCircle } from 'lucide-react';
 import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
+import useSearchPatterns from "../../../hooks/settings/useSearchPatterns";
 
 const SearchSidebar: React.FC = () => {
     const { currentFile, selectedFiles, files } = useFileContext();
     const pdfNavigation = usePDFNavigation('search-sidebar');
-    const { settings: userSettings, isLoading: userSettingsLoading, updateSettings, createSearchPattern } = useUser();
+    const {
+        searchPatterns,
+        isLoading: userDataLoading,
+        createSearchPattern,
+        getSearchPatterns
+    } = useSearchPatterns();
+
 
     const {
         isSearching: isContextSearching,
@@ -68,9 +74,6 @@ const SearchSidebar: React.FC = () => {
         results: [],
         currentIndex: -1
     });
-
-
-
 
     // Get files to process based on selected scope
     const getFilesToProcess = useCallback((): File[] => {
@@ -160,7 +163,6 @@ const SearchSidebar: React.FC = () => {
         tempSearchTerm,
         getFilesToProcess,
         resetErrors,
-        runBatchSearch,
         batchSearch,
         isCaseSensitive,
         isAiSearch,
@@ -193,65 +195,76 @@ const SearchSidebar: React.FC = () => {
         }, 0);
     };
 
-    // Synchronize with user settings when they change
+    // Synchronize with search patterns when they change
     useEffect(() => {
-        // Only proceed if we have user settings and they're loaded
-        if (!userSettingsLoading && userSettings) {
-            console.log('[SearchSidebar] Applying user settings to search');
+        // Only proceed if search patterns are loaded and not empty
+        if (!userDataLoading && searchPatterns && searchPatterns.length > 0) {
+            console.log('[SearchSidebar] Applying search patterns');
 
-            // Apply AI search setting if available
-            if (userSettings.is_ai_search !== undefined) {
-                console.log('[SearchSidebar] Applying AI search setting:', userSettings.is_ai_search);
-                setIsAiSearch(userSettings.is_ai_search);
+            // Find default search terms to use
+            const defaultPatterns = searchPatterns.filter(pattern => pattern.pattern_text);
+
+            // If there are no active queries, use the first pattern for the search input
+            if (activeQueries.length === 0 && defaultPatterns.length > 0) {
+                console.log('[SearchSidebar] Applying default search term to input:', defaultPatterns[0].pattern_text);
+                setTempSearchTerm(defaultPatterns[0].pattern_text);
             }
 
-            // Apply case sensitivity setting if available
-            if (userSettings.is_case_sensitive !== undefined) {
-                console.log('[SearchSidebar] Applying case sensitivity setting:', userSettings.is_case_sensitive);
-                setIsCaseSensitive(userSettings.is_case_sensitive);
-            }
+            // Set search options based on the most recent pattern (if available)
+            if (defaultPatterns.length > 0) {
+                const mostRecentPattern = defaultPatterns[0];
 
-            // Apply default search terms if available
-            if (userSettings.default_search_terms && userSettings.default_search_terms.length > 0) {
-                // If there are no active queries, use the first default term for the search input
-                if (activeQueries.length === 0) {
-                    console.log('[SearchSidebar] Applying default search term to input:', userSettings.default_search_terms[0]);
-                    setTempSearchTerm(userSettings.default_search_terms[0]);
+                // Set AI search based on pattern_type
+                const useAiSearch = mostRecentPattern.pattern_type === 'ai_search';
+                if (useAiSearch !== isAiSearch) {
+                    console.log('[SearchSidebar] Setting AI search to:', useAiSearch);
+                    setIsAiSearch(useAiSearch);
                 }
 
-                // Save the default terms for later use (e.g., with toolbar button)
-                window.defaultSearchTerms = userSettings.default_search_terms;
-
-                // Calculate terms that aren't currently active
-                const activeTerms = new Set(activeQueries.map(q => q.term));
-                const defaultTermsNotSearched = userSettings.default_search_terms.filter(term => !activeTerms.has(term));
-                console.log('[SearchSidebar] Default terms not searched:', defaultTermsNotSearched);
+                // Set case sensitivity based on pattern_type
+                const useCaseSensitive = mostRecentPattern.pattern_type === 'case_sensitive';
+                if (useCaseSensitive !== isCaseSensitive) {
+                    console.log('[SearchSidebar] Setting case sensitivity to:', useCaseSensitive);
+                    setIsCaseSensitive(useCaseSensitive);
+                }
             }
+
+            // Save the pattern texts for later use (e.g., with toolbar button)
+            window.defaultSearchTerms = defaultPatterns.map(pattern => pattern.pattern_text);
         }
-    }, [userSettings, userSettingsLoading, activeQueries.length]);
+    }, [searchPatterns, userDataLoading, activeQueries.length, isAiSearch, isCaseSensitive]);
+
+    // Make sure to fetch search patterns on initial load
+    useEffect(() => {
+        if (!userDataLoading && searchPatterns?.length === 0) {
+            getSearchPatterns();
+        }
+    }, [getSearchPatterns, userDataLoading, searchPatterns]);
 
     // Add a special method to load and apply all default search terms
     const applyAllDefaultSearchTerms = useCallback(async () => {
-        if (userSettings?.default_search_terms && userSettings.default_search_terms.length > 0) {
-            console.log('[SearchSidebar] Applying all default search terms');
+        if (searchPatterns && searchPatterns.length > 0) {
+            console.log('[SearchSidebar] Applying all default search patterns');
 
             // Get currently active terms
             const activeTerms = new Set(activeQueries.map(q => q.term));
 
-            // Get terms that aren't already active
-            const termsToAdd = userSettings.default_search_terms.filter(term => !activeTerms.has(term));
+            // Get patterns that aren't already active
+            const patternsToAdd = searchPatterns.filter(pattern =>
+                !activeTerms.has(pattern.pattern_text)
+            );
 
-            if (termsToAdd.length === 0) {
+            if (patternsToAdd.length === 0) {
                 console.log('[SearchSidebar] All default terms are already active');
                 setLocalSearchError('All default search terms are already active');
                 return;
             }
 
-            // Apply each default term that isn't already active
+            // Apply each default pattern that isn't already active
             let addedCount = 0;
 
-            for (const term of termsToAdd) {
-                if (!term.trim()) continue;
+            for (const pattern of patternsToAdd) {
+                if (!pattern.pattern_text.trim()) continue;
 
                 try {
                     const filesToSearch = getFilesToProcess();
@@ -260,20 +273,20 @@ const SearchSidebar: React.FC = () => {
                         return;
                     }
 
-                    // Search with the current term using appropriate settings
-                    console.log(`[SearchSidebar] Adding default search term: "${term}"`);
+                    // Search with the current pattern using appropriate settings
+                    console.log(`[SearchSidebar] Adding default search term: "${pattern.pattern_text}"`);
                     await batchSearch(
                         filesToSearch,
-                        term,
+                        pattern.pattern_text,
                         {
-                            isCaseSensitive: userSettings.is_case_sensitive || false,
-                            isAiSearch: userSettings.is_ai_search || false
+                            isCaseSensitive: pattern.pattern_type === 'case_sensitive',
+                            isAiSearch: pattern.pattern_type === 'ai_search'
                         }
                     );
 
                     addedCount++;
                 } catch (err) {
-                    console.error(`[SearchSidebar] Error adding default term "${term}":`, err);
+                    console.error(`[SearchSidebar] Error adding default term "${pattern.pattern_text}":`, err);
                 }
             }
 
@@ -284,7 +297,7 @@ const SearchSidebar: React.FC = () => {
         } else {
             setLocalSearchError('No default search terms available');
         }
-    }, [userSettings, activeQueries, batchSearch, getFilesToProcess]);
+    }, [searchPatterns, activeQueries, batchSearch, getFilesToProcess]);
 
     // Create a function to focus the search input
     const focusSearchInput = useCallback(() => {
@@ -325,10 +338,6 @@ const SearchSidebar: React.FC = () => {
     useEffect(() => {
         focusSearchInput();
     }, [focusSearchInput]);
-
-    // Handle search term removal
-
-
 
     // Listen for explicit focus requests and search execution (e.g., from toolbar button)
     useEffect(() => {
@@ -372,20 +381,6 @@ const SearchSidebar: React.FC = () => {
         };
     }, [focusSearchInput, tempSearchTerm, addSearchTerm, applyAllDefaultSearchTerms]);
 
-    // Define a global helper for the search-related functionality
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            window.executeSearchWithDefaultTerms = () => {
-                applyAllDefaultSearchTerms();
-            };
-        }
-
-        return () => {
-            if (typeof window !== 'undefined') {
-                delete window.executeSearchWithDefaultTerms;
-            }
-        };
-    }, [applyAllDefaultSearchTerms]);
 
     // Set error from API if available
     useEffect(() => {
@@ -415,13 +410,8 @@ const SearchSidebar: React.FC = () => {
                     setIsCaseSensitive(settings.isCaseSensitive);
                 }
 
-                if (settings.defaultSearchTerms && settings.defaultSearchTerms.length > 0) {
-                    // Apply default search terms (if not already searched)
-                    if (activeQueries.length === 0) {
-                        // Set as temp search term instead of immediately searching
-                        setTempSearchTerm(settings.defaultSearchTerms[0]);
-                    }
-                }
+                // Re-fetch search patterns when settings change
+                getSearchPatterns();
             }
         };
 
@@ -430,20 +420,14 @@ const SearchSidebar: React.FC = () => {
         return () => {
             window.removeEventListener('settings-changed', handleSettingsChange);
         };
-    }, [activeQueries.length]);
+    }, [getSearchPatterns]);
 
     // Combined loading state
     const isSearching = isContextSearching || isApiLoading;
     const searchProgress = apiProgress;
 
-
-
-
-
-
     // Simple navigation to a page
     const navigateToPage = useCallback((fileKey: string, pageNumber: number) => {
-
         const file = files.find(f => getFileKey(f).includes(fileKey));
 
         if (!file) {
@@ -461,7 +445,6 @@ const SearchSidebar: React.FC = () => {
             // Always highlight the thumbnail
             highlightThumbnail: true
         });
-
     }, [pdfNavigation, files, currentFile]);
 
     // Navigate to specific search result - improved with more robust error handling
@@ -492,8 +475,8 @@ const SearchSidebar: React.FC = () => {
 
         // Use our improved navigation mechanism
         navigateToPage(target.fileKey, target.page);
-
     }, [resultNavigation, navigateToPage]);
+
     const handleChangeSearchScope = (scope: 'current' | 'selected' | 'all') => {
         if (scope === searchScope) return;
         setSearchScope(scope);
@@ -556,94 +539,44 @@ const SearchSidebar: React.FC = () => {
             setLocalSearchError(null);
             setSuccessMessage(null);
 
-            if (!userSettings) {
-                setLocalSearchError("Cannot save search term - settings not loaded.");
-                setContextMenuVisible(false);
-                return;
-            }
-
-            console.log(`[SearchSidebar] Saving search term "${contextMenuSearchTerm}" to default search terms`);
+            console.log(`[SearchSidebar] Saving search term "${contextMenuSearchTerm}" to patterns`);
 
             // Also save current search options (AI search, case sensitivity)
             const currentQuery = activeQueries.find(q => q.term === contextMenuSearchTerm);
             const isAiSearchForTerm = currentQuery?.isAiSearch || isAiSearch;
             const isCaseSensitiveForTerm = currentQuery?.caseSensitive || isCaseSensitive;
 
-            // Create new array with the current search term added
-            const searchTerms = userSettings.default_search_terms || [];
+            // Determine pattern type based on current options
+            let patternType = 'normal';
+            if (isAiSearchForTerm) patternType = 'ai_search';
+            else if (isCaseSensitiveForTerm) patternType = 'case_sensitive';
 
-            // Check if this term already exists
-            if (!searchTerms.includes(contextMenuSearchTerm)) {
-                // Add the term to the beginning of the array (highest priority)
-                const updatedSearchTerms = [contextMenuSearchTerm, ...searchTerms];
+            // Check if this term already exists in saved patterns
+            const existingPattern = searchPatterns.find(p => p.pattern_text === contextMenuSearchTerm);
 
-                // Limit to a reasonable number of default terms (e.g., 5)
-                const limitedTerms = updatedSearchTerms.slice(0, 5);
-
-                console.log(`[SearchSidebar] Updating settings with new search terms`, limitedTerms);
-
-                // Update user settings with term and options
-                for (const term of limitedTerms) {
-                    await createSearchPattern({
-                        pattern_text: term,
-                        pattern_type: isAiSearchForTerm ? 'ai_search' : isCaseSensitiveForTerm ? 'case_sensitive' : 'normal',
-                    });
-                }
-
-                // Dispatch an event to notify other components about the settings change
-                const event = new CustomEvent('settings-changed', {
-                    detail: {
-                        type: 'search',
-                        settings: {
-                            defaultSearchTerms: limitedTerms,
-                            isAiSearch: isAiSearchForTerm,
-                            isCaseSensitive: isCaseSensitiveForTerm
-                        }
-                    }
+            if (!existingPattern) {
+                // Create a new pattern with the current search term
+                await createSearchPattern({
+                    pattern_text: contextMenuSearchTerm,
+                    pattern_type: patternType
                 });
-                window.dispatchEvent(event);
 
                 // Show success message
-                setSuccessMessage(`"${contextMenuSearchTerm}" saved as default search term with current options.`);
-
-                // Auto-hide success message after 3 seconds
-                setTimeout(() => {
-                    setSuccessMessage(null);
-                }, 3000);
-
-                console.log(`[SearchSidebar] Search term saved to settings successfully with options: AI=${isAiSearchForTerm}, Case=${isCaseSensitiveForTerm}`);
+                setSuccessMessage(`"${contextMenuSearchTerm}" saved as a search pattern`);
+                console.log(`[SearchSidebar] Search term saved to patterns successfully with type: ${patternType}`);
             } else {
-                // If term exists, update its options
-                await updateSettings({
-                    is_ai_search: isAiSearchForTerm,
-                    is_case_sensitive: isCaseSensitiveForTerm
-                });
-
-                // Dispatch event for option changes
-                const event = new CustomEvent('settings-changed', {
-                    detail: {
-                        type: 'search',
-                        settings: {
-                            isAiSearch: isAiSearchForTerm,
-                            isCaseSensitive: isCaseSensitiveForTerm
-                        }
-                    }
-                });
-                window.dispatchEvent(event);
-
-                // Term already exists
-                setSuccessMessage(`"${contextMenuSearchTerm}" options updated in search settings.`);
-
-                // Auto-hide success message after 3 seconds
-                setTimeout(() => {
-                    setSuccessMessage(null);
-                }, 3000);
-
-                console.log(`[SearchSidebar] Search term options updated in settings`);
+                // Pattern already exists
+                setSuccessMessage(`"${contextMenuSearchTerm}" is already a saved pattern`);
+                console.log(`[SearchSidebar] Search term already exists in patterns`);
             }
+
+            // Auto-hide success message after 3 seconds
+            setTimeout(() => {
+                setSuccessMessage(null);
+            }, 3000);
         } catch (error) {
-            console.error(`[SearchSidebar] Error saving search term to settings:`, error);
-            setLocalSearchError("Failed to save search term to settings.");
+            console.error(`[SearchSidebar] Error saving search term to patterns:`, error);
+            setLocalSearchError("Failed to save search pattern.");
 
             // Auto-hide error message after 5 seconds
             setTimeout(() => {
@@ -710,6 +643,7 @@ const SearchSidebar: React.FC = () => {
             currentIndex: flatResults.length > 0 ? 0 : -1
         });
     }, [searchStats.totalMatches, activeQueries.length, isSearching]);
+
 
     return (
         <div className="search-sidebar">

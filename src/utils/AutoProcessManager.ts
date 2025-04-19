@@ -2,6 +2,8 @@ import { OptionType } from '../types/types';
 import { getFileKey } from '../contexts/PDFViewerContext';
 import {handleAllOPtions} from "./pdfutils";
 import { v4 as uuidv4 } from 'uuid';
+import {EntityHighlightManager} from "./EntityHighlightManager";
+import {SearchHighlightManager} from "./SearchHighlightManager";
 /**
  * Configuration for automatic file processing
  */
@@ -10,7 +12,7 @@ export interface ProcessingConfig {
     presidioEntities: OptionType[];
     glinerEntities: OptionType[];
     geminiEntities: OptionType[];
-
+    hidemeEntities: OptionType[];
     // Search settings
     searchQueries: {
         term: string;
@@ -20,10 +22,10 @@ export interface ProcessingConfig {
 
     // Processing status
     isActive: boolean;
-    
+
     // Detection threshold (0.0 to 1.0)
     detectionThreshold?: number;
-    
+
     // Ban list settings
     useBanlist?: boolean;
     banlistWords?: string[];
@@ -33,7 +35,6 @@ export interface ProcessingConfig {
  * Service for managing automatic processing of new files
  * Coordinates entity detection and search based on current settings
  */
-// src/utils/AutoProcessManager.ts
 
 export class AutoProcessManager {
     private static instance: AutoProcessManager;
@@ -47,10 +48,11 @@ export class AutoProcessManager {
             presidioEntities: [],
             glinerEntities: [],
             geminiEntities: [],
+            hidemeEntities: [],
             searchQueries: [],
             isActive: true,
             detectionThreshold: 0.5, // Default threshold
-            useBanlist: false, // Don't use ban list by default
+            useBanlist: true,
             banlistWords: [], // Empty ban list by default
         };
     }
@@ -75,6 +77,7 @@ export class AutoProcessManager {
             presidioEntities: config.presidioEntities ?? this.config.presidioEntities,
             glinerEntities: config.glinerEntities ?? this.config.glinerEntities,
             geminiEntities: config.geminiEntities ?? this.config.geminiEntities,
+            hidemeEntities: config.hidemeEntities ?? this.config.hidemeEntities,
             searchQueries: config.searchQueries ?? this.config.searchQueries,
             isActive: config.isActive ?? this.config.isActive,
             // Add threshold and ban list settings
@@ -82,18 +85,6 @@ export class AutoProcessManager {
             useBanlist: config.useBanlist ?? this.config.useBanlist,
             banlistWords: config.banlistWords ?? this.config.banlistWords,
         };
-
-        console.log('[AutoProcessManager] Configuration updated:', {
-            presidioEntities: this.config.presidioEntities.length,
-            glinerEntities: this.config.glinerEntities.length,
-            geminiEntities: this.config.geminiEntities.length,
-            searchQueries: this.config.searchQueries.length,
-            isActive: this.config.isActive,
-            detectionThreshold: this.config.detectionThreshold !== undefined ? 
-                this.config.detectionThreshold : 'default (0.5)',
-            useBanlist: this.config.useBanlist !== undefined ? this.config.useBanlist : false,
-            banlistWordCount: this.config.banlistWords ? this.config.banlistWords.length : 0
-        });
     }
 
     public getConfig(): ProcessingConfig {
@@ -129,12 +120,12 @@ export class AutoProcessManager {
             const hasEntitySettings = (
                 this.config.presidioEntities.length > 0 ||
                 this.config.glinerEntities.length > 0 ||
-                this.config.geminiEntities.length > 0
+                this.config.geminiEntities.length > 0 ||
+                this.config.hidemeEntities.length > 0
             );
 
             if (hasEntitySettings && this._detectEntitiesCallback) {
                 await this.processEntityDetection(file);
-                sessionStorage.setItem(`auto-processed-${fileKey}`, 'true');
                 success = true;
             } else if (hasEntitySettings && !this._detectEntitiesCallback) {
                 console.warn('[AutoProcessManager] Entity settings found, but no detection callback is set.');
@@ -153,7 +144,7 @@ export class AutoProcessManager {
 
             this.processingStatus.set(fileKey, {
                 status: 'completed',
-                startTime: this.processingStatus.get(fileKey)?.startTime || Date.now(),
+                startTime: this.processingStatus.get(fileKey)?.startTime ?? Date.now(),
                 endTime: Date.now()
             });
 
@@ -176,12 +167,13 @@ export class AutoProcessManager {
             this.processingStatus.set(fileKey, {
                 status: 'failed',
                 error: error.message || 'Unknown error',
-                startTime: this.processingStatus.get(fileKey)?.startTime || Date.now(),
+                startTime: this.processingStatus.get(fileKey)?.startTime ?? Date.now(),
                 endTime: Date.now()
             });
             return false;
         } finally {
             this.processingQueue.delete(fileKey);
+            this.processingStatus.delete(fileKey);
             // Optionally clear completed/failed status after a delay
             setTimeout(() => {
                 const status = this.processingStatus.get(fileKey);
@@ -212,7 +204,12 @@ export class AutoProcessManager {
             }
             return !shouldSkip;
         });
-
+        // check if there is lefover highlight saved for files
+        filesToProcess.forEach(file => {
+            const fileKey = getFileKey(file);
+            EntityHighlightManager.resetProcessedEntitiesForFile(fileKey);
+            SearchHighlightManager.resetProcessedDataForFile(fileKey);
+        });
 
         if (filesToProcess.length === 0) {
             console.log("[AutoProcessManager] No files left to process in batch after filtering.");
@@ -223,7 +220,8 @@ export class AutoProcessManager {
         const hasEntitySettings = (
             this.config.presidioEntities.length > 0 ||
             this.config.glinerEntities.length > 0 ||
-            this.config.geminiEntities.length > 0
+            this.config.geminiEntities.length > 0 ||
+            this.config.hidemeEntities.length > 0
         );
 
         if (hasEntitySettings && this._detectEntitiesCallback) {
@@ -239,10 +237,9 @@ export class AutoProcessManager {
 
                 filesToProcess.forEach(file => {
                     const fileKey = getFileKey(file);
-                    sessionStorage.setItem(`auto-processed-${fileKey}`, 'true');
                     this.processingStatus.set(fileKey, {
                         status: 'completed', // Mark as completed for entity part
-                        startTime: this.processingStatus.get(fileKey)?.startTime || Date.now(),
+                        startTime: this.processingStatus.get(fileKey)?.startTime ?? Date.now(),
                         endTime: Date.now()
                     });
                 });
@@ -254,7 +251,7 @@ export class AutoProcessManager {
                     this.processingStatus.set(fileKey, {
                         status: 'failed',
                         error: (error as Error).message || 'Entity detection failed',
-                        startTime: this.processingStatus.get(fileKey)?.startTime || Date.now(),
+                        startTime: this.processingStatus.get(fileKey)?.startTime ?? Date.now(),
                         endTime: Date.now()
                     });
                 });
@@ -291,7 +288,7 @@ export class AutoProcessManager {
                     this.processingStatus.set(fileKey, {
                         status: 'failed',
                         error: (error as Error).message || 'Search failed',
-                        startTime: this.processingStatus.get(fileKey)?.startTime || Date.now(),
+                        startTime: this.processingStatus.get(fileKey)?.startTime ?? Date.now(),
                         endTime: Date.now()
                     });
                 });
@@ -341,22 +338,15 @@ export class AutoProcessManager {
                 .filter(Boolean),
             gemini: this.config.geminiEntities.map(e => typeof e === 'object' ? (e.value || '') : e)
                 .filter(Boolean),
+            hideme: this.config.hidemeEntities.map(e => typeof e === 'object' ? (e.value || '') : e)
+                .filter(Boolean),
             // Add detection threshold if configured (value between 0.0 and 1.0)
-            threshold: this.config.detectionThreshold !== undefined ? 
+            threshold: this.config.detectionThreshold !== undefined ?
                 Math.max(0, Math.min(1, this.config.detectionThreshold)) : undefined,
             // Add banlist words if enabled
             banlist: this.config.useBanlist && this.config.banlistWords ? this.config.banlistWords : undefined
         };
-        
-        // Log detailed options for debugging
-        console.log(`[AutoProcessManager] Detection options for file ${file.name}:`, {
-            presidioEntities: options.presidio.length,
-            glinerEntities: options.gliner.length,
-            geminiEntities: options.gemini.length,
-            threshold: options.threshold !== undefined ? options.threshold : 'default (0.5)',
-            useBanlist: options.banlist !== undefined ? true : false,
-            banlistWordCount: options.banlist ? options.banlist.length : 0
-        });
+
 
         try {
             // Run detection and get results
@@ -369,9 +359,9 @@ export class AutoProcessManager {
 
                 // Add a processing ID and timestamp to track this specific detection run
                 const processRunId = uuidv4();
-                (mappingToSet as any).processRunId = processRunId;
-                (mappingToSet as any).processTimestamp = Date.now();
-                (mappingToSet as any).fileKey = fileKey;
+                (mappingToSet).processRunId = processRunId;
+                (mappingToSet).processTimestamp = Date.now();
+                (mappingToSet).fileKey = fileKey;
 
                 console.log(`[AutoProcessManager] Got detection results for file ${file.name}, applying to context (run ID: ${processRunId})`);
 
@@ -380,8 +370,6 @@ export class AutoProcessManager {
                     window.removeFileHighlightTracking(fileKey);
                 }
 
-                // Mark this file as auto-processed in session storage for special handling
-                sessionStorage.setItem(`auto-processed-${fileKey}`, 'true');
 
                 // Dispatch event to store the mapping
                 window.dispatchEvent(new CustomEvent('apply-detection-mapping', {
@@ -434,23 +422,14 @@ export class AutoProcessManager {
                 .filter(Boolean),
             gemini: this.config.geminiEntities.map(e => typeof e === 'object' ? (e.value  || '') : e)
                 .filter(Boolean),
+            hideme: this.config.hidemeEntities.map(e => typeof e === 'object' ? (e.value  || '') : e)
+                .filter(Boolean),
             // Add detection threshold if configured (value between 0.0 and 1.0)
-            threshold: this.config.detectionThreshold !== undefined ? 
+            threshold: this.config.detectionThreshold !== undefined ?
                 Math.max(0, Math.min(1, this.config.detectionThreshold)) : undefined,
             // Add banlist words if enabled
             banlist: this.config.useBanlist && this.config.banlistWords ? this.config.banlistWords : undefined
         };
-
-        // Log entity counts for debugging
-        console.log('[AutoProcessManager] Using entity values for batch detection:', {
-            presidioCount: options.presidio.length,
-            glinerCount: options.gliner.length,
-            geminiCount: options.gemini.length,
-            fileCount: files.length,
-            threshold: options.threshold !== undefined ? options.threshold : 'default (0.5)',
-            useBanlist: options.banlist !== undefined ? true : false,
-            banlistWordCount: options.banlist ? options.banlist.length : 0
-        });
 
         try {
             // Run detection and get results

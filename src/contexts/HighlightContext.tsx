@@ -13,19 +13,19 @@ interface HighlightContextProps {
     addAnnotation: (page: number, ann: HighlightRect, fileKey?: string) => void;
     removeAnnotation: (page: number, id: string, fileKey?: string) => void;
     updateAnnotation: (page: number, updatedAnn: HighlightRect, fileKey?: string) => void;
-    
+
     // Batch operations
     clearAnnotations: (fileKey?: string) => void;
     clearAnnotationsByType: (type: HighlightType, pageNumber?: number, fileKey?: string) => void;
     clearAnnotationsForFile: (fileKey: string) => void;
-    
+
     // Highlight ID generation
     getNextHighlightId: (prefix?: string) => string;
-    
+
     // Selection state
     selectedAnnotation: HighlightRect | null;
     setSelectedAnnotation: React.Dispatch<React.SetStateAction<HighlightRect | null>>;
-    
+
     // Visibility toggles
     showSearchHighlights: boolean;
     setShowSearchHighlights: React.Dispatch<React.SetStateAction<boolean>>;
@@ -33,22 +33,22 @@ interface HighlightContextProps {
     setShowEntityHighlights: React.Dispatch<React.SetStateAction<boolean>>;
     showManualHighlights: boolean;
     setShowManualHighlights: React.Dispatch<React.SetStateAction<boolean>>;
-    
+
     // Import/Export
     exportAnnotations: (fileKey?: string) => string;
     importAnnotations: (data: string, fileKey?: string) => boolean;
-    
+
     // Collection access
     getAllFileAnnotations: () => FileAnnotationsMap;
     getFileAnnotations: (fileKey: string) => Map<number, HighlightRect[]> | undefined;
-    
+
     // Entity processing
     resetProcessedEntityPages: () => void;
-    
+
     // Text search operations
     deleteHighlightsByText: (text: string, fileKey?: string) => number;
     findHighlightsByText: (text: string, fileKey?: string) => HighlightRect[];
-    
+
     // Async variants for performance-critical operations
     deleteHighlightsByTextAsync: (text: string, fileKey?: string) => Promise<number>;
     findHighlightsByTextAsync: (text: string, fileKey?: string) => Promise<HighlightRect[]>;
@@ -91,38 +91,38 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
         const loadHighlights = async () => {
             try {
                 console.log(`[HighlightContext] Loading highlights from storage...`);
-                
+
                 // Import all data from highlightManager (which includes both localStorage and IndexedDB)
                 const allHighlights = await highlightManager.exportHighlights();
-                
+
                 if (allHighlights.length > 0) {
                     console.log(`[HighlightContext] Processing ${allHighlights.length} highlights from storage`);
-                    
+
                     // Group highlights by fileKey and page number
                     const newFileAnnotations = new Map<string, Map<number, HighlightRect[]>>();
-    
+
                     allHighlights.forEach(highlight => {
                         const fileKey = highlight.fileKey ?? '_default';
                         const page = highlight.page;
-    
+
                         // Get or create file map
                         let fileMap = newFileAnnotations.get(fileKey);
                         if (!fileMap) {
                             fileMap = new Map<number, HighlightRect[]>();
                             newFileAnnotations.set(fileKey, fileMap);
                         }
-    
+
                         // Get or create page highlights
                         let pageHighlights = fileMap.get(page) || [];
-    
+
                         // Add highlight to page
                         pageHighlights = [...pageHighlights, highlight];
                         fileMap.set(page, pageHighlights);
                     });
-    
+
                     setFileAnnotations(newFileAnnotations);
                     console.log(`[HighlightContext] Loaded ${allHighlights.length} highlights from storage`);
-                    
+
                     // Log file highlight counts for debugging
                     newFileAnnotations.forEach((fileMap, fileKey) => {
                         let count = 0;
@@ -134,15 +134,15 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
                 } else {
                     console.log('[HighlightContext] No highlights found in storage');
                 }
-                
+
                 // Listen for highlight load events from storage
                 const handleHighlightsLoaded = (event: Event) => {
                     const customEvent = event as CustomEvent;
                     const { fileKey, count } = customEvent.detail || {};
-                    
+
                     if (fileKey && count > 0) {
                         console.log(`[HighlightContext] Received highlights-loaded event for ${fileKey} with ${count} highlights`);
-                        
+
                         // Refresh highlights for this file from highlightManager
                         highlightManager.exportHighlights(fileKey)
                             .then(fileHighlights => {
@@ -150,10 +150,10 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
                                 if (fileHighlights.length > 0) {
                                     setFileAnnotations(prev => {
                                         const newFileAnnotations = new Map(prev);
-                                        
+
                                         // Create a new file map for this fileKey
                                         const fileMap = new Map<number, HighlightRect[]>();
-                                        
+
                                         // Group highlights by page
                                         fileHighlights.forEach(highlight => {
                                             const page = highlight.page;
@@ -161,13 +161,13 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
                                             pageHighlights = [...pageHighlights, highlight];
                                             fileMap.set(page, pageHighlights);
                                         });
-                                        
+
                                         // Update the file entry
                                         newFileAnnotations.set(fileKey, fileMap);
-                                        
+
                                         return newFileAnnotations;
                                     });
-                                    
+
                                     console.log(`[HighlightContext] Updated in-memory state with ${fileHighlights.length} highlights for ${fileKey}`);
                                 }
                             })
@@ -176,10 +176,10 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
                             });
                     }
                 };
-                
+
                 // Listen for highlight loading events
                 window.addEventListener('file-highlights-loaded', handleHighlightsLoaded);
-                
+
                 // Clean up event listener
                 return () => {
                     window.removeEventListener('file-highlights-loaded', handleHighlightsLoaded);
@@ -188,7 +188,7 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
                 console.error('[HighlightContext] Error loading highlights:', error);
             }
         };
-        
+
         loadHighlights();
     }, []);
 
@@ -523,23 +523,23 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
 
         // This is a synchronous method for backward compatibility
         // It returns a JSON string of the current in-memory highlights
-        
+
         // Start the async export in the background to update cache
         highlightManager.exportHighlights(targetFileKey)
             .catch(error => {
                 console.error('[HighlightContext] Error in background export:', error);
             });
-        
+
         // Get highlights from our in-memory state
         const highlights: HighlightRect[] = [];
         const fileMap = fileAnnotations.get(targetFileKey);
-        
+
         if (fileMap) {
             fileMap.forEach(pageHighlights => {
                 highlights.push(...pageHighlights);
             });
         }
-        
+
         return JSON.stringify(highlights);
     }, [getCurrentFileKey, fileAnnotations]);
 
@@ -596,73 +596,71 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
     // Async version - for new code
     const deleteHighlightsByTextAsync = useCallback(async (text: string, fileKey?: string): Promise<number> => {
         const targetFileKey = fileKey ?? getCurrentFileKey();
-        const highlightsToDelete = await highlightManager.findHighlightsByText(text, targetFileKey);
+        const highlightsToDelete =  highlightManager.findHighlightsByText(text, targetFileKey);
 
         // Remove all matching highlights
         let count = 0;
         for (const highlight of highlightsToDelete) {
-            await removeAnnotation(highlight.page, highlight.id, highlight.fileKey);
+            removeAnnotation(highlight.page, highlight.id, highlight.fileKey);
             count++;
         }
 
         return count;
     }, [getCurrentFileKey, removeAnnotation]);
-    
+
     // Synchronous backward compatibility wrapper
     const deleteHighlightsByText = useCallback((text: string, fileKey?: string): number => {
         const targetFileKey = fileKey ?? getCurrentFileKey();
-        
+
         // Start the async operation in the background
         deleteHighlightsByTextAsync(text, targetFileKey)
             .catch(error => {
                 console.error('[HighlightContext] Error in background delete:', error);
             });
-        
+
         // Return a best guess count from in-memory data
         const normalizedText = text.toLowerCase().trim();
         let count = 0;
-        
+
         fileAnnotations.forEach((fileMap, fileK) => {
             if (targetFileKey && fileK !== targetFileKey) return;
-            
+
             fileMap.forEach((pageAnnotations, page) => {
-                const toRemove: string[] = [];
-                
+
                 pageAnnotations.forEach(ann => {
                     const highlightText = ann.text?.toLowerCase().trim() || '';
                     if (highlightText === normalizedText) {
-                        toRemove.push(ann.id);
                         count++;
                     }
                 });
             });
         });
-        
+
         return count;
     }, [getCurrentFileKey, deleteHighlightsByTextAsync, fileAnnotations]);
 
-    // Async version - for new code 
+    // Async version - for new code
     const findHighlightsByTextAsync = useCallback(async (text: string, fileKey?: string): Promise<HighlightRect[]> => {
         const targetFileKey = fileKey ?? getCurrentFileKey();
-        return await highlightManager.findHighlightsByText(text, targetFileKey);
+        return highlightManager.findHighlightsByText(text, targetFileKey);
     }, [getCurrentFileKey]);
-    
+
     // Synchronous backward compatibility wrapper
     const findHighlightsByText = useCallback((text: string, fileKey?: string): HighlightRect[] => {
         const targetFileKey = fileKey ?? getCurrentFileKey();
         // This is a synchronous version that returns an empty array immediately
         // The actual async search will happen in the background
-        
+
         // Start the asynchronous operation to update cache in the background
         highlightManager.findHighlightsByText(text, targetFileKey)
-        
+
         // Return a best-effort result from in-memory data
         const results: HighlightRect[] = [];
         const normalizedText = text.toLowerCase().trim();
-        
+
         fileAnnotations.forEach((fileMap, fileK) => {
             if (targetFileKey && fileK !== targetFileKey) return;
-            
+
             fileMap.forEach(pageAnnotations => {
                 pageAnnotations.forEach(ann => {
                     const highlightText = ann.text?.toLowerCase().trim() || '';
@@ -672,29 +670,9 @@ export const HighlightProvider: React.FC<{ children: React.ReactNode }> = ({chil
                 });
             });
         });
-        
+
         return results;
     }, [getCurrentFileKey, fileAnnotations]);
-
-    // Persist annotations in localStorage when they change
-    useEffect(() => {
-        try {
-            // Convert the Map to a serializable format
-            const serialized: Record<string, Record<string, HighlightRect[]>> = {};
-
-            for (const [fileKey, fileMap] of fileAnnotations.entries()) {
-                serialized[fileKey] = {};
-
-                for (const [page, annotations] of fileMap.entries()) {
-                    serialized[fileKey][page.toString()] = annotations;
-                }
-            }
-
-            localStorage.setItem('pdf-annotations', JSON.stringify(serialized));
-        } catch (error) {
-            console.error('Error saving annotations:', error);
-        }
-    }, [fileAnnotations]);
 
     return (
         <HighlightContext.Provider

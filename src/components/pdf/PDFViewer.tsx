@@ -10,7 +10,7 @@ import { getFileKey } from '../../contexts/PDFViewerContext';
 
 /**
  * PDFViewer component
- * 
+ *
  * Main component that coordinates PDF viewing functionalities:
  * - File upload handling
  * - Processing status display
@@ -22,7 +22,7 @@ import { getFileKey } from '../../contexts/PDFViewerContext';
  * rather than implementing all functionality directly.
  */
 const PDFViewer: React.FC = () => {
-    const { addFiles, currentFile } = useFileContext();
+    const { addFiles, currentFile , files} = useFileContext();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     // Handle clicking the add files button
@@ -34,7 +34,7 @@ const PDFViewer: React.FC = () => {
     const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const newFiles = Array.from(e.target.files);
-            
+
             // Add the files without replacing existing ones
             addFiles(newFiles, false);
         }
@@ -60,11 +60,11 @@ const PDFViewer: React.FC = () => {
                         onChange={handleFileUpload}
                         style={{ display: 'none' }}
                         multiple
-                        aria-hidden="true"
+                        max={ 20 - files.length}
                     />
                 </>
             )}
-            
+
             {/* Processing status indicator */}
             <ProcessingStatus />
 

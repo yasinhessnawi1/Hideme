@@ -4,7 +4,7 @@ import { FileProvider } from './contexts/FileContext';
 import { PDFViewerProvider } from './contexts/PDFViewerContext';
 import { EditProvider } from './contexts/EditContext';
 import { HighlightProvider } from './contexts/HighlightContext';
-import { UserContextProvider } from './contexts/UserContext';
+import UserContextProvider  from './contexts/UserContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ErrorBoundary from "./contexts/ErrorBoundary";
 import {BatchSearchProvider} from "./contexts/SearchContext";

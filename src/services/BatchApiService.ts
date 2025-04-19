@@ -23,56 +23,93 @@ export const batchHybridDetect = async (
         presidio?: string[] | null;
         gliner?: string[] | null;
         gemini?: string[] | null;
+        hideme?: string[] | null;
         threshold?: number;
         banlist?: string[] | null;
     } = {}
 ): Promise<Record<string, any>> => {
     try {
         const formData = new FormData();
-        let requested_entities  = new Array<string>();
+        const entitySet = new Set<string>(); // Use a Set to prevent duplicates
+
         // Append all files to the formData
         files.forEach(file => {
             formData.append('files', file, file.name);
         });
 
-        // Add entity options for each model
-        if (options.presidio && Array.isArray(options.presidio) && options.presidio.length > 0) {
-            options.presidio.forEach(
-                entity => requested_entities.push(entity)
-            );
-            formData.append('use_presidio', "True")
-        }else{
-            formData.append('use_presidio', "False")
+        // Create helper function to check arrays properly
+        const hasValidEntities = (arr: any[] | null | undefined): boolean => {
+            return Array.isArray(arr) && arr.length > 0 && arr.some(item => !!item);
+        };
+
+        // Process engine options and entity lists
+        // Presidio entities
+        const hasPresidio = hasValidEntities(options.presidio);
+        formData.append('use_presidio', hasPresidio ? "True" : "False");
+
+        if (hasPresidio) {
+            options.presidio!.forEach(entity => {
+                if (entity) entitySet.add(entity);
+            });
         }
 
-        if (options.gliner && Array.isArray(options.gliner) && options.gliner.length > 0) {
-            options.gliner.forEach(
-                entity => requested_entities.push(entity)
-            );
-            formData.append('use_gliner', "True")
+        // Gliner entities
+        const hasGliner = hasValidEntities(options.gliner);
+        formData.append('use_gliner', hasGliner ? "True" : "False");
 
+        if (hasGliner) {
+            options.gliner!.forEach(entity => {
+                if (entity) entitySet.add(entity);
+            });
         }
 
-        if (options.gemini && Array.isArray(options.gemini) && options.gemini.length > 0) {
-            options.gemini.forEach(
-                entity => requested_entities.push(entity)
-            );
-            formData.append('use_gemini', "True")
+        // Gemini entities
+        const hasGemini = hasValidEntities(options.gemini);
+        formData.append('use_gemini', hasGemini ? "True" : "False");
 
+        if (hasGemini) {
+            options.gemini!.forEach(entity => {
+                if (entity) entitySet.add(entity);
+            });
         }
+
+        // Hide me AI entities
+        const hasHideme = hasValidEntities(options.hideme);
+        formData.append('use_hideme', hasHideme ? "True" : "False");
+
+        if (hasHideme) {
+            options.hideme!.forEach(entity => {
+                if (entity) entitySet.add(entity);
+            });
+        }
+
+        // Convert Set to Array for the requested entities
+        const requestedEntities = Array.from(entitySet);
+
         // Add the requested entities to the form data
-        formData.append('requested_entities', JSON.stringify(requested_entities));
+        formData.append('requested_entities', JSON.stringify(requestedEntities));
 
         // Add detection threshold if provided (value between 0.0 and 1.0)
         if (options.threshold !== undefined) {
             const threshold = Math.max(0, Math.min(1, options.threshold)); // Clamp between 0 and 1
             formData.append('detection_threshold', threshold.toString());
         }
-        console.table(options.banlist)
+
         // Add banlist words if provided
         if (options.banlist && Array.isArray(options.banlist) && options.banlist.length > 0) {
             formData.append('remove_words', JSON.stringify(options.banlist));
         }
+
+        // Log the request for debugging
+        console.log('[BatchApiService] Sending entity detection request:', {
+            files: files.length,
+            use_presidio: hasPresidio,
+            use_gliner: hasGliner,
+            use_gemini: hasGemini,
+            use_hideme: hasHideme,
+            requestedEntities,
+            threshold: options.threshold
+        });
 
         const result = await apiRequest<any>({
             method: 'POST',
@@ -185,7 +222,7 @@ async function processRedactionZip(zipBlob: Blob, originalFiles: File[]): Promis
             }
 
             // Get the file name from the path
-            const fileName = zipPath.split('/').pop() || '';
+            const fileName = zipPath.split('/').pop() ?? '';
 
             // Check if this is a PDF file
             if (!fileName.toLowerCase().endsWith('.pdf')) {

@@ -4,8 +4,8 @@ import { autoProcessManager } from '../utils/AutoProcessManager';
 import pdfStorageService from '../services/PDFStorageService';
 import { pdfjs } from 'react-pdf';
 import { cleanupFileHighlights } from '../utils/highlightUtils';
-import useUser from "../hooks/userHook";
 import { StorageStats } from '../types/pdfTypes';
+import useSettings from "../hooks/settings/useSettings";
 
 // Ensure PDF.js worker is loaded
 const loadPdfWorker = () => {
@@ -104,8 +104,8 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Ref to track storage loading attempts
     const storageLoadAttempted = useRef<boolean>(false);
-    const { settings, isLoading: userSettingsLoading } = useUser();
-    const isAutoProcessingActuallyEnabled = settings?.auto_processing ?? false; // Default to false if no settings
+    const { settings, isLoading: userSettingsLoading } = useSettings();
+    const isAutoProcessingActuallyEnabled = settings?.auto_processing ?? true; // Default to false if no settings
     // Initialize PDF.js worker first
     useEffect(() => {
         const initializeWorker = async () => {
@@ -457,16 +457,16 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         forceProcess: true
                     }
                 }));
-                
+
                 // Also preload any existing highlights for this file from persistent storage
                 import('../utils/highlightUtils')
                     .then(({ preloadFileHighlights }) => {
                         console.log(`[FileContext] Preloading highlights for new file: ${fileKey}`);
-                        
+
                         preloadFileHighlights(fileKey)
                             .then(highlightCount => {
                                 console.log(`[FileContext] Successfully preloaded ${highlightCount} highlights for file: ${fileKey}`);
-                                
+
                                 // If there are highlights, dispatch an event to notify components
                                 if (highlightCount > 0) {
                                     window.dispatchEvent(new CustomEvent('file-highlights-available', {
@@ -577,9 +577,15 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Queue new files for auto-processing with current settings
             if (!userSettingsLoading && isAutoProcessingActuallyEnabled && uniqueNewFiles.length > 0) {
-                processingQueue.current.push(...uniqueNewFiles);
+                // Avoid duplicates in the queue
+                const existingFileKeys = new Set(processingQueue.current.map(file => getFileKey(file)));
+                const uniqueFiles = uniqueNewFiles.filter(file => {
+                    const fileKey = getFileKey(file);
+                    return !existingFileKeys.has(fileKey);
+                });
+                processingQueue.current.push(...uniqueFiles);
                 setQueueTrigger(prev => prev + 1);
-                console.log(`[FileContext] Queued ${uniqueNewFiles.length} new files for auto-processing (User Setting Enabled)`);
+                console.log(`[FileContext] Queued ${uniqueFiles.length} new files for auto-processing (User Setting Enabled)`);
             } else {
                 console.log(`[FileContext] Auto-processing disabled (User Setting: ${settings?.auto_processing}), skipping queue for new files`);
             }

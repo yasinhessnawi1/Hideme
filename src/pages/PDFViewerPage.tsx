@@ -1,10 +1,4 @@
 import React, {useEffect, useRef, useState} from "react"
-import {FileProvider} from "../contexts/FileContext"
-import {PDFViewerProvider} from "../contexts/PDFViewerContext"
-import {EditProvider} from "../contexts/EditContext"
-import {HighlightProvider} from "../contexts/HighlightContext"
-import {BatchSearchProvider} from "../contexts/SearchContext"
-import AutoProcessProvider from "../contexts/AutoProcessProvider"
 import PDFViewer from "../components/pdf/PDFViewer"
 import TabbedSidebar from "../components/pdf/pdf_component/TabbedSidebar"
 import Toolbar from "../components/pdf/pdf_component/Toolbar"
@@ -13,13 +7,9 @@ import EntityDetectionSidebar from "../components/pdf/pdf_component/EntityDetect
 import RedactionSidebar from "../components/pdf/pdf_component/RadactionSidebar"
 import Navbar from "../components/static/Navbar"
 import '../styles/modules/pdf/PDFViewerPage.css'
-import {ThemeProvider} from "../contexts/ThemeContext"
-import {UserContextProvider} from "../contexts/UserContext";
-import ErrorBoundary from "../contexts/ErrorBoundary";
 
 const PDFViewerPageContent: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'detection' | 'search' | 'redact'>('detection')
-
     // Left sidebar state with hover functionality
     const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(true)
     const [isHoveringOnLeftSidebar, setIsHoveringOnLeftSidebar] = useState(false)
@@ -91,6 +81,7 @@ const PDFViewerPageContent: React.FC = () => {
             }
         }
     }, [isLeftSidebarCollapsed]);
+
 
     return (
         <>
@@ -174,26 +165,8 @@ const PDFViewerPageContent: React.FC = () => {
 const PDFViewerPage = () => {
     return (
         <div className={`pdf-viewer-page `}>
-            <ErrorBoundary>
-                <UserContextProvider>
-                    <ThemeProvider>
-                        <Navbar/>
-                        <FileProvider>
-                            <PDFViewerProvider>
-                                <HighlightProvider>
-                                    <EditProvider>
-                                        <BatchSearchProvider>
-                                            <AutoProcessProvider>
-                                                <PDFViewerPageContent/>
-                                            </AutoProcessProvider>
-                                        </BatchSearchProvider>
-                                    </EditProvider>
-                                </HighlightProvider>
-                            </PDFViewerProvider>
-                        </FileProvider>
-                    </ThemeProvider>
-                </UserContextProvider>
-            </ErrorBoundary>
+            <Navbar/>
+            <PDFViewerPageContent/>
         </div>
     );
 };

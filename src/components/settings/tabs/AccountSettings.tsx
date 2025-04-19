@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Save, User, AlertCircle, Loader2 } from "lucide-react";
-import { useUser } from "../../../hooks/userHook"; // Adjust path if needed
+import useUserProfile from "../../../hooks/auth/useUserProfile"; // Adjust path if needed
 
 export default function AccountSettings() {
     const {
@@ -11,7 +11,8 @@ export default function AccountSettings() {
         isLoading: isUserLoading,
         error: userError,
         clearError: clearUserError
-    } = useUser();
+    } = useUserProfile();
+
 
     // Profile Info State
     const [name, setName] = useState("");
@@ -46,7 +47,7 @@ export default function AccountSettings() {
             if (nameParts.length < 2) {
                 setName(user.username);
             } else {
-                setName(nameParts[0] || user.username);
+                setName(nameParts[0] || user. username);
                 setSurname(nameParts.slice(1).join(' ') || '');
             }
 
@@ -284,6 +285,8 @@ export default function AccountSettings() {
                         <input
                             className="form-input"
                             id="currentPassword"
+                            autoComplete={"off"}
+                            aria-autocomplete={"none"}
                             type="password"
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}

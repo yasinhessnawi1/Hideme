@@ -2,26 +2,31 @@
 
 import {useEffect, useCallback, useState} from 'react';
 import { autoProcessManager } from '../utils/AutoProcessManager';
-import { useEditContext } from '../contexts/EditContext';
 import { useBatchSearch } from '../contexts/SearchContext';
 import { usePDFApi } from './usePDFApi';
-import { useUser } from './userHook'; // Import useUser
-import { SearchPattern, ModelEntity } from '../services/settingsService'; // Import types
+import { SearchPattern } from '../types';
+import useSettings from "./settings/useSettings";
+import useSearchPatterns from "./settings/useSearchPatterns";
+import useEntityDefinitions from "./settings/useEntityDefinitions";
+import useAuth from "./auth/useAuth";
+import useBanList from "./settings/useBanList"; // Import types
 
 export const useAutoProcess = () => {
     const {
-        settings,
-        searchPatterns,
-        modelEntities, // This holds Record<number, ModelEntity[]>
         isAuthenticated,
         isLoading: userLoading,
-        getModelEntities
-    } = useUser();
+    } = useAuth();
+
+    const {settings } = useSettings();
+    const {searchPatterns, isLoading: isSearchPattrenLoading} = useSearchPatterns();
+    const {modelEntities, getModelEntities, isLoading: isModelEntitiesLoading} = useEntityDefinitions();
+    const {banList} = useBanList();
     // Track if we've fetched model entities
     const [entitiesFetched, setEntitiesFetched] = useState({
         presidio: false,
         gliner: false,
-        gemini: false
+        gemini: false,
+        hideme: false
     });
     const {
         batchSearch
@@ -73,17 +78,25 @@ export const useAutoProcess = () => {
                     .then(() => setEntitiesFetched(prev => ({ ...prev, gemini: true })))
                     .catch(err => console.error('[useAutoProcess] Error fetching Gemini entities:', err));
             }
+            // Fetch Hide me AI entities if not already fetched
+            if (!entitiesFetched.hideme && (!modelEntities[4] || !Array.isArray(modelEntities[4]))) {
+                console.log('[useAutoProcess] Fetching Hide me AI entities (Method ID: 4)');
+                getModelEntities(4)
+                    .then(() => setEntitiesFetched(prev => ({ ...prev, hideme: true })))
+                    .catch(err => console.error('[useAutoProcess] Error fetching Hide me AI entities:', err));
+            }
         }
     }, [isAuthenticated, userLoading, settings, modelEntities, getModelEntities, entitiesFetched]);
 
     // Update configuration when entity detection settings change
     useEffect(() => {
-        if (userLoading || !isAuthenticated || !settings) {
+        if (userLoading  || !settings) {
             console.log('[useAutoProcess] User not authenticated or settings loading, using default config.');
             autoProcessManager.updateConfig({
                 presidioEntities: [],
                 glinerEntities: [],
                 geminiEntities: [],
+                hidemeEntities: [],
                 searchQueries: [],
                 isActive: true // Default to inactive if no settings
             });
@@ -120,48 +133,24 @@ export const useAutoProcess = () => {
         const presidioEntities = createEntityList(modelEntities[1]);
         const glinerEntities = createEntityList(modelEntities[2]);
         const geminiEntities = createEntityList(modelEntities[3]);
-
-        // Log the derived config with counts for debugging
-        console.log('[useAutoProcess] Updating AutoProcessManager config from User Settings:', {
-            presidioEntities: `${presidioEntities.length} entities`,
-            presidioValues: presidioEntities.map(e => e.value),
-            glinerEntities: `${glinerEntities.length} entities`,
-            glinerValues: glinerEntities.map(e => e.value),
-            geminiEntities: `${geminiEntities.length} entities`,
-            geminiValues: geminiEntities.map(e => e.value),
-            searchQueries: `${formattedSearchQueries.length} queries`,
-            searchTerms: formattedSearchQueries.map(q => q.term),
-            isActive: settings.auto_processing ?? false
-        });
-
-        // For troubleshooting, log the raw model entities object
-        console.log('[useAutoProcess] Raw modelEntities object:', {
-            hasPresidio: !!modelEntities[1],
-            presidioIsArray: Array.isArray(modelEntities[1]),
-            presidioLength: Array.isArray(modelEntities[1]) ? modelEntities[1].length : 'not an array',
-            hasGliner: !!modelEntities[2],
-            glinerIsArray: Array.isArray(modelEntities[2]),
-            glinerLength: Array.isArray(modelEntities[2]) ? modelEntities[2].length : 'not an array',
-            hasGemini: !!modelEntities[3],
-            geminiIsArray: Array.isArray(modelEntities[3]),
-            geminiLength: Array.isArray(modelEntities[3]) ? modelEntities[3].length : 'not an array',
-        });
+        const hidemeEntities = createEntityList(modelEntities[4]);
 
         // Extract threshold and banlist settings from user settings
         const detectionThreshold = settings.detection_threshold ?? 0.5; // Default to 0.5 if not set
-        const useBanlist = settings.use_banlist_for_detection ?? false; // Default to false if not set
-        
+        const useBanlist = settings.use_banlist_for_detection ?? true; // Default to false if not set
+
         // Get ban list words if enabled
-        const banlistWords = useBanlist && settings.banList && 
-                            settings.banList.words && 
-                            Array.isArray(settings.banList.words) 
-                            ? settings.banList.words : [];
-        
+        const banlistWords = useBanlist &&
+                            banList?.words &&
+                            Array.isArray(banList.words)
+                            ? banList.words : [];
+
         // 3. Update AutoProcessManager Config with threshold and banlist
         autoProcessManager.updateConfig({
             presidioEntities,
             glinerEntities,
             geminiEntities,
+            hidemeEntities,
             searchQueries: formattedSearchQueries,
             isActive: settings.auto_processing ?? true, // Use fetched setting
             detectionThreshold: detectionThreshold, // Add detection threshold
