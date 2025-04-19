@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Save, ChevronDown, ChevronUp, AlertTriangle, Database, HardDrive, Trash2, Loader2, Sliders } from "lucide-react";
-import { useUser } from "../../../hooks/userHook"; // Adjust path if needed
 import { useFileContext } from "../../../contexts/FileContext"; // Adjust path if needed
 import { useAutoProcess } from "../../../hooks/useAutoProcess"; // Adjust path if needed
 import { ThemePreference } from "../../../hooks/useTheme";
-import { useThemeContext } from "../../../contexts/ThemeContext"; // Adjust path if needed
+import { useThemeContext } from "../../../contexts/ThemeContext";
+import useSettings from "../../../hooks/settings/useSettings"; // Adjust path if needed
 
 export default function GeneralSettings() {
-    const { settings, updateSettings, isLoading: isUserLoading, error: userError, clearError: clearUserError } = useUser();
+    const { settings, updateSettings, isLoading: isUserLoading, error: userError, clearError: clearUserError } = useSettings();
     const {
         isStoragePersistenceEnabled,
         setStoragePersistenceEnabled,
@@ -24,13 +24,13 @@ export default function GeneralSettings() {
         return autoProcessConfig.isActive ?? true;
     });
     const [isStorageEnabled, setIsStorageEnabled] = useState(isStoragePersistenceEnabled);
-    
+
     // Default threshold value: 0.5 (50%)
     const [detectionThreshold, setDetectionThreshold] = useState<number>(() => {
         if (settings?.detection_threshold !== undefined) return settings.detection_threshold;
         return 0.5; // Default threshold
     });
-    
+
     // Ban list usage setting
     const [useBanlist, setUseBanlist] = useState<boolean>(() => {
         if (settings?.use_banlist_for_detection !== undefined) return settings.use_banlist_for_detection;
@@ -52,13 +52,13 @@ export default function GeneralSettings() {
                 console.log("[GeneralSettings] Syncing isAutoProcessing from settings:", settings.auto_processing);
                 setIsAutoProcessing(settings.auto_processing);
             }
-            
+
             // Sync detection threshold from settings
             if (settings.detection_threshold !== undefined && settings.detection_threshold !== detectionThreshold) {
                 console.log("[GeneralSettings] Syncing detectionThreshold from settings:", settings.detection_threshold);
                 setDetectionThreshold(settings.detection_threshold);
             }
-            
+
             // Sync ban list usage setting from settings
             if (settings.use_banlist_for_detection !== undefined && settings.use_banlist_for_detection !== useBanlist) {
                 console.log("[GeneralSettings] Syncing useBanlist from settings:", settings.use_banlist_for_detection);
@@ -69,7 +69,7 @@ export default function GeneralSettings() {
             console.log("[GeneralSettings] Syncing isStorageEnabled from context:", isStoragePersistenceEnabled);
             setIsStorageEnabled(isStoragePersistenceEnabled);
         }
-    }, [settings, isStoragePersistenceEnabled, detectionThreshold, useBanlist]); // Keep dependencies minimal
+    }, [settings, isStoragePersistenceEnabled]); // Keep dependencies minimal
 
     // Update storage context when local toggle changes it
     useEffect(() => {
@@ -104,8 +104,8 @@ export default function GeneralSettings() {
         setSaveError(null);
         setSaveSuccess(false);
         clearUserError();
-        console.log("[GeneralSettings] Saving changes. Theme:", currentThemePreference, 
-            "AutoProcess:", isAutoProcessing, 
+        console.log("[GeneralSettings] Saving changes. Theme:", currentThemePreference,
+            "AutoProcess:", isAutoProcessing,
             "DetectionThreshold:", detectionThreshold,
             "UseBanlist:", useBanlist);
         try {
@@ -115,10 +115,10 @@ export default function GeneralSettings() {
                 detection_threshold: detectionThreshold,
                 use_banlist_for_detection: useBanlist
             });
-            
+
             // Update auto-processing hook
             setAutoProcessHookEnabled(isAutoProcessing);
-            
+
             // Notify other components about detection settings change
             window.dispatchEvent(new CustomEvent('settings-changed', {
                 detail: {
@@ -129,7 +129,7 @@ export default function GeneralSettings() {
                     }
                 }
             }));
-            
+
             setSaveSuccess(true);
             console.log("[GeneralSettings] Save successful.");
             setTimeout(() => setSaveSuccess(false), 3000);
@@ -234,7 +234,7 @@ export default function GeneralSettings() {
                             <span className="switch-slider"></span>
                         </label>
                     </div>
-                    
+
                     {/* Detection Threshold Slider */}
                     <div className="form-group">
                         <div className="form-header-with-icon">
@@ -262,7 +262,7 @@ export default function GeneralSettings() {
                             <span className="text-xs text-muted-foreground">High</span>
                         </div>
                     </div>
-                    
+
                     {/* Ban List Usage Toggle */}
                     <div className="switch-container">
                         <div className="space-y-0.5">

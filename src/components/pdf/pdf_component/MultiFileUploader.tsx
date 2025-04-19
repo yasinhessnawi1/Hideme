@@ -13,12 +13,12 @@ const MultiFileUploader: React.FC<MultiFileUploaderProps> = ({
                                                                  buttonType = 'full'
                                                              }) => {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const { addFiles } = useFileContext();
+    const { addFiles , files} = useFileContext();
     const [dragActive, setDragActive] = useState<boolean>(false);
 
     // Handle file selection
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
+        if (e.target.files && e.target.files.length > 0 ) {
             const newFiles = Array.from(e.target.files);
             addFiles(newFiles, mode === 'replace');
         }
@@ -63,6 +63,7 @@ const MultiFileUploader: React.FC<MultiFileUploaderProps> = ({
                     onChange={handleFileUpload}
                     style={{ display: 'none' }}
                     multiple
+                    max={ 20 - files.length}
                 />
                 <button
                     className="add-file-button"
@@ -86,6 +87,7 @@ const MultiFileUploader: React.FC<MultiFileUploaderProps> = ({
                 onChange={handleFileUpload}
                 style={{ display: 'none' }}
                 multiple
+                max={ 20 - files.length}
             />
             <div
                 className={`file-upload-area ${dragActive ? 'drag-active' : ''}`}

@@ -129,15 +129,6 @@ export class EntityHighlightManager {
 
         console.log(`[EntityDebug] Reset processed entities for file ${fileMarker}`);
 
-        // Trigger a re-processing event with a slight delay to ensure UI is ready
-        // Using a simpler event with less data to reduce overhead
-        window.dispatchEvent(new CustomEvent('force-reprocess-entity-highlights', {
-            detail: {
-                fileKey: fileMarker,
-                timestamp: now,
-                source: 'entity-highlight-manager'
-            }
-        }));
 
         return true;
     }
@@ -171,9 +162,9 @@ export class EntityHighlightManager {
             console.warn(`[EntityDebug] Detection mapping belongs to file ${this.detectionMapping.fileKey} but processing for ${fileMarker}, skipping`);
             return;
         }
-        
+
         // For auto-processed files, update the fileKey to match this file if needed
-        if (isAutoProcessed && this.detectionMapping?.fileKey && 
+        if (isAutoProcessed && this.detectionMapping?.fileKey &&
             this.detectionMapping.fileKey !== fileMarker) {
             console.log(`[EntityDebug] Auto-processed file. Fixing detection mapping fileKey from ${this.detectionMapping.fileKey} to ${fileMarker}`);
             this.detectionMapping.fileKey = fileMarker;

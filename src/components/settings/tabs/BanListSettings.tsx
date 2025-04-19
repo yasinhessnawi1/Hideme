@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Save, Plus, X, AlertTriangle, Trash2, Loader2 } from "lucide-react";
-import { useUser } from "../../../hooks/userHook"; // Adjust path if needed
+import useBanList from "../../../hooks/settings/useBanList"; // Adjust path if needed
 
 export default function BanListSettings() {
     const {
@@ -11,7 +11,7 @@ export default function BanListSettings() {
         isLoading: isUserLoading,
         error: userError,
         clearError: clearUserError
-    } = useUser();
+    } = useBanList();
 
     const [localBannedWords, setLocalBannedWords] = useState<string[]>([]);
     const [newBannedWord, setNewBannedWord] = useState("");

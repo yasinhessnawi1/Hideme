@@ -1,6 +1,6 @@
 // src/components/pdf/pdf_component/AutoProcessControls.tsx
 import React, { useState } from 'react';
-import { useUser } from '../../../hooks/userHook'; // Import useUser
+import useSettings from '../../../hooks/settings/useSettings';
 import StorageSettings from './StorageSettings';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react'; // Added Loader2
 import './../../../styles/modules/pdf/AutoProcessControls.css'
@@ -10,7 +10,7 @@ import './../../../styles/modules/pdf/AutoProcessControls.css'
  */
 const AutoProcessControls: React.FC = () => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const { settings, updateSettings, isLoading: userLoading } = useUser();
+    const { settings, updateSettings, isLoading: userLoading } = useSettings(); // Use the settings hook
     const isAutoProcessingEnabled = settings?.auto_processing ?? false; // Default to false
     const [isUpdating, setIsUpdating] = useState(false); // State for update operation
     const handleToggleAutoProcess = async (e: React.ChangeEvent<HTMLInputElement>) => {

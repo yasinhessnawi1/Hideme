@@ -5,29 +5,17 @@
  * where needed. It integrates with the authentication context to determine user state
  * and handles redirects for authenticated and unauthenticated routes.
  */
-import React, {JSX} from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import React, { JSX, useEffect, useState } from 'react'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import LandingPage from '../pages/LandingPage'
 import LoginPage from '../pages/LoginPage'
 import PDFViewerPage from "../pages/PDFViewerPage";
 import HowToPage from "../pages/HowToPage";
 import FeaturesPage from "../pages/FeaturesPage";
 import AboutPage from "../pages/AboutPage";
-import UserSettingsPage from "../pages/SettingsPage"; // We'll create this page next
+import UserSettingsPage from "../pages/SettingsPage";
 import ProtectedRoute from './ProtectedRoute';
 import { useUserContext } from '../contexts/UserContext';
-
-/**
- * Props for the AppRouter component
- *
- * @interface
- * @property {string} theme - Current application theme ('light' or 'dark')
- * @property {function} toggleTheme - Function to toggle between light and dark themes
- */
-interface AppRouterProps {
-    theme: string
-    toggleTheme: () => void
-}
 
 /**
  * Main router component that defines all application routes
@@ -38,11 +26,28 @@ interface AppRouterProps {
  * - Protected routes that require authentication
  * - Fallback route for unmatched paths
  *
- * @param {AppRouterProps} props - Component properties
  * @returns {JSX.Element} The configured router component
  */
 const AppRouter = (): JSX.Element => {
-    const { isAuthenticated } = useUserContext();
+    const { isAuthenticated, isLoading } = useUserContext();
+    const [authChecked, setAuthChecked] = useState(false);
+
+    // Wait for authentication state to stabilize before rendering routes that depend on it
+    useEffect(() => {
+        if (!isLoading) {
+            setAuthChecked(true);
+        }
+    }, [isLoading]);
+
+    // Show a loading indicator until authentication check is complete
+    if (!authChecked) {
+        return (
+            <div className="loading-container">
+                <div className="loading-spinner"></div>
+                <p>Initializing application...</p>
+            </div>
+        );
+    }
 
     return (
         <Routes>
@@ -88,8 +93,8 @@ const AppRouter = (): JSX.Element => {
 
             {/* Public routes */}
             <Route path="/how-to" element={<HowToPage />} />
-            <Route path="/features" element={<FeaturesPage  />} />
-            <Route path="/about" element={<AboutPage  />} />
+            <Route path="/features" element={<FeaturesPage />} />
+            <Route path="/about" element={<AboutPage />} />
 
             {/* Fallback route */}
             <Route path="*" element={<Navigate to="/" replace />} />

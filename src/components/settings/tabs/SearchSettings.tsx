@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Save, Search, X, AlertTriangle, Trash2, Loader2 } from "lucide-react";
-import { useUser } from "../../../hooks/userHook"; // Adjust path
-import { SearchPattern, SearchPatternCreate } from "../../../services/settingsService"; // Adjust path
+import { SearchPattern, SearchPatternCreate } from "../../../types";
+import useSearchPatterns from "../../../hooks/settings/useSearchPatterns";
+import useAuth from "../../../hooks/auth/useAuth"; // Adjust path
 
 export default function SearchSettings() {
     const {
@@ -9,10 +10,11 @@ export default function SearchSettings() {
         getSearchPatterns,
         createSearchPattern,
         deleteSearchPattern,
-        isLoading: isUserLoading,
+        isLoading: isSearchLoading,
         error: userError,
         clearError: clearUserError
-    } = useUser();
+    } = useSearchPatterns();
+    const {isLoading: isUserLoading } = useAuth();
 
     // Local state for UI interaction
     const [localPatterns, setLocalPatterns] = useState<SearchPattern[]>([]);
@@ -23,20 +25,18 @@ export default function SearchSettings() {
     const [isAdding, setIsAdding] = useState(false);
     const [isDeleting, setIsDeleting] = useState<number | null>(null); // Store ID being deleted
     const [isClearingAll, setIsClearingAll] = useState(false);
-
+    const initialFetchDoneRef = useRef(false); // Ref to track if initial fetch has happened
     // Add a ref to track if initial fetch has happened
-    const initialFetchDoneRef = useRef(false);
 
     // Load patterns when hook provides them or fetch if needed - WITH FIXES
     useEffect(() => {
         // Only fetch patterns once when component mounts
         if (!initialFetchDoneRef.current && !isUserLoading) {
             console.log("[SearchSettings] Initial fetch of search patterns");
-            getSearchPatterns();
+            getSearchPatterns().then((patterns) => {setLocalPatterns(patterns);});
             initialFetchDoneRef.current = true;
             return;
         }
-
         // Safely update local state when searchPatterns change
         if (Array.isArray(searchPatterns)) {
             console.log("[SearchSettings] Setting localPatterns from searchPatterns (array). Count:", searchPatterns.length);
@@ -46,7 +46,7 @@ export default function SearchSettings() {
             console.log("[SearchSettings] searchPatterns is null/undefined, setting empty array");
             setLocalPatterns([]);
         }
-    }, [searchPatterns, getSearchPatterns, isUserLoading]);
+    }, [searchPatterns, isSearchLoading]); // Added isSearchLoading to dependencies
 
     // Sync local error with hook error
     useEffect(() => {
@@ -249,7 +249,7 @@ export default function SearchSettings() {
                             </div>
 
                             {/* Loading State */}
-                            {isUserLoading && patternsToRender.length === 0 && !initialFetchDoneRef.current && (
+                            {isUserLoading && patternsToRender.length === 0  && (
                                 <div className="flex justify-center items-center py-6">
                                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                                     <span className="ml-2 text-muted-foreground">Loading terms...</span>

@@ -20,6 +20,8 @@ interface EditContextProps {
     setSelectedAiEntities: React.Dispatch<React.SetStateAction<OptionType[]>>;
     selectedGlinerEntities: OptionType[];
     setSelectedGlinerEntities: React.Dispatch<React.SetStateAction<OptionType[]>>;
+    selectedHideMeEntities: OptionType[];
+    setSelectedHideMeEntities: React.Dispatch<React.SetStateAction<OptionType[]>>;
     detectionMapping: RedactionMapping | null;
     setDetectionMapping: React.Dispatch<React.SetStateAction<RedactionMapping | null>>;
     fileDetectionMappings: Map<string, RedactionMapping>;
@@ -37,6 +39,8 @@ interface EditContextProps {
     setGlinerColor: React.Dispatch<React.SetStateAction<string>>;
     geminiColor: string;
     setGeminiColor: React.Dispatch<React.SetStateAction<string>>;
+    hidemeColor: string;
+    setHidemeColor: React.Dispatch<React.SetStateAction<string>>;
     searchColor: string;
     setSearchColor: React.Dispatch<React.SetStateAction<string>>;
     resetEditState: () => void;
@@ -65,6 +69,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [selectedMlEntities, setSelectedMlEntities] = useState<OptionType[]>([]);
     const [selectedAiEntities, setSelectedAiEntities] = useState<OptionType[]>([]);
     const [selectedGlinerEntities, setSelectedGlinerEntities] = useState<OptionType[]>([]);
+    const [selectedHideMeEntities, setSelectedHideMeEntities] = useState<OptionType[]>([]);
     const [detectionMapping, setDetectionMapping] = useState<RedactionMapping | null>(null);
     const [showSearchHighlights, setShowSearchHighlights] = useState(true);
     const [showEntityHighlights, setShowEntityHighlights] = useState(true);
@@ -73,17 +78,18 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [presidioColor, setPresidioColor] = useState('#ffd771'); // Yellow
     const [glinerColor, setGlinerColor] = useState('#ff7171'); // Red
     const [geminiColor, setGeminiColor] = useState('#7171ff'); // Blue
-    
+    const [hidemeColor, setHidemeColor] = useState('#71ffa0'); // Green
+
     // Set up a listener for double-click to toggle edit mode
     useEffect(() => {
         const handleDoubleClick = (e: MouseEvent) => {
             // Only trigger if double-clicking on PDF pages or viewers
             const target = e.target as HTMLElement;
-            const isPdfArea = 
+            const isPdfArea =
                 target.closest('.pdf-viewer-container') ||
                 target.closest('.page-container') ||
                 target.closest('.pdf-page');
-                
+
             if (isPdfArea) {
                 setIsEditingMode(prev => !prev);
                 // Prevent default behavior and stop propagation
@@ -91,10 +97,10 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 e.stopPropagation();
             }
         };
-        
+
         // Add the event listener
         document.addEventListener('dblclick', handleDoubleClick);
-        
+
         // Clean up
         return () => {
             document.removeEventListener('dblclick', handleDoubleClick);
@@ -253,6 +259,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSelectedMlEntities([]);
         setSelectedGlinerEntities([]);
         setSelectedAiEntities([]);
+        setSelectedHideMeEntities([]);
         setDetectionMapping(null);
         setFileDetectionMappings(new Map());
         setShowSearchHighlights(true);
@@ -269,10 +276,12 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return glinerColor;
             case 'gemini':
                 return geminiColor;
+            case 'hideme':
+                return hidemeColor;
             default:
                 return '#757575'; // Default gray
         }
-    }, [presidioColor, glinerColor, geminiColor]);
+    }, [presidioColor, glinerColor, geminiColor, hidemeColor]);
 
     const getSearchColor  = useCallback((): string => {
        return searchColor;
@@ -297,6 +306,8 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setSelectedAiEntities,
                 selectedGlinerEntities,
                 setSelectedGlinerEntities,
+               selectedHideMeEntities,
+              setSelectedHideMeEntities,
                 detectionMapping,
                 setDetectionMapping,
                 fileDetectionMappings,
@@ -317,6 +328,8 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setGlinerColor,
                 geminiColor,
                 setGeminiColor,
+                hidemeColor,
+                setHidemeColor,
                 resetEditState,
                 getColorForModel
             }}
@@ -324,4 +337,5 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
             {children}
         </EditContext.Provider>
     );
+
 };
