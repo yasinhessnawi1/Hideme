@@ -14,8 +14,8 @@
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import authService from './authService';
-//export const API_URL = 'https://goapi.hidemeai.com/api';
-export const API_URL = 'http://localhost:8080/api';
+export const API_URL = 'https://goapi.hidemeai.com/api';
+//export const API_URL = 'http://localhost:8080/api';
 
 type CacheItem = {
     data: any;
