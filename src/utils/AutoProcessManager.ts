@@ -207,6 +207,7 @@ export class AutoProcessManager {
         // check if there is lefover highlight saved for files
         filesToProcess.forEach(file => {
             const fileKey = getFileKey(file);
+            this.processingQueue.delete(fileKey);
             EntityHighlightManager.resetProcessedEntitiesForFile(fileKey);
             SearchHighlightManager.resetProcessedDataForFile(fileKey);
         });

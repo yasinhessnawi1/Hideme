@@ -428,9 +428,16 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setCurrentFile(file);
                 return prevFiles;
             }
+            // if the file exits in the active files, remove it
+            const filteredActiveFiles = activeFiles.filter(activeFile =>
+                !(activeFile.name === file.name &&
+                    activeFile.size === file.size &&
+                    activeFile.lastModified === file.lastModified)
+            );
+            setActiveFiles(filteredActiveFiles);
 
             // Otherwise add to array
-            const newFiles = [...prevFiles, file];
+            const newFiles = [file, ...prevFiles];
 
             // Automatically set as current file if it's the first one
             if (prevFiles.length === 0) {
@@ -535,6 +542,15 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setActiveFiles([])
                 setCurrentFile(updatedFiles[0]);
             }
+            // if the any of the files exits in the active files, remove them
+            const filteredActiveFiles = activeFiles.filter(activeFile =>
+                !uniqueNewFiles.some(newFile =>
+                    activeFile.name === newFile.name &&
+                    activeFile.size === newFile.size &&
+                    activeFile.lastModified === newFile.lastModified
+                )
+            );
+            setActiveFiles(filteredActiveFiles);
 
             // Add new files to active files
             uniqueNewFiles.forEach(file => {

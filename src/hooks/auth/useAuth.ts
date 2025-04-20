@@ -10,9 +10,9 @@
  * This hook provides the foundation for all user-related functionality.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import apiClient from '../../services/apiClient';
-import { User } from "../../types";
+import {User} from "../../types";
 import authService from '../../services/authService';
 import authStateManager from '../../utils/authStateManager';
 
@@ -101,7 +101,7 @@ export const useAuth = (): UseAuthReturn => {
                 setIsAuthenticated(false);
 
                 // Update auth state manager
-                authStateManager.saveState({ isAuthenticated: false });
+                authStateManager.saveState({isAuthenticated: false});
             }
 
             verificationRef.current.completed = true;
@@ -270,18 +270,12 @@ export const useAuth = (): UseAuthReturn => {
                     const response = await authService.refreshToken();
                     console.log("[useAuth] Token refreshed successfully");
 
-                    // Update user data if it changed after token refresh
-                    if (response.data.user && response.data.user.id !== user.id) {
-                        setUser(response.data.user);
-                        // Update stored user data
-                        localStorage.setItem('user_data', JSON.stringify(response.data.user));
-
-                        // Update auth state manager
-                        authStateManager.saveState({
-                            isAuthenticated: true,
-                            userId: response.data.user.id,
-                            username: response.data.user.username
-                        });
+                    // Update auth state manager
+                    authStateManager.saveState({
+                        isAuthenticated: true,
+                    });
+                    if (response.data.access_token !== authService.getToken()) {
+                        authService.setToken(response.data.access_token);
                     }
                 } catch (err: any) {
                     console.error("[useAuth] Token refresh failed:", err.message);
@@ -313,7 +307,7 @@ export const useAuth = (): UseAuthReturn => {
                 clearInterval(refreshInterval);
             }
         };
-    }, [isAuthenticated, user]);
+    }, [isAuthenticated]);
 
     /**
      * Log in with username/email and password
@@ -327,8 +321,8 @@ export const useAuth = (): UseAuthReturn => {
             // Determine if input is email or username
             const isEmail = usernameOrEmail.includes('@');
             const credentials = isEmail
-                ? { email: usernameOrEmail, password }
-                : { username: usernameOrEmail, password };
+                ? {email: usernameOrEmail, password}
+                : {username: usernameOrEmail, password};
 
             // Attempt login
             const response = await authService.login(credentials);

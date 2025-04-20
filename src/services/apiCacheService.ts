@@ -14,8 +14,8 @@
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import authService from './authService';
-export const API_URL = 'https://goapi.hidemeai.com/api';
-//export const API_URL = 'http://localhost:8080/api';
+//export const API_URL = 'https://goapi.hidemeai.com/api';
+export const API_URL = 'http://localhost:8080/api';
 
 type CacheItem = {
     data: any;
@@ -152,7 +152,7 @@ class ApiCacheService {
                         data: error.response?.data
                     });
                 }
-
+                /*
                 // If error is 401 Unauthorized and we haven't tried to refresh yet
                 if (error.response?.status === 401 && !originalRequest._retry) {
                     if (this.debugMode) {
@@ -197,6 +197,8 @@ class ApiCacheService {
                         return Promise.reject(error);
                     }
                 }
+
+                 */
 
                 return Promise.reject(error);
             }
