@@ -221,88 +221,100 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
      * This is useful when replacing all entities
      */
     const deleteAllEntitiesForMethod = useCallback(async (methodId: number): Promise<void> => {
-        if (!isAuthenticated) {
-            console.warn('[EntityDefinitions] deleteAllEntitiesForMethod called but user is not authenticated');
-            return;
-        }
+            if (!isAuthenticated) {
+                console.warn('[EntityDefinitions] deleteAllEntitiesForMethod called but user is not authenticated');
+                return;
+            }
 
-        setIsLoading(true);
-        clearError();
+            setIsLoading(true);
+            clearError();
 
-        try {
-            console.log(`[EntityDefinitions] Deleting all entities for method ${methodId}`);
+            try {
+                console.log(`[EntityDefinitions] Deleting all entities for method ${methodId}`);
 
-            await apiClient.delete(`/settings/entities/delete_entities_by_method_id/${methodId}`);
-
-            // Update state to remove these entities
-            setModelEntities(prev => ({
-                ...prev,
-                [methodId]: []
-            }));
-
-            // Dispatch event to notify other components
-            window.dispatchEvent(new CustomEvent('entity-definitions-updated', {
-                detail: {
-                    type: 'delete-all',
-                    methodId
+                try {
+                    await apiClient.delete(`/settings/entities/delete_entities_by_method_id/${methodId}`);
+                } catch (error: any) {
+                    // If the error is 404 (not found), this is acceptable for new users
+                    // It means there were no entities to delete
+                    if (error.response?.status === 404) {
+                        console.log(`[EntityDefinitions] No entities found for method ${methodId} - this is normal for new users`);
+                    } else {
+                        // For other errors, rethrow
+                        throw error;
+                    }
                 }
-            }));
-        } catch (error: any) {
-            setError(error.userMessage || `Failed to delete entities for method ${methodId}`);
-            throw error;
-        } finally {
-            setIsLoading(false);
-        }
-    }, [isAuthenticated, modelEntities, clearError]);
+
+                // Update state to remove these entities regardless
+                setModelEntities(prev => ({
+                    ...prev,
+                    [methodId]: []
+                }));
+
+                // Dispatch event to notify other components
+                window.dispatchEvent(new CustomEvent('entity-definitions-updated', {
+                    detail: {
+                        type: 'delete-all',
+                        methodId
+                    }
+                }));
+            } catch (error: any) {
+                setError(error.userMessage || `Failed to delete entities for method ${methodId}`);
+                throw error;
+            } finally {
+                setIsLoading(false);
+            }
+        }, [isAuthenticated, clearError]);
 
     /**
      * Replace all entities for a method with new ones
      * This performs a delete-then-add operation to ensure clean state
      */
+        // Improved replaceModelEntities function that's safer for new users
     const replaceModelEntities = useCallback(async (
-        methodId: number,
-        entities: OptionType[]
-    ): Promise<ModelEntity[]> => {
-        if (!isAuthenticated) {
-            console.warn('[EntityDefinitions] replaceModelEntities called but user is not authenticated');
-            return [];
-        }
-
-        setIsLoading(true);
-        clearError();
-
-        try {
-            // 1. Delete all existing entities for this method
-            await deleteAllEntitiesForMethod(methodId);
-
-            // 2. Filter out "ALL_" options that shouldn't be stored
-            const entitiesToAdd = entities.filter(entity =>
-                !entity.value.startsWith('ALL_')
-            );
-
-            if (entitiesToAdd.length === 0) {
-                console.log(`[EntityDefinitions] No entities to add for method ${methodId} after filtering`);
+            methodId: number,
+            entities: OptionType[]
+        ): Promise<ModelEntity[]> => {
+            if (!isAuthenticated) {
+                console.warn('[EntityDefinitions] replaceModelEntities called but user is not authenticated');
                 return [];
             }
 
-            // 3. Create entity batch
-            const entityBatch: ModelEntityBatch = {
-                method_id: methodId,
-                entity_texts: entitiesToAdd.map(entity => entity.value)
-            };
+            setIsLoading(true);
+            clearError();
 
-            // 4. Add new entities
-            console.log(`[EntityDefinitions] Adding ${entitiesToAdd.length} new entities for method ${methodId}`);
-            return await addModelEntities(entityBatch);
+            try {
+                // 1. Delete all existing entities for this method
+                // This now handles 404 errors internally
+                await deleteAllEntitiesForMethod(methodId);
 
-        } catch (error: any) {
-            setError(error.userMessage || `Failed to replace entities for method ${methodId}`);
-            throw error;
-        } finally {
-            setIsLoading(false);
-        }
-    }, [isAuthenticated, deleteAllEntitiesForMethod, addModelEntities, clearError]);
+                // 2. Filter out "ALL_" options that shouldn't be stored
+                const entitiesToAdd = entities.filter(entity =>
+                    !entity.value.startsWith('ALL_')
+                );
 
+                if (entitiesToAdd.length === 0) {
+                    console.log(`[EntityDefinitions] No entities to add for method ${methodId} after filtering`);
+                    return [];
+                }
+
+                // 3. Create entity batch
+                const entityBatch: ModelEntityBatch = {
+                    method_id: methodId,
+                    entity_texts: entitiesToAdd.map(entity => entity.value)
+                };
+
+                // 4. Add new entities
+                console.log(`[EntityDefinitions] Adding ${entitiesToAdd.length} new entities for method ${methodId}`);
+                return await addModelEntities(entityBatch);
+
+            } catch (error: any) {
+                setError(error.userMessage || `Failed to replace entities for method ${methodId}`);
+                throw error;
+            } finally {
+                setIsLoading(false);
+            }
+        }, [isAuthenticated, deleteAllEntitiesForMethod, addModelEntities, clearError]);
     /**
      * Update all entity selections for all methods at once
      */

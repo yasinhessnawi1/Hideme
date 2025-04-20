@@ -56,6 +56,7 @@ const SearchSidebar: React.FC = () => {
     const [contextMenuVisible, setContextMenuVisible] = useState(false);
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
     const [contextMenuSearchTerm, setContextMenuSearchTerm] = useState('');
+    const initialPatternFetchAttemptedRef = useRef(false);
 
     // Ref for the context menu
     const contextMenuRef = useRef<HTMLDivElement>(null);
@@ -234,12 +235,15 @@ const SearchSidebar: React.FC = () => {
         }
     }, [searchPatterns, userDataLoading, activeQueries.length, isAiSearch, isCaseSensitive]);
 
-    // Make sure to fetch search patterns on initial load
+
     useEffect(() => {
-        if (!userDataLoading && searchPatterns?.length === 0) {
+        // Only run this effect once when the component mounts
+        if (!userDataLoading && !initialPatternFetchAttemptedRef.current) {
+            console.log('[SearchSidebar] Initial fetch of search patterns');
+            initialPatternFetchAttemptedRef.current = true;
             getSearchPatterns();
         }
-    }, [getSearchPatterns, userDataLoading, searchPatterns]);
+    }, [userDataLoading]); // Only depends on loading state
 
     // Add a special method to load and apply all default search terms
     const applyAllDefaultSearchTerms = useCallback(async () => {

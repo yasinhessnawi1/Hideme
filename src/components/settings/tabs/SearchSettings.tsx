@@ -29,14 +29,16 @@ export default function SearchSettings() {
     // Add a ref to track if initial fetch has happened
 
     // Load patterns when hook provides them or fetch if needed - WITH FIXES
+    // Fixing the useEffect in SearchSettings.tsx to handle empty search patterns
     useEffect(() => {
         // Only fetch patterns once when component mounts
         if (!initialFetchDoneRef.current && !isUserLoading) {
             console.log("[SearchSettings] Initial fetch of search patterns");
-            getSearchPatterns().then((patterns) => {setLocalPatterns(patterns);});
+            getSearchPatterns();
             initialFetchDoneRef.current = true;
             return;
         }
+
         // Safely update local state when searchPatterns change
         if (Array.isArray(searchPatterns)) {
             console.log("[SearchSettings] Setting localPatterns from searchPatterns (array). Count:", searchPatterns.length);
@@ -46,7 +48,7 @@ export default function SearchSettings() {
             console.log("[SearchSettings] searchPatterns is null/undefined, setting empty array");
             setLocalPatterns([]);
         }
-    }, [searchPatterns, isSearchLoading]); // Added isSearchLoading to dependencies
+    }, [searchPatterns, isUserLoading]); // Added isUserLoading to dependencies
 
     // Sync local error with hook error
     useEffect(() => {

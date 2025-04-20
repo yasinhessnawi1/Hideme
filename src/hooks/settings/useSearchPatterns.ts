@@ -66,41 +66,46 @@ export const useSearchPatterns = (): UseSearchPatternsReturn => {
     /**
      * Get user's search patterns
      */
+        // Fixed version without the problematic dependency
     const getSearchPatterns = useCallback(async (): Promise<SearchPattern[]> => {
-        if (!isAuthenticated) {
-            console.warn('[SearchPatterns] getSearchPatterns called but user is not authenticated');
-            return [];
-        }
-
-        // Prevent duplicate fetch
-        if (fetchInProgressRef.current) {
-            console.log('[SearchPatterns] Search patterns fetch already in progress');
-            return [];
-        }
-
-        fetchInProgressRef.current = true;
-        setIsLoading(true);
-        clearError();
-
-        try {
-            const response = await apiClient.get<{ data: SearchPattern[] }>('/settings/patterns');
-            const patterns = response.data.data || [];
-
-            setSearchPatterns(patterns);
-            setIsInitialized(true);
-            return patterns;
-        } catch (error: any) {
-            // Don't set error for 404 (empty patterns is not an error)
-            if (error.response?.status !== 404) {
-                setError(error.userMessage || 'Failed to load search patterns');
+            if (!isAuthenticated) {
+                console.warn('[SearchPatterns] getSearchPatterns called but user is not authenticated');
+                return [];
             }
 
-            return [];
-        } finally {
-            setIsLoading(false);
-            fetchInProgressRef.current = false;
-        }
-    }, [searchPatterns.length, clearError]);
+            // Prevent duplicate fetch
+            if (fetchInProgressRef.current) {
+                console.log('[SearchPatterns] Search patterns fetch already in progress');
+                return [];
+            }
+
+            fetchInProgressRef.current = true;
+            setIsLoading(true);
+            clearError();
+
+            try {
+                const response = await apiClient.get<{ data: SearchPattern[] }>('/settings/patterns');
+                const patterns = response.data.data || [];
+
+                setSearchPatterns(patterns);
+                setIsInitialized(true);
+                return patterns;
+            } catch (error: any) {
+                // Don't set error for 404 (empty patterns is not an error)
+                if (error.response?.status !== 404) {
+                    setError(error.userMessage || 'Failed to load search patterns');
+                } else {
+                    // For 404, set empty array explicitly to mark as initialized
+                    setSearchPatterns([]);
+                    setIsInitialized(true);
+                }
+
+                return [];
+            } finally {
+                setIsLoading(false);
+                fetchInProgressRef.current = false;
+            }
+        }, [isAuthenticated, clearError]); // Removed searchPatterns.length
 
     /**
      * Create a new search pattern

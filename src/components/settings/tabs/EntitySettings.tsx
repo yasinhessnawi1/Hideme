@@ -65,7 +65,12 @@ export default function EntitySettings() {
                     if (!loadedEntityTypesRef.current.has(method.name)) {
                         console.log(`[EntitySettings] Loading ${method.name} entities (method ID: ${method.id})`);
                         loadedEntityTypesRef.current.add(method.name);
-                        await getModelEntities(method.id);
+                        try {
+                            await getModelEntities(method.id);
+                        } catch (error) {
+                            // Log but continue with other methods
+                            console.error(`[EntitySettings] Error loading ${method.name} entities:`, error);
+                        }
                     }
                 }
 
@@ -75,7 +80,7 @@ export default function EntitySettings() {
         };
 
         loadEntities();
-    }, [modelEntities, isAuthenticated, isUserLoading]);
+    }, [isAuthenticated, isUserLoading]);
 
     // Sync local selections with fetched/updated entities from useUser hook
     useEffect(() => {
