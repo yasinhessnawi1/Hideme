@@ -224,7 +224,7 @@ class HighlightManager {
         }
 
         // Find highlights that match the text
-        const highlights = await this.findHighlightsByText(text, fileKey);
+        const highlights =  this.findHighlightsByText(text, fileKey);
 
         if (highlights.length === 0) {
             return 0;
@@ -387,12 +387,6 @@ class HighlightManager {
         return results;
     }
 
-    /**
-     * Clear all highlights by type
-     */
-    public clearHighlightsByType(type: HighlightType, fileKey?: string): void {
-        this.removeHighlightsByType(type, fileKey);
-    }
 
     /**
      * Load highlight data from IndexedDB

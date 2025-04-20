@@ -9,6 +9,7 @@ import highlightManager from "../../../utils/HighlightManager";
 import {useBatchSearch} from "../../../contexts/SearchContext";
 import {useFileContext} from "../../../contexts/FileContext";
 import {getFileKey} from "../../../contexts/PDFViewerContext";
+import {getFileHighlights} from "../../../utils/highlightUtils";
 
 interface HighlightContextMenuProps {
     highlight: HighlightRect;
@@ -27,9 +28,9 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                                                                    }) => {
     const menuRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const { removeAnnotation } = useHighlightContext();
+    const { removeAnnotation, findHighlightsByText } = useHighlightContext();
     const { batchSearch } = useBatchSearch();
-    const { files } = useFileContext();
+    const { files, selectedFiles } = useFileContext();
     // Use the viewport size hook
     const { viewportSize } = useViewportSize(wrapperRef, viewport, zoomLevel);
 
@@ -41,7 +42,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
         }
     };
 
-    const handleDeleteAllSameText = () => {
+    const  handleDeleteAllSameText = async () => {
         // First, ensure we have a file key and text
         if (!highlight.fileKey) {
             console.warn("[HighlightContextMenu] Missing fileKey when trying to delete all same");
@@ -86,8 +87,13 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
 
         console.log(`[HighlightContextMenu] Deleting all highlights with text "${textToDelete}" in file ${highlight.fileKey}`);
 
-        // STEP 1: First find all matching highlights
-        const highlightsToDelete = highlightManager.findHighlightsByText(textToDelete, highlight.fileKey);
+        // STEP 1: First find all matching highlights for all file in selected files if its not empty otherwise all the files, merge all results in one highlights to delete
+        const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
+        const highlightsToDelete: HighlightRect[] = [];
+        allFiles.forEach(file => {
+            const highlights = findHighlightsByText(textToDelete, getFileKey(file));
+            highlightsToDelete.push(...highlights);
+        });
 
         if (highlightsToDelete.length === 0) {
             alert(`No highlights found with text "${textToDelete}"`);
@@ -108,22 +114,11 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             }
 
             // Remove from data store
-            highlightManager.removeHighlightData(h.id);
+             highlightManager.removeHighlightData(h.id);
 
             // Also remove from the HighlightContext directly
             if (h.page) {
                 removeAnnotation(h.page, h.id, h.fileKey);
-            }
-
-            // AGGRESSIVE APPROACH: Directly remove from DOM if you can find it
-            try {
-                const highlightElement = document.querySelector(`[data-highlight-id="${h.id}"]`);
-                if (highlightElement) {
-                    console.log(`[HighlightContextMenu] Directly removing DOM element for highlight ${h.id}`);
-                    highlightElement.remove();
-                }
-            } catch (error) {
-                console.error("[HighlightContextMenu] Error directly manipulating DOM:", error);
             }
         });
 
@@ -191,26 +186,11 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             return;
         }
 
-        // Find the file object for this file key
-        const file = files.find(f => {
-            const fileKey = getFileKey(f);
-            return fileKey === highlight.fileKey ||
-                fileKey.includes(highlight.fileKey as string) ||
-                highlight.fileKey?.includes(fileKey);
-        });
-
-        if (!file) {
-            console.error(`[HighlightContextMenu] Could not find file with key: ${highlight.fileKey}`);
-            alert('File not found. Cannot highlight all occurrences.');
-            onClose();
-            return;
-        }
-
-        console.log(`[HighlightContextMenu] Using batch search to highlight all occurrences of "${highlight.text}" in file ${getFileKey(file)}`);
+        console.log(`[HighlightContextMenu] Using batch search to highlight all occurrences of "${highlight.text}" }`);
 
         // Use the batch search functionality to highlight all occurrences
         batchSearch(
-            [file],
+            selectedFiles.length === 0 ? files : selectedFiles,
             highlight.text,
             {
                 isCaseSensitive: false,
