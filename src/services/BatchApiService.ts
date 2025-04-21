@@ -255,3 +255,61 @@ async function processRedactionZip(zipBlob: Blob, originalFiles: File[]): Promis
         throw new Error('Failed to process redacted files');
     }
 }
+
+/**
+ * Finds all occurrences of words matching a bounding box across multiple files
+ * @param files Array of PDF files to search
+ * @param boundingBox The bounding box coordinates of the word to find
+ * @param selectedFiles Optional array of selected files to search within (if specified)
+ * @returns Promise with batch find words results
+ */
+export const findWords = async (
+    files: File[],
+    boundingBox: {
+        x0: number;
+        y0: number;
+        x1: number;
+        y1: number;
+    },
+    selectedFiles?: File[]
+): Promise<any> => {
+    try {
+        // Use selected files if provided, otherwise use all files
+        const filesToSearch = selectedFiles && selectedFiles.length > 0 ? selectedFiles : files;
+
+        if (filesToSearch.length === 0) {
+            throw new Error('No files to search');
+        }
+
+        // Create FormData object to send files and bounding box
+        const formData = new FormData();
+
+        // Add each file to the FormData
+        filesToSearch.forEach(file => {
+            formData.append('files', file, file.name);
+        });
+
+        // Add the bounding box as JSON
+        formData.append('bounding_box', JSON.stringify(boundingBox));
+
+        // Log the request for debugging
+        console.log('[BatchApiService] Sending find words request:', {
+            files: filesToSearch.length,
+            boundingBox
+        });
+
+        // Send the request to the API
+        const result = await apiRequest<any>({
+            method: 'POST',
+            url: `${API_BASE_URL}/batch/find_words`,
+            formData: formData,
+        });
+
+        console.log(`[BatchApiService] Find words completed. Found ${result.batch_summary.total_matches} matches across ${result.batch_summary.successful} files`);
+
+        return result;
+    } catch (error) {
+        console.error('Batch Find Words API error:', error);
+        throw error;
+    }
+}

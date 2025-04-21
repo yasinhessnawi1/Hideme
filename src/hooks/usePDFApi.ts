@@ -1,6 +1,6 @@
 import { useCallback, useState, useRef } from 'react';
 import { RedactionMapping } from '../types/types';
-import { batchHybridDetect, batchRedactPdfs } from '../services/BatchApiService';
+import {batchHybridDetect, batchRedactPdfs, findWords} from '../services/BatchApiService';
 import { BatchSearchService } from '../services/BatchSearchService';
 import { getFileKey } from '../contexts/PDFViewerContext';
 
@@ -323,7 +323,77 @@ export const usePDFApi = () => {
             setLoading(false);
         }
     }, [getOrCreateCacheKey, getCachedResult, setCachedResult, resetErrors]);
+// Add this method to the usePDFApi hook in src/hooks/usePDFApi.ts
 
+    /**
+     * Find all occurrences of words matching a bounding box
+     * @param files Files to search through
+     * @param boundingBox The bounding box containing word coordinates
+     * @param selectedFiles Optional array of selected files to search within
+     * @returns Promise with matching word positions
+     */
+    const runFindWords = useCallback(async (
+        files: File[],
+        boundingBox: {
+            x0: number;
+            y0: number;
+            x1: number;
+            y1: number;
+        },
+        selectedFiles?: File[]
+    ): Promise<any> => {
+        if (files.length === 0) {
+            throw new Error('No files provided for word search');
+        }
+
+        setLoading(true);
+        resetErrors();
+        setProgress(0);
+
+        try {
+            console.log(`[PDFApi] Starting find words for bounding box in ${files.length} files`);
+
+            // Create cache key
+            const cacheKey = getOrCreateCacheKey(files, 'find-words', {
+                boundingBox,
+                selectedFilesCount: selectedFiles?.length || 0
+            });
+
+            // Check cache first
+            const cachedResult = getCachedResult(cacheKey);
+            if (cachedResult) {
+                console.log(`[PDFApi] Using cached results for find words`);
+                setProgress(100);
+                return cachedResult;
+            }
+
+            setProgress(10);
+
+            // Call the find words API from BatchApiService
+            const results = await findWords(files, boundingBox, selectedFiles);
+
+            setProgress(50);
+
+            // Process results
+            if (results && results.file_results) {
+                console.log(`[PDFApi] Found ${results.batch_summary?.total_matches || 0} word matches`);
+            }
+
+            // Cache results
+            setCachedResult(cacheKey, results);
+
+            setProgress(100);
+            return results;
+        } catch (err: any) {
+            const errorMsg = err.message || 'Error finding matching words';
+            setError(errorMsg);
+            console.error('[PDFApi] Find words error:', err);
+            setProgress(0);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, [getOrCreateCacheKey, getCachedResult, setCachedResult, resetErrors]);
     /**
      * Clear detection results cache for specific files or all files
      */
@@ -354,7 +424,7 @@ export const usePDFApi = () => {
         runRedactPdf,
         runBatchRedactPdfs,
         runBatchSearch,
-
+        runFindWords,
         // Cache management
         clearDetectionCache,
 
