@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useFileContext } from '../../../contexts/FileContext';
 import { useEditContext } from '../../../contexts/EditContext';
-import { useHighlightContext } from '../../../contexts/HighlightContext';
+import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
 import { HighlightType } from '../../../types/pdfTypes';
 import { useBatchSearch } from '../../../contexts/SearchContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
@@ -26,9 +26,9 @@ const RedactionSidebar: React.FC = () => {
     } = useEditContext();
 
     const {
-        getAnnotations,
-        clearAnnotationsByType
-    } = useHighlightContext();
+        getHighlightsForPage,
+        removeHighlightsFromFile
+    } = useHighlightStore();
 
     // Get batch search context
     const { getSearchResultsForPage, getSearchQueries } = useBatchSearch();
@@ -110,7 +110,7 @@ const RedactionSidebar: React.FC = () => {
 
             // This is a simplification - you'd need to collect annotations for all pages of the file
             for (let page = 1; page <= 1000; page++) { // Using a large arbitrary number
-                const pageAnnotations = getAnnotations(page, fileKey);
+                const pageAnnotations = getHighlightsForPage(fileKey,page);
                 if (pageAnnotations.length > 0) {
                     fileAnnotations[page] = pageAnnotations;
                 }
@@ -172,7 +172,7 @@ const RedactionSidebar: React.FC = () => {
         redactionOptions.includeEntityHighlights,
         redactionOptions.includeManualHighlights,
         detectionMapping,
-        getAnnotations,
+        getHighlightsForPage,
         currentFile,
         getSearchResultsForPage,
         getSearchQueries
@@ -295,9 +295,7 @@ const RedactionSidebar: React.FC = () => {
 
                 // Clear highlights for processed files
                 Object.keys(filesToProcess).forEach(fileKey => {
-                    clearAnnotationsByType(HighlightType.MANUAL, undefined, fileKey);
-                    clearAnnotationsByType(HighlightType.SEARCH, undefined, fileKey);
-                    clearAnnotationsByType(HighlightType.ENTITY, undefined, fileKey);
+                    removeHighlightsFromFile(fileKey);
                 });
 
                 // Update success message

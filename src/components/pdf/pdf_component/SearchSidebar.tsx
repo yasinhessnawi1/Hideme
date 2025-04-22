@@ -16,6 +16,7 @@ import '../../../styles/modules/pdf/SearchSidebar.css';
 import { Search, XCircle, ChevronUp, ChevronDown, ChevronRight, Save, AlertTriangle, CheckCircle } from 'lucide-react';
 import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 import useSearchPatterns from "../../../hooks/settings/useSearchPatterns";
+import {useHighlightStore} from "../../../hooks/useHighlightStore";
 
 const SearchSidebar: React.FC = () => {
     const { currentFile, selectedFiles, files } = useFileContext();
@@ -26,7 +27,7 @@ const SearchSidebar: React.FC = () => {
         createSearchPattern,
         getSearchPatterns
     } = useSearchPatterns();
-
+    const { removeHighlightsByText } = useHighlightStore();
 
     const {
         isSearching: isContextSearching,
@@ -66,6 +67,7 @@ const SearchSidebar: React.FC = () => {
 
     // Get current search statistics
     const searchStats = getSearchResultsStats();
+
 
     // Track the currently visible result for navigation
     const [resultNavigation, setResultNavigation] = useState<{
@@ -178,6 +180,7 @@ const SearchSidebar: React.FC = () => {
         // Refocus the search input after removing a search term
         setTimeout(() => {
             searchInputRef.current?.focus();
+           files.forEach(file => { removeHighlightsByText(file.name, term); });
         }, 0);
     };
 
@@ -195,45 +198,6 @@ const SearchSidebar: React.FC = () => {
             searchInputRef.current?.focus();
         }, 0);
     };
-
-    // Synchronize with search patterns when they change
-    useEffect(() => {
-        // Only proceed if search patterns are loaded and not empty
-        if (!userDataLoading && searchPatterns && searchPatterns.length > 0) {
-            console.log('[SearchSidebar] Applying search patterns');
-
-            // Find default search terms to use
-            const defaultPatterns = searchPatterns.filter(pattern => pattern.pattern_text);
-
-            // If there are no active queries, use the first pattern for the search input
-            if (activeQueries.length === 0 && defaultPatterns.length > 0) {
-                console.log('[SearchSidebar] Applying default search term to input:', defaultPatterns[0].pattern_text);
-                setTempSearchTerm(defaultPatterns[0].pattern_text);
-            }
-
-            // Set search options based on the most recent pattern (if available)
-            if (defaultPatterns.length > 0) {
-                const mostRecentPattern = defaultPatterns[0];
-
-                // Set AI search based on pattern_type
-                const useAiSearch = mostRecentPattern.pattern_type === 'ai_search';
-                if (useAiSearch !== isAiSearch) {
-                    console.log('[SearchSidebar] Setting AI search to:', useAiSearch);
-                    setIsAiSearch(useAiSearch);
-                }
-
-                // Set case sensitivity based on pattern_type
-                const useCaseSensitive = mostRecentPattern.pattern_type === 'case_sensitive';
-                if (useCaseSensitive !== isCaseSensitive) {
-                    console.log('[SearchSidebar] Setting case sensitivity to:', useCaseSensitive);
-                    setIsCaseSensitive(useCaseSensitive);
-                }
-            }
-
-            // Save the pattern texts for later use (e.g., with toolbar button)
-            window.defaultSearchTerms = defaultPatterns.map(pattern => pattern.pattern_text);
-        }
-    }, [searchPatterns, userDataLoading, activeQueries.length, isAiSearch, isCaseSensitive]);
 
 
     useEffect(() => {

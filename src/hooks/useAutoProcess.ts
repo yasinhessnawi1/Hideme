@@ -1,7 +1,7 @@
 // src/hooks/useAutoProcess.ts
 
 import {useEffect, useCallback, useState} from 'react';
-import { autoProcessManager } from '../utils/AutoProcessManager';
+import { autoProcessManager } from '../managers/AutoProcessManager';
 import { useBatchSearch } from '../contexts/SearchContext';
 import { usePDFApi } from './usePDFApi';
 import { SearchPattern } from '../types';

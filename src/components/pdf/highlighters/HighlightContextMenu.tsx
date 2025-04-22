@@ -1,20 +1,19 @@
-// src/components/pdf/highlighters/HighlightContextMenu.tsx - Updated to use highlightUtils
-import React, { useState, useEffect, useRef } from 'react';
-import { Trash2, Highlighter, X } from 'lucide-react';
-import { useHighlightContext } from '../../../contexts/HighlightContext';
+import React, { useEffect, useRef, useState } from 'react';
+import { Highlighter, Trash2, X } from 'lucide-react';
+import { useHighlightStore } from '../../../hooks/useHighlightStore';
 import { HighlightRect } from '../../../types/pdfTypes';
-import { useViewportSize } from '../../../hooks/useViewportSize';
-import '../../../styles/modules/pdf/HighlightContextMenu.css'
-import highlightManager from "../../../utils/HighlightManager";
-import {useBatchSearch} from "../../../contexts/SearchContext";
-import {useFileContext} from "../../../contexts/FileContext";
-import {getFileKey} from "../../../contexts/PDFViewerContext";
-import {getFileHighlights} from "../../../utils/highlightUtils";
+import { useBatchSearch } from '../../../contexts/SearchContext';
+import { useFileContext } from '../../../contexts/FileContext';
+import { getFileKey } from '../../../contexts/PDFViewerContext';
+import { usePDFApi } from '../../../hooks/usePDFApi';
+import { SearchHighlightProcessor } from '../../../managers/SearchHighlightProcessor';
+import '../../../styles/modules/pdf/HighlightContextMenu.css';
+import {HighlightType} from "../../../types";
+import {SearchResult} from "../../../services/BatchSearchService";
 
 interface HighlightContextMenuProps {
     highlight: HighlightRect;
     onClose: () => void;
-    wrapperRef?: React.RefObject<HTMLDivElement | null>;
     viewport?: any;
     zoomLevel?: number;
 }
@@ -22,190 +21,254 @@ interface HighlightContextMenuProps {
 const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                                                                        highlight,
                                                                        onClose,
-                                                                       wrapperRef = { current: null },
                                                                        viewport = null,
                                                                        zoomLevel = 1.0
                                                                    }) => {
     const menuRef = useRef<HTMLDivElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const { removeAnnotation, findHighlightsByText } = useHighlightContext();
-    const { batchSearch } = useBatchSearch();
+    const {
+        removeHighlight,
+        removeHighlightsByProperty,
+        removeHighlightsByPropertyFromAllFiles,
+        removeHighlightsByPosition,
+        removeMultipleHighlights
+    } = useHighlightStore();
     const { files, selectedFiles } = useFileContext();
-    // Use the viewport size hook
-    const { viewportSize } = useViewportSize(wrapperRef, viewport, zoomLevel);
+    const { runFindWords } = usePDFApi();
 
     // Handle delete current highlight
     const handleDelete = () => {
         if (highlight?.id) {
-            removeAnnotation(highlight.page, highlight.id, highlight.fileKey);
+            removeHighlight(highlight.id);
             onClose();
         }
     };
 
-    const  handleDeleteAllSameText = async () => {
-        // First, ensure we have a file key and text
+    // Delete all occurrences of the same entity type
+    const handleDeleteAllSameEntityType = () => {
+        if (!highlight.entity || !highlight.fileKey) {
+            console.warn("[HighlightContextMenu] Missing entity or fileKey");
+            onClose();
+            return;
+        }
+        const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
+        const entityType = highlight.entity;
+        removeHighlightsByPropertyFromAllFiles( 'entity', entityType, allFiles)
+            .then(success => {
+                console.log(`[HighlightContextMenu] Deleted all highlights with entity type "${entityType}" in file ${highlight.fileKey}`);
+                onClose();
+            })
+            .catch(error => {
+                console.error('[HighlightContextMenu] Error deleting entity highlights:', error);
+                onClose();
+            });
+    };
+
+    // Delete all occurrences of the same text
+    // Updated handleDeleteAllSameText function using removeHighlightsByPosition
+
+    const handleDeleteAllSameText = async () => {
         if (!highlight.fileKey) {
-            console.warn("[HighlightContextMenu] Missing fileKey when trying to delete all same");
+            console.warn("[HighlightContextMenu] Missing fileKey");
             onClose();
             return;
         }
 
-        // Determine which text to delete
-        let textToDelete = '';
-        if (highlight.text) {
-            textToDelete = highlight.text;
-        } else if (highlight.entity && highlight.x !== undefined && highlight.y !== undefined) {
-            // Find similar highlights at this position
-            const similarHighlights = highlightManager.findHighlightsByPosition(
-                highlight.page,
-                highlight.x,
-                highlight.y,
-                highlight.w,
-                highlight.h,
-                10, // Position tolerance
-                highlight.fileKey
-            );
+        try {
+            // Determine which text to delete
+            let textToDelete = highlight.text || highlight.entity || '';
 
-            // Use text from any similar highlight that has it
-            const highlightWithText = similarHighlights.find(h => h.text);
-            if (highlightWithText?.text) {
-                textToDelete = highlightWithText.text;
-            } else {
-                // Fallback - just delete this specific highlight
-                removeAnnotation(highlight.page, highlight.id, highlight.fileKey);
-                alert("Could not determine text content to delete. Only removed this highlight.");
+            if (!textToDelete) {
+                alert("No text content found to delete.");
                 onClose();
                 return;
             }
-        }
 
-        if (!textToDelete) {
-            alert("No text content found to delete.");
-            onClose();
-            return;
-        }
+            console.log(`[HighlightContextMenu] Deleting all occurrences of text "${textToDelete}"`);
 
-        console.log(`[HighlightContextMenu] Deleting all highlights with text "${textToDelete}" in file ${highlight.fileKey}`);
+            // Get the bounding box from the current highlight
+            const boundingBox = {
+                x0: highlight.x,
+                y0: highlight.y,
+                x1: highlight.x + highlight.w,
+                y1: highlight.y + highlight.h
+            };
 
-        // STEP 1: First find all matching highlights for all file in selected files if its not empty otherwise all the files, merge all results in one highlights to delete
-        const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
-        const highlightsToDelete: HighlightRect[] = [];
-        allFiles.forEach(file => {
-            const highlights = findHighlightsByText(textToDelete, getFileKey(file));
-            highlightsToDelete.push(...highlights);
-        });
+            // Use the runFindWords function to find all occurrences across files
+            const filesToSearch = selectedFiles.length > 0 ? selectedFiles : files;
+            const findWordsResponse = await runFindWords(
+                files,
+                boundingBox,
+                filesToSearch
+            );
 
-        if (highlightsToDelete.length === 0) {
-            alert(`No highlights found with text "${textToDelete}"`);
-            onClose();
-            return;
-        }
+            // Process the results and delete highlights by position
+            if (findWordsResponse && findWordsResponse.file_results) {
+                let totalDeleted = 0;
 
-        console.log(`[HighlightContextMenu] Found ${highlightsToDelete.length} highlights to delete`);
+                // Process each file's results
+                for (const fileResult of findWordsResponse.file_results) {
+                    if (fileResult.status !== 'success' || !fileResult.results?.pages) continue;
 
-        // STEP 2: Track all affected pages
-        const affectedPages = new Set<number>();
+                    const fileKey = fileResult.file;
 
-        // STEP 3: Delete highlights from the highlightManager and HighlightContext
-        highlightsToDelete.forEach(h => {
-            // Record affected pages
-            if (h.page) {
-                affectedPages.add(h.page);
-            }
+                    // Process all matches across pages
+                    for (const page of fileResult.results.pages) {
+                        if (!page.matches || !Array.isArray(page.matches)) continue;
 
-            // Remove from data store
-             highlightManager.removeHighlightData(h.id);
+                        // Process each match in this page
+                        for (const match of page.matches) {
+                            if (!match.bbox) continue;
 
-            // Also remove from the HighlightContext directly
-            if (h.page) {
-                removeAnnotation(h.page, h.id, h.fileKey);
-            }
-        });
+                            const { x0, y0, x1, y1 } = match.bbox;
+                            const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
+                            // Use the improved removeHighlightsByPosition method
+                            const result = await removeHighlightsByPosition(
+                                files,
+                                x0,
+                                y0,
+                                x1,
+                                y1,
+                                {
+                                    iouThreshold: 0.05,
+                                    centerDistThreshold: 50,
+                                    sizeRatioDifference: 0.7,
+                                    debug: false  // Set to true for debugging
+                                }
+                            );
 
-        // STEP 4: Dispatch multiple targeted events for each affected page
-        affectedPages.forEach(page => {
-            console.log(`[HighlightContextMenu] Dispatching page update event for page ${page}`);
-            window.dispatchEvent(new CustomEvent('highlights-removed-from-page', {
-                detail: {
-                    fileKey: highlight.fileKey,
-                    page,
-                    text: textToDelete,
-                    count: highlightsToDelete.length,
-                    timestamp: Date.now()
+                            if (result) {
+                                totalDeleted++;
+                            }
+                        }
+                    }
                 }
-            }));
-        });
 
-        // STEP 5: Dispatch a specific event for this deletion operation
-        window.dispatchEvent(new CustomEvent('highlights-removed-by-text', {
-            detail: {
-                text: textToDelete,
-                fileKey: highlight.fileKey,
-                count: highlightsToDelete.length,
-                affectedPages: Array.from(affectedPages),
-                timestamp: Date.now(),
-                // This flag signals this is a direct UI update request
-                forceUIUpdate: true
+                if (totalDeleted > 0) {
+                    console.log(`[HighlightContextMenu] Deleted highlights for ${totalDeleted} text occurrences`);
+                } else {
+                    console.log(`[HighlightContextMenu] No matching highlights found to delete`);
+                }
             }
-        }));
-
-        // STEP 6: Force a global refresh with minimal delay
-        setTimeout(() => {
-            console.log(`[HighlightContextMenu] Forcing global highlight refresh`);
-            window.dispatchEvent(new CustomEvent('force-refresh-highlights', {
-                detail: {
-                    fileKey: highlight.fileKey,
-                    timestamp: Date.now(),
-                    forceUIUpdate: true
-                }
-            }));
-        }, 50);
-
-        // STEP 7: Also dispatch a general application state update event
-        setTimeout(() => {
-            console.log(`[HighlightContextMenu] Dispatching application state update`);
-            window.dispatchEvent(new CustomEvent('application-state-changed', {
-                detail: {
-                    type: 'highlights-deleted',
-                    fileKey: highlight.fileKey,
-                    timestamp: Date.now()
-                }
-            }));
-        }, 100);
-
-        // Show success message
-        alert(`Deleted ${highlightsToDelete.length} highlights with text "${textToDelete}"`);
+        } catch (error) {
+            console.error('[HighlightContextMenu] Error removing highlights by text:', error);
+            alert('An error occurred while deleting highlights');
+        }
 
         onClose();
     };
 
     // Handle highlight all instances of the same text
-    const handleHighlightAllSame = () => {
-        if (!highlight.text || !highlight.fileKey) {
+    const handleHighlightAllSame = async () => {
+        if (!highlight.fileKey) {
             onClose();
             return;
         }
 
-        console.log(`[HighlightContextMenu] Using batch search to highlight all occurrences of "${highlight.text}" }`);
+        try {
+            const textToHighlight = highlight.text || highlight.entity || '';
 
-        // Use the batch search functionality to highlight all occurrences
-        batchSearch(
-            selectedFiles.length === 0 ? files : selectedFiles,
-            highlight.text,
-            {
-                isCaseSensitive: false,
-                isAiSearch: false
+            if (!textToHighlight) {
+                alert("No text content found to highlight.");
+                onClose();
+                return;
             }
-        ).then(() => {
-            console.log(`[HighlightContextMenu] Successfully highlighted all occurrences of "${highlight.text}"`);
-        }).catch(error => {
+
+            console.log(`[HighlightContextMenu] Highlighting all occurrences of "${textToHighlight}"`);
+            let boundingBox = null;
+            // Get the bounding box from the current highlight
+            if(highlight.type === 'SEARCH') {
+             boundingBox = {
+                x0: highlight.x +4,
+                y0: highlight.y + 3,
+                x1: (highlight.x + highlight.w) -1,
+                y1: highlight.y + highlight.h
+            };
+            }else if (highlight.type === 'ENTITY') {
+                boundingBox = {
+                    x0: highlight.x + 5,
+                    y0: highlight.y + 5,
+                    x1: (highlight.x + highlight.w) - 3,
+                    y1: (highlight.y + highlight.h) - 5
+                };
+            }else {
+                boundingBox = {
+                    x0: highlight.x,
+                    y0: highlight.y,
+                    x1: (highlight.x + highlight.w) - 1,
+                    y1: (highlight.y + highlight.h)
+                };
+            }
+
+            // Use the runFindWords function to find all occurrences
+            const findWordsResponse = await runFindWords(
+                files,
+                boundingBox,
+                selectedFiles
+            );
+
+            // Process the results using the SearchHighlightProcessor
+            if (findWordsResponse && findWordsResponse.file_results) {
+                let totalCount = 0;
+
+                // Process each file's results
+                for (const fileResult of findWordsResponse.file_results) {
+                    if (fileResult.status !== 'success' || !fileResult.results?.pages) continue;
+
+                    const fileKey = fileResult.file;
+                    const file = files.find(f => getFileKey(f) === fileKey);
+                    if (!file) continue;
+
+                    // Extract search results and convert to highlight format
+                    const searchResults = new Array<SearchResult>();
+
+                    for (const page of fileResult.results.pages) {
+                        if (!page.matches || !Array.isArray(page.matches)) continue;
+
+                        for (const match of page.matches) {
+                            if (!match.bbox) continue;
+
+                            const { x0, y0, x1, y1 } = match.bbox;
+                            searchResults.push({
+                                id: `search-${fileKey}-${page.page}-${textToHighlight}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                                page: page.page,
+                                x: x0 ,
+                                y: y0 ,
+                                w: (x1 - x0) + 1 ,
+                                h: (y1 - y0) ,
+                                text: textToHighlight,
+                                fileKey,
+                                color: highlight.color,
+                                opacity: highlight.opacity || 0.4,
+                                type: highlight.type,
+                            });
+                        }
+                    }
+
+                    if (searchResults.length > 0) {
+                        // Process the results into highlights
+                        const highlightIds = await SearchHighlightProcessor.processSearchResults(
+                            fileKey,
+                            searchResults,
+                             'Highlight All Same Search' + highlight.id, // Use the same text as the original highlight
+                        );
+
+                        totalCount += highlightIds.length;
+                    }
+                }
+
+                if (totalCount > 0) {
+                    console.log(`[HighlightContextMenu] Added ${totalCount} highlights for text "${textToHighlight}"`);
+                } else {
+                    alert(`No additional occurrences of text "${textToHighlight}" found.`);
+                }
+            }
+        } catch (error) {
             console.error('[HighlightContextMenu] Error highlighting all occurrences:', error);
             alert('An error occurred while highlighting all occurrences.');
-        });
+        }
 
         onClose();
     };
-
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -227,7 +290,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
     }, [onClose]);
 
     // Adjust position if menu would render outside viewport
-    const [adjustedPosition, setAdjustedPosition] = useState({ x: highlight.x, y: highlight.y });
+    const [adjustedPosition, setAdjustedPosition] = useState({x: highlight.x, y: highlight.y});
 
     useEffect(() => {
         if (menuRef.current) {
@@ -248,34 +311,34 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                 newY = Math.max(viewportHeight - rect.height - 10, 10);
             }
 
-            setAdjustedPosition({ x: newX, y: newY });
+            setAdjustedPosition({x: newX, y: newY});
         }
-    }, [highlight, viewportSize]); // Add viewportSize to dependencies
+    }, [highlight]);
 
     // Only show text-specific options if highlight has text
     const showTextOptions = !!highlight.text;
+    // Check if this is an entity highlight
+    const isEntityHighlight = highlight.type === 'ENTITY';
 
     return (
         <div
-            ref={containerRef}
             className="highlight-context-menu-container"
-            style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 9998 }}
+            style={{position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 9998}}
         >
             <div
                 ref={menuRef}
                 className="highlight-context-menu"
                 style={{
                     position: 'fixed',
-                    left: adjustedPosition.x ,
-                    top: adjustedPosition.y + 15 ,
-                    zIndex: 9999, // Higher than container to ensure it's on top
-                    pointerEvents: 'auto', // Make sure menu receives clicks
+                    left: adjustedPosition.x,
+                    top: adjustedPosition.y + 15,
+                    zIndex: 9999,
+                    pointerEvents: 'auto',
                     backgroundColor: 'var(--background)',
                     boxShadow: 'var(--shadow-md)',
                     borderRadius: 'var(--border-radius-md)',
                     border: '1px solid var(--border)',
                     padding: '4px 0',
-                    minWidth: '180px',
                     animation: 'fadeIn 0.2s ease'
                 }}
             >
@@ -302,27 +365,32 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                             justifyContent: 'center'
                         }}
                     >
-                        <X size={14} />
+                        <X size={14}/>
                     </button>
                 </div>
 
                 <div className="context-menu-item" onClick={handleDelete}>
-                    <Trash2 size={16} />
+                    <Trash2 size={16}/>
                     <span>Delete</span>
                 </div>
 
-                {showTextOptions && (
-                    <>
-                        <div className="context-menu-item" onClick={handleDeleteAllSameText}>
-                            <Trash2 size={16} />
-                            <span>Delete All Same Text</span>
-                        </div>
-                        <div className="context-menu-item" onClick={handleHighlightAllSame}>
-                            <Highlighter size={16} />
-                            <span>Highlight All Same</span>
-                        </div>
-                    </>
+                {/* Delete options based on highlight type */}
+                {isEntityHighlight && (
+                    <div className="context-menu-item" onClick={handleDeleteAllSameEntityType}>
+                        <Trash2 size={16}/>
+                        <span>Delete All {highlight.entity}</span>
+                    </div>
                 )}
+
+                <div className="context-menu-item" onClick={handleDeleteAllSameText}>
+                    <Trash2 size={16}/>
+                    <span>Delete All Same Text</span>
+                </div>
+
+                <div className="context-menu-item" onClick={handleHighlightAllSame}>
+                    <Highlighter size={16}/>
+                    <span>Highlight All Same</span>
+                </div>
 
                 {highlight.entity && (
                     <div className="context-menu-item-info" style={{

@@ -16,9 +16,9 @@ import {
 import { useFileContext } from '../../../contexts/FileContext';
 import { usePDFViewerContext } from '../../../contexts/PDFViewerContext';
 import { useEditContext } from '../../../contexts/EditContext';
-import { useHighlightContext } from '../../../contexts/HighlightContext';
+import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
 import { HighlightType } from '../../../types/pdfTypes';
-import pdfUtilityService from '../../../services/PDFUtilityService';
+import pdfUtilityService from '../../../store/PDFUtilityStore';
 import '../../../styles/modules/pdf/Toolbar.css';
 
 interface ToolbarProps {
@@ -67,9 +67,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
     } = useEditContext();
 
     const {
-        clearAnnotations,
-        clearAnnotationsByType,
-    } = useHighlightContext();
+        removeAllHighlights,
+        removeAllHighlightsByType,
+    } = useHighlightStore();
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const visibilityButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -337,23 +337,23 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const handleClearAllHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (window.confirm('Are you sure you want to clear all highlights?')) {
-            clearAnnotations();
+             removeAllHighlights();
         }
     };
 
     const handleClearManualHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
-        clearAnnotationsByType(HighlightType.MANUAL);
+       removeAllHighlightsByType(HighlightType.MANUAL);
     };
 
     const handleClearSearchHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
-        clearAnnotationsByType(HighlightType.SEARCH);
+        removeAllHighlightsByType(HighlightType.SEARCH);
     };
 
     const handleClearEntityHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
-        clearAnnotationsByType(HighlightType.ENTITY);
+        removeAllHighlightsByType(HighlightType.ENTITY);
     };
 
     // Handle color change

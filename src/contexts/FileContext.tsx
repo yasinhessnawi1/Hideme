@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { getFileKey } from './PDFViewerContext';
-import { autoProcessManager } from '../utils/AutoProcessManager';
+import { autoProcessManager } from '../managers/AutoProcessManager';
 import pdfStorageService from '../services/PDFStorageService';
 import { pdfjs } from 'react-pdf';
-import { cleanupFileHighlights } from '../utils/highlightUtils';
 import { StorageStats } from '../types/pdfTypes';
 import useSettings from "../hooks/settings/useSettings";
+import { useHighlightStore } from "../hooks/useHighlightStore";
 
 // Ensure PDF.js worker is loaded
 const loadPdfWorker = () => {
@@ -87,7 +87,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [activeFiles, setActiveFiles] = useState<File[]>([]); // Files currently displayed
     const [isStoragePersistenceEnabled, setIsStoragePersistenceEnabled] = useState<boolean>(false);
     const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
-
+    const { removeHighlightsFromFile } = useHighlightStore();
     // Add state to track if PDF worker is ready
     const [isPdfWorkerReady, setIsPdfWorkerReady] = useState<boolean>(false);
 
@@ -449,50 +449,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Trigger initialization for the new file's highlights
             const fileKey = getFileKey(file);
-            setTimeout(() => {
-                // Use a small timeout to ensure the file is fully added to the context
-                if (typeof window.resetEntityHighlightsForFile === 'function') {
-                    window.resetEntityHighlightsForFile(fileKey);
-                    console.log(`[FileContext] Initialized entity highlights for new file ${fileKey}`);
-                }
-
-                // Dispatch an event to trigger highlight processing for the new file
-                window.dispatchEvent(new CustomEvent('reset-entity-highlights', {
-                    detail: {
-                        fileKey,
-                        resetType: 'new-file',
-                        forceProcess: true
-                    }
-                }));
-
-                // Also preload any existing highlights for this file from persistent storage
-                import('../utils/highlightUtils')
-                    .then(({ preloadFileHighlights }) => {
-                        console.log(`[FileContext] Preloading highlights for new file: ${fileKey}`);
-
-                        preloadFileHighlights(fileKey)
-                            .then(highlightCount => {
-                                console.log(`[FileContext] Successfully preloaded ${highlightCount} highlights for file: ${fileKey}`);
-
-                                // If there are highlights, dispatch an event to notify components
-                                if (highlightCount > 0) {
-                                    window.dispatchEvent(new CustomEvent('file-highlights-available', {
-                                        detail: {
-                                            fileKey,
-                                            count: highlightCount,
-                                            source: 'file-add'
-                                        }
-                                    }));
-                                }
-                            })
-                            .catch(error => {
-                                console.error(`[FileContext] Error preloading highlights for file: ${fileKey}`, error);
-                            });
-                    })
-                    .catch(error => {
-                        console.error('[FileContext] Error importing highlightUtils:', error);
-                    });
-            }, 100);
 
             // Queue file for auto-processing with current settings
             if (!userSettingsLoading && isAutoProcessingActuallyEnabled) {
@@ -558,23 +514,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 // Initialize highlighting for each new file
                 const fileKey = getFileKey(file);
-                setTimeout(() => {
-                    // Use a small timeout to ensure the file is fully added to the context
-                    if (typeof window.resetEntityHighlightsForFile === 'function') {
-                        window.resetEntityHighlightsForFile(fileKey);
-                        console.log(`[FileContext] Initialized entity highlights for new file ${fileKey}`);
-                    }
-
-                    // Dispatch an event to trigger highlight processing for the new file
-                    window.dispatchEvent(new CustomEvent('reset-entity-highlights', {
-                        detail: {
-                            fileKey,
-                            resetType: 'new-file',
-                            forceProcess: true
-                        }
-                    }));
-                }, 100);
-
                 // Store file in persistent storage if enabled
                 if (isStoragePersistenceEnabled) {
                     pdfStorageService.storeFile(file)
@@ -629,7 +568,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Clean up highlight tracking for the removed file - using our standardized util
             const fileKey = getFileKey(removedFile);
-            cleanupFileHighlights(fileKey).catch(error => {
+            removeHighlightsFromFile(fileKey).catch(error => {
                 console.error(`[FileContext] Error cleaning up highlights for file "${removedFile.name}":`, error);
             });
 

@@ -2,14 +2,13 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Select from 'react-select';
 import { useFileContext } from '../../../contexts/FileContext';
 import { useEditContext } from '../../../contexts/EditContext';
-import { useHighlightContext } from '../../../contexts/HighlightContext';
+import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
 import { HighlightType } from '../../../types/pdfTypes';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
 import {FileDetectionResult, OptionType} from '../../../types';
 import '../../../styles/modules/pdf/SettingsSidebar.css';
 import '../../../styles/modules/pdf/EntityDetectionSidebar.css';
-import { handleAllOPtions } from '../../../utils/pdfutils';
 import {ChevronUp, ChevronDown, Save, AlertTriangle, ChevronRight, Sliders, CheckCircle} from 'lucide-react';
 import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 import useBanList from '../../../hooks/settings/useBanList';
@@ -20,12 +19,12 @@ import {
     geminiOptions,
     hidemeOptions,
     getColorDotStyle,
-    createEntityBatch,
-    METHOD_ID_MAP, entitiesToOptions
+    METHOD_ID_MAP, handleAllOptions, prepareEntitiesForApi
 } from '../../../utils/EntityUtils';
 import useSettings from "../../../hooks/settings/useSettings";
 import useEntityDefinitions from "../../../hooks/settings/useEntityDefinitions";
 import useAuth from "../../../hooks/auth/useAuth";
+import {EntityHighlightProcessor} from "../../../managers/EntityHighlightProcessor";
 
 const EntityDetectionSidebar: React.FC = () => {
     const {
@@ -68,8 +67,8 @@ const EntityDetectionSidebar: React.FC = () => {
     const {banList, isLoading: isBanListLoading} = useBanList();
 
     const {
-        clearAnnotationsByType,
-    } = useHighlightContext();
+        removeHighlightsByType,
+    } = useHighlightStore();
 
     const [isDetecting, setIsDetecting] = useState(false);
     const [detectionScope, setDetectionScope] = useState<'current' | 'selected' | 'all'>('all');
@@ -167,18 +166,6 @@ const EntityDetectionSidebar: React.FC = () => {
         return [];
     }, [detectionScope, currentFile, selectedFiles, files]);
 
-    // Reset entity highlights for a specific file
-    const resetEntityHighlightsForFile = useCallback((fileKey: string) => {
-        // Reset processed entity pages for this file
-        window.dispatchEvent(new CustomEvent('reset-entity-highlights', {
-            detail: { fileKey, resetType: 'detection-update', forceProcess: true }
-        }));
-
-        // Also reset the static processed entities map in EntityHighlightManager
-        if (typeof window.resetEntityHighlightsForFile === 'function') {
-            window.resetEntityHighlightsForFile(fileKey);
-        }
-    }, []);
 
     // Simple navigation to a page without highlighting
     const navigateToPage = useCallback((fileKey: string, pageNumber: number) => {
@@ -216,59 +203,40 @@ const EntityDetectionSidebar: React.FC = () => {
         resetErrors();
 
         try {
-            // Clear existing entity highlights for files that will be processed
-            filesToProcess.forEach(file => {
-                const fileKey = getFileKey(file);
-                clearAnnotationsByType(HighlightType.ENTITY, undefined, fileKey);
+            // Prepare detection options
+            const presidioEntities = prepareEntitiesForApi(
+                selectedMlEntities,
+                presidioOptions,
+                'ALL_PRESIDIO_P'
+            );
 
-                // Also reset the entity tracking to force fresh processing
-                if (typeof window.resetEntityHighlightsForFile === 'function') {
-                    window.resetEntityHighlightsForFile(fileKey);
-                }
+            const glinerEntities = prepareEntitiesForApi(
+                selectedGlinerEntities,
+                glinerOptions,
+                'ALL_GLINER'
+            );
 
-                // Remove any cached highlights for this file
-                if (typeof window.removeFileHighlightTracking === 'function') {
-                    window.removeFileHighlightTracking(fileKey);
-                }
-            });
+            const geminiEntities = prepareEntitiesForApi(
+                selectedAiEntities,
+                geminiOptions,
+                'ALL_GEMINI'
+            );
 
-            // First prepare the entity options - ensure we're passing arrays of values
-            const presidioOptions = selectedMlEntities
-                .filter(opt => !opt.value.startsWith('ALL_'))
-                .map(opt => opt.value);
+            const hidemeEntities = prepareEntitiesForApi(
+                selectedHideMeEntities,
+                hidemeOptions,
+                'ALL_HIDEME'
+            );
 
-            const glinerOptions = selectedGlinerEntities
-                .filter(opt => !opt.value.startsWith('ALL_'))
-                .map(opt => opt.value);
-
-            const geminiOptions = selectedAiEntities
-                .filter(opt => !opt.value.startsWith('ALL_'))
-                .map(opt => opt.value);
-
-            const hidemeOptions = selectedHideMeEntities
-                .filter(opt => !opt.value.startsWith('ALL_'))
-                .map(opt => opt.value);
-
-            // Prepare detection options with proper entity arrays
+            // Prepare detection options
             const detectionOptions = {
-                presidio: presidioOptions.length > 0 ? presidioOptions : null,
-                gliner: glinerOptions.length > 0 ? glinerOptions : null,
-                gemini: geminiOptions.length > 0 ? geminiOptions : null,
-                hideme: hidemeOptions.length > 0 ? hidemeOptions : null,
+                presidio: presidioEntities.length > 0 ? presidioEntities : null,
+                gliner: glinerEntities.length > 0 ? glinerEntities : null,
+                gemini: geminiEntities.length > 0 ? geminiEntities : null,
+                hideme: hidemeEntities.length > 0 ? hidemeEntities : null,
                 threshold: detectionThreshold,
                 banlist: useBanlist && banList?.words ? banList.words : null
             };
-
-            // Log for debugging
-            console.log('[EntityDetectionSidebar] Detection options:', {
-                filesCount: filesToProcess.length,
-                presidioCount: presidioOptions.length,
-                glinerCount: glinerOptions.length,
-                geminiCount: geminiOptions.length,
-                hidemeCount: hidemeOptions.length,
-                threshold: detectionThreshold,
-                useBanlist
-            });
 
             // Use the consolidated batch hybrid detection from the hook
             const results = await runBatchHybridDetect(filesToProcess, detectionOptions);
@@ -279,52 +247,36 @@ const EntityDetectionSidebar: React.FC = () => {
             // Process each file's detection results
             const newFileSummaries: any[] = [];
 
-            Object.entries(results).forEach(([fileKey, result]) => {
-                // The API might return a structure with redaction_mapping inside
-                const detectionResult = result;
-                // If the result has a redaction_mapping property, use that
-                const mappingToSet = detectionResult.redaction_mapping || detectionResult;
+            // Process detection for each file using the EntityHighlightProcessor
+            for (const [fileKey, result] of Object.entries(results)) {
+                try {
+                    // Process the detection results into highlights
+                    await EntityHighlightProcessor.processDetectionResults(fileKey, result);
 
-                // Store the mapping for this file
-                setFileDetectionMapping(fileKey, mappingToSet);
+                    // Store the mapping for this file
+                    setFileDetectionMapping(fileKey, result.redaction_mapping || result);
 
-                window.dispatchEvent(new CustomEvent('entity-detection-complete', {
-                    detail: {
-                        fileKey,
-                        source: 'detection-process',
-                        timestamp: Date.now(),
-                        forceProcess: true
+                    // If this is the current file, also update the current detection mapping
+                    if (currentFile && getFileKey(currentFile) === fileKey) {
+                        setDetectionMapping(result.redaction_mapping || result);
                     }
-                }));
 
-                // Reset processed entity pages with slight delay
-                setTimeout(() => {
-                    resetEntityHighlightsForFile(fileKey);
-                }, 100);
+                    // Extract summary information for this file
+                    const filename = filesToProcess.find(f => getFileKey(f) === fileKey)?.name ?? fileKey;
 
-                // If this is the current file, also update the current detection mapping
-                if (currentFile && getFileKey(currentFile) === fileKey) {
-                    setDetectionMapping(mappingToSet);
+                    // Create a file summary object
+                    const fileSummary = {
+                        fileKey,
+                        fileName: filename,
+                        entities_detected: result.entities_detected,
+                        performance: result.performance
+                    };
+
+                    newFileSummaries.push(fileSummary);
+                } catch (error) {
+                    console.error(`[EntityDetectionSidebar] Error processing highlights for file ${fileKey}:`, error);
                 }
-
-                // Reset processed entity pages for this file to force re-processing
-                setTimeout(() => {
-                    resetEntityHighlightsForFile(fileKey);
-                }, 100);
-
-                // Extract summary information for this file
-                const filename = filesToProcess.find(f => getFileKey(f) === fileKey)?.name ?? fileKey;
-
-                // Create a file summary object
-                const fileSummary: FileDetectionResult = {
-                    fileKey,
-                    fileName: filename,
-                    entities_detected: detectionResult.entities_detected,
-                    performance: detectionResult.performance
-                };
-
-                newFileSummaries.push(fileSummary);
-            });
+            }
 
             // Update file summaries state and automatically expand them
             setFileSummaries(newFileSummaries);
@@ -334,7 +286,6 @@ const EntityDetectionSidebar: React.FC = () => {
 
             setSuccessMessage("Entity detection completed successfully");
             setTimeout(() => setSuccessMessage(null), 3000);
-
         } catch (err: any) {
             setDetectionError(err.message || 'An error occurred during entity detection');
         } finally {
@@ -343,7 +294,6 @@ const EntityDetectionSidebar: React.FC = () => {
     }, [
         getFilesToProcess,
         resetErrors,
-        clearAnnotationsByType,
         selectedMlEntities,
         selectedGlinerEntities,
         selectedAiEntities,
@@ -354,8 +304,7 @@ const EntityDetectionSidebar: React.FC = () => {
         runBatchHybridDetect,
         setFileDetectionMapping,
         setDetectionMapping,
-        currentFile,
-        resetEntityHighlightsForFile
+        currentFile
     ]);
 
     // Listen for external detection triggers (e.g., from toolbar button)
@@ -437,15 +386,14 @@ const EntityDetectionSidebar: React.FC = () => {
         loadAllEntities();
     }, [isAuthenticated, isUserLoading, getModelEntities, entitiesInitialized]);
 
-    // Apply model entities to selections when model entities change
     useEffect(() => {
         if (!entitiesInitialized) return;
 
         const applyModelEntities = () => {
             console.log("[EntityDetectionSidebar] Applying model entities to selections");
 
-            // Helper to safely map entities to option types
-            const getEntityOptions = (methodId: number, optionsArray: OptionType[]) => {
+            // Helper to safely map entities to option types and handle ALL options
+            const getEntityOptions = (methodId: number, allOptions: OptionType[], allOptionValue: string) => {
                 const entities = modelEntities[methodId];
                 if (!entities || !Array.isArray(entities) || entities.length === 0) {
                     return [];
@@ -455,31 +403,42 @@ const EntityDetectionSidebar: React.FC = () => {
                 const entityTexts = new Set(entities.map(e => e.entity_text));
 
                 // Find matching options
-                return optionsArray.filter(option =>
-                    entityTexts.has(option.value)
+                const matchedOptions = allOptions.filter(option =>
+                    !option.value.startsWith('ALL_') && entityTexts.has(option.value)
                 );
+
+                // Check if all non-ALL options are selected
+                const nonAllOptions = allOptions.filter(option => !option.value.startsWith('ALL_'));
+
+                if (matchedOptions.length === nonAllOptions.length) {
+                    // If all options are selected, return just the ALL option
+                    const allOption = allOptions.find(option => option.value === allOptionValue);
+                    return allOption ? [allOption] : [];
+                }
+
+                return matchedOptions;
             };
 
             // Apply entities for each method
-            const presOptions = getEntityOptions(METHOD_ID_MAP.presidio, presidioOptions);
+            const presOptions = getEntityOptions(METHOD_ID_MAP.presidio, presidioOptions, 'ALL_PRESIDIO_P');
             if (presOptions.length > 0) {
                 console.log(`[EntityDetectionSidebar] Setting ${presOptions.length} Presidio entities`);
                 setSelectedMlEntities(presOptions);
             }
 
-            const glinerOpts = getEntityOptions(METHOD_ID_MAP.gliner, glinerOptions);
+            const glinerOpts = getEntityOptions(METHOD_ID_MAP.gliner, glinerOptions, 'ALL_GLINER');
             if (glinerOpts.length > 0) {
                 console.log(`[EntityDetectionSidebar] Setting ${glinerOpts.length} Gliner entities`);
                 setSelectedGlinerEntities(glinerOpts);
             }
 
-            const geminiOpts = getEntityOptions(METHOD_ID_MAP.gemini, geminiOptions);
+            const geminiOpts = getEntityOptions(METHOD_ID_MAP.gemini, geminiOptions, 'ALL_GEMINI');
             if (geminiOpts.length > 0) {
                 console.log(`[EntityDetectionSidebar] Setting ${geminiOpts.length} Gemini entities`);
                 setSelectedAiEntities(geminiOpts);
             }
 
-            const hidemeOpts = getEntityOptions(METHOD_ID_MAP.hideme, hidemeOptions);
+            const hidemeOpts = getEntityOptions(METHOD_ID_MAP.hideme, hidemeOptions, 'ALL_HIDEME');
             if (hidemeOpts.length > 0) {
                 console.log(`[EntityDetectionSidebar] Setting ${hidemeOpts.length} Hideme entities`);
                 setSelectedHideMeEntities(hidemeOpts);
@@ -576,7 +535,7 @@ const EntityDetectionSidebar: React.FC = () => {
             // Clear entity highlights for all files in current scope
             filesToReset.forEach(file => {
                 const fileKey = getFileKey(file);
-                clearAnnotationsByType(HighlightType.ENTITY, undefined, fileKey);
+                removeHighlightsByType(fileKey, HighlightType.ENTITY);
 
                 // If this is the current file, also update the current detection mapping
                 if (currentFile && getFileKey(currentFile) === fileKey) {
@@ -597,7 +556,7 @@ const EntityDetectionSidebar: React.FC = () => {
         setSelectedGlinerEntities,
         setSelectedHideMeEntities,
         setDetectionMapping,
-        clearAnnotationsByType,
+        removeHighlightsByType,
         getFilesToProcess,
         currentFile
     ]);
@@ -609,19 +568,37 @@ const EntityDetectionSidebar: React.FC = () => {
             clearUserError();
             setDetectionError(null);
 
+
+            // Helper function to convert ALL options to individual entities for saving
+            const expandAllOptions = (
+                selectedOptions: OptionType[],
+                allOptions: OptionType[],
+                allOptionValue: string
+            ): OptionType[] => {
+                // Check if ALL option is selected
+                const hasAllOption = selectedOptions.some(option => option.value === allOptionValue);
+
+                if (hasAllOption) {
+                    // If ALL is selected, return all individual options
+                    return allOptions.filter(option => !option.value.startsWith('ALL_'));
+                }
+
+                // Otherwise return the original selection
+                return selectedOptions;
+            };
+
+            // Expand ALL options for each model before saving
+            const expandedPresidio = expandAllOptions(selectedMlEntities, presidioOptions, 'ALL_PRESIDIO_P');
+            const expandedGliner = expandAllOptions(selectedGlinerEntities, glinerOptions, 'ALL_GLINER');
+            const expandedGemini = expandAllOptions(selectedAiEntities, geminiOptions, 'ALL_GEMINI');
+            const expandedHideme = expandAllOptions(selectedHideMeEntities, hidemeOptions, 'ALL_HIDEME');
+
             // Add entities for each method
-            await replaceModelEntities(METHOD_ID_MAP.presidio,
-                selectedMlEntities
-            );
-            await replaceModelEntities(METHOD_ID_MAP.gliner,
-                selectedGlinerEntities
-            );
-            await replaceModelEntities(METHOD_ID_MAP.gemini,
-               selectedAiEntities
-            );
-            await replaceModelEntities(METHOD_ID_MAP.hideme,
-                selectedHideMeEntities
-            );
+            await replaceModelEntities(METHOD_ID_MAP.presidio, expandedPresidio);
+            await replaceModelEntities(METHOD_ID_MAP.gliner, expandedGliner);
+            await replaceModelEntities(METHOD_ID_MAP.gemini, expandedGemini);
+            await replaceModelEntities(METHOD_ID_MAP.hideme, expandedHideme);
+
             // Update app settings
             await updateSettings({
                 detection_threshold: detectionThreshold,
@@ -632,7 +609,7 @@ const EntityDetectionSidebar: React.FC = () => {
             setSuccessMessage("Settings saved successfully");
             setTimeout(() => setSuccessMessage(null), 3000);
 
-            // Notify other components
+            // Notify other components - use the original selection with ALL option
             window.dispatchEvent(new CustomEvent('settings-changed', {
                 detail: {
                     type: 'entity',
@@ -713,51 +690,22 @@ const EntityDetectionSidebar: React.FC = () => {
     // Handle dropdown change with "ALL" logic
     const handlePresidioChange = (options: readonly OptionType[]) => {
         const selectedOptions = [...options];
-        const hasAll = selectedOptions.some(option => option.value === 'ALL_PRESIDIO_P');
-
-        // If "ALL" is selected, filter out other options
-        if (hasAll) {
-            const allOption = selectedOptions.find(option => option.value === 'ALL_PRESIDIO_P');
-            setSelectedMlEntities(allOption ? [allOption] : []);
-        } else {
-            setSelectedMlEntities(selectedOptions);
-        }
-    };
-
-    const handleHidemeChange = (options: readonly OptionType[]) => {
-        const selectedOptions = [...options];
-        const hasAll = selectedOptions.some(option => option.value === 'ALL_HIDEME');
-
-        if (hasAll) {
-            const allOption = selectedOptions.find(option => option.value === 'ALL_HIDEME');
-            setSelectedHideMeEntities(allOption ? [allOption] : []);
-        } else {
-            setSelectedHideMeEntities(selectedOptions);
-        }
+        setSelectedMlEntities(handleAllOptions(selectedOptions, presidioOptions, 'ALL_PRESIDIO_P'));
     };
 
     const handleGlinerChange = (options: readonly OptionType[]) => {
         const selectedOptions = [...options];
-        const hasAll = selectedOptions.some(option => option.value === 'ALL_GLINER');
-
-        if (hasAll) {
-            const allOption = selectedOptions.find(option => option.value === 'ALL_GLINER');
-            setSelectedGlinerEntities(allOption ? [allOption] : []);
-        } else {
-            setSelectedGlinerEntities(selectedOptions);
-        }
+        setSelectedGlinerEntities(handleAllOptions(selectedOptions, glinerOptions, 'ALL_GLINER'));
     };
 
     const handleGeminiChange = (options: readonly OptionType[]) => {
         const selectedOptions = [...options];
-        const hasAll = selectedOptions.some(option => option.value === 'ALL_GEMINI');
+        setSelectedAiEntities(handleAllOptions(selectedOptions, geminiOptions, 'ALL_GEMINI'));
+    };
 
-        if (hasAll) {
-            const allOption = selectedOptions.find(option => option.value === 'ALL_GEMINI');
-            setSelectedAiEntities(allOption ? [allOption] : []);
-        } else {
-            setSelectedAiEntities(selectedOptions);
-        }
+    const handleHidemeChange = (options: readonly OptionType[]) => {
+        const selectedOptions = [...options];
+        setSelectedHideMeEntities(handleAllOptions(selectedOptions, hidemeOptions, 'ALL_HIDEME'));
     };
 
     // Combined loading state

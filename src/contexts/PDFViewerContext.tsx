@@ -41,7 +41,7 @@ export const usePDFViewerContext = () => {
 
 // Helper function to generate a unique key for a file
 export const getFileKey = (file: File): string => {
-    return `${file.lastModified}-${file.name}`;
+    return file.name;
 };
 
 export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -125,7 +125,7 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Import the utility service
     const pdfUtilityService = React.useMemo(() => {
         // Dynamically import to avoid circular dependencies
-        return import('../services/PDFUtilityService').then(module => module.default);
+        return import('../store/PDFUtilityStore').then(module => module.default);
     }, []);
 
     // Handle zoom level changes to scale highlights properly

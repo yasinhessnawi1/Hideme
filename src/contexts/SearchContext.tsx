@@ -1,12 +1,12 @@
 // src/contexts/BatchSearchContext.tsx - Updated with unique ID handling
 import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
 import { useFileContext } from './FileContext';
-import { useHighlightContext } from './HighlightContext';
-import { HighlightType } from '../types/pdfTypes';
+import {HighlightRect, HighlightType} from '../types/pdfTypes';
 import { getFileKey } from './PDFViewerContext';
 import { BatchSearchService, SearchResult, BatchSearchResponse } from '../services/BatchSearchService';
 import { usePDFApi } from "../hooks/usePDFApi";
-import highlightManager from '../utils/HighlightManager';
+import {useHighlightStore} from '../hooks/useHighlightStore';
+import {SearchHighlightProcessor} from "../managers/SearchHighlightProcessor";
 
 interface SearchQuery {
     term: string;
@@ -66,7 +66,7 @@ export const useBatchSearch = () => {
 };
 
 export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { addAnnotation, clearAnnotationsByType, resetProcessedEntityPages , removeAnnotation} = useHighlightContext();
+    const { removeAllHighlightsByType, removeHighlightsByText, addHighlightsToPage} = useHighlightStore();
     const { currentFile, activeFiles } = useFileContext();
 
     // Main search state
@@ -84,130 +84,50 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
     searchStateRef.current = searchState;
     const { runBatchSearch } = usePDFApi();
 
-    /**
-     * Apply search highlights to the current view through the highlight context
-     */
-    const applySearchHighlights = useCallback((
-        searchResultsMap: Map<string, Map<number, SearchResult[]>>
-    ) => {
-        console.log(`[BatchSearchContext] Applying search highlights to context, found results for ${searchResultsMap.size} files`);
-
-        // Get all active files to process
-        const filesToProcess = activeFiles;
-
-        if (filesToProcess.length === 0) {
-            console.log('[BatchSearchContext] No files available to apply highlights to');
-            return;
-        }
-
-        console.log(`[BatchSearchContext] Processing search highlights for ${filesToProcess.length} files`);
-
-        // Track how many files we successfully applied highlights to
-        let filesWithAppliedHighlights = 0;
-        let totalHighlightsApplied = 0;
-
-        // Process one file at a time to prevent race conditions
-        filesToProcess.forEach(file => {
+    function applySearchHighlights(searchResultsMap: Map<string, Map<number, SearchResult[]>>) {
+        // Iterate over the search results map and apply highlights
+        searchResultsMap.forEach((pageMap, fileKey) => {
+            pageMap.forEach((highlights, pageNumber) => {
+                // Apply highlights to the highlight store
+                highlights.forEach(highlight => {
+                    highlight.fileKey = fileKey; // Set the file key for each highlight
+                    highlight.type = HighlightType.SEARCH; // Set the type to SEARCH
+                });
+            });
+        });
+        // Add highlights to the highlight store
+        activeFiles.forEach(file => {
             const fileKey = getFileKey(file);
-            const fileName = file.name;
-
-            // Try to find results using the filename (API returns results by filename)
-            let fileResults = searchResultsMap.get(fileName);
-
-            // If no results found directly by name, try to find a close match
-            if (!fileResults) {
-                // Search through all entries to find a match by filename
-                searchResultsMap.forEach((results, key) => {
-                    // Check if the key is the filename or contains the filename
-                    if (key === fileName || key.includes(fileName)) {
-                        console.log(`[BatchSearchContext] Found results using filename match: ${key}`);
-                        fileResults = results;
-                    }
-                });
-            }
-
-            if (fileResults) {
-                console.log(`[BatchSearchContext] Applying highlights for file: ${fileName} (key: ${fileKey}) with results for ${fileResults.size} pages`);
-
-                // First clear ALL search highlights for this file
-                // This is critical to prevent duplicates and flickering
-
-                let fileHighlightCount = 0;
-                const processedPages = new Set<number>();
-
-                // Process each page with search results
-                fileResults.forEach((highlights, pageNumber) => {
-                    processedPages.add(pageNumber);
-
-                    // Add each highlight to the highlight context
-                    highlights.forEach((highlight) => {
-                        // Create a truly unique ID using our highlight manager
-                        const uniqueId = highlightManager.generateUniqueId('search');
-
-                        // Create a new highlight with the correct fileKey and guaranteed unique ID
-                        const newHighlight = {
+            const highlights = searchResultsMap.get(fileKey);
+            if (highlights) {
+                highlights.forEach((pageHighlights, pageNumber) => {
+                    const highlightRects: HighlightRect[] = [];
+                    pageHighlights.forEach(highlight => {
+                        highlightRects.push({
                             ...highlight,
-                            fileKey: fileKey, // Ensure fileKey matches our internal key format
-                            type: HighlightType.SEARCH,
-                            id: uniqueId,
-                            timestamp: Date.now()
-                        };
-
-                        // Store in our highlight manager for persistence
-                        highlightManager.storeHighlightData(newHighlight);
-
-                        addAnnotation(pageNumber, newHighlight, fileKey);
-                        fileHighlightCount++;
-                        totalHighlightsApplied++;
+                            fileKey,
+                            page: pageNumber
+                        });
                     });
+                    // Add highlights to the store
+                    addHighlightsToPage(fileKey, pageNumber, highlightRects);
                 });
-
-                console.log(`[BatchSearchContext] Applied ${fileHighlightCount} search highlights across ${processedPages.size} pages for file ${fileName}`);
-
-                // Increment our counter of processed files
-                if (fileHighlightCount > 0) {
-                    filesWithAppliedHighlights++;
-                }
-
-                // Reset processed entity pages for this file to ensure proper rendering
-                if (typeof window.resetEntityHighlightsForFile === 'function') {
-                    window.resetEntityHighlightsForFile(fileKey);
-                }
-            } else {
-                console.log(`[BatchSearchContext] No search results found for file: ${fileName} (key: ${fileKey})`);
             }
         });
-
-        console.log(`[BatchSearchContext] Applied a total of ${totalHighlightsApplied} highlights across ${filesWithAppliedHighlights} files`);
-
-        // Force a global reset to ensure all highlights are visible
-        if (filesWithAppliedHighlights > 0) {
-            console.log('[BatchSearchContext] Triggering global reset to ensure highlights visibility');
-            resetProcessedEntityPages();
-
-            // Dispatch an event to notify that all search highlights have been applied
-            window.dispatchEvent(new CustomEvent('search-highlights-applied', {
-                detail: {
-                    timestamp: Date.now(),
-                    fileCount: filesWithAppliedHighlights,
-                    highlightCount: totalHighlightsApplied
-                }
-            }));
-        }
-    }, [addAnnotation, resetProcessedEntityPages, activeFiles]);
+    }
 
     /**
      * Execute a batch search operation
      */
-        // In BatchSearchContext.tsx, update the batchSearch function
+        // Make the following changes to the batchSearch method
 
     const batchSearch = useCallback(async (
             files: File[],
             searchTerm: string,
-            options: { case_sensitive?: boolean;
+            options: {
                 isCaseSensitive?: boolean;
                 isAiSearch?: boolean;
-                ai_search?: boolean; } = {}
+            } = {}
         ) => {
             if (!files.length || !searchTerm.trim()) {
                 setSearchState(prev => ({
@@ -217,47 +137,12 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 return;
             }
 
-            // Check if this search is already active (with same case sensitivity and regex options)
+            // Check if this search is already active
             const isExistingSearch = searchStateRef.current.activeQueries.some(
                 query => query.term === searchTerm &&
                     query.caseSensitive === !!options.isCaseSensitive &&
                     query.isAiSearch === !!options.isAiSearch
             );
-
-            // If it's already an active search, clear existing highlights first to prevent duplicates
-            if (isExistingSearch) {
-                console.log(`[BatchSearchContext] Search term "${searchTerm}" is already active, clearing existing highlights before searching again`);
-
-                // Remove existing highlights for this term from all files being searched
-                for (const file of files) {
-                    const fileKey = getFileKey(file);
-
-                    // Find existing highlights for this term and file
-                    const existingHighlights = highlightManager.findHighlightsByText(searchTerm, fileKey)
-                        .filter(h => h.type === HighlightType.SEARCH);
-
-                    console.log(`[BatchSearchContext] Found ${existingHighlights.length} existing highlights for "${searchTerm}" in file ${fileKey}`);
-
-                    // Remove them from the manager and UI
-                    existingHighlights.forEach(highlight => {
-                        highlightManager.removeHighlightData(highlight.id);
-                        if (highlight.page) {
-                            removeAnnotation(highlight.page, highlight.id, fileKey);
-                        }
-                    });
-
-                    // Trigger refresh to ensure highlights are gone before adding new ones
-                    window.dispatchEvent(new CustomEvent('force-refresh-highlights', {
-                        detail: {
-                            fileKey,
-                            timestamp: Date.now()
-                        }
-                    }));
-                }
-
-                // Small delay to ensure highlights are removed before adding new ones
-                await new Promise(resolve => setTimeout(resolve, 50));
-            }
 
             setSearchState(prev => ({
                 ...prev,
@@ -282,6 +167,24 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
                     caseSensitive: !!options.isCaseSensitive,
                     isAiSearch: !!options.isAiSearch
                 };
+
+                // Process the results into highlights for each file
+                for (const [fileKey, pageMap] of searchResultsMap.entries()) {
+                    // Flatten the page map into a single array of results
+                    const allResults: SearchResult[] = [];
+                    pageMap.forEach(results => {
+                        allResults.push(...results);
+                    });
+
+                    if (allResults.length > 0) {
+                        // Use SearchHighlightProcessor to create the highlights
+                        await SearchHighlightProcessor.processSearchResults(
+                            fileKey,
+                            allResults,
+                            searchTerm
+                        );
+                    }
+                }
 
                 // Update the search results in state
                 setSearchState(prev => {
@@ -333,9 +236,6 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
                 console.log(`[BatchSearchContext] Search complete for "${searchTerm}". Adding highlights...`);
 
-                // Add highlights to the highlight context
-                applySearchHighlights(searchResultsMap);
-
             } catch (error: any) {
                 console.error('[BatchSearchContext] Search error:', error);
                 setSearchState(prev => ({
@@ -344,7 +244,7 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
                     error: error.message || 'Error performing batch search'
                 }));
             }
-        }, [runBatchSearch, applySearchHighlights, removeAnnotation]);
+        }, [runBatchSearch]);
 
     /**
      * Clear all search results and highlights
@@ -357,8 +257,8 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }));
 
         // Clear all search highlights
-        clearAnnotationsByType(HighlightType.SEARCH);
-    }, [clearAnnotationsByType]);
+        removeAllHighlightsByType(HighlightType.SEARCH);
+    }, [removeAllHighlightsByType]);
 
     /**
      * Clear a specific search term or all searches
@@ -410,56 +310,11 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 const targetFileKey = specificFileKey ?? getFileKey(currentFile);
 
                 // Find highlights matching this search term
-                const highlightsToRemove = highlightManager.findHighlightsByText(searchTerm, targetFileKey)
-                    .filter(h => h.type === HighlightType.SEARCH);
+                removeHighlightsByText(searchTerm, targetFileKey)
 
-                console.log(`[BatchSearchContext] Found ${highlightsToRemove.length} search highlights to remove for term "${searchTerm}"`);
 
-                // Keep track of affected pages for updates
-                const affectedPages = new Set<number>();
-
-                // Remove just these highlights
-                highlightsToRemove.forEach(highlight => {
-                    // Keep track of pages for UI updates
-                    if (highlight.page) {
-                        affectedPages.add(highlight.page);
-                    }
-
-                    // Remove from highlight manager
-                    highlightManager.removeHighlightData(highlight.id);
-
-                    // Also remove from context (since we're not using clearAnnotationsByType)
-                    if (highlight.page) {
-                        removeAnnotation(highlight.page, highlight.id, targetFileKey);
-                    }
-                });
-
-                // Trigger UI updates for affected pages
-                if (affectedPages.size > 0) {
-                    setTimeout(() => {
-                        affectedPages.forEach(page => {
-                            window.dispatchEvent(new CustomEvent('highlights-removed-from-page', {
-                                detail: {
-                                    fileKey: targetFileKey,
-                                    page,
-                                    searchTerm,
-                                    timestamp: Date.now()
-                                }
-                            }));
-                        });
-
-                        // Also dispatch a general update event
-                        window.dispatchEvent(new CustomEvent('force-refresh-highlights', {
-                            detail: {
-                                fileKey: targetFileKey,
-                                searchTerm,
-                                timestamp: Date.now()
-                            }
-                        }));
-                    }, 50);
-                }
             }
-        }, [currentFile, clearAllSearches, removeAnnotation]);
+        }, [currentFile, clearAllSearches, removeHighlightsByText]);
 
     /**
      * Get search results for a specific page and file

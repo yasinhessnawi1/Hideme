@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
-import { autoProcessManager } from '../../../utils/AutoProcessManager';
+import { autoProcessManager } from '../../../managers/AutoProcessManager';
 import '../../../styles/modules/pdf/PdfViewer.css'
 const ProcessingStatus: React.FC = () => {
     const { activeFiles } = useFileContext();

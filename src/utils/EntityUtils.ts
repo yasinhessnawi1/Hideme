@@ -160,6 +160,83 @@ export const getColorDotStyle = (color: string) => ({
 });
 
 // ======= SHARED UTILITY FUNCTIONS =======
+/**
+ * Handle selection of "ALL" options for entity selections
+ * Serves two purposes:
+ * 1. If all entities are selected, only show the "ALL" option in the UI
+ * 2. When processing entity selections for API requests, properly handle "ALL" options
+ *
+ * @param selectedOptions Current selected options
+ * @param allOptions All available options for this model
+ * @param allOptionValue The value of the "ALL" option (e.g., "ALL_PRESIDIO_P")
+ * @returns Processed options for display or API use
+ */
+export const handleAllOptions = (
+    selectedOptions: OptionType[],
+    allOptions: OptionType[],
+    allOptionValue: string
+): OptionType[] => {
+    // Early return for empty selection
+    if (!selectedOptions || selectedOptions.length === 0) {
+        return [];
+    }
+
+    // Check if the "ALL" option is already selected
+    const hasAllOption = selectedOptions.some(option => option.value === allOptionValue);
+    if (hasAllOption) {
+        // If "ALL" is selected, return only the "ALL" option
+        const allOption = allOptions.find(option => option.value === allOptionValue);
+        return allOption ? [allOption] : [];
+    }
+
+    // Get all options except the "ALL" option
+    const individualOptions = allOptions.filter(option => option.value !== allOptionValue);
+
+    // Count how many individual options are selected
+    const selectedCount = selectedOptions.filter(option =>
+        individualOptions.some(individual => individual.value === option.value)
+    ).length;
+
+    // If all individual options are selected, return only the "ALL" option
+    if (selectedCount === individualOptions.length && selectedCount > 0) {
+        const allOption = allOptions.find(option => option.value === allOptionValue);
+        return allOption ? [allOption] : [];
+    }
+
+    // Otherwise, return the selected options as they are
+    return selectedOptions;
+};
+
+/**
+ * Prepare entity options for API request
+ * Converts UI selections (including "ALL" options) to backend-compatible format
+ *
+ * @param selectedOptions The options selected in the UI
+ * @param allOptions All available options for this model
+ * @param allOptionValue The value of the "ALL" option
+ * @returns Array of entity values for the backend
+ */
+export const prepareEntitiesForApi = (
+    selectedOptions: OptionType[],
+    allOptions: OptionType[],
+    allOptionValue: string
+): string[] => {
+    // Handle empty selection
+    if (!selectedOptions || selectedOptions.length === 0) {
+        return [];
+    }
+
+    // Check if the "ALL" option is selected
+    const hasAllOption = selectedOptions.some(option => option.value === allOptionValue);
+
+    if (hasAllOption) {
+        // If ALL is selected, return the ALL flag for the backend
+        return [allOptionValue];
+    }
+
+    // Otherwise return individual entity values
+    return selectedOptions.map(option => option.value);
+};
 
 /**
  * Creates a batch of model entities for API submission

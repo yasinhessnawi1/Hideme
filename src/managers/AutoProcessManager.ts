@@ -1,9 +1,7 @@
 import { OptionType } from '../types/types';
 import { getFileKey } from '../contexts/PDFViewerContext';
-import {handleAllOPtions} from "./pdfutils";
-import { v4 as uuidv4 } from 'uuid';
-import {EntityHighlightManager} from "./EntityHighlightManager";
-import {SearchHighlightManager} from "./SearchHighlightManager";
+
+import {EntityHighlightProcessor} from "./EntityHighlightProcessor";
 /**
  * Configuration for automatic file processing
  */
@@ -208,8 +206,6 @@ export class AutoProcessManager {
         filesToProcess.forEach(file => {
             const fileKey = getFileKey(file);
             this.processingQueue.delete(fileKey);
-            EntityHighlightManager.resetProcessedEntitiesForFile(fileKey);
-            SearchHighlightManager.resetProcessedDataForFile(fileKey);
         });
 
         if (filesToProcess.length === 0) {
@@ -341,13 +337,9 @@ export class AutoProcessManager {
                 .filter(Boolean),
             hideme: this.config.hidemeEntities.map(e => typeof e === 'object' ? (e.value || '') : e)
                 .filter(Boolean),
-            // Add detection threshold if configured (value between 0.0 and 1.0)
-            threshold: this.config.detectionThreshold !== undefined ?
-                Math.max(0, Math.min(1, this.config.detectionThreshold)) : undefined,
-            // Add banlist words if enabled
+            threshold: this.config.detectionThreshold,
             banlist: this.config.useBanlist && this.config.banlistWords ? this.config.banlistWords : undefined
         };
-
 
         try {
             // Run detection and get results
@@ -356,45 +348,9 @@ export class AutoProcessManager {
             const detectionResult = results[fileKey];
 
             if (detectionResult) {
-                const mappingToSet = detectionResult.redaction_mapping || detectionResult;
-
-                // Add a processing ID and timestamp to track this specific detection run
-                const processRunId = uuidv4();
-                (mappingToSet).processRunId = processRunId;
-                (mappingToSet).processTimestamp = Date.now();
-                (mappingToSet).fileKey = fileKey;
-
-                console.log(`[AutoProcessManager] Got detection results for file ${file.name}, applying to context (run ID: ${processRunId})`);
-
-                // Clear processing flag to ensure highlights update properly
-                if (typeof window.removeFileHighlightTracking === 'function') {
-                    window.removeFileHighlightTracking(fileKey);
-                }
-
-
-                // Dispatch event to store the mapping
-                window.dispatchEvent(new CustomEvent('apply-detection-mapping', {
-                    detail: {
-                        fileKey,
-                        mapping: mappingToSet,
-                        timestamp: Date.now(),
-                        runId: processRunId,
-                        source: 'auto-process'
-                    }
-                }));
-
-                // Add delay before triggering highlight updates
-                setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('entity-detection-complete', {
-                        detail: {
-                            fileKey,
-                            source: 'auto-process',
-                            timestamp: Date.now(),
-                            runId: processRunId,
-                            forceProcess: true
-                        }
-                    }));
-                }, 300);
+                // Process the detection results using the EntityHighlightProcessor
+                await EntityHighlightProcessor.processDetectionResults(fileKey, detectionResult);
+                console.log(`[AutoProcessManager] Entity detection processed for file ${file.name}`);
             } else {
                 console.warn(`[AutoProcessManager] No detection results returned for ${file.name}`);
             }
@@ -444,16 +400,15 @@ export class AutoProcessManager {
                 if (detectionResult) {
                     const mappingToSet = detectionResult.redaction_mapping || detectionResult;
                     console.log(`[AutoProcessManager] Got detection results for file ${file.name}, applying to context`);
+                    // Process the detection results using the EntityHighlightProcessor
+                    EntityHighlightProcessor.processDetectionResults(fileKey, mappingToSet)
+                        .then(() => {
+                            console.log(`[AutoProcessManager] Entity detection processed for file ${file.name}`);
+                        })
+                        .catch(error => {
+                            console.error(`[AutoProcessManager] Error processing detection results for ${file.name}:`, error);
+                        });
 
-                    window.dispatchEvent(new CustomEvent('apply-detection-mapping', {
-                        detail: { fileKey, mapping: mappingToSet, timestamp: Date.now() }
-                    }));
-
-                    setTimeout(() => {
-                        window.dispatchEvent(new CustomEvent('entity-detection-complete', {
-                            detail: { fileKey, source: 'auto-process-batch', timestamp: Date.now(), forceProcess: true }
-                        }));
-                    }, 200);
                 } else {
                     console.warn(`[AutoProcessManager] No detection results returned for ${file.name} in batch`);
                 }

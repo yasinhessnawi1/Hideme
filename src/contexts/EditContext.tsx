@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
-import { OptionType, RedactionMapping } from '../types/types';
+import { OptionType, RedactionMapping } from '../types';
 import { useFileContext } from './FileContext';
 import { getFileKey } from './PDFViewerContext';
 

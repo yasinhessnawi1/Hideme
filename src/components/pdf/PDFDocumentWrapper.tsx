@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState, useRef, memo } from 'react';
 import { Document } from 'react-pdf';
 import { useFileContext } from '../../contexts/FileContext';
 import { getFileKey, usePDFViewerContext } from '../../contexts/PDFViewerContext';
-import { useHighlightContext } from '../../contexts/HighlightContext';
 import PageRenderer from './PageRenderer';
 import '../../styles/modules/pdf/PdfViewer.css';
 import scrollingService from '../../services/UnifiedScrollingService';

@@ -55,7 +55,7 @@ export interface HighlightRect {
     h: number;
     color: string;
     opacity?: number;
-    type?: HighlightType;
+    type: HighlightType;
     entity?: string;
     text?: string;
     fileKey?: string;

@@ -3,7 +3,7 @@ import AppRouter from './routes/AppRouter';
 import { FileProvider } from './contexts/FileContext';
 import { PDFViewerProvider } from './contexts/PDFViewerContext';
 import { EditProvider } from './contexts/EditContext';
-import { HighlightProvider } from './contexts/HighlightContext';
+import { HighlightStoreProvider } from './contexts/HighlightStoreContext';
 import UserContextProvider  from './contexts/UserContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ErrorBoundary from "./contexts/ErrorBoundary";
@@ -18,7 +18,7 @@ const App: React.FC = () => {
                 <ThemeProvider >
                     <FileProvider>
                         <PDFViewerProvider>
-                            <HighlightProvider>
+                            <HighlightStoreProvider>
                                 <EditProvider>
                                     <BatchSearchProvider>
                                         <AutoProcessProvider>
@@ -26,7 +26,7 @@ const App: React.FC = () => {
                                         </AutoProcessProvider>
                                     </BatchSearchProvider>
                                 </EditProvider>
-                            </HighlightProvider>
+                            </HighlightStoreProvider>
                         </PDFViewerProvider>
                     </FileProvider>
                 </ThemeProvider>

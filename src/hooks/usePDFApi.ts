@@ -341,7 +341,7 @@ export const usePDFApi = () => {
             y1: number;
         },
         selectedFiles?: File[]
-    ): Promise<any> => {
+    ): Promise<Record<string, any>> => {
         if (files.length === 0) {
             throw new Error('No files provided for word search');
         }

@@ -190,8 +190,8 @@ export class BatchSearchService {
                     const highlight: SearchResult = {
                         id: `search-${fileName}-${pageNumber}-${index}-${Date.now()}`,
                         page: pageNumber,
-                        x: x0 -3 ,
-                        y: y0 -3,
+                        x: x0 ,
+                        y: y0 ,
                         w: x1 - x0,
                         h: y1 - y0,
                         color: '71c4ff', // Default color for search highlights

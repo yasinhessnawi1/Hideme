@@ -13,7 +13,6 @@
     pointer-events: none;
     overflow: visible; /* Changed from 'hidden' to 'visible' to allow tooltips to overflow */
     transform-origin: top left;
-    z-index: 1000;
 }
 
 /* Style for highlight rectangles */
@@ -34,10 +33,11 @@
     opacity: 0.7 !important;
     transform: scale(1.01);
     box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+    border: 2px dotted var(--background) !important;
 }
 
 .highlight-rect.selected {
-    border: 2px dashed var(--foreground) !important;
+    border: 2px dashed var(--primary) !important;
     opacity: 0.7 !important;
     animation: pulse 2s infinite;
 }
@@ -61,14 +61,12 @@
 /* Tooltip styles with animations */
 .highlight-tooltip {
     position: fixed; /* Use fixed positioning to follow mouse precisely */
-    transform: translateX(-50%) translateY(-100%);
     background-color: var(--foreground);
     color: var(--background);
     padding: 0.25rem 0.5rem;
     border-radius: var(--border-radius-md);
     font-size: var(--font-size-xs);
     pointer-events: none;
-    z-index: 99999; /* Very high z-index to ensure it's on top */
     white-space: nowrap;
     max-width: 200px;
     overflow: hidden;
@@ -174,7 +172,6 @@
 .highlight-tooltip,
 .highlight-context-menu {
     pointer-events: auto;
-    z-index: 99999; /* Extremely high z-index to ensure visibility */
 }
 
 /* Responsive adjustments */

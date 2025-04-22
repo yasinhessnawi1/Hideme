@@ -14,7 +14,7 @@ import {
     X
 } from 'lucide-react';
 import '../../../styles/modules/pdf/FileSelector.css';
-import { useHighlightContext } from "../../../contexts/HighlightContext";
+import { useHighlightStore } from "../../../contexts/HighlightStoreContext";
 import AutoProcessControls from "./AutoProcessControls";
 import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 import { getFileKey } from "../../../contexts/PDFViewerContext";
@@ -38,7 +38,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
         toggleActiveFile,
         isFileActive
     } = useFileContext();
-    const { clearAnnotations } = useHighlightContext();
+    const { removeAllHighlights } = useHighlightStore();
 
     const [showActions, setShowActions] = useState<number | null>(null);
     const [showDropdown, setShowDropdown] = useState<number | null>(null);
@@ -63,34 +63,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
         });
 
         setCurrentFile(file);
-        
-        // Preload highlights for the selected file with improved handling
-        import('../../../utils/highlightUtils')
-            .then(({ preloadFileHighlights }) => {
-                console.log(`[FileSelector] Preloading highlights for file: ${fileKey}`);
-                
-                // Use the async preloading with proper error handling and status callback
-                preloadFileHighlights(fileKey)
-                    .then(highlightsCount => {
-                        console.log(`[FileSelector] Successfully preloaded ${highlightsCount} highlights for file: ${fileKey}`);
-                        
-                        // If there are highlights, dispatch an event to notify components
-                        if (highlightsCount > 0) {
-                            window.dispatchEvent(new CustomEvent('highlights-preloaded', {
-                                detail: {
-                                    fileKey,
-                                    count: highlightsCount
-                                }
-                            }));
-                        }
-                    })
-                    .catch(error => {
-                        console.error(`[FileSelector] Error preloading highlights for file: ${fileKey}`, error);
-                    });
-            })
-            .catch(error => {
-                console.error('[FileSelector] Error importing highlightUtils:', error);
-            });
+
     }, [pdfNavigation, setCurrentFile]);
 
     // For handling file deletion

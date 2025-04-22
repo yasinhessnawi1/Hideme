@@ -1,7 +1,6 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useHighlightContext } from '../../contexts/HighlightContext';
+import React, { useState, useCallback } from 'react';
 import { useEditContext } from '../../contexts/EditContext';
-import { ManualHighlightManager } from '../../utils/ManualHighlightManager';
+import { ManualHighlightProcessor } from '../../managers/ManualHighlightProcessor';
 import { PDFPageViewport } from '../../types/pdfTypes';
 
 interface PageOverlayProps {
@@ -20,8 +19,8 @@ interface PageOverlayProps {
 }
 
 /**
- * Component responsible for handling manual highlight creation
- * through mouse interaction on PDF pages
+ * Component for handling manual highlight creation through mouse interactions
+ * Updated to use the ManualHighlightProcessor
  */
 const PageOverlay: React.FC<PageOverlayProps> = ({
                                                      pageNumber,
@@ -30,46 +29,16 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
                                                      pageSize,
                                                      fileKey
                                                  }) => {
-    const { getNextHighlightId, addAnnotation } = useHighlightContext();
     const { highlightColor } = useEditContext();
 
+    // State for selection
     const [selectionStart, setSelectionStart] = useState<{x: number; y: number} | null>(null);
     const [selectionEnd, setSelectionEnd] = useState<{x: number; y: number} | null>(null);
     const [isSelecting, setIsSelecting] = useState(false);
 
-    // Use refs to prevent duplicate handling and race conditions
-    const isSelectingRef = useRef(false);
-    const selectionStartTimeRef = useRef<number>(0);
-    const lastCreatedHighlightRef = useRef<string | null>(null);
-
-    // Create a new highlight manager each time to ensure it has the latest state
-    const getHighlightManager = useCallback(() => {
-        return new ManualHighlightManager(
-            pageNumber,
-            getNextHighlightId,
-            addAnnotation,
-            highlightColor,
-            fileKey
-        );
-    }, [pageNumber, getNextHighlightId, addAnnotation, highlightColor, fileKey]);
-
-    // Reset selection state when page or file changes
-    useEffect(() => {
-        setSelectionStart(null);
-        setSelectionEnd(null);
-        setIsSelecting(false);
-        isSelectingRef.current = false;
-        lastCreatedHighlightRef.current = null;
-    }, [pageNumber, fileKey]);
-
-    // Explicitly track mousedown state to prevent mouse capture issues
-    const mouseIsDownRef = useRef(false);
-
+    // Mousedown handling
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
         if (!isEditingMode) return;
-
-        // Mark that mouse is down - important for reliable tracking
-        mouseIsDownRef.current = true;
 
         // Avoid capturing text selections
         const selection = window.getSelection();
@@ -77,105 +46,86 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
             return;
         }
 
-        // Prevent double-triggering
-        if (isSelectingRef.current) return;
-        isSelectingRef.current = true;
-
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-
-        // Record timestamp for debugging race conditions
-        selectionStartTimeRef.current = Date.now();
-
-        console.log(`[Highlight] Starting manual highlight at (${x}, ${y}) on page ${pageNumber}${fileKey ? ` for file ${fileKey}` : ''}`);
 
         setSelectionStart({x, y});
         setSelectionEnd({x, y});
         setIsSelecting(true);
 
-        // Prevent event propagation that could interfere with highlighting
+        // Prevent event propagation
         e.stopPropagation();
         e.preventDefault();
-    }, [isEditingMode, pageNumber, fileKey]);
+    }, [isEditingMode]);
 
+    // Mouse move handling
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
-        if (!mouseIsDownRef.current || !isSelectingRef.current || !selectionStart) return;
+        if (!isSelecting || !selectionStart) return;
 
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        // Update selection end point
         setSelectionEnd({x, y});
-
-        // Prevent default behavior during selection
         e.preventDefault();
-    }, [selectionStart]);
+    }, [isSelecting, selectionStart]);
 
+    // Mouse up handling
     const handleMouseUp = useCallback((e: React.MouseEvent) => {
-        // Reset mouse tracking state
-        mouseIsDownRef.current = false;
-
-        // Only process if we were selecting
-        if (!isSelectingRef.current || !selectionStart || !selectionEnd) {
-            isSelectingRef.current = false;
+        if (!isSelecting || !selectionStart || !selectionEnd) {
             setIsSelecting(false);
             return;
         }
 
         try {
-            // Calculate the minimal dimensions
+            // Calculate dimensions
             const startX = Math.min(selectionStart.x, selectionEnd.x);
             const startY = Math.min(selectionStart.y, selectionEnd.y);
             const endX = Math.max(selectionStart.x, selectionEnd.x);
             const endY = Math.max(selectionStart.y, selectionEnd.y);
 
-            // Check if dimensions are reasonable - lower threshold to allow smaller highlights
+            // Check if dimensions are reasonable
             const width = endX - startX;
             const height = endY - startY;
 
-            if (width > 2 && height > 2) { // Changed from 3 to 2 for more flexibility
-                console.log(`[Highlight] Creating manual highlight at (${startX}, ${startY}) with size ${width}x${height} for page ${pageNumber}${fileKey ? ` in file ${fileKey}` : ''}`);
+            if (width > 2 && height > 2) {
+                const safeFileKey = fileKey || '_default';
 
-                // Create a new manager instance each time to ensure fresh state
-                const highlightManager = getHighlightManager();
-
-                // Create the highlight using the manager
-                const highlight = highlightManager.createRectangleHighlight(
-                    startX, startY, endX, endY
-                );
-
-                if (highlight) {
-                    console.log(`[Highlight] Successfully created highlight with ID ${highlight.id}`);
-                    lastCreatedHighlightRef.current = highlight.id;
-                }
+                // Create highlight using the processor
+                ManualHighlightProcessor.createRectangleHighlight(
+                    safeFileKey,
+                    pageNumber,
+                    startX,
+                    startY,
+                    endX,
+                    endY,
+                    highlightColor
+                ).then(highlight => {
+                    if (highlight) {
+                        console.log(`[PageOverlay] Successfully created highlight with ID ${highlight.id}`);
+                    }
+                });
             } else {
-                console.log('[Highlight] Selection too small, ignoring');
+                console.log('[PageOverlay] Selection too small, ignoring');
             }
         } catch (error) {
-            console.error('[Highlight] Error creating highlight:', error);
+            console.error('[PageOverlay] Error creating highlight:', error);
         } finally {
-            // Always reset state
+            // Reset state
             setIsSelecting(false);
             setSelectionStart(null);
             setSelectionEnd(null);
-            isSelectingRef.current = false;
         }
-    }, [selectionStart, selectionEnd, pageNumber, fileKey, getHighlightManager]);
+    }, [selectionStart, selectionEnd, pageNumber, fileKey, highlightColor]);
 
-    // Handle mouse leaving the overlay
+    // Mouse leave handling
     const handleMouseLeave = useCallback(() => {
-        // Only complete selection if mouse was down when leaving
-        if (mouseIsDownRef.current && isSelectingRef.current && selectionStart && selectionEnd) {
+        if (isSelecting && selectionStart && selectionEnd) {
             handleMouseUp({} as React.MouseEvent);
         }
-
-        // Reset tracking states
-        mouseIsDownRef.current = false;
-        isSelectingRef.current = false;
         setIsSelecting(false);
-    }, [handleMouseUp, selectionStart, selectionEnd]);
+    }, [handleMouseUp, isSelecting, selectionStart, selectionEnd]);
 
     return (
         <div
@@ -190,7 +140,7 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
                 pointerEvents: isEditingMode ? 'auto' : 'none',
                 zIndex: 15,
                 cursor: isEditingMode ? 'crosshair' : 'default',
-                willChange: 'transform', /* Performance optimization */
+                willChange: 'transform',
             }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
