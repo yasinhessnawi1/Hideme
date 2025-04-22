@@ -1,6 +1,6 @@
 // src/services/BatchApiService.ts
 import { apiRequest } from './apiService';
-import { RedactionMapping } from '../types/types';
+import { RedactionMapping } from '../types';
 import { getFileKey } from '../contexts/PDFViewerContext';
 import {createRedactionRequest} from "../utils/redactionUtils";
 import JSZip from 'jszip';
