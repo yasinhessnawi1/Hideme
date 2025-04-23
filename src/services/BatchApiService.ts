@@ -92,7 +92,7 @@ export const batchHybridDetect = async (
         // Add detection threshold if provided (value between 0.0 and 1.0)
         if (options.threshold !== undefined) {
             const threshold = Math.max(0, Math.min(1, options.threshold)); // Clamp between 0 and 1
-            formData.append('detection_threshold', threshold.toString());
+            formData.append('threshold', threshold.toString());
         }
 
         // Add banlist words if provided

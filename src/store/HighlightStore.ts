@@ -259,6 +259,11 @@ export class HighlightStore {
             if (!highlight.timestamp) {
                 highlight.timestamp = Date.now();
             }
+            this.getHighlightsForFile(highlight.fileKey).forEach(h => {
+                if (h.x === highlight.x && h.y === highlight.y && h.w === highlight.w && h.h === highlight.h) {
+                    this.removeHighlight(h.id);
+                }});
+
 
             // Add to memory store
             this.addToMemoryStore(highlight);

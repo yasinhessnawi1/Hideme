@@ -18,6 +18,33 @@ interface HighlightContextMenuProps {
     zoomLevel?: number;
 }
 
+function getCorrected(highlight: HighlightRect) {
+    let boundingBox = null;
+    // Get the bounding box from the current highlight
+    if (highlight.type === 'SEARCH') {
+        return {
+            x0: highlight.x + 4,
+            y0: highlight.y + 3,
+            x1: ((highlight.x + 4) + highlight.w) - 1,
+            y1: (highlight.y + 3) + highlight.h
+        };
+    } else if (highlight.type === 'ENTITY') {
+        return {
+            x0: highlight.x + 5,
+            y0: highlight.y + 5,
+            x1: ((highlight.x + 5) + highlight.w) - 3,
+            y1: ((highlight.y + 5) + highlight.h) - 5
+        };
+    } else {
+        return {
+            x0: highlight.x,
+            y0: highlight.y,
+            x1: (highlight.x + highlight.w),
+            y1: (highlight.y + highlight.h)
+        };
+    }
+}
+
 const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                                                                        highlight,
                                                                        onClose,
@@ -86,12 +113,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             console.log(`[HighlightContextMenu] Deleting all occurrences of text "${textToDelete}"`);
 
             // Get the bounding box from the current highlight
-            const boundingBox = {
-                x0: highlight.x,
-                y0: highlight.y,
-                x1: highlight.x + highlight.w,
-                y1: highlight.y + highlight.h
-            };
+            const boundingBox = getCorrected(highlight);
 
             // Use the runFindWords function to find all occurrences across files
             const filesToSearch = selectedFiles.length > 0 ? selectedFiles : files;
@@ -174,30 +196,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             }
 
             console.log(`[HighlightContextMenu] Highlighting all occurrences of "${textToHighlight}"`);
-            let boundingBox = null;
-            // Get the bounding box from the current highlight
-            if(highlight.type === 'SEARCH') {
-             boundingBox = {
-                x0: highlight.x +4,
-                y0: highlight.y + 3,
-                x1: (highlight.x + highlight.w) -1,
-                y1: highlight.y + highlight.h
-            };
-            }else if (highlight.type === 'ENTITY') {
-                boundingBox = {
-                    x0: highlight.x + 5,
-                    y0: highlight.y + 5,
-                    x1: (highlight.x + highlight.w) - 3,
-                    y1: (highlight.y + highlight.h) - 5
-                };
-            }else {
-                boundingBox = {
-                    x0: highlight.x,
-                    y0: highlight.y,
-                    x1: (highlight.x + highlight.w) - 1,
-                    y1: (highlight.y + highlight.h)
-                };
-            }
+            let boundingBox = getCorrected(highlight);
 
             // Use the runFindWords function to find all occurrences
             const findWordsResponse = await runFindWords(
@@ -233,7 +232,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                                 page: page.page,
                                 x: x0 ,
                                 y: y0 ,
-                                w: (x1 - x0) + 1 ,
+                                w: (x1 - x0) ,
                                 h: (y1 - y0) ,
                                 text: textToHighlight,
                                 fileKey,

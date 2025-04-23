@@ -58,7 +58,7 @@ export interface HighlightRect {
     type: HighlightType;
     entity?: string;
     text?: string;
-    fileKey?: string;
+    fileKey: string;
     model?: string;
     timestamp?: number;
     instanceId?: string;
