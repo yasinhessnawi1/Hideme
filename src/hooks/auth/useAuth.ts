@@ -14,7 +14,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import apiClient from '../../services/apiClient';
 import {User} from "../../types";
 import authService from '../../services/authService';
-import authStateManager from '../../utils/authStateManager';
+import authStateManager from '../../managers/authStateManager';
 
 export interface UseAuthReturn {
     // Authentication state

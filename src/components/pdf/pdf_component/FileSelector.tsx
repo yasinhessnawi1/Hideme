@@ -69,11 +69,27 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
     // For handling file deletion
     const handleFileDelete = (index: number, e: React.MouseEvent) => {
         e.stopPropagation();
+
+        // Get file and fileKey before removing
+        const fileToRemove = files[index];
+        const fileKey = fileToRemove ? getFileKey(fileToRemove) : null;
+
+        // Remove the file
         removeFile(index);
+
+        // Explicitly dispatch event to notify all components
+        if (fileKey) {
+            window.dispatchEvent(new CustomEvent('file-removed', {
+                detail: {
+                    fileKey,
+                    timestamp: Date.now()
+                }
+            }));
+        }
+
         setShowNotification({message: 'File removed successfully', type: 'success'});
         setTimeout(() => setShowNotification(null), 3000);
     };
-
     // Toggle file selection
     const handleToggleSelection = (file: File, e: React.MouseEvent) => {
         e.stopPropagation();

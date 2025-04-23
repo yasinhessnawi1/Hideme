@@ -1,7 +1,9 @@
-import { OptionType } from '../types/types';
-import { getFileKey } from '../contexts/PDFViewerContext';
-
+import {HighlightType, OptionType} from '../types';
+import {getFileKey} from '../contexts/PDFViewerContext';
+import processingStateService from '../services/ProcessingStateService';
 import {EntityHighlightProcessor} from "./EntityHighlightProcessor";
+import {highlightStore} from "../store/HighlightStore";
+
 /**
  * Configuration for automatic file processing
  */
@@ -89,13 +91,17 @@ export class AutoProcessManager {
         return {...this.config};
     }
 
+    /**
+     * Process a single new file
+     *
+     * Updated to check if file already has highlights before processing
+     */
     public async processNewFile(file: File): Promise<boolean> {
-        // --- UPDATED: Check isActive flag from config ---
+        // Check if auto-processing is disabled in config
         if (!this.config.isActive) {
             console.log('[AutoProcessManager] Auto-processing is disabled via config, skipping file:', file.name);
             return false;
         }
-        // ---------------------------------------------
 
         const fileKey = getFileKey(file);
 
@@ -105,10 +111,26 @@ export class AutoProcessManager {
             return false;
         }
 
+        // Check if file already has entity highlights
+        const existingHighlights = highlightStore.getHighlightsByType(fileKey, HighlightType.ENTITY);
+        if (existingHighlights && existingHighlights.length > 0) {
+            console.log(`[AutoProcessManager] Skipping file: ${file.name} (already has ${existingHighlights.length} entity highlights)`);
+            return false;
+        }
+
         // Mark as processing
         this.processingQueue.set(fileKey, true);
-        this.processingStatus.set(fileKey, { status: 'processing', startTime: Date.now() });
 
+        // Get estimated processing time and page count
+        const pageCount = await this.getPageCount(file);
+        const estimatedTimeMs = await this.calculateEstimatedProcessingTime(file);
+
+        // Register with processing state service
+        processingStateService.startProcessing(file, {
+            method: 'auto',
+            pageCount,
+            expectedTotalTimeMs: estimatedTimeMs
+        });
 
         try {
             console.log('[AutoProcessManager] Starting auto-processing for file:', file.name);
@@ -129,7 +151,6 @@ export class AutoProcessManager {
                 console.warn('[AutoProcessManager] Entity settings found, but no detection callback is set.');
             }
 
-
             // Check if search is needed based on config
             const hasSearchQueries = this.config.searchQueries.length > 0;
 
@@ -140,11 +161,8 @@ export class AutoProcessManager {
                 console.warn('[AutoProcessManager] Search queries found, but no search callback is set.');
             }
 
-            this.processingStatus.set(fileKey, {
-                status: 'completed',
-                startTime: this.processingStatus.get(fileKey)?.startTime ?? Date.now(),
-                endTime: Date.now()
-            });
+            // Mark processing as complete in the state service
+            processingStateService.completeProcessing(fileKey, true);
 
             console.log(`[AutoProcessManager] Auto-processing completed for file: ${file.name}. Success: ${success}`);
 
@@ -162,39 +180,33 @@ export class AutoProcessManager {
             return success;
         } catch (error: any) {
             console.error('[AutoProcessManager] Error processing file:', file.name, error);
-            this.processingStatus.set(fileKey, {
-                status: 'failed',
-                error: error.message || 'Unknown error',
-                startTime: this.processingStatus.get(fileKey)?.startTime ?? Date.now(),
-                endTime: Date.now()
-            });
+
+            // Mark processing as failed in the state service
+            processingStateService.completeProcessing(fileKey, false);
+
             return false;
         } finally {
             this.processingQueue.delete(fileKey);
-            this.processingStatus.delete(fileKey);
-            // Optionally clear completed/failed status after a delay
-            setTimeout(() => {
-                const status = this.processingStatus.get(fileKey);
-                if (status && (status.status === 'completed' || status.status === 'failed')) {
-                    this.processingStatus.delete(fileKey);
-                }
-            }, 5000);
         }
     }
 
+    /**
+     * Process multiple new files
+     *
+     * Updated to check if files already have highlights before processing
+     */
     public async processNewFiles(files: File[]): Promise<number> {
-        // --- UPDATED: Check isActive flag from config ---
+        // Check if auto-processing is disabled or no files provided
         if (!this.config.isActive || files.length === 0) {
             console.log(`[AutoProcessManager] Auto-processing disabled or no files provided for batch. Skipping.`);
             return 0;
         }
-        // ---------------------------------------------
 
         console.log(`[AutoProcessManager] Processing ${files.length} new files in batch`);
         let successCount = 0;
 
         // Filter out files already processing or redacted
-        const filesToProcess = files.filter(file => {
+        const initialFilesToProcess = files.filter(file => {
             const fileKey = getFileKey(file);
             const shouldSkip = this.processingQueue.has(fileKey) || file.name.includes('-redacted');
             if (shouldSkip) {
@@ -202,15 +214,43 @@ export class AutoProcessManager {
             }
             return !shouldSkip;
         });
-        // check if there is lefover highlight saved for files
-        filesToProcess.forEach(file => {
+
+        // Further filter out files that already have entity highlights
+        const filesToProcess = await Promise.all(initialFilesToProcess.map(async (file) => {
             const fileKey = getFileKey(file);
-            this.processingQueue.delete(fileKey);
-        });
+            const existingHighlights = highlightStore.getHighlightsByType(fileKey, HighlightType.ENTITY);
+
+            if (existingHighlights && existingHighlights.length > 0) {
+                console.log(`[AutoProcessManager] Skipping file in batch: ${file.name} (already has ${existingHighlights.length} entity highlights)`);
+                return null;
+            }
+
+            return file;
+        })).then(results => results.filter(file => file !== null) as File[]);
 
         if (filesToProcess.length === 0) {
             console.log("[AutoProcessManager] No files left to process in batch after filtering.");
             return 0;
+        }
+
+        // Process each file that passed the filters
+        console.log(`[AutoProcessManager] After filtering, processing ${filesToProcess.length} files in batch`);
+
+        // Initialize processing for each file
+        for (const file of filesToProcess) {
+            const fileKey = getFileKey(file);
+            this.processingQueue.set(fileKey, true);
+
+            // Get estimated processing time and page count
+            const pageCount = await this.getPageCount(file);
+            const estimatedTimeMs = await this.calculateEstimatedProcessingTime(file);
+
+            // Register with processing state service
+            processingStateService.startProcessing(file, {
+                method: 'auto',
+                pageCount,
+                expectedTotalTimeMs: estimatedTimeMs
+            });
         }
 
         // Batch Entity Detection (if needed)
@@ -223,34 +263,21 @@ export class AutoProcessManager {
 
         if (hasEntitySettings && this._detectEntitiesCallback) {
             try {
-                filesToProcess.forEach(file => {
-                    const fileKey = getFileKey(file);
-                    this.processingQueue.set(fileKey, true);
-                    this.processingStatus.set(fileKey, { status: 'processing', startTime: Date.now() });
-                });
-
                 await this.batchProcessEntityDetection(filesToProcess);
-                successCount += filesToProcess.length; // Assume success for now, refine later if needed
+                successCount += filesToProcess.length;
 
+                // Update progress for all files after entity detection
                 filesToProcess.forEach(file => {
                     const fileKey = getFileKey(file);
-                    this.processingStatus.set(fileKey, {
-                        status: 'completed', // Mark as completed for entity part
-                        startTime: this.processingStatus.get(fileKey)?.startTime ?? Date.now(),
-                        endTime: Date.now()
+                    processingStateService.updateProcessingInfo(fileKey, {
+                        progress: 75 // Entity detection is about 75% of the work
                     });
                 });
-
             } catch (error) {
                 console.error('[AutoProcessManager] Batch entity detection error:', error);
                 filesToProcess.forEach(file => {
                     const fileKey = getFileKey(file);
-                    this.processingStatus.set(fileKey, {
-                        status: 'failed',
-                        error: (error as Error).message || 'Entity detection failed',
-                        startTime: this.processingStatus.get(fileKey)?.startTime ?? Date.now(),
-                        endTime: Date.now()
-                    });
+                    processingStateService.completeProcessing(fileKey, false);
                 });
             }
         }
@@ -259,59 +286,125 @@ export class AutoProcessManager {
         const hasSearchQueries = this.config.searchQueries.length > 0;
         if (hasSearchQueries && this._searchCallback) {
             try {
-                // Reset successCount if we only care about search success
-                // successCount = 0; // Uncomment if success depends only on search
                 await this.batchProcessSearchQueries(filesToProcess);
-                // Assume success if no error, could refine based on callback result if available
-                // successCount += filesToProcess.length; // Or update based on actual results
 
-                // Update status if needed, could be complex if search runs after entities
+                // Update progress for files that weren't marked as failed
                 filesToProcess.forEach(file => {
                     const fileKey = getFileKey(file);
-                    const currentStatus = this.processingStatus.get(fileKey);
-                    if (currentStatus && currentStatus.status !== 'failed') {
-                        this.processingStatus.set(fileKey, {
-                            ...currentStatus,
-                            status: 'completed', // Mark final completion
-                            endTime: Date.now()
+                    const currentInfo = processingStateService.getProcessingInfo(fileKey);
+
+                    if (currentInfo && currentInfo.status !== 'failed') {
+                        processingStateService.updateProcessingInfo(fileKey, {
+                            progress: 95 // Almost complete after search
                         });
                     }
                 });
-
             } catch (error) {
                 console.error('[AutoProcessManager] Batch search error:', error);
                 filesToProcess.forEach(file => {
                     const fileKey = getFileKey(file);
-                    this.processingStatus.set(fileKey, {
-                        status: 'failed',
-                        error: (error as Error).message || 'Search failed',
-                        startTime: this.processingStatus.get(fileKey)?.startTime ?? Date.now(),
-                        endTime: Date.now()
-                    });
+                    const currentInfo = processingStateService.getProcessingInfo(fileKey);
+
+                    // Only mark as failed if entity detection didn't already fail
+                    if (currentInfo && currentInfo.status !== 'failed') {
+                        processingStateService.completeProcessing(fileKey, false);
+                    }
                 });
             }
         }
 
-
-        // Cleanup queue and status after processing
+        // Mark all files as completed that haven't been marked as failed
         filesToProcess.forEach(file => {
             const fileKey = getFileKey(file);
+            const currentInfo = processingStateService.getProcessingInfo(fileKey);
+
+            if (currentInfo && currentInfo.status !== 'failed') {
+                // Mark as completed
+                processingStateService.completeProcessing(fileKey, true);
+
+                // Notify of completion
+                window.dispatchEvent(new CustomEvent('auto-processing-complete', {
+                    detail: {
+                        fileKey,
+                        hasEntityResults: hasEntitySettings,
+                        hasSearchResults: hasSearchQueries,
+                        timestamp: Date.now()
+                    }
+                }));
+            }
+
+            // Clean up queue
             this.processingQueue.delete(fileKey);
-            // Optionally clear completed/failed status after a delay
-            setTimeout(() => {
-                const status = this.processingStatus.get(fileKey);
-                if (status && (status.status === 'completed' || status.status === 'failed')) {
-                    this.processingStatus.delete(fileKey);
-                }
-            }, 5000);
         });
 
-
         console.log(`[AutoProcessManager] Completed batch processing for ${filesToProcess.length} files.`);
-        // Return count based on successful entity detection or search
-        // This logic might need refinement based on how success is defined.
-        // For now, returning the number of files attempted.
-        return filesToProcess.length;
+        return successCount;
+    }
+
+// Add these helper methods if they don't exist:
+
+    /**
+     * Get estimated page count from a PDF file
+     */
+    private async getPageCount(file: File): Promise<number> {
+        try {
+            // Import and use PDFDocument from pdf-lib if available
+            const PDFDocument = (window as any).PDFLib?.PDFDocument;
+
+            if (PDFDocument) {
+                // Convert File to ArrayBuffer
+                const arrayBuffer = await file.arrayBuffer();
+
+                // Load PDF using pdf-lib
+                const pdfDoc = await PDFDocument.load(arrayBuffer);
+
+                // Return page count
+                return pdfDoc.getPageCount();
+            }
+
+            // Fallback estimate based on file size if PDFDocument is not available
+            return Math.max(1, Math.ceil(file.size / (100 * 1024))); // Rough estimate: 100KB per page
+        } catch (error) {
+            console.error(`[AutoProcessManager] Error getting page count for ${file.name}:`, error);
+            // Default to estimate based on file size
+            return Math.max(1, Math.ceil(file.size / (100 * 1024)));
+        }
+    }
+
+    /**
+     * Calculate estimated processing time for a file
+     */
+    private async calculateEstimatedProcessingTime(file: File): Promise<number> {
+        // Get page count
+        const pageCount = await this.getPageCount(file);
+
+        // Base processing time per file in ms
+        const baseTimePerFile = 1000;
+
+        // Additional time per page in ms
+        const timePerPage = 1700;
+
+        // Additional time per entity type in ms
+        const timePerEntityType = 300;
+
+        // Additional time per search query in ms
+        const timePerSearchQuery = 500;
+
+        // Count active entity types
+        const entityTypeCount =
+            (this.config.presidioEntities.length > 0 ? 1 : 0) +
+            (this.config.glinerEntities.length > 0 ? 1 : 0) +
+            (this.config.geminiEntities.length > 0 ? 1 : 0) +
+            (this.config.hidemeEntities.length > 0 ? 1 : 0);
+
+        // Count search queries
+        const searchQueryCount = this.config.searchQueries.length;
+
+        // Calculate total estimated time
+        return baseTimePerFile +
+            (pageCount * timePerPage) +
+            (entityTypeCount * timePerEntityType) +
+            (searchQueryCount * timePerSearchQuery);
     }
 
     /**
@@ -349,7 +442,7 @@ export class AutoProcessManager {
 
             if (detectionResult) {
                 // Process the detection results using the EntityHighlightProcessor
-                await EntityHighlightProcessor.processDetectionResults(fileKey, detectionResult);
+                await EntityHighlightProcessor.processDetectionResults(fileKey, detectionResult, true);
                 console.log(`[AutoProcessManager] Entity detection processed for file ${file.name}`);
             } else {
                 console.warn(`[AutoProcessManager] No detection results returned for ${file.name}`);
@@ -371,7 +464,7 @@ export class AutoProcessManager {
 
         console.log('[AutoProcessManager] Running batch entity detection for files:', files.map(f => f.name));
 
-        // Extract entity values from the option objects in the same way as individual processing
+        // Extract entity values from the option objects
         const options = {
             presidio: this.config.presidioEntities.map(e => typeof e === 'object' ? (e.value || '') : e)
                 .filter(Boolean),
@@ -398,10 +491,11 @@ export class AutoProcessManager {
                 const detectionResult = results[fileKey];
 
                 if (detectionResult) {
-                    const mappingToSet = detectionResult.redaction_mapping || detectionResult;
+                    const mappingToSet = detectionResult;
                     console.log(`[AutoProcessManager] Got detection results for file ${file.name}, applying to context`);
                     // Process the detection results using the EntityHighlightProcessor
-                    EntityHighlightProcessor.processDetectionResults(fileKey, mappingToSet)
+                    // Pass true to indicate this is from auto-processing
+                    EntityHighlightProcessor.processDetectionResults(fileKey, mappingToSet, true)
                         .then(() => {
                             console.log(`[AutoProcessManager] Entity detection processed for file ${file.name}`);
                         })

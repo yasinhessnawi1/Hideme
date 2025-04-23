@@ -155,13 +155,24 @@ const MultiPDFRenderer: React.FC = () => {
         }
     }, [currentFile, setCurrentFile, mainContainerRef.current]);
 
-    // Handler for removing a file - defined consistently
     const handleRemoveFile = useCallback((file: File, e: React.MouseEvent) => {
         e.stopPropagation();
         try {
             const index = getFileIndex(file);
             if (index !== -1) {
+                // Get the fileKey before removing the file
+                const fileKey = getFileKey(file);
+
+                // Remove file
                 removeFile(index);
+
+                // Explicitly dispatch file removal event to ensure all components are notified
+                window.dispatchEvent(new CustomEvent('file-removed', {
+                    detail: {
+                        fileKey,
+                        timestamp: Date.now()
+                    }
+                }));
             }
         } catch (error) {
             console.error("[MultiPDFRenderer] Error removing file:", error);

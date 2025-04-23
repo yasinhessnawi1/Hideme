@@ -6,6 +6,7 @@ import { pdfjs } from 'react-pdf';
 import { StorageStats } from '../types/pdfTypes';
 import useSettings from "../hooks/settings/useSettings";
 import { useHighlightStore } from "../hooks/useHighlightStore";
+import processingStateService from "../services/ProcessingStateService";
 
 // Ensure PDF.js worker is loaded
 const loadPdfWorker = () => {
@@ -105,7 +106,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Ref to track storage loading attempts
     const storageLoadAttempted = useRef<boolean>(false);
     const { settings, isLoading: userSettingsLoading } = useSettings();
-    const isAutoProcessingActuallyEnabled = settings?.auto_processing ?? true; // Default to false if no settings
     // Initialize PDF.js worker first
     useEffect(() => {
         const initializeWorker = async () => {
@@ -428,7 +428,8 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setCurrentFile(file);
                 return prevFiles;
             }
-            // if the file exits in the active files, remove it
+
+            // If the file exists in the active files, remove it
             const filteredActiveFiles = activeFiles.filter(activeFile =>
                 !(activeFile.name === file.name &&
                     activeFile.size === file.size &&
@@ -447,17 +448,11 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Add to active files automatically
             addToActiveFiles(file);
 
-            // Trigger initialization for the new file's highlights
-            const fileKey = getFileKey(file);
-
-            // Queue file for auto-processing with current settings
-            if (!userSettingsLoading && isAutoProcessingActuallyEnabled) {
-                processingQueue.current.push(file);
-                setQueueTrigger(prev => prev + 1);
-                console.log(`[FileContext] Queued new file for auto-processing (User Setting Enabled): ${file.name}`);
-            } else {
-                console.log(`[FileContext] Auto-processing disabled (User Setting: ${settings?.auto_processing}), skipping queue for: ${file.name}`);
-            }
+            // SIMPLIFIED LOGIC: Always queue file for auto-processing
+            // The AutoProcessManager will handle the decision about whether to process it
+            processingQueue.current.push(file);
+            setQueueTrigger(prev => prev + 1);
+            console.log(`[FileContext] Queued new file for auto-processing: ${file.name}`);
 
             // Store file in persistent storage if enabled
             if (isStoragePersistenceEnabled) {
@@ -476,8 +471,9 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             return newFiles;
         });
-    }, [addToActiveFiles, userSettingsLoading, isStoragePersistenceEnabled, setCurrentFile, settings?.auto_processing]);
+    }, [addToActiveFiles, activeFiles, isStoragePersistenceEnabled, setCurrentFile]);
 
+// Modified addFiles method - simplified queueing logic
     const addFiles = useCallback((newFiles: File[], replace = false) => {
         setFiles((prevFiles) => {
             // Start with either the existing files or an empty array if replace=true
@@ -495,10 +491,11 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const updatedFiles = [...baseFiles, ...uniqueNewFiles];
 
             if ((replace || !currentFile) && updatedFiles.length > 0) {
-                setActiveFiles([])
+                setActiveFiles([]);
                 setCurrentFile(updatedFiles[0]);
             }
-            // if the any of the files exits in the active files, remove them
+
+            // If any of the files exist in the active files, remove them
             const filteredActiveFiles = activeFiles.filter(activeFile =>
                 !uniqueNewFiles.some(newFile =>
                     activeFile.name === newFile.name &&
@@ -512,8 +509,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             uniqueNewFiles.forEach(file => {
                 addToActiveFiles(file);
 
-                // Initialize highlighting for each new file
-                const fileKey = getFileKey(file);
                 // Store file in persistent storage if enabled
                 if (isStoragePersistenceEnabled) {
                     pdfStorageService.storeFile(file)
@@ -530,25 +525,26 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
             });
 
-            // Queue new files for auto-processing with current settings
-            if (!userSettingsLoading && isAutoProcessingActuallyEnabled && uniqueNewFiles.length > 0) {
+            // SIMPLIFIED LOGIC: Always queue unique new files for auto-processing
+            // Let the AutoProcessManager handle the decision logic
+            if (uniqueNewFiles.length > 0) {
                 // Avoid duplicates in the queue
                 const existingFileKeys = new Set(processingQueue.current.map(file => getFileKey(file)));
-                const uniqueFiles = uniqueNewFiles.filter(file => {
+                const filesToQueue = uniqueNewFiles.filter(file => {
                     const fileKey = getFileKey(file);
                     return !existingFileKeys.has(fileKey);
                 });
-                processingQueue.current.push(...uniqueFiles);
-                setQueueTrigger(prev => prev + 1);
-                console.log(`[FileContext] Queued ${uniqueFiles.length} new files for auto-processing (User Setting Enabled)`);
-            } else {
-                console.log(`[FileContext] Auto-processing disabled (User Setting: ${settings?.auto_processing}), skipping queue for new files`);
+
+                if (filesToQueue.length > 0) {
+                    processingQueue.current.push(...filesToQueue);
+                    setQueueTrigger(prev => prev + 1);
+                    console.log(`[FileContext] Queued ${filesToQueue.length} new files for auto-processing`);
+                }
             }
 
             return updatedFiles;
         });
-    }, [currentFile, addToActiveFiles, isStoragePersistenceEnabled, setCurrentFile, userSettingsLoading, settings?.auto_processing]);
-
+    }, [currentFile, addToActiveFiles, activeFiles, isStoragePersistenceEnabled, setCurrentFile]);
 
     const removeFile = useCallback((fileIndex: number) => {
         setFiles((prevFiles) => {
@@ -558,6 +554,8 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             const newFiles = [...prevFiles];
             const removedFile = prevFiles[fileIndex];
+            const fileKey = getFileKey(removedFile);
+
             newFiles.splice(fileIndex, 1);
 
             // Remove from active files
@@ -566,11 +564,21 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Deselect the removed file if it was selected
             setSelectedFiles(prev => prev.filter(f => f !== removedFile));
 
-            // Clean up highlight tracking for the removed file - using our standardized util
-            const fileKey = getFileKey(removedFile);
+            // Clean up highlight tracking for the removed file
             removeHighlightsFromFile(fileKey).catch(error => {
                 console.error(`[FileContext] Error cleaning up highlights for file "${removedFile.name}":`, error);
             });
+
+            // Notify of file removal via event
+            processingStateService.removeFile(fileKey);
+
+            // Dispatch an additional explicit event for comprehensive notification
+            window.dispatchEvent(new CustomEvent('file-removed', {
+                detail: {
+                    fileKey,
+                    timestamp: Date.now()
+                }
+            }));
 
             // Remove file from persistent storage if enabled
             if (isStoragePersistenceEnabled) {
@@ -587,7 +595,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // If we removed the current file, select a new one
             if (currentFile === removedFile) {
-                // Select the next file, or the previous if we removed the last one, or null if empty
+                // Select the next file, or the previous if we removed the last one
                 let newIndex = -1;
                 if (newFiles.length > 0) {
                     newIndex = fileIndex >= newFiles.length ? newFiles.length - 1 : fileIndex;
@@ -599,7 +607,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             return newFiles;
         });
-    }, [currentFile, removeFromActiveFiles, isStoragePersistenceEnabled, setCurrentFile]);
+    }, [currentFile, removeFromActiveFiles, isStoragePersistenceEnabled, setCurrentFile, removeHighlightsFromFile]);
 
     const clearFiles = useCallback(() => {
         setFiles([]);

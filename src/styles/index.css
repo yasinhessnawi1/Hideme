@@ -1,4 +1,12 @@
 /*
+==============================================
+INDEX CSS - MAIN STYLESHEET
+==============================================
+This file contains global styles, theme variables, and imports
+component-specific stylesheets
+*/
+
+/*
   1) Global Theme Variables
   -------------------------------------------------- */
 :root {
@@ -10,6 +18,7 @@
   --persian-green: #1FA28B;
   --blue-munsell: #1898A6;
   --blue-ncs: #108FC2;
+
   /* Light Mode Colors */
   --light-background: #ffffff;
   --light-foreground: #1a202c;
@@ -19,12 +28,12 @@
   --light-muted: #718096;
   --light-accent: var(--blue-ncs);
   --light-border: #e2e8f0;
-  --ligh-button-hover: var(--lime-green);
-  /* :root { --primary-rgb: 15, 23, 42; } /* Example, use your actual primary color RGB */
-  /* .dark { --primary-rgb: 248, 250, 252; } /* Example for dark */
-  --radius: 0.5rem;
+  --light-button-hover: var(--lime-green);
+
+  /* RGB values for opacity operations */
+  --primary-rgb: 39, 171, 111; /* Based on jade color */
+
   /* Dark Mode Colors */
-  --primary-rgb: 15, 23, 42;
   --dark-background: #15202B;
   --dark-foreground: #f0f0f0;
   --dark-primary: var(--jade);
@@ -44,6 +53,8 @@
   --popover-foreground: var(--light-foreground);
 
   --primary: var(--light-primary);
+  --primary-light: #4bc18e; /* Lighter shade of jade for gradients */
+  --primary-dark: #1a8f57; /* Darker shade of jade for hover states */
   --primary-foreground: #ffffff;
   --secondary: var(--light-secondary);
   --secondary-foreground: var(--light-foreground);
@@ -123,8 +134,9 @@
   --upload-bg: #f5f5f5;
 
   --destructive-bg: rgba(229, 62, 62, 0.1); /* Light red background for destructive actions */
+  --warning-bg: rgba(236, 201, 75, 0.1); /* Light yellow background for warnings */
+  --warning: #e6a23c; /* Warning color */
 }
-
 
 /*
   2) Dark Theme Override
@@ -138,8 +150,7 @@
   --popover: var(--dark-background);
   --popover-foreground: var(--dark-foreground);
   --destructive-bg: rgba(229, 62, 62, 0.15); /* Slightly more opaque for dark theme */
-  --warning-bg: var(--destructive-bg);
-  --warning: var(--secondary);
+  --warning-bg: rgba(236, 201, 75, 0.15);
   --primary: var(--dark-primary);
   --primary-foreground: #ffffff;
   --secondary: var(--dark-secondary);
@@ -148,7 +159,7 @@
   --muted-foreground: var(--dark-muted);
   --accent: var(--dark-accent);
   --accent-foreground: #ffffff;
-  --primary-rgb: 248, 250, 252;
+  --primary-rgb: 39, 171, 111; /* Keep RGB values consistent */
   --border: var(--dark-border);
   --input: var(--dark-border);
   --ring: var(--dark-foreground);
@@ -298,3 +309,4 @@ body {
 .pdf-page-wrapper {
   animation: fadeIn 0.3s ease-out;
 }
+

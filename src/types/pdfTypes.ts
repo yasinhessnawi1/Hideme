@@ -81,31 +81,8 @@ export interface ViewportSize {
     scaleY: number;
 }
 
-/**
- * Extracted text from a PDF
- */
-export interface ExtracteText {
-    pages: Page[];
-}
 
-/**
- * Page in extracted text
- */
-export interface Page {
-    page: number;
-    words: Word[];
-}
 
-/**
- * Word with position in extracted text
- */
-export interface Word {
-    text: string;
-    x0: number;
-    y0: number;
-    x1: number;
-    y1: number;
-}
 
 /**
  * Navigation options for scrolling and page navigation

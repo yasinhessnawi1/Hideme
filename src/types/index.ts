@@ -8,3 +8,4 @@
 export * from './userTypes';
 export * from './settingsTypes';
 export * from './types';
+export * from './pdfTypes';

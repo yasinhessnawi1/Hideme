@@ -1,5 +1,6 @@
-import { HighlightRect, HighlightType, PDFPageViewport, TextContent } from '../types/pdfTypes';
+import { HighlightRect, HighlightType } from '../types';
 import { highlightStore } from '../store/HighlightStore';
+import processingStateService from '../services/ProcessingStateService';
 
 /**
  * Processes entity detection results into highlights
@@ -9,13 +10,13 @@ export class EntityHighlightProcessor {
      * Process detection results for a file
      * @param fileKey The file key
      * @param detectionResult The detection results
-     * @param viewportMap Map of page numbers to viewports (optional)
+     * @param isAutoProcess Whether this is from auto-processing (optional)
      * @returns Promise resolving to the IDs of created highlights
      */
     static async processDetectionResults(
         fileKey: string,
         detectionResult: any,
-        viewportMap?: Map<number, PDFPageViewport>
+        isAutoProcess: boolean = false,
     ): Promise<string[]> {
         if (!detectionResult) {
             console.warn('[EntityHighlightProcessor] No detection results provided');
@@ -45,7 +46,7 @@ export class EntityHighlightProcessor {
                 try {
                     if (!entity.bbox) continue;
 
-                    const { x0, y0, x1, y1 } = entity.bbox;
+                    const {x0, y0, x1, y1} = entity.bbox;
 
                     // Create highlight with standardized properties
                     const highlight: HighlightRect = {
@@ -76,6 +77,22 @@ export class EntityHighlightProcessor {
         const highlightIds = await highlightStore.addMultipleHighlights(allHighlights);
 
         console.log(`[EntityHighlightProcessor] Added ${highlightIds.length} entity highlights for ${fileKey}`);
+
+        // If this is from auto-processing, dispatch an event with the detection result
+        // for other components like EntityDetectionSidebar to update their state
+        if (isAutoProcess) {
+            window.dispatchEvent(new CustomEvent('auto-processing-complete', {
+                detail: {
+                    fileKey,
+                    hasEntityResults: true,
+                    detectionResult: detectionResult,
+                    timestamp: Date.now()
+                }
+            }));
+
+            // Also update the processing state service with the detection result
+            processingStateService.completeProcessing(fileKey, true, detectionResult);
+        }
 
         return highlightIds;
     }

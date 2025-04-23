@@ -1,31 +1,36 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import Select from 'react-select';
-import { useFileContext } from '../../../contexts/FileContext';
-import { useEditContext } from '../../../contexts/EditContext';
-import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
-import { HighlightType } from '../../../types/pdfTypes';
-import { getFileKey } from '../../../contexts/PDFViewerContext';
-import { usePDFApi } from '../../../hooks/usePDFApi';
-import {FileDetectionResult, OptionType} from '../../../types';
+import {useFileContext} from '../../../contexts/FileContext';
+import {useEditContext} from '../../../contexts/EditContext';
+import {useHighlightStore} from '../../../contexts/HighlightStoreContext';
+import {getFileKey} from '../../../contexts/PDFViewerContext';
+import {usePDFApi} from '../../../hooks/usePDFApi';
+import {FileDetectionResult, HighlightType, OptionType} from '../../../types';
 import '../../../styles/modules/pdf/SettingsSidebar.css';
 import '../../../styles/modules/pdf/EntityDetectionSidebar.css';
-import {ChevronUp, ChevronDown, Save, AlertTriangle, ChevronRight, Sliders, CheckCircle} from 'lucide-react';
-import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
+import {AlertTriangle, CheckCircle, ChevronDown, ChevronRight, ChevronUp, Save, Sliders} from 'lucide-react';
+import {usePDFNavigation} from '../../../hooks/usePDFNavigation';
 import useBanList from '../../../hooks/settings/useBanList';
 import {
-    MODEL_COLORS,
-    presidioOptions,
-    glinerOptions,
     geminiOptions,
-    hidemeOptions,
     getColorDotStyle,
-    METHOD_ID_MAP, handleAllOptions, prepareEntitiesForApi
+    glinerOptions,
+    handleAllOptions,
+    hidemeOptions,
+    METHOD_ID_MAP,
+    MODEL_COLORS,
+    prepareEntitiesForApi,
+    presidioOptions
 } from '../../../utils/EntityUtils';
 import useSettings from "../../../hooks/settings/useSettings";
 import useEntityDefinitions from "../../../hooks/settings/useEntityDefinitions";
 import useAuth from "../../../hooks/auth/useAuth";
 import {EntityHighlightProcessor} from "../../../managers/EntityHighlightProcessor";
-
+import processingStateService, {ProcessingInfo} from '../../../services/ProcessingStateService';
+import {PDFDocument} from 'pdf-lib';
+// Constants for localStorage keys
+const ANALYZED_FILES_KEY = 'entity-detection-analyzed-files';
+const FILE_SUMMARIES_KEY = 'entity-detection-file-summaries';
 const EntityDetectionSidebar: React.FC = () => {
     const {
         currentFile,
@@ -84,10 +89,15 @@ const EntityDetectionSidebar: React.FC = () => {
         settings?.use_banlist_for_detection !== undefined ? settings.use_banlist_for_detection : false
     );
 
+    // Add state for tracking processed files
+    const [analyzedFilesCount, setAnalyzedFilesCount] = useState<number>(0);
+    const [currentProcessingInfo, setCurrentProcessingInfo] = useState<Record<string, ProcessingInfo>>({});
+
     // Add initialization status tracking
     const [entitiesInitialized, setEntitiesInitialized] = useState(false);
     // Track which method IDs we've attempted to load
     const loadAttemptedRef = useRef<Set<number>>(new Set());
+    const analyzedFilesRef = useRef<Set<string>>(new Set());
 
     const {
         loading,
@@ -189,6 +199,296 @@ const EntityDetectionSidebar: React.FC = () => {
 
     }, [pdfNavigation, files, currentFile]);
 
+
+    // Load saved file data from localStorage on component mount
+    useEffect(() => {
+        try {
+            // Load saved summaries on initial component mount only
+            const savedSummaries = localStorage.getItem(FILE_SUMMARIES_KEY);
+            if (savedSummaries) {
+                const parsedSummaries = JSON.parse(savedSummaries) as FileDetectionResult[];
+
+                // Don't filter during initial load - we'll reconcile with files later
+                console.log(`[EntityDetectionSidebar] Loaded ${parsedSummaries.length} file summaries from localStorage`);
+
+                // Ensure unique entries by fileKey
+                const uniqueSummaries = new Map<string, FileDetectionResult>();
+                parsedSummaries.forEach(summary => {
+                    uniqueSummaries.set(summary.fileKey, summary);
+                });
+
+                setFileSummaries(Array.from(uniqueSummaries.values()));
+            }
+
+            // Also load the analyzed files set
+            const savedAnalyzedFiles = localStorage.getItem(ANALYZED_FILES_KEY);
+            if (savedAnalyzedFiles) {
+                const parsedFiles = JSON.parse(savedAnalyzedFiles) as string[];
+                analyzedFilesRef.current = new Set(parsedFiles);
+                setAnalyzedFilesCount(parsedFiles.length);
+                console.log(`[EntityDetectionSidebar] Loaded ${parsedFiles.length} analyzed files from localStorage`);
+            }
+        } catch (error) {
+            console.error('[EntityDetectionSidebar] Error loading persisted detection data:', error);
+        }
+    }, []);
+
+    useEffect(() => {
+        // Skip if no files or no summaries
+        if (files.length === 0 || fileSummaries.length === 0) {
+            return;
+        }
+
+        console.log(`[EntityDetectionSidebar] Reconciling ${fileSummaries.length} summaries with ${files.length} available files`);
+
+        // Get the set of available file keys
+        const availableFileKeys = new Set(files.map(getFileKey));
+
+        // Filter summaries to include only available files
+        const validSummaries = fileSummaries.filter(summary =>
+            availableFileKeys.has(summary.fileKey)
+        );
+
+        // If summaries changed after filtering, update the state
+        if (validSummaries.length !== fileSummaries.length) {
+            console.log(`[EntityDetectionSidebar] Filtered out ${fileSummaries.length - validSummaries.length} summaries for non-existent files`);
+            setFileSummaries(validSummaries);
+        }
+
+        // Also update the analyzed files ref to only include existing files
+        const currentAnalyzedFiles = [...analyzedFilesRef.current];
+        const validAnalyzedFiles = currentAnalyzedFiles.filter(fileKey =>
+            availableFileKeys.has(fileKey)
+        );
+
+        if (validAnalyzedFiles.length !== currentAnalyzedFiles.length) {
+            console.log(`[EntityDetectionSidebar] Filtered out ${currentAnalyzedFiles.length - validAnalyzedFiles.length} analyzed files that no longer exist`);
+            analyzedFilesRef.current = new Set(validAnalyzedFiles);
+            setAnalyzedFilesCount(validAnalyzedFiles.length);
+        }
+    }, [files, fileSummaries]);
+
+    // Helper function to save analyzed files to localStorage
+    const saveAnalyzedFilesToStorage = useCallback(() => {
+        try {
+            localStorage.setItem(ANALYZED_FILES_KEY, JSON.stringify([...analyzedFilesRef.current]));
+        } catch (error) {
+            console.error('[EntityDetectionSidebar] Error saving analyzed files to localStorage:', error);
+        }
+    }, []);
+
+    // Helper function to save file summaries to localStorage
+    const saveFileSummariesToStorage = useCallback(() => {
+        try {
+            if (fileSummaries.length > 0) {
+                localStorage.setItem(FILE_SUMMARIES_KEY, JSON.stringify(fileSummaries));
+                console.log(`[EntityDetectionSidebar] Saved ${fileSummaries.length} file summaries to localStorage`);
+            }
+        } catch (error) {
+            console.error('[EntityDetectionSidebar] Error saving file summaries to localStorage:', error);
+        }
+    }, [fileSummaries]);
+
+    // Save analyzed files count whenever it changes
+    useEffect(() => {
+        saveAnalyzedFilesToStorage();
+    }, [analyzedFilesCount, saveAnalyzedFilesToStorage]);
+
+    // Save file summaries whenever they change
+    useEffect(() => {
+        if (fileSummaries.length > 0) {
+            saveFileSummariesToStorage();
+        }
+    }, [fileSummaries, saveFileSummariesToStorage]);
+    useEffect(() => {
+        return () => {
+            // Save on unmount to ensure persistence
+            if (fileSummaries.length > 0) {
+                try {
+                    localStorage.setItem(FILE_SUMMARIES_KEY, JSON.stringify(fileSummaries));
+                    console.log(`[EntityDetectionSidebar] Saved ${fileSummaries.length} file summaries to localStorage on unmount`);
+                } catch (error) {
+                    console.error('[EntityDetectionSidebar] Error saving file summaries on unmount:', error);
+                }
+            }
+
+            if (analyzedFilesRef.current.size > 0) {
+                try {
+                    localStorage.setItem(ANALYZED_FILES_KEY, JSON.stringify([...analyzedFilesRef.current]));
+                    console.log(`[EntityDetectionSidebar] Saved ${analyzedFilesRef.current.size} analyzed files to localStorage on unmount`);
+                } catch (error) {
+                    console.error('[EntityDetectionSidebar] Error saving analyzed files on unmount:', error);
+                }
+            }
+        };
+    }, [fileSummaries]);
+
+
+    /**
+     * Get page count from a PDF file
+     */
+    const getPageCount = async (file: File): Promise<number> => {
+        try {
+            // Convert File to ArrayBuffer
+            const arrayBuffer = await file.arrayBuffer();
+
+            // Load PDF using pdf-lib
+            const pdfDoc = await PDFDocument.load(arrayBuffer);
+
+            // Return page count
+            return pdfDoc.getPageCount();
+        } catch (error) {
+            console.error(`[EntityDetectionSidebar] Error getting page count for ${file.name}:`, error);
+            // Default to estimate based on file size if we can't load the PDF
+            return Math.max(1, Math.ceil(file.size / (100 * 1024))); // Rough estimate: 100KB per page
+        }
+    };
+
+    /**
+     * Calculate estimated processing time
+     */
+    const calculateEstimatedTime = async (filesToProcess: File[]): Promise<Record<string, number>> => {
+        const baseTimePerFile = 1000; // Base processing time per file in ms
+        const timePerPage = 1700; // Additional time per page in ms
+        const timePerEntity = 300; // Additional time per entity type in ms
+
+        // Count active entity types
+        const entityTypeCount =
+            (selectedMlEntities.length > 0 ? 1 : 0) +
+            (selectedGlinerEntities.length > 0 ? 1 : 0) +
+            (selectedAiEntities.length > 0 ? 1 : 0) +
+            (selectedHideMeEntities.length > 0 ? 1 : 0);
+
+        // Calculate estimates
+        const estimates: Record<string, number> = {};
+
+        for (const file of filesToProcess) {
+            const pageCount = await getPageCount(file);
+            const fileKey = getFileKey(file);
+
+            estimates[fileKey] = baseTimePerFile +
+                (pageCount * timePerPage) +
+                (entityTypeCount * timePerEntity);
+        }
+
+        return estimates;
+    };
+    const updateFileSummaries = useCallback((newSummary: FileDetectionResult) => {
+        setFileSummaries(prevSummaries => {
+            // Remove any existing summaries for this file
+            const filteredSummaries = prevSummaries.filter(
+                summary => summary.fileKey !== newSummary.fileKey
+            );
+
+            // Add the new summary
+            const updatedSummaries = [...filteredSummaries, newSummary];
+
+            // Explicitly save to localStorage immediately for extra safety
+            try {
+                localStorage.setItem(FILE_SUMMARIES_KEY, JSON.stringify(updatedSummaries));
+                console.log(`[EntityDetectionSidebar] Immediately saved ${updatedSummaries.length} file summaries to localStorage`);
+            } catch (error) {
+                console.error('[EntityDetectionSidebar] Error in immediate save:', error);
+            }
+
+            return updatedSummaries;
+        });
+    }, []);
+    // Update analyzed files count when the files collection changes
+    useEffect(() => {
+        // Remove summaries for files that no longer exist
+        setFileSummaries(prevSummaries => {
+            const existingFileKeys = new Set(files.map(getFileKey));
+            return prevSummaries.filter(summary => existingFileKeys.has(summary.fileKey));
+        });
+
+        // Update analyzed files set to only include existing files
+        const updatedSet = new Set<string>();
+        analyzedFilesRef.current.forEach(fileKey => {
+            if (files.some(file => getFileKey(file) === fileKey)) {
+                updatedSet.add(fileKey);
+            }
+        });
+
+        // Update the ref and state if anything changed
+        if (updatedSet.size !== analyzedFilesRef.current.size) {
+            analyzedFilesRef.current = updatedSet;
+            setAnalyzedFilesCount(updatedSet.size);
+        }
+    }, [files]);
+
+    // Handle file deletion event
+    useEffect(() => {
+        const handleFileRemoved = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const {fileKey} = customEvent.detail || {};
+
+            if (fileKey) {
+                console.log(`[EntityDetectionSidebar] File removed: ${fileKey}`);
+
+                // Remove from our tracked files set
+                if (analyzedFilesRef.current.has(fileKey)) {
+                    analyzedFilesRef.current.delete(fileKey);
+                    setAnalyzedFilesCount(analyzedFilesRef.current.size);
+                }
+
+                // Remove from file summaries
+                setFileSummaries(prevSummaries =>
+                    prevSummaries.filter(summary => summary.fileKey !== fileKey)
+                );
+            }
+        };
+
+        window.addEventListener('processed-file-removed', handleFileRemoved);
+        // Also listen for a general file removed event
+        window.addEventListener('file-removed', handleFileRemoved);
+
+        return () => {
+            window.removeEventListener('processed-file-removed', handleFileRemoved);
+            window.removeEventListener('file-removed', handleFileRemoved);
+        };
+    }, []);
+
+    // Listen for auto-processing completion events
+    useEffect(() => {
+        const handleAutoProcessingComplete = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey, hasEntityResults, detectionResult } = customEvent.detail || {};
+
+            if (fileKey && hasEntityResults) {
+                console.log(`[EntityDetectionSidebar] Auto-processing completed for file: ${fileKey}`);
+
+                // Add to our tracked files set if not already there
+                if (!analyzedFilesRef.current.has(fileKey)) {
+                    analyzedFilesRef.current.add(fileKey);
+                    setAnalyzedFilesCount(analyzedFilesRef.current.size);
+                }
+
+                // Add file summary if detection result is provided
+                if (detectionResult) {
+                    const file = files.find(f => getFileKey(f) === fileKey);
+                    if (file) {
+                        const newSummary = {
+                            fileKey,
+                            fileName: file.name,
+                            entities_detected: detectionResult.entities_detected,
+                            performance: detectionResult.performance
+                        };
+
+                        // Use our helper to update summaries without duplicates
+                        updateFileSummaries(newSummary);
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('auto-processing-complete', handleAutoProcessingComplete);
+
+        return () => {
+            window.removeEventListener('auto-processing-complete', handleAutoProcessingComplete);
+        };
+    }, [files]);
+
     // Handle batch entity detection across multiple files
     const handleDetect = useCallback(async () => {
         const filesToProcess = getFilesToProcess();
@@ -203,6 +503,21 @@ const EntityDetectionSidebar: React.FC = () => {
         resetErrors();
 
         try {
+            // Calculate estimated processing times
+            const estimatedTimes = await calculateEstimatedTime(filesToProcess);
+
+            // Initialize processing state for all files
+            filesToProcess.forEach(file => {
+                const fileKey = getFileKey(file);
+                const pageCount = estimatedTimes[fileKey] ? Math.ceil(estimatedTimes[fileKey] / 1700) : 1;
+
+                processingStateService.startProcessing(file, {
+                    method: 'manual',
+                    pageCount,
+                    expectedTotalTimeMs: estimatedTimes[fileKey]
+                });
+            });
+
             // Prepare detection options
             const presidioEntities = prepareEntitiesForApi(
                 selectedMlEntities,
@@ -261,6 +576,9 @@ const EntityDetectionSidebar: React.FC = () => {
                         setDetectionMapping(result.redaction_mapping || result);
                     }
 
+                    // Mark processing as complete in the shared service
+                    processingStateService.completeProcessing(fileKey, true);
+
                     // Extract summary information for this file
                     const filename = filesToProcess.find(f => getFileKey(f) === fileKey)?.name ?? fileKey;
 
@@ -272,22 +590,35 @@ const EntityDetectionSidebar: React.FC = () => {
                         performance: result.performance
                     };
 
-                    newFileSummaries.push(fileSummary);
+                    // Update summaries using our helper function to prevent duplicates
+                    updateFileSummaries(fileSummary);
+
+                    // Add to our tracked files set if not already there
+                    if (!analyzedFilesRef.current.has(fileKey)) {
+                        analyzedFilesRef.current.add(fileKey);
+                    }
                 } catch (error) {
                     console.error(`[EntityDetectionSidebar] Error processing highlights for file ${fileKey}:`, error);
+                    processingStateService.completeProcessing(fileKey, false);
                 }
             }
 
-            // Update file summaries state and automatically expand them
-            setFileSummaries(newFileSummaries);
-            const newExpandedSet = new Set<string>();
-            newFileSummaries.forEach(summary => newExpandedSet.add(summary.fileKey));
-            setExpandedFileSummaries(newExpandedSet);
+            // Update expanded summaries set
+            setExpandedFileSummaries(new Set(Object.keys(results)));
+
+            // Update the analyzed files count based on unique files
+            setAnalyzedFilesCount(analyzedFilesRef.current.size);
 
             setSuccessMessage("Entity detection completed successfully");
             setTimeout(() => setSuccessMessage(null), 3000);
         } catch (err: any) {
             setDetectionError(err.message || 'An error occurred during entity detection');
+
+            // Mark all files as failed
+            filesToProcess.forEach(file => {
+                const fileKey = getFileKey(file);
+                processingStateService.completeProcessing(fileKey, false);
+            });
         } finally {
             setIsDetecting(false);
         }
@@ -311,7 +642,7 @@ const EntityDetectionSidebar: React.FC = () => {
     useEffect(() => {
         const handleExternalDetectionTrigger = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { source, filesToProcess } = customEvent.detail || {};
+            const {source, filesToProcess} = customEvent.detail || {};
 
             console.log(`[EntityDetectionSidebar] Received external detection trigger from ${source}`);
 
@@ -347,10 +678,10 @@ const EntityDetectionSidebar: React.FC = () => {
 
                 // Define methods to load
                 const methodsToLoad = [
-                    { id: METHOD_ID_MAP.presidio, name: 'presidio' },
-                    { id: METHOD_ID_MAP.gliner, name: 'gliner' },
-                    { id: METHOD_ID_MAP.gemini, name: 'gemini' },
-                    { id: METHOD_ID_MAP.hideme, name: 'hideme' }
+                    {id: METHOD_ID_MAP.presidio, name: 'presidio'},
+                    {id: METHOD_ID_MAP.gliner, name: 'gliner'},
+                    {id: METHOD_ID_MAP.gemini, name: 'gemini'},
+                    {id: METHOD_ID_MAP.hideme, name: 'hideme'}
                 ];
 
                 // Create parallel load promises
@@ -474,7 +805,7 @@ const EntityDetectionSidebar: React.FC = () => {
     useEffect(() => {
         const handleSettingsChange = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { type, settings } = customEvent.detail || {};
+            const {type, settings} = customEvent.detail || {};
 
             // Only apply entity settings
             if (type === 'entity' && settings) {
@@ -537,6 +868,15 @@ const EntityDetectionSidebar: React.FC = () => {
                 const fileKey = getFileKey(file);
                 removeHighlightsByType(fileKey, HighlightType.ENTITY);
 
+                // Remove from processing state tracking
+                processingStateService.removeFile(fileKey);
+
+                // Remove from analyzed files set
+                analyzedFilesRef.current.delete(fileKey);
+
+                // Remove from file summaries
+                setFileSummaries(prev => prev.filter(summary => summary.fileKey !== fileKey));
+
                 // If this is the current file, also update the current detection mapping
                 if (currentFile && getFileKey(currentFile) === fileKey) {
                     setDetectionMapping(null);
@@ -548,8 +888,11 @@ const EntityDetectionSidebar: React.FC = () => {
         }
 
         setDetectionResults(new Map());
-        setFileSummaries([]);
+        setExpandedFileSummaries(new Set());
         setDetectionError(null);
+
+        // Update the analyzed files count
+        setAnalyzedFilesCount(analyzedFilesRef.current.size);
     }, [
         setSelectedAiEntities,
         setSelectedMlEntities,
@@ -642,7 +985,7 @@ const EntityDetectionSidebar: React.FC = () => {
         clearUserError
     ]);
 
-    const ColorDot: React.FC<{ color: string }> = ({ color }) => (
+    const ColorDot: React.FC<{ color: string }> = ({color}) => (
         <span
             className="color-dot"
             style={getColorDotStyle(color)}
@@ -710,10 +1053,6 @@ const EntityDetectionSidebar: React.FC = () => {
 
     // Combined loading state
     const isLoading = isUserLoading || isDetecting || loading || isSettingsLoading || isBanListLoading || entitiesLoading;
-    const currentProgress = progress;
-
-    // Display the number of files with detection mappings
-    const filesWithMappings = fileDetectionMappings.size;
 
     // Format for entity type display
     const formatEntityDisplay = (entityType: string): string => {
@@ -721,14 +1060,13 @@ const EntityDetectionSidebar: React.FC = () => {
         return formatted.length > 15 ? `${formatted.substring(0, 13)}...` : formatted;
     };
 
-
     return (
         <div className="entity-detection-sidebar">
             <div className="sidebar-header entity-header">
                 <h3>Automatic Detection</h3>
-                {filesWithMappings > 0 && (
+                {analyzedFilesCount > 0 && (
                     <div className="entity-badge">
-                        {filesWithMappings} file{filesWithMappings !== 1 ? 's' : ''} analyzed
+                        {analyzedFilesCount} file{analyzedFilesCount !== 1 ? 's' : ''} analyzed
                     </div>
                 )}
             </div>
@@ -778,7 +1116,7 @@ const EntityDetectionSidebar: React.FC = () => {
                         placeholder="Select entities to detect..."
                         className="entity-select"
                         classNamePrefix="entity-select"
-                        isDisabled={isDetecting }
+                        isDisabled={isDetecting}
                         closeMenuOnSelect={false}
                         menuPortalTarget={document.body}
                         styles={customSelectStyles}
@@ -800,7 +1138,7 @@ const EntityDetectionSidebar: React.FC = () => {
                         placeholder="Select entities to detect..."
                         className="entity-select"
                         classNamePrefix="entity-select"
-                        isDisabled={isDetecting }
+                        isDisabled={isDetecting}
                         closeMenuOnSelect={false}
                         menuPortalTarget={document.body}
                         styles={customSelectStyles}
@@ -821,7 +1159,7 @@ const EntityDetectionSidebar: React.FC = () => {
                         placeholder="Select entities to detect..."
                         className="entity-select"
                         classNamePrefix="entity-select"
-                        isDisabled={isDetecting }
+                        isDisabled={isDetecting}
                         closeMenuOnSelect={false}
                         menuPortalTarget={document.body}
                         styles={customSelectStyles}
@@ -915,7 +1253,6 @@ const EntityDetectionSidebar: React.FC = () => {
                         </div>
                     </div>
                 )}
-
                 <div className="sidebar-section action-buttons">
                     <button
                         className="sidebar-button action-button detect-button"
@@ -929,24 +1266,14 @@ const EntityDetectionSidebar: React.FC = () => {
                                 selectedHideMeEntities.length === 0)
                         }
                     >
-                        {isDetecting ? (
-                            <>
-                                <div className="progress-container">
-                                    <div
-                                        className="progress-bar"
-                                        style={{width: `${currentProgress}%`}}
-                                    ></div>
-                                </div>
-                                <span>Detecting... {currentProgress}%</span>
-                            </>
-                        ) : 'Detect Entities'}
+                        {isDetecting ? 'Detecting...' : 'Detect Entities'}
                     </button>
 
                     <div className="secondary-buttons">
                         <button
                             className="sidebar-button secondary-button"
                             onClick={handleReset}
-                            disabled={isDetecting|| (selectedMlEntities.length === 0 && selectedAiEntities.length === 0 && selectedGlinerEntities.length === 0 && selectedHideMeEntities.length === 0 && fileSummaries.length === 0)}
+                            disabled={isDetecting || (selectedMlEntities.length === 0 && selectedAiEntities.length === 0 && selectedGlinerEntities.length === 0 && selectedHideMeEntities.length === 0 && fileSummaries.length === 0)}
                         >
                             Reset
                         </button>
@@ -957,7 +1284,7 @@ const EntityDetectionSidebar: React.FC = () => {
                             disabled={isDetecting || !isAuthenticated}
                         >
                             <Save size={16}/>
-                            <span>{ 'Save to Settings'}</span>
+                            <span>{'Save to Settings'}</span>
                         </button>
                     </div>
                 </div>
@@ -1073,7 +1400,8 @@ const EntityDetectionSidebar: React.FC = () => {
                                                                         </span>
                                                                     </div>
                                                                     <div className="page-item-right">
-                                                                        <span className="entity-count">{count} entities</span>
+                                                                        <span
+                                                                            className="entity-count">{count} entities</span>
                                                                         <div className="navigation-buttons">
                                                                             <button
                                                                                 className="nav-button"
