@@ -284,7 +284,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
     }, [highlight]);
 
     // Only show text-specific options if highlight has text
-    const showTextOptions = highlight.type === 'SEARCH' || highlight.type === 'ENTITY';
+    const showTextOptions = true;
     // Check if this is an entity highlight
     const isEntityHighlight = highlight.type === 'ENTITY';
 

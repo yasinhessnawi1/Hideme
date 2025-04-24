@@ -139,7 +139,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
         // ---------- LOGIN VALIDATION ----------
 
         // Validate required fields
-        if (!email.trim()) {
+        if (!email.trim().isWellFormed()) {
           setFormError('Email is required');
           return;
         }
@@ -205,9 +205,10 @@ const LoginForm: React.FC<LoginFormProps> = ({
                     required
                 />
               </div>
-          )}
 
-          {/* Email field (always displayed) */}
+
+          )}
+          {isSignUp && (
           <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
@@ -219,7 +220,35 @@ const LoginForm: React.FC<LoginFormProps> = ({
                 required
             />
           </div>
+            )}
 
+            {/* Email field (always displayed) */}
+            {isSignUp && (
+                <div className="form-group">
+                    <label htmlFor="email">Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="Enter Your Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
+                </div>
+            )}
+            {!isSignUp && (
+                <div className="form-group">
+                    <label htmlFor="text">Email</label>
+                    <input
+                        type="text"
+                        id="text"
+                        placeholder="Enter Your Email or username"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
+                </div>
+            )}
           {/* Password field (always displayed) */}
           <div className="form-group">
             <div className="form-group-header">

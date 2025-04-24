@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import { useFileContext } from '../../contexts/FileContext';
 import { getFileKey, usePDFViewerContext } from '../../contexts/PDFViewerContext';
 import { usePDFNavigation } from '../../hooks/usePDFNavigation';
+import scrollManager from '../../services/ScrollManagerService';
 import { NavigationOptions } from '../../types/pdfTypes';
 
 interface PendingNavigation {
@@ -12,13 +13,12 @@ interface PendingNavigation {
 
 /**
  * ViewportNavigationIntegrator component
- * 
+ *
  * This component enhances navigation precision using viewport calculations.
  * It doesn't render anything visible but improves the PDF viewing experience by:
- * 
+ *
  * - Providing viewport-aware page navigation
  * - Handling navigation requests and tracking page initialization
- * - Patching the navigation hook to use viewport calculations
  * - Observing page rendering completion for reliable navigation timing
  * - Supporting deferred navigation to pages that aren't rendered yet
  */
@@ -29,88 +29,15 @@ const ViewportNavigationIntegrator: React.FC = () => {
     // Use our navigation hook
     const navigation = usePDFNavigation('viewport-integrator');
 
-    // Track if there are pending navigation requests
+    // Track pending navigation requests
     const pendingNavigationRef = useRef<PendingNavigation | null>(null);
 
-    // Reference to track page elements that have been initialized
+    // Track initialized pages
     const initializedPagesRef = useRef<Set<string>>(new Set());
 
     /**
-     * Calculate exact scroll position for a page to center it in the viewport
+     * Handle navigation requests that require precise viewport positioning
      */
-    const calculatePagePosition = useCallback((pageElement: HTMLElement): number | null => {
-        if (!mainContainerRef.current) return null;
-
-        try {
-            const container = mainContainerRef.current;
-            const containerRect = container.getBoundingClientRect();
-            const pageRect = pageElement.getBoundingClientRect();
-
-            // Calculate position to center the page in viewport
-            return container.scrollTop +
-                (pageRect.top - containerRect.top) -
-                (containerRect.height / 2) +
-                (pageRect.height / 2);
-        } catch (error) {
-            console.error('[ViewportIntegrator] Error calculating page position:', error);
-            return null;
-        }
-    }, [mainContainerRef.current]);
-
-    /**
-     * Perform precise scrolling to a page using viewport calculations
-     */
-    const scrollToPageWithViewport = useCallback((
-        pageNumber: number,
-        fileKey: string,
-        behavior: ScrollBehavior = 'smooth',
-        alignToTop: boolean = false
-    ): boolean => {
-        if (!mainContainerRef.current) return false;
-
-        // Find page element
-        const pageElement = document.querySelector(
-            `.pdf-file-container[data-file-key="${fileKey}"] [data-page-number="${pageNumber}"]`
-        ) as HTMLElement | null;
-
-        if (!pageElement) {
-            console.warn(`[ViewportIntegrator] Page element for page ${pageNumber} not found`);
-            return false;
-        }
-
-        // Calculate position
-        const scrollTop = calculatePagePosition(pageElement);
-        if (scrollTop === null) return false;
-
-        // Adjust for alignToTop if needed
-        const finalScrollTop = alignToTop
-            ? scrollTop - (mainContainerRef.current.clientHeight * 0.4) // Align near top with some space
-            : scrollTop;
-
-        // Perform scroll
-        mainContainerRef.current.scrollTo({
-            top: finalScrollTop,
-            behavior
-        });
-
-        // Apply active page styling
-        const filePages = document.querySelectorAll(
-            `.pdf-file-container[data-file-key="${fileKey}"] .pdf-page-wrapper`
-        );
-
-        filePages.forEach(page => page.classList.remove('active'));
-        pageElement.classList.add('active');
-
-        // Add animation for visual feedback
-        pageElement.classList.add('just-activated');
-        setTimeout(() => {
-            pageElement.classList.remove('just-activated');
-        }, 1500);
-
-        return true;
-    }, [calculatePagePosition, mainContainerRef.current]);
-
-    // Handle custom navigation events that require viewport precision
     useEffect(() => {
         const handlePreciseNavigationRequest = (event: Event) => {
             const customEvent = event as CustomEvent;
@@ -120,38 +47,22 @@ const ViewportNavigationIntegrator: React.FC = () => {
 
             console.log(`[ViewportIntegrator] Received precise navigation request to page ${pageNumber} in file ${fileKey}`);
 
-            // Store the request for later if page is not ready
+            // Store request for later if page is not ready
             pendingNavigationRef.current = {
                 fileKey,
                 pageNumber,
                 options: options || {}
             };
 
-            // Check if we can navigate immediately
-            const pageElement = document.querySelector(
-                `.pdf-file-container[data-file-key="${fileKey}"] [data-page-number="${pageNumber}"]`
-            );
-
-            if (pageElement) {
-                const success = scrollToPageWithViewport(
-                    pageNumber,
-                    fileKey,
-                    options?.behavior || 'smooth',
-                    options?.alignToTop || false
-                );
-
-                if (success) {
-                    pendingNavigationRef.current = null;
-
-                    // Dispatch completion event
-                    window.dispatchEvent(new CustomEvent('pdf-precise-navigation-complete', {
-                        detail: {
-                            fileKey,
-                            pageNumber,
-                            success: true
-                        }
-                    }));
-                }
+            // Check if page is already initialized
+            const pageKey = `${fileKey}-${pageNumber}`;
+            if (initializedPagesRef.current.has(pageKey)) {
+                // Page is ready, navigate immediately
+                navigation.navigateToPage(pageNumber, fileKey, options);
+                pendingNavigationRef.current = null;
+            } else {
+                // Page is not ready, keep pending request
+                console.log(`[ViewportIntegrator] Page ${pageNumber} not initialized yet, will navigate when ready`);
             }
         };
 
@@ -160,9 +71,11 @@ const ViewportNavigationIntegrator: React.FC = () => {
         return () => {
             window.removeEventListener('pdf-precise-navigation-request', handlePreciseNavigationRequest);
         };
-    }, [scrollToPageWithViewport]);
+    }, [navigation]);
 
-    // Handle pending navigation requests when pages become available
+    /**
+     * Process pending navigation when pages become available
+     */
     useEffect(() => {
         const handlePageRenderComplete = (event: Event) => {
             const customEvent = event as CustomEvent;
@@ -170,33 +83,26 @@ const ViewportNavigationIntegrator: React.FC = () => {
 
             if (!pageNumber || !fileKey) return;
 
-            // Check if this page was just initialized
+            // Mark page as initialized
             const pageKey = `${fileKey}-${pageNumber}`;
-            if (initializedPagesRef.current.has(pageKey)) return;
-
-            // Mark as initialized
             initializedPagesRef.current.add(pageKey);
 
             console.log(`[ViewportIntegrator] Page ${pageNumber} in file ${fileKey} is ready`);
 
             // Check if there's a pending navigation to this page
-            if (pendingNavigationRef.current &&
+            if (
+                pendingNavigationRef.current &&
                 pendingNavigationRef.current.fileKey === fileKey &&
-                pendingNavigationRef.current.pageNumber === pageNumber) {
-
+                pendingNavigationRef.current.pageNumber === pageNumber
+            ) {
                 console.log(`[ViewportIntegrator] Processing pending navigation to page ${pageNumber}`);
 
                 const { options } = pendingNavigationRef.current;
                 pendingNavigationRef.current = null;
 
-                // Execute the navigation now that the page is available
+                // Execute navigation now that the page is available
                 setTimeout(() => {
-                    scrollToPageWithViewport(
-                        pageNumber,
-                        fileKey,
-                        options?.behavior || 'smooth',
-                        options?.alignToTop || false
-                    );
+                    navigation.navigateToPage(pageNumber, fileKey, options);
                 }, 50);
             }
         };
@@ -206,17 +112,20 @@ const ViewportNavigationIntegrator: React.FC = () => {
         return () => {
             window.removeEventListener('pdf-page-render-complete', handlePageRenderComplete);
         };
-    }, [scrollToPageWithViewport]);
+    }, [navigation]);
 
-    // Expose viewport navigation globally for other components to use
+    /**
+     * Expose viewport navigation globally for other components
+     */
     useEffect(() => {
-        // Add the viewport-aware navigation method to window
+        // Define the global navigation method
         (window as any).navigateToPageWithViewport = (
             pageNumber: number,
             fileKey: string,
             options: {
                 behavior?: ScrollBehavior,
-                alignToTop?: boolean
+                alignToTop?: boolean,
+                highlightThumbnail?: boolean
             } = {}
         ) => {
             // Dispatch event for the integrator to handle
@@ -230,42 +139,45 @@ const ViewportNavigationIntegrator: React.FC = () => {
         };
 
         return () => {
-            // Clean up
+            // Clean up global method
             delete (window as any).navigateToPageWithViewport;
         };
     }, []);
 
-    // When current file changes, reset initialized pages for that file
+    /**
+     * Reset page tracking when file changes
+     */
     useEffect(() => {
         if (!currentFile) return;
 
         const fileKey = getFileKey(currentFile);
 
-        // Clear initialized pages for this file to ensure fresh navigation
+        // Clear initialized pages for the previous file to ensure fresh tracking
         initializedPagesRef.current = new Set(
             Array.from(initializedPagesRef.current).filter(key => !key.startsWith(fileKey))
         );
     }, [currentFile]);
 
-    // Listen for page render completion events from PageRenderer components
+    /**
+     * Track page rendering completions
+     */
     useEffect(() => {
-        // Add event dispatcher to PageRenderer components
+        // Set up mutation observer to detect when canvas elements are added
         const addRenderCompleteDispatcher = () => {
-            // Add this code to all canvases that finish rendering
             const observer = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
                     if (mutation.addedNodes.length) {
                         mutation.addedNodes.forEach((node) => {
                             if (node instanceof HTMLElement && node.tagName === 'CANVAS') {
-                                // Find the parent page wrapper
-                                let pageWrapper = node.closest('.pdf-page-wrapper');
+                                // Find parent page wrapper
+                                const pageWrapper = node.closest('.pdf-page-wrapper');
                                 if (pageWrapper) {
                                     const pageNumber = pageWrapper.getAttribute('data-page-number');
                                     const fileContainer = pageWrapper.closest('.pdf-file-container');
                                     const fileKey = fileContainer?.getAttribute('data-file-key');
 
                                     if (pageNumber && fileKey) {
-                                        // Dispatch event after a small delay to ensure full rendering
+                                        // Dispatch page render complete event
                                         setTimeout(() => {
                                             window.dispatchEvent(new CustomEvent('pdf-page-render-complete', {
                                                 detail: {
@@ -283,7 +195,7 @@ const ViewportNavigationIntegrator: React.FC = () => {
                 });
             });
 
-            // Start observing the document for canvas elements
+            // Start observing the document
             observer.observe(document.body, {
                 childList: true,
                 subtree: true
@@ -296,52 +208,36 @@ const ViewportNavigationIntegrator: React.FC = () => {
         const observer = addRenderCompleteDispatcher();
 
         return () => {
-            // Clean up the observer when component unmounts
             observer.disconnect();
         };
     }, []);
 
-    // Enhance the navigation hook to use viewport-based navigation when appropriate
+    /**
+     * Enhance the navigation hook to use viewport navigation
+     */
     useEffect(() => {
-        const originalNavigateToPage = navigation.navigateToPage;
-
-        // Patch the navigation.navigateToPage method
-        (navigation as any).originalNavigateToPage = originalNavigateToPage;
-        (navigation as any).navigateToPage = (
-            pageNumber: number,
-            fileKey?: string,
-            options?: NavigationOptions
-        ): void => {
-            // If no fileKey, use the current file's key
-            const targetFileKey = fileKey || (currentFile ? getFileKey(currentFile) : null);
-            if (!targetFileKey) return;
-
-            const isChangingFile = fileKey && currentFile && getFileKey(currentFile) !== fileKey;
-
-            // For same-file navigation, use viewport-based scrolling
-            if (!isChangingFile && currentFile) {
-                window.dispatchEvent(new CustomEvent('pdf-precise-navigation-request', {
-                    detail: {
-                        fileKey: targetFileKey,
-                        pageNumber,
-                        options
-                    }
-                }));
-            } else {
-                // For file changes, use the original navigation
-                originalNavigateToPage(pageNumber, fileKey, options);
-            }
+        // Install an intersection observer to detect when pages
+        // become fully visible to improve navigation accuracy
+        const enhanceNavigation = () => {
+            // Set up observers for all pages
+            scrollManager.refreshObservers();
         };
+
+        // Run on mount and when container changes
+        if (mainContainerRef.current) {
+            enhanceNavigation();
+        }
+
+        // Also set up a timeout to run again after everything is fully rendered
+        const timeoutId = setTimeout(enhanceNavigation, 1000);
 
         return () => {
-            // Restore original method on unmount
-            if ((navigation as any).originalNavigateToPage) {
-                (navigation as any).navigateToPage = (navigation as any).originalNavigateToPage;
-            }
+            clearTimeout(timeoutId);
         };
-    }, [navigation, currentFile]);
+    }, [mainContainerRef.current]);
 
-    return null; // This component doesn't render anything visible
+    // This component doesn't render anything visible
+    return null;
 };
 
 export default ViewportNavigationIntegrator;

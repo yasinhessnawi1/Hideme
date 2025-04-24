@@ -4,188 +4,18 @@ import { useFileContext } from '../../contexts/FileContext';
 import { getFileKey, usePDFViewerContext } from '../../contexts/PDFViewerContext';
 import PageRenderer from './PageRenderer';
 import '../../styles/modules/pdf/PdfViewer.css';
-import scrollingService from '../../services/UnifiedScrollingService';
+import scrollManager from '../../services/ScrollManagerService';
+import { useInView } from 'react-intersection-observer';
 
 interface PDFDocumentWrapperProps {
     file?: File; // New prop to accept a specific file
     fileKey?: string; // Optional fileKey prop for multi-file support
 }
 
-const PDFDocumentContent = ({
-                                file,
-                                fileKey,
-                                numPages,
-                                onDocumentLoadSuccess,
-                                onDocumentLoadError,
-                                documentOptions
-                            }: {
-    file: File,
-    fileKey: string,
-    numPages: number,
-    onDocumentLoadSuccess: (pdf: any) => void,
-    onDocumentLoadError: (error: Error) => void,
-    documentOptions: any
-}) => {
-    const [error, setError] = useState<boolean>(false);
-    const [loading, setLoading] = useState<boolean>(true);
-    const pdfDocumentRef = useRef<any>(null);
-
-    // Only render pages if this matches the current file or we're not in a file change
-    const shouldRenderPages = !scrollingService.isFileChangeScrollActive();
-
-    // Track if component is mounted to prevent state updates after unmount
-    const isMountedRef = useRef<boolean>(true);
-
-    useEffect(() => {
-        isMountedRef.current = true;
-        setLoading(true);
-        setError(false);
-
-        return () => {
-            isMountedRef.current = false;
-        };
-    }, [file]);
-
-    let handleLoadSuccess = (pdf: any) => {
-        if (isMountedRef.current) {
-            setLoading(false);
-            setError(false);
-            onDocumentLoadSuccess(pdf);
-
-            // Dispatch event that this file is loaded
-            window.dispatchEvent(new CustomEvent('pdf-file-loaded', {
-                detail: { fileKey, timestamp: Date.now() }
-            }));
-
-            // Check that PDF document has required properties before dispatching event
-            if (pdf && typeof pdf === 'object' && pdf.numPages > 0) {
-                console.log(`[PDFDocumentWrapper] PDF document loaded successfully: ${fileKey} with ${pdf.numPages} pages`);
-
-                // Use a timeout to ensure the PDF is fully initialized before we try to use it
-                setTimeout(() => {
-                    // ADDED: Dispatch event with the PDF.js document instance
-                    window.dispatchEvent(new CustomEvent('pdf-document-loaded', {
-                        detail: {
-                            fileKey,
-                            pdfDocument: pdf,
-                            timestamp: Date.now(),
-                            numPages: pdf.numPages
-                        }
-                    }));
-                }, 500); // Short delay to ensure PDF is fully initialized
-            } else {
-                console.warn(`[PDFDocumentWrapper] PDF document not fully initialized: ${fileKey}`);
-            }
-        }
-    };
-
-    const handleLoadError = (error: Error) => {
-        if (isMountedRef.current) {
-            setLoading(false);
-            setError(true);
-            onDocumentLoadError(error);
-
-            // Dispatch event that this file had an error
-            window.dispatchEvent(new CustomEvent('pdf-file-error', {
-                detail: { fileKey, error: error.message, timestamp: Date.now() }
-            }));
-        }
-    };
-    useEffect(() => {
-        // Update the reference when the document loads
-        const updateDocumentRef = (pdf: any) => {
-            pdfDocumentRef.current = pdf;
-        };
-
-        // Handler for document requests
-        const handleDocumentRequest = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { fileKey: requestedKey, requestId } = customEvent.detail || {};
-
-            if (!requestedKey || !file || !fileKey) return;
-
-            // Check if this is our file (with flexible matching)
-            const isMatch = fileKey === requestedKey ||
-                fileKey.includes(requestedKey) ||
-                requestedKey.includes(fileKey) ||
-                file.name.includes(requestedKey) ||
-                requestedKey.includes(file.name);
-
-            if (isMatch && pdfDocumentRef.current) {
-                console.log(`[PDFDocumentWrapper] Responding to document request for ${requestedKey}`);
-
-                // Respond with our document
-                window.dispatchEvent(new CustomEvent('pdf-document-response', {
-                    detail: {
-                        fileKey: fileKey,
-                        filename: file.name,
-                        pdfDocument: pdfDocumentRef.current,
-                        requestId: requestId,
-                        timestamp: Date.now()
-                    }
-                }));
-            }
-        };
-
-        // Update reference in handleLoadSuccess
-        const originalHandleLoadSuccess = handleLoadSuccess;
-        handleLoadSuccess = (pdf: any) => {
-            updateDocumentRef(pdf);
-            originalHandleLoadSuccess(pdf);
-        };
-
-        window.addEventListener('request-pdf-document', handleDocumentRequest);
-
-        return () => {
-            window.removeEventListener('request-pdf-document', handleDocumentRequest);
-        };
-    }, [file, fileKey]);
-
-    return (
-        <div
-            className="pdf-document-container"
-            data-file-name={file.name}
-            data-file-key={fileKey}
-        >
-            {error && (
-                <div className="pdf-error">
-                    <h3>Error Loading PDF</h3>
-                    <p>Could not load the PDF file</p>
-                    <p>Please try uploading the file again or check if the file is valid.</p>
-                </div>
-            )}
-
-            <Document
-                file={file}
-                onLoadSuccess={handleLoadSuccess}
-                onLoadError={handleLoadError}
-                loading={<div className="pdf-loading-placeholder"></div>}
-                error={<div className="pdf-error-placeholder"></div>}
-                options={documentOptions}
-                className="pdf-document"
-            >
-                {!error && shouldRenderPages && Array.from({length: numPages}, (_, i) => (
-                    <PageRenderer
-                        key={`page-${fileKey}-${i + 1}`}
-                        pageNumber={i + 1}
-                        fileKey={fileKey}
-                    />
-                ))}
-            </Document>
-        </div>
-    );
-};
-
-// Memoize the internal component to prevent re-renders
-const MemoizedPDFDocumentContent = memo(PDFDocumentContent, (prevProps, nextProps) => {
-    return (
-        prevProps.file === nextProps.file &&
-        prevProps.fileKey === nextProps.fileKey &&
-        prevProps.numPages === nextProps.numPages
-    );
-});
-
-export const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey }) => {
+/**
+ * Component to render a PDF document with virtualized pages
+ */
+const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey }) => {
     const { currentFile } = useFileContext();
     const {
         numPages,
@@ -193,13 +23,22 @@ export const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fi
         setRenderedPages,
         getFileNumPages,
         setFileNumPages,
-        setFileRenderedPages
+        setFileRenderedPages,
+        mainContainerRef
     } = usePDFViewerContext();
 
     const [loadError, setLoadError] = useState<Error | null>(null);
+    const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set([1]));
 
-    // Track if this component has loaded the PDF
+    // Track document initialization
     const hasInitializedRef = useRef<boolean>(false);
+    const pdfDocumentRef = useRef<any>(null);
+
+    // For virtualization, we'll use intersection observer to track visible pages
+    const { ref: documentRef, inView } = useInView({
+        threshold: 0.1, // 10% visibility is enough
+        root: mainContainerRef.current
+    });
 
     // Use the provided file or fall back to currentFile from context
     const pdfFile = file || currentFile;
@@ -210,7 +49,7 @@ export const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fi
     // Track whether this document is the current one
     const isCurrentDocument = currentFile && getFileKey(currentFile) === pdfFileKey;
 
-    // Log when file or fileKey changes to debug file isolation issues
+    // Clean up state on file change
     useEffect(() => {
         setLoadError(null);
 
@@ -219,17 +58,17 @@ export const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fi
         }
 
         return () => {
-            // Cleanup when component unmounts or file changes
             hasInitializedRef.current = false;
         };
     }, [pdfFile, pdfFileKey]);
 
-    // Document options with memoization
+    // Document options
     const documentOptions = React.useMemo(() => ({
         cMapUrl: 'https://unpkg.com/pdfjs-dist@2.16.105/cmaps/',
         cMapPacked: true,
     }), []);
 
+    // Handle document load success
     const onDocumentLoadSuccess = useCallback((pdf: any) => {
         if (!pdfFile || !pdfFileKey) return;
 
@@ -238,13 +77,18 @@ export const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fi
 
         try {
             const pageCount = pdf.numPages;
+            pdfDocumentRef.current = pdf;
+
             console.log(`PDF loaded with ${pageCount} pages for file: ${pdfFile.name}`);
 
-            // If we have a file key, update the file-specific page data
+            // Store PDF document reference
+            pdfDocumentRef.current = pdf;
+
+            // Update page counts
             if (pdfFileKey) {
                 setFileNumPages(pdfFileKey, pageCount);
 
-                // Initial pages to render
+                // Determine initial pages to render (first few pages)
                 const initialPagesToShow = Math.min(pageCount, 3);
                 const pagesToRender = new Set<number>();
 
@@ -253,6 +97,7 @@ export const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fi
                 }
 
                 setFileRenderedPages(pdfFileKey, pagesToRender);
+                setVisiblePages(pagesToRender);
 
                 // Also update global state if this is the current file
                 if (isCurrentDocument) {
@@ -263,7 +108,7 @@ export const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fi
                 // Backward compatibility
                 setNumPages(pageCount);
 
-                // Initially render first page and a couple more for smoother experience
+                // Initially render first few pages
                 const pagesToRender = new Set<number>();
                 const initialPagesToShow = Math.min(pageCount, 3);
 
@@ -272,19 +117,129 @@ export const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fi
                 }
 
                 setRenderedPages(pagesToRender);
+                setVisiblePages(pagesToRender);
             }
+
+            // Dispatch document loaded event
+            window.dispatchEvent(new CustomEvent('pdf-document-loaded', {
+                detail: {
+                    fileKey: pdfFileKey,
+                    pdfDocument: pdf,
+                    timestamp: Date.now(),
+                    numPages: pageCount
+                }
+            }));
+
+            // Register for page visibility tracking
+            setTimeout(() => {
+                scrollManager.refreshObservers();
+            }, 300);
 
         } catch (error) {
             console.error(`[PDFDocumentWrapper] Error in onDocumentLoadSuccess:`, error);
             setLoadError(error instanceof Error ? error : new Error('Unknown error loading PDF'));
         }
-    }, [setNumPages, setRenderedPages, setFileNumPages, setFileRenderedPages]);
+    }, [
+        pdfFile,
+        pdfFileKey,
+        isCurrentDocument,
+        setNumPages,
+        setRenderedPages,
+        setFileNumPages,
+        setFileRenderedPages
+    ]);
 
+    // Handle document load error
     const onDocumentLoadError = useCallback((error: Error) => {
         console.error(`[PDFDocumentWrapper] Error loading document:`, error);
         setLoadError(error);
     }, []);
 
+    // Listen for scroll events to update visible pages
+    useEffect(() => {
+        if (!pdfFile || !pdfFileKey || !mainContainerRef.current) return;
+
+        const handleScroll = () => {
+            if (!pdfDocumentRef.current) return;
+
+            // Get visible pages from scroll manager
+            const visiblePage = scrollManager.findMostVisiblePage(0.1);
+
+            if (visiblePage.fileKey === pdfFileKey && visiblePage.pageNumber) {
+                // Update visible pages for virtualization
+                const newVisiblePages = new Set<number>();
+                const pageNumber = visiblePage.pageNumber;
+                const pageCount = getFileNumPages(pdfFileKey);
+
+                // Add current page and surrounding pages
+                const pagesToShow = 3; // Number of pages to show above and below
+
+                for (
+                    let i = Math.max(1, pageNumber - pagesToShow);
+                    i <= Math.min(pageCount, pageNumber + pagesToShow);
+                    i++
+                ) {
+                    newVisiblePages.add(i);
+                }
+
+                // Only update if the set has changed
+                const hasChanged =
+                    newVisiblePages.size !== visiblePages.size ||
+                    Array.from(newVisiblePages).some(page => !visiblePages.has(page));
+
+                if (hasChanged) {
+                    setVisiblePages(newVisiblePages);
+                }
+            }
+        };
+
+        const scrollContainer = mainContainerRef.current;
+        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+
+        return () => {
+            scrollContainer.removeEventListener('scroll', handleScroll);
+        };
+    }, [pdfFile, pdfFileKey, mainContainerRef, getFileNumPages, visiblePages]);
+
+    // Handle document requests from other components
+    useEffect(() => {
+        const handleDocumentRequest = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey: requestedKey, requestId } = customEvent.detail || {};
+
+            if (!requestedKey || !pdfFile || !pdfFileKey) return;
+
+            // Check if this is our file
+            const isMatch = pdfFileKey === requestedKey ||
+                pdfFileKey.includes(requestedKey) ||
+                requestedKey.includes(pdfFileKey) ||
+                pdfFile.name.includes(requestedKey) ||
+                requestedKey.includes(pdfFile.name);
+
+            if (isMatch && pdfDocumentRef.current) {
+                console.log(`[PDFDocumentWrapper] Responding to document request for ${requestedKey}`);
+
+                // Respond with our document
+                window.dispatchEvent(new CustomEvent('pdf-document-response', {
+                    detail: {
+                        fileKey: pdfFileKey,
+                        filename: pdfFile.name,
+                        pdfDocument: pdfDocumentRef.current,
+                        requestId: requestId,
+                        timestamp: Date.now()
+                    }
+                }));
+            }
+        };
+
+        window.addEventListener('request-pdf-document', handleDocumentRequest);
+
+        return () => {
+            window.removeEventListener('request-pdf-document', handleDocumentRequest);
+        };
+    }, [pdfFile, pdfFileKey]);
+
+    // If there's no file, don't render
     if (!pdfFile) return null;
 
     // Get the number of pages for this file
@@ -293,20 +248,51 @@ export const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fi
         : numPages;
 
     return (
-        <MemoizedPDFDocumentContent
-            file={pdfFile}
-            fileKey={pdfFileKey}
-            numPages={displayNumPages}
-            onDocumentLoadSuccess={onDocumentLoadSuccess}
-            onDocumentLoadError={onDocumentLoadError}
-            documentOptions={documentOptions}
-        />
-    );
-}
+        <div
+            className="pdf-document-container"
+            data-file-name={pdfFile.name}
+            data-file-key={pdfFileKey}
+            ref={documentRef}
+        >
+            {loadError && (
+                <div className="pdf-error">
+                    <h3>Error Loading PDF</h3>
+                    <p>Could not load the PDF file</p>
+                    <p>Please try uploading the file again or check if the file is valid.</p>
+                </div>
+            )}
 
-// Memoize the entire component to prevent unnecessary re-renders
-export default React.memo(PDFDocumentWrapper, (prevProps, nextProps) => {
-    // Only re-render if the file or fileKey changes
+            <Document
+                file={pdfFile}
+                onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={onDocumentLoadError}
+                loading={<div className="pdf-loading-placeholder"></div>}
+                error={<div className="pdf-error-placeholder"></div>}
+                options={documentOptions}
+                className="pdf-document"
+            >
+                {!loadError && inView && Array.from({ length: displayNumPages }, (_, i) => {
+                    const pageNum = i + 1;
+                    // Check if this page should be visible
+                    const isVisible = visiblePages.has(pageNum);
+
+                    return (
+                        <PageRenderer
+                            key={`page-${pdfFileKey}-${pageNum}`}
+                            pageNumber={pageNum}
+                            fileKey={pdfFileKey}
+                            isVisible={isVisible}
+                        />
+                    );
+                })}
+            </Document>
+        </div>
+    );
+};
+
+// Memoize component to prevent unnecessary re-renders
+export default memo(PDFDocumentWrapper, (prevProps, nextProps) => {
+    // Only re-render if file or fileKey changes
     return (
         prevProps.file === nextProps.file &&
         prevProps.fileKey === nextProps.fileKey

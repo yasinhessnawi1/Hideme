@@ -18,11 +18,17 @@ import { useHighlightStore } from "../../../contexts/HighlightStoreContext";
 import AutoProcessControls from "./AutoProcessControls";
 import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 import { getFileKey } from "../../../contexts/PDFViewerContext";
+import scrollManager from '../../../services/ScrollManagerService';
 
 interface FileSelectorProps {
     className?: string;
 }
 
+/**
+ * FileSelector component
+ *
+ * Provides UI for managing PDF files with improved navigation
+ */
 const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
     const {
         files,
@@ -48,13 +54,22 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const pdfNavigation = usePDFNavigation('file-selector');
 
-    // For handling the file selection
+    // For handling the file selection with improved navigation
     const handleFileSelect = useCallback((file: File) => {
         const fileKey = getFileKey(file);
 
+        // Skip if already the current file
+        if (currentFile === file) return;
+
+        // Mark file change in progress
+        scrollManager.setFileChanging(true);
+
+        // Update the current file
+        setCurrentFile(file);
+
         // Navigate to the first page of the selected file
         pdfNavigation.navigateToPage(1, fileKey, {
-            // Use auto for immediate feedback
+            // Use auto behavior for immediate feedback
             behavior: 'auto',
             // Always align to top for consistency
             alignToTop: true,
@@ -62,9 +77,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
             highlightThumbnail: true
         });
 
-        setCurrentFile(file);
-
-    }, [pdfNavigation, setCurrentFile]);
+    }, [pdfNavigation, setCurrentFile, currentFile]);
 
     // For handling file deletion
     const handleFileDelete = (index: number, e: React.MouseEvent) => {
@@ -82,6 +95,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
             window.dispatchEvent(new CustomEvent('file-removed', {
                 detail: {
                     fileKey,
+                    fileName: fileToRemove.name,
                     timestamp: Date.now()
                 }
             }));
@@ -90,6 +104,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
         setShowNotification({message: 'File removed successfully', type: 'success'});
         setTimeout(() => setShowNotification(null), 3000);
     };
+
     // Toggle file selection
     const handleToggleSelection = (file: File, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -111,9 +126,17 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const newFiles = Array.from(e.target.files);
+
+            // Add files to the top of the list instead of the bottom
             addFiles(newFiles, false);
+
             setShowNotification({message: `${newFiles.length} file(s) added successfully`, type: 'success'});
             setTimeout(() => setShowNotification(null), 3000);
+
+            // Refresh observers to detect the new content
+            setTimeout(() => {
+                scrollManager.refreshObservers();
+            }, 500);
         }
     };
 
@@ -438,9 +461,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                         setShowActions(null);
                                         setShowTooltip(null);
                                     }}
-                                > {
-
-
+                                >
                                     <div className="file-controls">
                                         <button
                                             className="file-select-button"
@@ -467,8 +488,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                                 <EyeOff size={16} className="visibility-icon"/>
                                             )}
                                         </button>
-                                    </div> }
-
+                                    </div>
 
                                     <div className="file-info">
                                         <FileIcon size={18} className="file-icon"/>

@@ -478,7 +478,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 )
             );
 
-            const updatedFiles = [...baseFiles, ...uniqueNewFiles];
+            const updatedFiles = [...uniqueNewFiles, ...baseFiles];
 
             if ((replace || !currentFile) && updatedFiles.length > 0) {
                 setActiveFiles([]);

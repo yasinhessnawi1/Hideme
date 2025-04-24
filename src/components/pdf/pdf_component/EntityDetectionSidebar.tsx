@@ -27,9 +27,14 @@ import useEntityDefinitions from "../../../hooks/settings/useEntityDefinitions";
 import useAuth from "../../../hooks/auth/useAuth";
 import {EntityHighlightProcessor} from "../../../managers/EntityHighlightProcessor";
 import processingStateService, {ProcessingInfo} from '../../../services/ProcessingStateService';
-import {PDFDocument} from 'pdf-lib';
 import summaryPersistenceStore from '../../../store/SummaryPersistenceStore';
 
+/**
+ * EntityDetectionSidebar component
+ *
+ * Provides UI for entity detection in PDF files with improved navigation
+ * to detected entities.
+ */
 const EntityDetectionSidebar: React.FC = () => {
     const {
         currentFile,
@@ -37,6 +42,7 @@ const EntityDetectionSidebar: React.FC = () => {
         files
     } = useFileContext();
 
+    // Use our improved navigation hook
     const pdfNavigation = usePDFNavigation('entity-sidebar');
 
     const {
@@ -74,6 +80,7 @@ const EntityDetectionSidebar: React.FC = () => {
         removeHighlightsByType,
     } = useHighlightStore();
 
+    // Component state
     const [isDetecting, setIsDetecting] = useState(false);
     const [detectionScope, setDetectionScope] = useState<'current' | 'selected' | 'all'>('all');
     const [detectionResults, setDetectionResults] = useState<Map<string, any>>(new Map());
@@ -175,27 +182,19 @@ const EntityDetectionSidebar: React.FC = () => {
     }, [detectionScope, currentFile, selectedFiles, files]);
 
 
-    // Simple navigation to a page without highlighting
+    // Simple navigation to a page using our improved navigation system
     const navigateToPage = useCallback((fileKey: string, pageNumber: number) => {
-        const file = files.find(f => getFileKey(f).includes(fileKey));
-
-        if (!file) {
-            return;
-        }
-
-        const isChangingFile = currentFile !== file;
-
-        // Use our navigation hook for consistent navigation behavior
-        pdfNavigation.navigateToPage(pageNumber, getFileKey(file), {
-            // Use auto behavior for better UX when changing files
-            behavior: isChangingFile ? 'auto' : 'smooth',
-            // Align to top when navigating to entities for better visibility
+        // Use our improved navigation hook to navigate to the page
+        pdfNavigation.navigateToPage(pageNumber, fileKey, {
+            // Use smooth scrolling for better user experience
+            behavior: 'smooth',
+            // Align to top for better visibility
             alignToTop: true,
             // Always highlight the thumbnail
             highlightThumbnail: true
         });
 
-    }, [pdfNavigation, files, currentFile]);
+    }, [pdfNavigation]);
 
 
     // Load saved file data from summaryPersistenceStore on component mount
@@ -219,31 +218,6 @@ const EntityDetectionSidebar: React.FC = () => {
             console.error('[EntityDetectionSidebar] Error loading persisted detection data:', error);
         }
     }, []);
-
-    useEffect(() => {
-        // Skip if no files or no summaries
-        if (files.length === 0) {
-            return;
-        }
-
-        // Reconcile our data with the SummaryPersistenceStore
-        const validFiles = files.map(getFileKey);
-        const validSearchedFiles = summaryPersistenceStore.reconcileAnalyzedFiles('entity', validFiles);
-
-        // Update local state if needed
-        if (analyzedFilesRef.current.size !== validSearchedFiles.size) {
-            analyzedFilesRef.current = validSearchedFiles;
-            setAnalyzedFilesCount(validSearchedFiles.size);
-        }
-
-        // Reconcile file summaries
-        const validSummaries = summaryPersistenceStore.reconcileFileSummaries<EntityFileSummary>('entity', files);
-
-        // Update local state if needed
-        if (validSummaries.length !== fileSummaries.length) {
-            setFileSummaries(validSummaries);
-        }
-    }, [files, fileSummaries.length]);
 
     // Helper function to update file summaries
     const updateFileSummary = useCallback((newSummary: EntityFileSummary) => {
@@ -314,101 +288,6 @@ const EntityDetectionSidebar: React.FC = () => {
         };
     }, [currentFile, setDetectionMapping, expandedFileSummaries]);
 
-    // Listen for auto-processing completion events
-    useEffect(() => {
-        const handleAutoProcessingComplete = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { fileKey, hasEntityResults, detectionResult } = customEvent.detail || {};
-
-            if (fileKey && hasEntityResults) {
-                console.log(`[EntityDetectionSidebar] Auto-processing completed for file: ${fileKey}`);
-
-                // Add to our tracked files through the persistence store
-                summaryPersistenceStore.addAnalyzedFile('entity', fileKey);
-
-                // Update local reference
-                analyzedFilesRef.current = summaryPersistenceStore.getAnalyzedFiles('entity');
-                setAnalyzedFilesCount(analyzedFilesRef.current.size);
-
-                // Add file summary if detection result is provided
-                if (detectionResult) {
-                    const file = files.find(f => getFileKey(f) === fileKey);
-                    if (file) {
-                        const newSummary: EntityFileSummary = {
-                            fileKey,
-                            fileName: file.name,
-                            entities_detected: detectionResult.entities_detected,
-                            performance: detectionResult.performance
-                        };
-
-                        // Use the persistence store to update file summaries
-                        summaryPersistenceStore.updateFileSummary('entity', newSummary);
-
-                        // Update our local state
-                        updateFileSummary(newSummary);
-                    }
-                }
-            }
-        };
-
-        window.addEventListener('auto-processing-complete', handleAutoProcessingComplete);
-
-        return () => {
-            window.removeEventListener('auto-processing-complete', handleAutoProcessingComplete);
-        };
-    }, [files, updateFileSummary]);
-
-
-    /**
-     * Get page count from a PDF file
-     */
-    const getPageCount = async (file: File): Promise<number> => {
-        try {
-            // Convert File to ArrayBuffer
-            const arrayBuffer = await file.arrayBuffer();
-
-            // Load PDF using pdf-lib
-            const pdfDoc = await PDFDocument.load(arrayBuffer);
-
-            // Return page count
-            return pdfDoc.getPageCount();
-        } catch (error) {
-            console.error(`[EntityDetectionSidebar] Error getting page count for ${file.name}:`, error);
-            // Default to estimate based on file size if we can't load the PDF
-            return Math.max(1, Math.ceil(file.size / (100 * 1024))); // Rough estimate: 100KB per page
-        }
-    };
-
-    /**
-     * Calculate estimated processing time
-     */
-    const calculateEstimatedTime = async (filesToProcess: File[]): Promise<Record<string, number>> => {
-        const baseTimePerFile = 1000; // Base processing time per file in ms
-        const timePerPage = 1700; // Additional time per page in ms
-        const timePerEntity = 300; // Additional time per entity type in ms
-
-        // Count active entity types
-        const entityTypeCount =
-            (selectedMlEntities.length > 0 ? 1 : 0) +
-            (selectedGlinerEntities.length > 0 ? 1 : 0) +
-            (selectedAiEntities.length > 0 ? 1 : 0) +
-            (selectedHideMeEntities.length > 0 ? 1 : 0);
-
-        // Calculate estimates
-        const estimates: Record<string, number> = {};
-
-        for (const file of filesToProcess) {
-            const pageCount = await getPageCount(file);
-            const fileKey = getFileKey(file);
-
-            estimates[fileKey] = baseTimePerFile +
-                (pageCount * timePerPage) +
-                (entityTypeCount * timePerEntity);
-        }
-
-        return estimates;
-    };
-
     // Handle batch entity detection across multiple files
     const handleDetect = useCallback(async () => {
         const filesToProcess = getFilesToProcess();
@@ -423,18 +302,14 @@ const EntityDetectionSidebar: React.FC = () => {
         resetErrors();
 
         try {
-            // Calculate estimated processing times
-            const estimatedTimes = await calculateEstimatedTime(filesToProcess);
-
             // Initialize processing state for all files
             filesToProcess.forEach(file => {
                 const fileKey = getFileKey(file);
-                const pageCount = estimatedTimes[fileKey] ? Math.ceil(estimatedTimes[fileKey] / 1700) : 1;
 
                 processingStateService.startProcessing(file, {
                     method: 'manual',
-                    pageCount,
-                    expectedTotalTimeMs: estimatedTimes[fileKey]
+                    pageCount: 1, // Will be updated after detection
+                    expectedTotalTimeMs: 30000 // Default estimate
                 });
             });
 
@@ -553,280 +428,73 @@ const EntityDetectionSidebar: React.FC = () => {
         setFileDetectionMapping,
         setDetectionMapping,
         currentFile,
+        updateFileSummary
     ]);
 
-    // Listen for external detection triggers (e.g., from toolbar button)
-    useEffect(() => {
-        const handleExternalDetectionTrigger = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const {source, filesToProcess} = customEvent.detail || {};
-
-            console.log(`[EntityDetectionSidebar] Received external detection trigger from ${source}`);
-
-            // Run detection process
-            handleDetect();
-        };
-
-        // Add event listener
-        window.addEventListener('trigger-entity-detection-process', handleExternalDetectionTrigger);
-
-        // Clean up
-        return () => {
-            window.removeEventListener('trigger-entity-detection-process', handleExternalDetectionTrigger);
-        };
-    }, [handleDetect]);
-
-    //subscribe to the Summary processor to be notified of file summary changes and apply them
-    useEffect(() => {
-        const handleHighlightsCleared = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { fileKey, allTypes, type } = customEvent.detail || {};
-
-            // Skip if not related to entity highlights
-            if (type && type !== HighlightType.ENTITY && !allTypes) return;
-
-            if (fileKey) {
-                console.log(`[EntityDetectionSidebar] Entity highlights cleared for file: ${fileKey}`);
-
-                // Update file summaries to reflect cleared highlights
-                setFileSummaries(prev => {
-                    // Remove summary for this file
-                    const updatedSummaries = prev.filter(summary => summary.fileKey !== fileKey);
-
-                    // Save the updated summaries
-                    summaryPersistenceStore.saveFileSummaries('entity', updatedSummaries);
-
-                    return updatedSummaries;
-                });
-
-                // Update the analyzed files count
-                if (analyzedFilesRef.current.has(fileKey)) {
-                    analyzedFilesRef.current.delete(fileKey);
-                    setAnalyzedFilesCount(analyzedFilesRef.current.size);
-
-                    // Update the persistence store
-                    summaryPersistenceStore.removeAnalyzedFile('entity', fileKey);
-                }
-
-                // Remove from expanded summaries if present
-                if (expandedFileSummaries.has(fileKey)) {
-                    setExpandedFileSummaries(prev => {
-                        const newSet = new Set(prev);
-                        newSet.delete(fileKey);
-                        return newSet;
-                    });
-                }
-
-                // If this is the current file, also update the current detection mapping
-                if (currentFile && getFileKey(currentFile) === fileKey) {
-                    setDetectionMapping(null);
-                }
-
+    // Toggle file summary expansion
+    const toggleFileSummary = useCallback((fileKey: string) => {
+        setExpandedFileSummaries(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(fileKey)) {
+                newSet.delete(fileKey);
+            } else {
+                newSet.add(fileKey);
             }
-        };
+            return newSet;
+        });
+    }, []);
 
-        // Listen for both general highlights cleared and entity-specific events
-        window.addEventListener('highlights-cleared', handleHighlightsCleared);
-        window.addEventListener('entity-highlights-cleared', handleHighlightsCleared);
+    // Format entity name for display
+    const formatEntityName = useCallback((entityType: string): string => {
+        return entityType
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+    }, []);
 
-        return () => {
-            window.removeEventListener('highlights-cleared', handleHighlightsCleared);
-            window.removeEventListener('entity-highlights-cleared', handleHighlightsCleared);
-        };
-    }, [currentFile, setDetectionMapping]);
+    // Format for entity type display (shortens if too long)
+    const formatEntityDisplay = (entityType: string): string => {
+        const formatted = formatEntityName(entityType);
+        return formatted.length > 15 ? `${formatted.substring(0, 13)}...` : formatted;
+    };
 
-    // Improved entity loading with better error handling and retry mechanism
-    useEffect(() => {
-        // Skip if not authenticated or still loading authentication
-        if (!isAuthenticated || isUserLoading) {
-            return;
-        }
+    // Helper to determine which model an entity belongs to
+    const getEntityModel = useCallback((entityType: string): 'presidio' | 'gliner' | 'gemini' | 'hideme' => {
+        const presidioEntities = new Set(presidioOptions.map(opt => opt.value));
+        const glinerEntities = new Set(glinerOptions.map(opt => opt.value));
+        const geminiEntities = new Set(geminiOptions.map(opt => opt.value));
+        const hidemeEntities = new Set(hidemeOptions.map(opt => opt.value));
 
-        // Skip if already initialized
-        if (entitiesInitialized) {
-            return;
-        }
+        if (presidioEntities.has(entityType)) return 'presidio';
+        if (glinerEntities.has(entityType)) return 'gliner';
+        if (geminiEntities.has(entityType)) return 'gemini';
+        if (hidemeEntities.has(entityType)) return 'hideme';
 
-        // Load entities for all methods in parallel
-        const loadAllEntities = async () => {
-            try {
-                console.log("[EntityDetectionSidebar] Loading all entity types");
+        // Default to presidio if not found
+        return 'presidio';
+    }, []);
 
-                // Define methods to load
-                const methodsToLoad = [
-                    {id: METHOD_ID_MAP.presidio, name: 'presidio'},
-                    {id: METHOD_ID_MAP.gliner, name: 'gliner'},
-                    {id: METHOD_ID_MAP.gemini, name: 'gemini'},
-                    {id: METHOD_ID_MAP.hideme, name: 'hideme'}
-                ];
+    // Handle dropdown change with "ALL" logic
+    const handlePresidioChange = (options: readonly OptionType[]) => {
+        const selectedOptions = [...options];
+        setSelectedMlEntities(handleAllOptions(selectedOptions, presidioOptions, 'ALL_PRESIDIO_P'));
+    };
 
-                // Create parallel load promises
-                const loadPromises = methodsToLoad.map(async (method) => {
-                    try {
-                        // Skip if already attempted
-                        if (loadAttemptedRef.current.has(method.id)) {
-                            return;
-                        }
+    const handleGlinerChange = (options: readonly OptionType[]) => {
+        const selectedOptions = [...options];
+        setSelectedGlinerEntities(handleAllOptions(selectedOptions, glinerOptions, 'ALL_GLINER'));
+    };
 
-                        // Mark as attempted
-                        loadAttemptedRef.current.add(method.id);
+    const handleGeminiChange = (options: readonly OptionType[]) => {
+        const selectedOptions = [...options];
+        setSelectedAiEntities(handleAllOptions(selectedOptions, geminiOptions, 'ALL_GEMINI'));
+    };
 
-                        console.log(`[EntityDetectionSidebar] Loading ${method.name} entities (Method ID: ${method.id})`);
-                        return await getModelEntities(method.id);
-                    } catch (err) {
-                        console.error(`[EntityDetectionSidebar] Error loading ${method.name} entities:`, err);
-                        return null;
-                    }
-                });
-
-                // Wait for all loads to complete
-                await Promise.all(loadPromises);
-
-                // Mark initialization as complete
-                setEntitiesInitialized(true);
-                console.log("[EntityDetectionSidebar] All entity types loaded successfully");
-            } catch (err) {
-                console.error("[EntityDetectionSidebar] Error loading entities:", err);
-            }
-        };
-
-        loadAllEntities();
-    }, [isAuthenticated, isUserLoading, getModelEntities, entitiesInitialized]);
-
-    useEffect(() => {
-        if (!entitiesInitialized) return;
-
-        const applyModelEntities = () => {
-            console.log("[EntityDetectionSidebar] Applying model entities to selections");
-
-            // Helper to safely map entities to option types and handle ALL options
-            const getEntityOptions = (methodId: number, allOptions: OptionType[], allOptionValue: string) => {
-                const entities = modelEntities[methodId];
-                if (!entities || !Array.isArray(entities) || entities.length === 0) {
-                    return [];
-                }
-
-                // Create a set of entity texts for faster lookup
-                const entityTexts = new Set(entities.map(e => e.entity_text));
-
-                // Find matching options
-                const matchedOptions = allOptions.filter(option =>
-                    !option.value.startsWith('ALL_') && entityTexts.has(option.value)
-                );
-
-                // Check if all non-ALL options are selected
-                const nonAllOptions = allOptions.filter(option => !option.value.startsWith('ALL_'));
-
-                if (matchedOptions.length === nonAllOptions.length) {
-                    // If all options are selected, return just the ALL option
-                    const allOption = allOptions.find(option => option.value === allOptionValue);
-                    return allOption ? [allOption] : [];
-                }
-
-                return matchedOptions;
-            };
-
-            // Apply entities for each method
-            const presOptions = getEntityOptions(METHOD_ID_MAP.presidio, presidioOptions, 'ALL_PRESIDIO_P');
-            if (presOptions.length > 0) {
-                console.log(`[EntityDetectionSidebar] Setting ${presOptions.length} Presidio entities`);
-                setSelectedMlEntities(presOptions);
-            }
-
-            const glinerOpts = getEntityOptions(METHOD_ID_MAP.gliner, glinerOptions, 'ALL_GLINER');
-            if (glinerOpts.length > 0) {
-                console.log(`[EntityDetectionSidebar] Setting ${glinerOpts.length} Gliner entities`);
-                setSelectedGlinerEntities(glinerOpts);
-            }
-
-            const geminiOpts = getEntityOptions(METHOD_ID_MAP.gemini, geminiOptions, 'ALL_GEMINI');
-            if (geminiOpts.length > 0) {
-                console.log(`[EntityDetectionSidebar] Setting ${geminiOpts.length} Gemini entities`);
-                setSelectedAiEntities(geminiOpts);
-            }
-
-            const hidemeOpts = getEntityOptions(METHOD_ID_MAP.hideme, hidemeOptions, 'ALL_HIDEME');
-            if (hidemeOpts.length > 0) {
-                console.log(`[EntityDetectionSidebar] Setting ${hidemeOpts.length} Hideme entities`);
-                setSelectedHideMeEntities(hidemeOpts);
-            }
-        };
-
-        applyModelEntities();
-    }, [
-        modelEntities,
-        entitiesInitialized,
-        setSelectedMlEntities,
-        setSelectedGlinerEntities,
-        setSelectedAiEntities,
-        setSelectedHideMeEntities
-    ]);
-
-    // Synchronize with settings when they change
-    useEffect(() => {
-        if (!settings) return;
-
-        // Update detection threshold
-        if (settings.detection_threshold !== undefined) {
-            setDetectionThreshold(settings.detection_threshold);
-        }
-
-        // Update ban list usage setting
-        if (settings.use_banlist_for_detection !== undefined) {
-            setUseBanlist(settings.use_banlist_for_detection);
-        }
-    }, [settings]);
-
-    // Listen for settings changes through events
-    useEffect(() => {
-        const handleSettingsChange = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const {type, settings} = customEvent.detail || {};
-
-            // Only apply entity settings
-            if (type === 'entity' && settings) {
-                console.log('[EntityDetectionSidebar] Received entity settings change event');
-
-                // Apply appropriate entity settings if provided
-                if (settings.presidio) {
-                    setSelectedMlEntities(settings.presidio);
-                }
-
-                if (settings.gliner) {
-                    setSelectedGlinerEntities(settings.gliner);
-                }
-
-                if (settings.gemini) {
-                    setSelectedAiEntities(settings.gemini);
-                }
-
-                if (settings.hideme) {
-                    setSelectedHideMeEntities(settings.hideme);
-                }
-
-                // Apply detection threshold if provided
-                if (settings.detectionThreshold !== undefined) {
-                    setDetectionThreshold(settings.detectionThreshold);
-                }
-
-                // Apply ban list setting if provided
-                if (settings.useBanlist !== undefined) {
-                    setUseBanlist(settings.useBanlist);
-                }
-            }
-        };
-
-        window.addEventListener('settings-changed', handleSettingsChange as EventListener);
-
-        return () => {
-            window.removeEventListener('settings-changed', handleSettingsChange as EventListener);
-        };
-    }, [
-        setSelectedMlEntities,
-        setSelectedGlinerEntities,
-        setSelectedAiEntities,
-        setSelectedHideMeEntities
-    ]);
+    const handleHidemeChange = (options: readonly OptionType[]) => {
+        const selectedOptions = [...options];
+        setSelectedHideMeEntities(handleAllOptions(selectedOptions, hidemeOptions, 'ALL_HIDEME'));
+    };
 
     // Reset selected entities and clear detection results
     const handleReset = useCallback(() => {
@@ -885,7 +553,6 @@ const EntityDetectionSidebar: React.FC = () => {
             clearUserError();
             setDetectionError(null);
 
-
             // Helper function to convert ALL options to individual entities for saving
             const expandAllOptions = (
                 selectedOptions: OptionType[],
@@ -926,7 +593,7 @@ const EntityDetectionSidebar: React.FC = () => {
             setSuccessMessage("Settings saved successfully");
             setTimeout(() => setSuccessMessage(null), 3000);
 
-            // Notify other components - use the original selection with ALL option
+            // Notify other components
             window.dispatchEvent(new CustomEvent('settings-changed', {
                 detail: {
                     type: 'entity',
@@ -966,82 +633,8 @@ const EntityDetectionSidebar: React.FC = () => {
         />
     );
 
-    // Toggle file summary expansion
-    const toggleFileSummary = useCallback((fileKey: string) => {
-        setExpandedFileSummaries(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(fileKey)) {
-                newSet.delete(fileKey);
-            } else {
-                newSet.add(fileKey);
-            }
-            return newSet;
-        });
-    }, []);
-
-    // Format entity name for display
-    const formatEntityName = useCallback((entityType: string): string => {
-        return entityType
-            .replace(/_/g, ' ')
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ');
-    }, []);
-
-    // Helper to determine which model an entity belongs to
-    const getEntityModel = useCallback((entityType: string): 'presidio' | 'gliner' | 'gemini' | 'hideme' => {
-        const presidioEntities = new Set(presidioOptions.map(opt => opt.value));
-        const glinerEntities = new Set(glinerOptions.map(opt => opt.value));
-        const geminiEntities = new Set(geminiOptions.map(opt => opt.value));
-        const hidemeEntities = new Set(hidemeOptions.map(opt => opt.value));
-
-        if (presidioEntities.has(entityType)) return 'presidio';
-        if (glinerEntities.has(entityType)) return 'gliner';
-        if (geminiEntities.has(entityType)) return 'gemini';
-        if (hidemeEntities.has(entityType)) return 'hideme';
-
-        // Default to presidio if not found
-        return 'presidio';
-    }, []);
-
-    // Handle dropdown change with "ALL" logic
-    const handlePresidioChange = (options: readonly OptionType[]) => {
-        const selectedOptions = [...options];
-        setSelectedMlEntities(handleAllOptions(selectedOptions, presidioOptions, 'ALL_PRESIDIO_P'));
-    };
-
-    const handleGlinerChange = (options: readonly OptionType[]) => {
-        const selectedOptions = [...options];
-        setSelectedGlinerEntities(handleAllOptions(selectedOptions, glinerOptions, 'ALL_GLINER'));
-    };
-
-    const handleGeminiChange = (options: readonly OptionType[]) => {
-        const selectedOptions = [...options];
-        setSelectedAiEntities(handleAllOptions(selectedOptions, geminiOptions, 'ALL_GEMINI'));
-    };
-
-    const handleHidemeChange = (options: readonly OptionType[]) => {
-        const selectedOptions = [...options];
-        setSelectedHideMeEntities(handleAllOptions(selectedOptions, hidemeOptions, 'ALL_HIDEME'));
-    };
-
     // Combined loading state
     const isLoading = isUserLoading || isDetecting || loading || isSettingsLoading || isBanListLoading || entitiesLoading;
-
-    // Format for entity type display
-    const formatEntityDisplay = (entityType: string): string => {
-        const formatted = formatEntityName(entityType);
-        return formatted.length > 15 ? `${formatted.substring(0, 13)}...` : formatted;
-    };
-
-    // On unmount, make sure we save any pending changes
-
-
-    // Effect to run when component is fully initialized
-    useEffect(() => {
-        // Mark initialization complete in the persistence store
-        summaryPersistenceStore.completeInitialization('entity');
-    }, []);
 
     return (
         <div className="entity-detection-sidebar">
@@ -1300,7 +893,7 @@ const EntityDetectionSidebar: React.FC = () => {
 
                                     {isExpanded && (
                                         <div className="file-summary-content">
-                                            {/* Performance stats section - matches the design */}
+                                            {/* Performance stats section */}
                                             {performance && (
                                                 <div className="performance-stats">
                                                     <div className="stat-item">
@@ -1319,7 +912,7 @@ const EntityDetectionSidebar: React.FC = () => {
                                                 </div>
                                             )}
 
-                                            {/* By entity type section - with color dots */}
+                                            {/* By entity type section */}
                                             <div className="entities-by-section">
                                                 <h5>By Entity Type</h5>
                                                 <div className="entity-list">
@@ -1359,7 +952,7 @@ const EntityDetectionSidebar: React.FC = () => {
                                                 </div>
                                             </div>
 
-                                            {/* By page section - matching the design */}
+                                            {/* By page section */}
                                             <div className="entities-by-section">
                                                 <h5>By Page</h5>
                                                 <div className="entity-list">

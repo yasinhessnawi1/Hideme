@@ -1,300 +1,165 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useFileContext } from '../../contexts/FileContext';
 import { getFileKey, usePDFViewerContext } from '../../contexts/PDFViewerContext';
-import scrollingService from '../../services/UnifiedScrollingService';
+import scrollManager from '../../services/ScrollManagerService';
 
 /**
  * ScrollSync component
- * 
- * This component provides global scroll synchronization between different PDF components.
- * It doesn't render any visible UI but connects various parts of the application for 
- * consistent scrolling behavior.
- * 
- * Responsibilities:
- * - Monitor scroll events in the main container
- * - Track and save scroll position for each file
- * - Detect the most visible page during scrolling
- * - Update page numbers based on scroll position
- * - Handle file switching when scrolling between documents
- * - Respond to external navigation requests
+ *
+ * This component provides scroll synchronization between different parts of the app:
+ * - Tracks which page is most visible during scrolling
+ * - Updates active page and file state based on visibility
+ * - Handles scroll position persistence between file switches
+ * - Coordinates scroll events between main viewer and thumbnails
  */
 const ScrollSync: React.FC = () => {
-    // Context hooks
-    const { currentFile, activeFiles, setCurrentFile } = useFileContext();
-    const { 
-        mainContainerRef, 
-        setFileCurrentPage, 
-        setFileActiveScrollPage, 
-        getFileCurrentPage 
+    // Get context data
+    const {
+        currentFile,
+        files,
+        activeFiles,
+        setCurrentFile
+    } = useFileContext();
+
+    const {
+        mainContainerRef,
+        setFileCurrentPage,
+        setFileActiveScrollPage,
+        getFileCurrentPage,
+        getFileNumPages
     } = usePDFViewerContext();
 
-    // Configuration constants
-    const FILE_CHANGE_MIN_TIME = 1000; // Minimum time (ms) user must view a file before switching
-    const FILE_VISIBILITY_THRESHOLD = 0.8; // 80% visibility required for file switching
-    const DISABLE_FILE_SWITCHING_DURING_SCROLL = false; // Set to true to disable automatic file switching
-
-    // Scroll state tracking refs
-    const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    // Refs for tracking scroll state
     const isScrollingRef = useRef<boolean>(false);
     const lastVisibleFileRef = useRef<string | null>(null);
     const scrollPositionRef = useRef<number>(0);
-    const userScrollingRef = useRef<boolean>(false);
     const scrollStartTimeRef = useRef<number>(0);
+    const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const observersInitializedRef = useRef<boolean>(false);
 
-    /**
-     * Find and highlight the active page visually
-     */
-    const highlightActivePage = useCallback((fileKey: string, pageNumber: number) => {
-        console.log(`[ScrollSync] Highlighting active page ${pageNumber} in file ${fileKey}`);
-        
-        // Update state in the context first - this is crucial!
-        setFileCurrentPage(fileKey, pageNumber);
-        setFileActiveScrollPage(fileKey, pageNumber);
-        
-        // Immediate DOM operation to ensure it happens quickly
-        const pageElement = document.querySelector(
-            `.pdf-file-container[data-file-key="${fileKey}"] [data-page-number="${pageNumber}"]`
-        );
-        
-        if (pageElement) {
-            console.log(`[ScrollSync] Found page element for page ${pageNumber} in file ${fileKey}`);
-            
-            // Remove active class from all pages in this file first
-            const filePages = document.querySelectorAll(
-                `.pdf-file-container[data-file-key="${fileKey}"] .pdf-page-wrapper`
-            );
-            
-            // First remove all active classes
-            if (filePages.length > 0) {
-                console.log(`[ScrollSync] Removing active class from ${filePages.length} pages`);
-                filePages.forEach(page => page.classList.remove('active'));
-            }
-            
-            // Then add active class to this page
-            pageElement.classList.add('active');
 
-            // Add animation class and remove it after animation completes
-            pageElement.classList.add('just-activated');
-            setTimeout(() => {
-                pageElement.classList.remove('just-activated');
-            }, 1500);
-            
-            // Dispatch an event that other components can listen for
-            window.dispatchEvent(new CustomEvent('page-highlighted', {
-                detail: {
-                    fileKey,
-                    pageNumber,
-                    source: 'scroll-sync'
-                }
-            }));
-        } else {
-            console.warn(`[ScrollSync] Could not find page element for page ${pageNumber} in file ${fileKey}`);
-            
-            // Try again after a short delay as a fallback
-            setTimeout(() => {
-                const retryElement = document.querySelector(
-                    `.pdf-file-container[data-file-key="${fileKey}"] [data-page-number="${pageNumber}"]`
-                );
-                
-                if (retryElement) {
-                    console.log(`[ScrollSync] Found page element on retry for page ${pageNumber}`);
-                    
-                    // Remove active class from all pages in this file
-                    const filePages = document.querySelectorAll(
-                        `.pdf-file-container[data-file-key="${fileKey}"] .pdf-page-wrapper`
-                    );
-                    filePages.forEach(page => page.classList.remove('active'));
-                    
-                    // Add active class to this page
-                    retryElement.classList.add('active');
-                }
-            }, 100);
-        }
-    }, [setFileCurrentPage, setFileActiveScrollPage]);
-
-    /**
-     * Switch to a different file while preserving scroll position
-     */
-    const handleFileSwitch = useCallback((newFile: File, pageNumber: number) => {
-        if (!currentFile || !mainContainerRef.current) return;
-
-        // Save current scroll position before switching
-        const currentFileKey = getFileKey(currentFile);
-        scrollingService.saveScrollPosition(currentFileKey, scrollPositionRef.current);
-
-        // Mark that we're switching files to prevent jumps
-        scrollingService.setFileChangeScroll(true);
-
-        // Update the current file
-        setCurrentFile(newFile);
-
-        // Get the new file key
-        const newFileKey = getFileKey(newFile);
-
-        // Apply visual active state to the page
-        highlightActivePage(newFileKey, pageNumber);
-
-        // Restore the scroll position after file change
-        setTimeout(() => {
-            if (mainContainerRef.current) {
-                mainContainerRef.current.scrollTop = scrollPositionRef.current;
-            }
-
-            // Reset file change flag
-            scrollingService.setFileChangeScroll(false);
-        }, 100);
-    }, [currentFile, setCurrentFile, highlightActivePage, mainContainerRef.current]);
-
-    /**
-     * Update page numbers without switching files
-     */
-    const updatePageNumbers = useCallback((fileKey: string, pageNumber: number, scrollPosition: number) => {
-        // Update the page tracking
-        setFileCurrentPage(fileKey, pageNumber);
-        setFileActiveScrollPage(fileKey, pageNumber);
-
-        // Notify other components about the page change
-        window.dispatchEvent(new CustomEvent('pdf-page-changed', {
-            detail: {
-                fileKey,
-                pageNumber,
-                source: 'scroll-sync',
-                scrollPosition
-            }
-        }));
-
-        // Highlight the active page
-        highlightActivePage(fileKey, pageNumber);
-    }, [setFileCurrentPage, setFileActiveScrollPage, highlightActivePage]);
-
-    // Record the initial scroll position when the component mounts
+    const eventProcessingRef = useRef({
+        isProcessing: false,
+        lastEventTimestamp: 0
+    });
+    // Initialize observers when DOM is ready
     useEffect(() => {
-        if (mainContainerRef.current) {
-            scrollPositionRef.current = mainContainerRef.current.scrollTop;
-        }
-    }, [mainContainerRef]);
+        // Wait for DOM to be ready before initializing observers
+        const initializeObservers = () => {
+            if (!observersInitializedRef.current && mainContainerRef.current) {
+                scrollManager.initializeObservers();
+                observersInitializedRef.current = true;
+                console.log('[ScrollSync] Initialized intersection observers');
+            }
+        };
 
-    // Monitor scroll position in the main viewer
+        // Try to initialize immediately
+        initializeObservers();
+
+        // Fallback: try again after a delay in case DOM isn't fully ready
+        const initTimeout = setTimeout(initializeObservers, 500);
+
+        return () => {
+            clearTimeout(initTimeout);
+        };
+    }, [mainContainerRef.current]);
+
+    // Re-initialize observers when active files change
+    useEffect(() => {
+        if (activeFiles.length > 0 && observersInitializedRef.current) {
+            console.log('[ScrollSync] Files changed, refreshing observers');
+            // Wait for DOM to update before refreshing observers
+            setTimeout(() => {
+                scrollManager.refreshObservers();
+            }, 300);
+        }
+    }, [activeFiles.length]);
+
+    // Update state on scroll
     useEffect(() => {
         if (!mainContainerRef.current) return;
 
         const handleScroll = () => {
-            // Skip if we're already scrolling programmatically
-            if (isScrollingRef.current || scrollingService.isCurrentlyScrolling()) return;
+            // Skip if already scrolling programmatically
+            if (isScrollingRef.current || scrollManager.isScrollingInProgress() || scrollManager.isFileChangeInProgress()) {
+                return;
+            }
 
             const container = mainContainerRef.current;
             if (!container) return;
 
-            // Mark that user is actively scrolling
-            userScrollingRef.current = true;
+            // Record current scroll position
+            scrollPositionRef.current = container.scrollTop;
 
             // Record when scroll started if not already scrolling
             if (scrollStartTimeRef.current === 0) {
                 scrollStartTimeRef.current = Date.now();
             }
 
-            // Track current scroll position
-            const currentScrollPosition = container.scrollTop;
-
-            // Save the current scroll position for the current file
+            // Save current scroll position for the current file
             if (currentFile) {
                 const fileKey = getFileKey(currentFile);
-                scrollingService.saveScrollPosition(fileKey, currentScrollPosition);
+                scrollManager.saveScrollPosition(fileKey, scrollPositionRef.current);
             }
 
-            // Update internal scroll position reference
-            scrollPositionRef.current = currentScrollPosition;
-
-            // Debounce the scroll event
+            // Debounce scroll events
             if (scrollTimeoutRef.current) {
                 clearTimeout(scrollTimeoutRef.current);
             }
 
-            // Set a timeout to run after scrolling stops
+            // Process scroll after it stops
             scrollTimeoutRef.current = setTimeout(() => {
-                // Mark that user is no longer actively scrolling
-                userScrollingRef.current = false;
-
                 // Calculate how long user has been scrolling
                 const scrollTime = Date.now() - scrollStartTimeRef.current;
-                scrollStartTimeRef.current = 0; // Reset scroll time
+                scrollStartTimeRef.current = 0;
 
-                // Get the most visible page with high visibility threshold
-                const visiblePage = scrollingService.findMostVisiblePageWithThreshold(
-                    FILE_VISIBILITY_THRESHOLD
-                );
+                // Get the most visible page
+                const visiblePage = scrollManager.findMostVisiblePage();
 
-                // If we found a visible page, update page numbers
+                // Process page changes
                 if (visiblePage.fileKey && visiblePage.pageNumber) {
-                    // Update the page number for this file
-                    setFileCurrentPage(visiblePage.fileKey, visiblePage.pageNumber);
+                    // Update page numbers for this file
+                    setFileCurrentPage(visiblePage.fileKey, visiblePage.pageNumber, "scroll-sync");
                     setFileActiveScrollPage(visiblePage.fileKey, visiblePage.pageNumber);
-                    
-                    // Highlight the active page
-                    highlightActivePage(visiblePage.fileKey, visiblePage.pageNumber);
 
-                    // Notify other components about the page change
-                    window.dispatchEvent(new CustomEvent('pdf-page-changed', {
-                        detail: {
-                            fileKey: visiblePage.fileKey,
-                            pageNumber: visiblePage.pageNumber,
-                            source: 'scroll-sync',
-                            scrollPosition: currentScrollPosition
-                        }
-                    }));
-
-                    // Check if we should switch files
+                    // Determine if file should change based on visibility and scroll time
                     const shouldSwitchFiles =
-                        // Only switch if the configuration allows it
-                        !DISABLE_FILE_SWITCHING_DURING_SCROLL &&
-                        // Ensure there's a valid file to switch to
                         visiblePage.fileKey &&
                         currentFile &&
-                        getFileKey(currentFile) !== visiblePage.fileKey &&
-                        // Make sure the file has high enough visibility
-                        visiblePage.visibilityRatio > FILE_VISIBILITY_THRESHOLD &&
-                        // Only switch if user has scrolled long enough
-                        scrollTime > FILE_CHANGE_MIN_TIME;
+                        getFileKey(currentFile) !== visiblePage.fileKey
 
-                    // Only switch files if conditions are met
+                    // Change current file if needed
                     if (shouldSwitchFiles) {
-                        // Find the file object to switch to
-                        const newFile = activeFiles.find(
-                            file => getFileKey(file) === visiblePage.fileKey && visiblePage.fileKey !== null
-                        );
-
+                        const newFile = files.find(file => getFileKey(file) === visiblePage.fileKey);
                         if (newFile) {
+                            console.log(`[ScrollSync] Changing current file to ${visiblePage.fileKey}`);
+
                             // Save current scroll position
-                            const currentFileKey = getFileKey(currentFile);
-                            scrollingService.saveScrollPosition(currentFileKey, scrollPositionRef.current);
+                            if (currentFile) {
+                                const currentFileKey = getFileKey(currentFile);
+                                scrollManager.saveScrollPosition(currentFileKey, scrollPositionRef.current);
+                            }
 
-                            // Mark that we're switching files to prevent jumps
-                            scrollingService.setFileChangeScroll(true);
+                            // Mark that we're changing files
+                            scrollManager.setFileChanging(true);
 
-                            // Update the current file
+                            // Update current file
                             setCurrentFile(newFile);
 
-                            // Apply visual active state to the page
+                            // After changing file, ensure we restore scroll position
                             setTimeout(() => {
-                                // Use our helper for consistent highlighting
-                                if (visiblePage.fileKey && visiblePage.pageNumber) {
-                                    highlightActivePage(visiblePage.fileKey, visiblePage.pageNumber);
-                                }
-
-                                // After changing file, restore the scroll position
                                 if (container) {
                                     container.scrollTop = scrollPositionRef.current;
                                 }
-
-                                // Reset file change flag
-                                scrollingService.setFileChangeScroll(false);
+                                scrollManager.setFileChanging(false);
                             }, 50);
                         }
                     }
                 }
-            }, 300); // Wait for scrolling to stop completely
+            }, 20);
         };
 
+        // Register scroll listener
         const container = mainContainerRef.current;
         container.addEventListener('scroll', handleScroll, { passive: true });
 
@@ -305,44 +170,53 @@ const ScrollSync: React.FC = () => {
             }
         };
     }, [
-        mainContainerRef, 
-        currentFile, 
-        activeFiles, 
-        updatePageNumbers, 
-        handleFileSwitch
+        mainContainerRef,
+        currentFile,
+        files,
+        setCurrentFile,
+        setFileCurrentPage,
+        setFileActiveScrollPage
     ]);
 
-    // Handle direct navigation requests from other components
-    useEffect(() => {
-        const handleScrollServiceUpdate = (pageNumber: number, fileKey: string, source: string) => {
-            // Skip if we initiated the scroll or user is actively scrolling
-            if (source === 'scroll-sync' || userScrollingRef.current) return;
+    // Listen for page change events to update state
+    const handlePageChange = useCallback((event: Event) => {
+        const customEvent = event as CustomEvent;
+        const { fileKey, pageNumber, source, timestamp } = customEvent.detail || {};
 
-            // Set flag to prevent feedback loops
-            isScrollingRef.current = true;
+        // Skip if we caused this event
+        if (source === 'scroll-sync') return;
 
-            // Update the page tracking
-            setFileCurrentPage(fileKey, pageNumber);
-            setFileActiveScrollPage(fileKey, pageNumber);
-            
-            // Highlight the active page immediately
-            highlightActivePage(fileKey, pageNumber);
+        // Skip if we're already processing an event or if it happened too recently
+        const now = Date.now();
+        if (eventProcessingRef.current.isProcessing ||
+            (now - eventProcessingRef.current.lastEventTimestamp < 100) ||
+            (timestamp && now - timestamp > 200)) { // Skip stale events
+            return;
+        }
 
-            // Reset the flag after a delay
-            setTimeout(() => {
-                isScrollingRef.current = false;
-            }, 500);
-        };
+        // Update the page tracking if we have a valid page and file
+        if (fileKey && pageNumber && !isScrollingRef.current) {
+            try {
+                eventProcessingRef.current.isProcessing = true;
+                eventProcessingRef.current.lastEventTimestamp = now;
 
-        // Register with the scrolling service
-        scrollingService.addScrollListener('scroll-sync', handleScrollServiceUpdate);
+                // Use a flag to prevent ScrollManagerService from emitting events
+                scrollManager.setManualEventHandling(true);
 
-        return () => {
-            scrollingService.removeScrollListener('scroll-sync');
-        };
+                // Update state without triggering events
+                setFileCurrentPage(fileKey, pageNumber, 'scroll-sync');
+                setFileActiveScrollPage(fileKey, pageNumber);
+            } finally {
+                // Reset after a short delay
+                setTimeout(() => {
+                    eventProcessingRef.current.isProcessing = false;
+                    scrollManager.setManualEventHandling(false);
+                }, 50);
+            }
+        }
     }, [setFileCurrentPage, setFileActiveScrollPage]);
 
-    // When the current file changes, ensure scroll position is preserved
+    // Restore scroll position when current file changes
     useEffect(() => {
         if (!currentFile || !mainContainerRef.current) return;
 
@@ -353,9 +227,9 @@ const ScrollSync: React.FC = () => {
             lastVisibleFileRef.current = fileKey;
         }
 
-        // Try to restore saved scroll position
-        if (!userScrollingRef.current && !scrollingService.isCurrentlyScrolling()) {
-            const savedPosition = scrollingService.getSavedScrollPosition(fileKey);
+        // Restore saved scroll position if we have one
+        if (!scrollManager.isScrollingInProgress()) {
+            const savedPosition = scrollManager.getSavedScrollPosition(fileKey);
 
             if (savedPosition !== undefined) {
                 // Use a small timeout to ensure rendering completes
@@ -363,18 +237,61 @@ const ScrollSync: React.FC = () => {
                     if (mainContainerRef.current) {
                         mainContainerRef.current.scrollTop = savedPosition;
 
-                        // Find and highlight the active page
-                        const savedPage = getFileCurrentPage(fileKey);
-                        
-                        // Highlight active page using the highlightActivePage helper
-                        highlightActivePage(fileKey, savedPage || 1);
+                        // Get current page
+                        const currentPage = getFileCurrentPage(fileKey) || 1;
+
+                        // Highlight the current page
+                        scrollManager.highlightActivePage(fileKey, currentPage);
                     }
                 }, 50);
+            } else {
+                // If no saved position, scroll to first page
+                setTimeout(() => {
+                    const pageElement = document.querySelector(
+                        `.pdf-file-container[data-file-key="${fileKey}"] [data-page-number="1"]`
+                    ) as HTMLElement;
+
+                    if (pageElement && mainContainerRef.current) {
+                        const position = scrollManager.calculateScrollPosition(pageElement, true);
+                        if (position !== null) {
+                            mainContainerRef.current.scrollTop = position;
+                        }
+
+                        // Update page state
+                        setFileCurrentPage(fileKey, 1, "scroll-sync");
+                        setFileActiveScrollPage(fileKey, 1);
+
+                        // Highlight first page
+                        scrollManager.highlightActivePage(fileKey, 1);
+                    }
+                }, 100);
             }
         }
-    }, [currentFile, mainContainerRef, getFileCurrentPage, highlightActivePage]);
+    }, [
+        currentFile,
+        mainContainerRef,
+        getFileCurrentPage,
+        setFileCurrentPage,
+        setFileActiveScrollPage
+    ]);
 
-    return null; // This component doesn't render anything visible
+    // Register with the scroll manager
+    useEffect(() => {
+        // Register a scroll handler to keep our state in sync
+        scrollManager.addScrollListener('scroll-sync', (pageNumber, fileKey, source) => {
+            // Update the file's current page
+            setFileCurrentPage(fileKey, pageNumber, "scroll-sync");
+            setFileActiveScrollPage(fileKey, pageNumber);
+        });
+
+        return () => {
+            // Clean up when unmounting
+            scrollManager.removeScrollListener('scroll-sync');
+        };
+    }, [setFileCurrentPage, setFileActiveScrollPage]);
+
+    // This component doesn't render anything
+    return null;
 };
 
 export default ScrollSync;

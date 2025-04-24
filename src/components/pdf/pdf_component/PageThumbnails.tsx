@@ -4,8 +4,8 @@ import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey, usePDFViewerContext } from '../../../contexts/PDFViewerContext';
 import { FaChevronUp, FaChevronDown, FaFile } from 'react-icons/fa';
 import '../../../styles/modules/pdf/PageThumbnails.css';
-import scrollingService from "../../../services/UnifiedScrollingService";
-import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
+import scrollCoordinator from '../../../services/ScrollManagerService';
+import usePDFNavigation from "../../../hooks/usePDFNavigation";
 
 interface PageThumbnailsProps {
     isSidebarCollapsed?: boolean;
@@ -93,13 +93,7 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
                 }, 100);
             }
         };
-
-        // Add a scroll listener for this component
-        scrollingService.addScrollListener('thumbnails', handleScrollServiceUpdate);
-
-        return () => {
-            scrollingService.removeScrollListener('thumbnails');
-        };
+        // Subscribe to scroll service updates
     }, [expandedFiles]);
 
     // When the current file changes, expand and scroll to it

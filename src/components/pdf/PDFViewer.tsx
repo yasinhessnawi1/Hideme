@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import { useFileContext } from '../../contexts/FileContext';
 import PDFViewerContainer from './PDFViewerContainer';
 import { Plus } from 'lucide-react';
@@ -7,6 +7,8 @@ import ProcessingStatus from "./pdf_component/ProcessingStatus";
 import ScrollSync from './ScrollSync';
 import ViewportNavigationIntegrator from './ViewportNavigationIntegrator';
 import { getFileKey } from '../../contexts/PDFViewerContext';
+import MultiPDFRenderer from './MultiPDFRenderer';
+import scrollManager from '../../services/ScrollManagerService';
 
 /**
  * PDFViewer component
@@ -16,14 +18,21 @@ import { getFileKey } from '../../contexts/PDFViewerContext';
  * - Processing status display
  * - Scroll synchronization between PDF pages
  * - Navigation through viewport integration
- * - Container for PDF document rendering
- *
- * This component focuses on composition of specialized components
- * rather than implementing all functionality directly.
+ * - Virtualized PDF rendering for performance
  */
 const PDFViewer: React.FC = () => {
-    const { addFiles, currentFile , files} = useFileContext();
+    const { addFiles, currentFile, files } = useFileContext();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    // Initialize scroll manager when component mounts
+    useEffect(() => {
+        // Delay initialization to ensure DOM is fully rendered
+        const timeoutId = setTimeout(() => {
+            scrollManager.initializeObservers();
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, []);
 
     // Handle clicking the add files button
     const handleAddFilesClick = useCallback(() => {
@@ -35,8 +44,13 @@ const PDFViewer: React.FC = () => {
         if (e.target.files && e.target.files.length > 0) {
             const newFiles = Array.from(e.target.files);
 
-            // Add the files without replacing existing ones
+            // Add files without replacing existing ones
             addFiles(newFiles, false);
+
+            // Refresh observers after files are added
+            setTimeout(() => {
+                scrollManager.refreshObservers();
+            }, 500);
         }
     }, [addFiles]);
 
@@ -60,7 +74,7 @@ const PDFViewer: React.FC = () => {
                         onChange={handleFileUpload}
                         style={{ display: 'none' }}
                         multiple
-                        max={ 20 - files.length}
+                        max={20 - files.length}
                     />
                 </>
             )}

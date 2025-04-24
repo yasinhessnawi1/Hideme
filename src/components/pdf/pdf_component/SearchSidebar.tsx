@@ -1,13 +1,4 @@
-// Modified SearchSidebar.tsx implementation to use summaryPersistenceStore
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-
-// Extend the Window interface to include our custom properties
-declare global {
-    interface Window {
-        defaultSearchTerms?: string[];
-        executeSearchWithDefaultTerms?: () => void;
-    }
-}
 import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import { useBatchSearch } from '../../../contexts/SearchContext';
@@ -19,17 +10,27 @@ import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 import useSearchPatterns from "../../../hooks/settings/useSearchPatterns";
 import { useHighlightStore } from "../../../hooks/useHighlightStore";
 import summaryPersistenceStore, { SearchFileSummary } from '../../../store/SummaryPersistenceStore';
-import {HighlightType} from "../../../types";
+import { HighlightType } from "../../../types";
 
+/**
+ * SearchSidebar component
+ *
+ * Provides UI for searching through PDF files
+ * with improved navigation to search results
+ */
 const SearchSidebar: React.FC = () => {
     const { currentFile, selectedFiles, files } = useFileContext();
+
+    // Use our improved navigation hook
     const pdfNavigation = usePDFNavigation('search-sidebar');
+
     const {
         searchPatterns,
         isLoading: userDataLoading,
         createSearchPattern,
         getSearchPatterns
     } = useSearchPatterns();
+
     const { removeHighlightsByText } = useHighlightStore();
 
     const {
@@ -50,6 +51,7 @@ const SearchSidebar: React.FC = () => {
         resetErrors
     } = usePDFApi();
 
+    // Component state
     const [tempSearchTerm, setTempSearchTerm] = useState('');
     const [searchScope, setSearchScope] = useState<'current' | 'selected' | 'all'>('all');
     const [isAiSearch, setIsAiSearch] = useState(false);
@@ -73,7 +75,7 @@ const SearchSidebar: React.FC = () => {
     const contextMenuRef = useRef<HTMLDivElement>(null);
 
     // Add ref for the search input field
-    const searchInputRef = useRef<HTMLInputElement>(null);
+    const searchInputRef = useRef<HTMLInputElement | null>(null);
 
     // Get current search statistics
     const searchStats = getSearchResultsStats();
@@ -113,6 +115,8 @@ const SearchSidebar: React.FC = () => {
             console.error('[SearchSidebar] Error loading persisted search data:', error);
         }
     }, [files]);
+
+    // Listen for highlights cleared events
     useEffect(() => {
         const handleHighlightsCleared = (event: Event) => {
             const customEvent = event as CustomEvent;
@@ -155,6 +159,7 @@ const SearchSidebar: React.FC = () => {
             window.removeEventListener('search-highlights-cleared', handleHighlightsCleared);
         };
     }, []);
+
     // Reconcile our data when files change
     useEffect(() => {
         if (files.length === 0) return;
@@ -180,87 +185,6 @@ const SearchSidebar: React.FC = () => {
         }
     }, [files, fileSummaries.length]);
 
-    // Listen for file removal events
-    useEffect(() => {
-        const handleFileRemoved = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { fileKey, fileName } = customEvent.detail || {};
-
-            if (fileKey) {
-                console.log(`[SearchSidebar] File removed: ${fileKey}`);
-
-                // Update our tracked files set
-                if (searchedFilesRef.current.has(fileKey)) {
-                    searchedFilesRef.current.delete(fileKey);
-                    setSearchedFilesCount(searchedFilesRef.current.size);
-
-                    // Save the updated set to persistence store
-                    summaryPersistenceStore.saveAnalyzedFiles('search', searchedFilesRef.current);
-                }
-
-                // Update file summaries
-                setFileSummaries(prev => {
-                    const updatedSummaries = prev.filter(summary => summary.fileKey !== fileKey);
-
-                    // Save the updated summaries if they changed
-                    if (updatedSummaries.length !== prev.length) {
-                        summaryPersistenceStore.saveFileSummaries('search', updatedSummaries);
-                    }
-
-                    return updatedSummaries;
-                });
-
-                // If there are active queries for this file, remove them
-                activeQueries.forEach(query => {
-                        clearSearch(query.term);
-                });
-            }
-        };
-
-        window.addEventListener('file-removed', handleFileRemoved);
-
-        return () => {
-            window.removeEventListener('file-removed', handleFileRemoved);
-        };
-    }, [activeQueries, clearSearch]);
-
-    // Save searched files to persistence when count changes
-    useEffect(() => {
-        summaryPersistenceStore.saveAnalyzedFiles('search', searchedFilesRef.current);
-    }, [searchedFilesCount]);
-
-    // Save file summaries when they change
-    useEffect(() => {
-        if (fileSummaries.length > 0) {
-            summaryPersistenceStore.saveFileSummaries('search', fileSummaries);
-        }
-    }, [fileSummaries]);
-
-    // Helper function to update file summaries
-    const updateFileSummary = useCallback((newSummary: SearchFileSummary) => {
-        setFileSummaries(prev => {
-            // Remove any existing summary for this file
-            const filteredSummaries = prev.filter(s => s.fileKey !== newSummary.fileKey);
-
-            // Add the new summary
-            const updatedSummaries = [...filteredSummaries, newSummary];
-
-            // Save to persistence
-            summaryPersistenceStore.saveFileSummaries('search', updatedSummaries);
-
-            return updatedSummaries;
-        });
-    }, []);
-
-    // Track the currently visible result for navigation
-    const [resultNavigation, setResultNavigation] = useState<{
-        results: { fileKey: string; page: number; count: number }[];
-        currentIndex: number;
-    }>({
-        results: [],
-        currentIndex: -1
-    });
-
     // Get files to process based on selected scope
     const getFilesToProcess = useCallback((): File[] => {
         if (searchScope === 'current' && currentFile) {
@@ -277,6 +201,22 @@ const SearchSidebar: React.FC = () => {
         e.preventDefault();
         addSearchTerm().then(() => {});
     };
+
+    // Helper function to update file summaries
+    const updateFileSummary = useCallback((newSummary: SearchFileSummary) => {
+        setFileSummaries(prev => {
+            // Remove any existing summary for this file
+            const filteredSummaries = prev.filter(s => s.fileKey !== newSummary.fileKey);
+
+            // Add the new summary
+            const updatedSummaries = [...filteredSummaries, newSummary];
+
+            // Save to persistence
+            summaryPersistenceStore.saveFileSummaries('search', updatedSummaries);
+
+            return updatedSummaries;
+        });
+    }, []);
 
     const addSearchTerm = useCallback(async () => {
         if (!tempSearchTerm.trim()) return;
@@ -384,99 +324,13 @@ const SearchSidebar: React.FC = () => {
         files,
         updateFileSummary
     ]);
-    useEffect(() => {
-        const handleSearchSummaryUpdated = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { fileKey, fileName, summary } = customEvent.detail || {};
 
-            if (fileKey && summary) {
-                console.log(`[SearchSidebar] Received search summary update for file: ${fileName}`);
-
-                // Add to our tracked files set if not already there
-                if (!searchedFilesRef.current.has(fileKey)) {
-                    searchedFilesRef.current.add(fileKey);
-                    setSearchedFilesCount(searchedFilesRef.current.size);
-                }
-
-                // Update the file summary
-                updateFileSummary(summary);
-
-                // Ensure the file summary is expanded
-                setExpandedFileSummaries(prev => {
-                    const newSet = new Set(prev);
-                    newSet.add(fileKey);
-                    return newSet;
-                });
-            }
-        };
-
-        window.addEventListener('search-summary-updated', handleSearchSummaryUpdated);
-
-        return () => {
-            window.removeEventListener('search-summary-updated', handleSearchSummaryUpdated);
-        };
-    }, [updateFileSummary]);
-    // Handle search term removal
-    useEffect(() => {
-        const handleAutoProcessingComplete = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { fileKey, hasSearchResults } = customEvent.detail || {};
-
-            if (fileKey && hasSearchResults) {
-                console.log(`[SearchSidebar] Auto-processing with search completed for file: ${fileKey}`);
-
-                // Short delay to ensure all search results are properly processed
-                setTimeout(() => {
-                    // Get fresh stats after search has completed
-                    const currentStats = getSearchResultsStats();
-
-                    // Check if this file has matches
-                    const fileMatches = currentStats.fileMatches.get(fileKey);
-                    if (fileMatches && fileMatches > 0) {
-                        // Add to searched files if not already there
-                        if (!searchedFilesRef.current.has(fileKey)) {
-                            searchedFilesRef.current.add(fileKey);
-                            setSearchedFilesCount(searchedFilesRef.current.size);
-                        }
-
-                        // Create or update file summary
-                        const file = files.find(f => getFileKey(f) === fileKey);
-                        if (file) {
-                            // Get page matches
-                            const pageMatches = currentStats.pageMatches.get(fileKey) || new Map();
-
-                            const summary = {
-                                fileKey,
-                                fileName: file.name,
-                                matchCount: fileMatches,
-                                pageMatches: Object.fromEntries(pageMatches)
-                            };
-
-                            // Update file summary
-                            updateFileSummary(summary);
-
-                            // Ensure the file summary is expanded
-                            setExpandedFileSummaries(prev => {
-                                const newSet = new Set(prev);
-                                newSet.add(fileKey);
-                                return newSet;
-                            });
-                        }
-                    }
-                }, 300); // Slightly longer delay for auto-processing completion
-            }
-        };
-
-        window.addEventListener('auto-processing-complete', handleAutoProcessingComplete);
-
-        return () => {
-            window.removeEventListener('auto-processing-complete', handleAutoProcessingComplete);
-        };
-    }, [files, getSearchResultsStats, updateFileSummary]);
+    // Remove search term with cleanup
     const removeSearchTerm = (term: string) => {
         // First, call the existing clearSearch method from BatchSearchContext
         clearSearch(term);
         summaryPersistenceStore.removeSearchQuery(term);
+
         // After a short delay to allow BatchSearchContext to update
         setTimeout(() => {
             // Refocus the search input
@@ -546,6 +400,7 @@ const SearchSidebar: React.FC = () => {
         }
     };
 
+    // Clear all search terms and results
     const handleClearAllSearches = () => {
         clearAllSearches();
         setTempSearchTerm('');
@@ -565,7 +420,7 @@ const SearchSidebar: React.FC = () => {
         }, 0);
     };
 
-
+    // Load search patterns on init
     useEffect(() => {
         // Only run this effect once when the component mounts
         if (!userDataLoading && !initialPatternFetchAttemptedRef.current) {
@@ -573,323 +428,9 @@ const SearchSidebar: React.FC = () => {
             initialPatternFetchAttemptedRef.current = true;
             getSearchPatterns();
         }
-    }, [userDataLoading, getSearchPatterns]); // Added getSearchPatterns to dependencies
+    }, [userDataLoading, getSearchPatterns]);
 
-    // Add a special method to load and apply all default search terms
-    const applyAllDefaultSearchTerms = useCallback(async () => {
-        if (searchPatterns && searchPatterns.length > 0) {
-            console.log('[SearchSidebar] Applying all default search patterns');
-
-            // Get currently active terms
-            const activeTerms = new Set(activeQueries.map(q => q.term));
-
-            // Get patterns that aren't already active
-            const patternsToAdd = searchPatterns.filter(pattern =>
-                !activeTerms.has(pattern.pattern_text)
-            );
-
-            if (patternsToAdd.length === 0) {
-                console.log('[SearchSidebar] All default terms are already active');
-                setLocalSearchError('All default search terms are already active');
-                return;
-            }
-
-            // Apply each default pattern that isn't already active
-            let addedCount = 0;
-
-            for (const pattern of patternsToAdd) {
-                if (!pattern.pattern_text.trim()) continue;
-
-                try {
-                    const filesToSearch = getFilesToProcess();
-                    if (filesToSearch.length === 0) {
-                        setLocalSearchError('No files selected for search');
-                        return;
-                    }
-
-                    // Search with the current pattern using appropriate settings
-                    console.log(`[SearchSidebar] Adding default search term: "${pattern.pattern_text}"`);
-                    await batchSearch(
-                        filesToSearch,
-                        pattern.pattern_text,
-                        {
-                            isCaseSensitive: pattern.pattern_type === 'case_sensitive',
-                            isAiSearch: pattern.pattern_type === 'ai_search'
-                        }
-                    );
-
-                    addedCount++;
-                } catch (err) {
-                    console.error(`[SearchSidebar] Error adding default term "${pattern.pattern_text}":`, err);
-                }
-            }
-
-            if (addedCount > 0) {
-                setSuccessMessage(`Added ${addedCount} default search ${addedCount === 1 ? 'term' : 'terms'}`);
-                setTimeout(() => setSuccessMessage(null), 3000);
-
-                // Update search summaries after a delay to allow search to complete
-                setTimeout(() => {
-                    // Get fresh stats after search has completed
-                    const currentStats = getSearchResultsStats();
-
-                    // Update file summaries based on search results
-                    currentStats.fileMatches.forEach((matchCount, fileKey) => {
-                        // Add to searched files
-                        if (!searchedFilesRef.current.has(fileKey)) {
-                            searchedFilesRef.current.add(fileKey);
-                        }
-
-                        // Create or update file summary
-                        const file = files.find(f => getFileKey(f) === fileKey);
-                        if (file) {
-                            // Get page matches
-                            const pageMatches = currentStats.pageMatches.get(fileKey) || new Map();
-
-                            const summary: SearchFileSummary = {
-                                fileKey,
-                                fileName: file.name,
-                                matchCount,
-                                pageMatches: Object.fromEntries(pageMatches)
-                            };
-
-                            // Update file summary
-                            updateFileSummary(summary);
-                        }
-                    });
-
-                    // Update counter
-                    setSearchedFilesCount(searchedFilesRef.current.size);
-                }, 300);
-            }
-        } else {
-            setLocalSearchError('No default search terms available');
-        }
-    }, [searchPatterns, activeQueries, batchSearch, getFilesToProcess, getSearchResultsStats, files, updateFileSummary]);
-
-    // Create a function to focus the search input
-    const focusSearchInput = useCallback(() => {
-        // Use setTimeout to ensure DOM is fully rendered
-        setTimeout(() => {
-            if (searchInputRef.current) {
-                searchInputRef.current.focus();
-            }
-        }, 50);
-    }, []);
-
-    // Use Intersection Observer to detect when the search sidebar becomes visible
-    useEffect(() => {
-        // Create a reference to the container element
-        const searchSidebarRef = document.querySelector('.search-sidebar');
-        if (!searchSidebarRef) return;
-
-        // Create an observer that will monitor the visibility of the search sidebar
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                // When the search sidebar becomes visible
-                if (entry.isIntersecting) {
-                    focusSearchInput();
-                }
-            });
-        }, { threshold: 0.1 }); // Trigger when at least 10% of the element is visible
-
-        // Start observing the search sidebar
-        observer.observe(searchSidebarRef);
-
-        // Cleanup function
-        return () => {
-            observer.disconnect();
-        };
-    }, [focusSearchInput]);
-
-    // Also focus on initial mount
-    useEffect(() => {
-        focusSearchInput();
-    }, [focusSearchInput]);
-
-    // Listen for explicit focus requests and search execution (e.g., from toolbar button)
-    useEffect(() => {
-        // Handle focus requests
-        const handleFocusRequest = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { source } = customEvent.detail || {};
-
-            console.log(`[SearchSidebar] Received focus request from ${source}`);
-            focusSearchInput();
-        };
-
-        // Handle search execution requests
-        const handleSearchRequest = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { source, applyDefaultTerms } = customEvent.detail || {};
-
-            console.log(`[SearchSidebar] Received search request from ${source}`);
-
-            if (applyDefaultTerms) {
-                // Apply all default search terms
-                console.log('[SearchSidebar] Applying all default search terms on request');
-                applyAllDefaultSearchTerms();
-            } else if (tempSearchTerm.trim()) {
-                // Execute the current search term if one is available
-                console.log(`[SearchSidebar] Executing current search with term: "${tempSearchTerm}"`);
-                addSearchTerm();
-            } else {
-                console.log('[SearchSidebar] No search term to execute');
-                focusSearchInput();
-            }
-        };
-
-        // Register event listeners
-        window.addEventListener('focus-search-input', handleFocusRequest);
-        window.addEventListener('execute-search', handleSearchRequest);
-
-        return () => {
-            window.removeEventListener('focus-search-input', handleFocusRequest);
-            window.removeEventListener('execute-search', handleSearchRequest);
-        };
-    }, [focusSearchInput, tempSearchTerm, addSearchTerm, applyAllDefaultSearchTerms]);
-
-    // Set error from API if available
-    useEffect(() => {
-        if (apiError) {
-            setLocalSearchError(apiError);
-        } else if (contextSearchError) {
-            setLocalSearchError(contextSearchError);
-        } else {
-            setLocalSearchError(null);
-        }
-    }, [apiError, contextSearchError]);
-
-    // Listen for settings changes from user preferences
-    useEffect(() => {
-        const handleSettingsChange = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { type, settings } = customEvent.detail || {};
-
-            // Only apply search settings
-            if (type === 'search' && settings) {
-                // Apply appropriate settings
-                if (settings.isAiSearch !== undefined) {
-                    setIsAiSearch(settings.isAiSearch);
-                }
-
-                if (settings.isCaseSensitive !== undefined) {
-                    setIsCaseSensitive(settings.isCaseSensitive);
-                }
-
-                // Re-fetch search patterns when settings change
-                getSearchPatterns();
-            }
-        };
-
-        window.addEventListener('settings-changed', handleSettingsChange);
-
-        return () => {
-            window.removeEventListener('settings-changed', handleSettingsChange);
-        };
-    }, [getSearchPatterns]);
-
-    // Combined loading state
-    const isSearching = isContextSearching || isApiLoading;
-    const searchProgress = apiProgress;
-
-    // Simple navigation to a page
-    const navigateToPage = useCallback((fileKey: string, pageNumber: number) => {
-        const file = files.find(f => getFileKey(f).includes(fileKey));
-
-        if (!file) {
-            return;
-        }
-
-        const isChangingFile = currentFile !== file;
-
-        // Use our navigation hook for consistent navigation behavior
-        pdfNavigation.navigateToPage(pageNumber, getFileKey(file), {
-            // Use auto behavior for better UX when changing files
-            behavior: isChangingFile ? 'auto' : 'smooth',
-            // Always align to top for consistency
-            alignToTop: true,
-            // Always highlight the thumbnail
-            highlightThumbnail: true
-        });
-    }, [pdfNavigation, files, currentFile]);
-
-    // Navigate to specific search result - improved with more robust error handling
-    const navigateToSearchResult = useCallback((direction: 'next' | 'prev') => {
-        const { results, currentIndex } = resultNavigation;
-
-        if (results.length === 0) return;
-
-        let newIndex;
-
-        if (direction === 'next') {
-            newIndex = (currentIndex + 1) % results.length;
-        } else {
-            newIndex = (currentIndex - 1 + results.length) % results.length;
-        }
-
-        const target = results[newIndex];
-
-        // Update the navigation state
-        setResultNavigation(prev => ({
-            ...prev,
-            currentIndex: newIndex
-        }));
-
-        if (!target) {
-            return;
-        }
-
-        // Use our improved navigation mechanism
-        navigateToPage(target.fileKey, target.page);
-    }, [resultNavigation, navigateToPage]);
-
-    const handleChangeSearchScope = (scope: 'current' | 'selected' | 'all') => {
-        if (scope === searchScope) return;
-        setSearchScope(scope);
-        // Refocus search input after changing scope
-        setTimeout(() => {
-            searchInputRef.current?.focus();
-        }, 0);
-    };
-
-    // Toggle file summary expansion
-    const toggleFileSummary = useCallback((fileKey: string) => {
-        setExpandedFileSummaries(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(fileKey)) {
-                newSet.delete(fileKey);
-            } else {
-                newSet.add(fileKey);
-            }
-            return newSet;
-        });
-    }, []);
-
-    // Calculate overall result index for display - memoized to prevent recalculation
-    const calculateOverallResultIndex = useCallback(() => {
-        if (resultNavigation.currentIndex === -1 || resultNavigation.results.length === 0) {
-            return 0;
-        }
-
-        const { results, currentIndex } = resultNavigation;
-
-        // Check if current index is valid
-        if (currentIndex >= results.length) {
-            return 0;
-        }
-
-        // Sum up the counts of all previous results
-        let overallIndex = 1; // Start at 1 for user-friendly display
-
-        for (let i = 0; i < currentIndex; i++) {
-            overallIndex += results[i].count;
-        }
-
-        return overallIndex;
-    }, [resultNavigation]);
-
-    // Handle right click on search term
+    // Handle search term right-click context menu
     const handleSearchTermRightClick = (e: React.MouseEvent, term: string) => {
         e.preventDefault();
 
@@ -973,44 +514,114 @@ const SearchSidebar: React.FC = () => {
         };
     }, [contextMenuVisible]);
 
-    // Update navigation results when search results change - use a ref to prevent infinite loop
-    const prevSearchStatsRef = useRef<any>(null);
-
+    // Focus the search input when sidebar becomes visible
     useEffect(() => {
-        // Create a stable representation of the search stats for comparison
-        const statsSignature = JSON.stringify({
-            totalMatches: searchStats.totalMatches,
-            fileCount: searchStats.fileMatches.size
-        });
+        // Create a reference to the container element
+        const searchSidebarRef = document.querySelector('.search-sidebar');
+        if (!searchSidebarRef) return;
 
-        // Skip processing if the stats haven't changed meaningfully
-        if (prevSearchStatsRef.current === statsSignature) {
-            return;
-        }
-
-        prevSearchStatsRef.current = statsSignature;
-
-        // Flatten search results for navigation
-        const flatResults: { fileKey: string; page: number; count: number }[] = [];
-
-        searchStats.pageMatches.forEach((pageMap, fileKey) => {
-            pageMap.forEach((count, page) => {
-                flatResults.push({ fileKey, page, count });
+        // Create an observer that will monitor the visibility of the search sidebar
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // When the search sidebar becomes visible
+                if (entry.isIntersecting && searchInputRef.current) {
+                    searchInputRef.current.focus();
+                }
             });
-        });
+        }, { threshold: 0.1 }); // Trigger when at least 10% of the element is visible
 
-        // Sort by file key and then by page number
-        flatResults.sort((a, b) => {
-            if (a.fileKey !== b.fileKey) return a.fileKey.localeCompare(b.fileKey);
-            return a.page - b.page;
-        });
+        // Start observing the search sidebar
+        observer.observe(searchSidebarRef);
 
-        setResultNavigation({
-            results: flatResults,
-            currentIndex: flatResults.length > 0 ? 0 : -1
-        });
-    }, [searchStats.totalMatches, activeQueries.length, isSearching]);
+        // Cleanup function
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
 
+    // Set error from API if available
+    useEffect(() => {
+        if (apiError) {
+            setLocalSearchError(apiError);
+        } else if (contextSearchError) {
+            setLocalSearchError(contextSearchError);
+        } else {
+            setLocalSearchError(null);
+        }
+    }, [apiError, contextSearchError]);
+
+    // Listen for settings changes from user preferences
+    useEffect(() => {
+        const handleSettingsChange = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { type, settings } = customEvent.detail || {};
+
+            // Only apply search settings
+            if (type === 'search' && settings) {
+                // Apply appropriate settings
+                if (settings.isAiSearch !== undefined) {
+                    setIsAiSearch(settings.isAiSearch);
+                }
+
+                if (settings.isCaseSensitive !== undefined) {
+                    setIsCaseSensitive(settings.isCaseSensitive);
+                }
+
+                // Re-fetch search patterns when settings change
+                getSearchPatterns();
+            }
+        };
+
+        window.addEventListener('settings-changed', handleSettingsChange);
+
+        return () => {
+            window.removeEventListener('settings-changed', handleSettingsChange);
+        };
+    }, [getSearchPatterns]);
+
+    // Combined loading state
+    const isSearching = isContextSearching || isApiLoading;
+    const searchProgress = apiProgress;
+
+    // Simple navigation to a page with our improved navigation system
+    const navigateToPage = useCallback((fileKey: string, pageNumber: number) => {
+        // Find the file by key
+        const file = files.find(f => getFileKey(f) === fileKey);
+        if (!file) return;
+
+        // Use our improved navigation hook to navigate
+        pdfNavigation.navigateToPage(pageNumber, fileKey, {
+            // Use smooth scrolling for better user experience
+            behavior: 'smooth',
+            // Always align to top for better visibility of search results
+            alignToTop: true,
+            // Always highlight the thumbnail
+            highlightThumbnail: true
+        });
+    }, [pdfNavigation, files]);
+
+    // Toggle file summary expansion
+    const toggleFileSummary = useCallback((fileKey: string) => {
+        setExpandedFileSummaries(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(fileKey)) {
+                newSet.delete(fileKey);
+            } else {
+                newSet.add(fileKey);
+            }
+            return newSet;
+        });
+    }, []);
+
+    // Handle scope change
+    const handleChangeSearchScope = (scope: 'current' | 'selected' | 'all') => {
+        if (scope === searchScope) return;
+        setSearchScope(scope);
+        // Refocus search input after changing scope
+        setTimeout(() => {
+            searchInputRef.current?.focus();
+        }, 0);
+    };
 
     return (
         <div className="search-sidebar">
@@ -1055,7 +666,7 @@ const SearchSidebar: React.FC = () => {
                                     disabled={isSearching}
                                 />
                                 <span className="checkmark"></span>
-                                Ai search
+                                AI search
                             </label>
                             <label className="checkbox-label">
                                 <input
@@ -1183,24 +794,6 @@ const SearchSidebar: React.FC = () => {
                 <div className="sidebar-section">
                     <div className="search-results-header">
                         <h4>Results</h4>
-                        <div className="search-navigation">
-                            <button
-                                className="nav-button"
-                                onClick={() => navigateToSearchResult('prev')}
-                                disabled={searchStats.totalMatches === 0 || isSearching}
-                                title="Previous Result"
-                            >
-                                <ChevronUp size={16} />
-                            </button>
-                            <button
-                                className="nav-button"
-                                onClick={() => navigateToSearchResult('next')}
-                                disabled={searchStats.totalMatches === 0 || isSearching}
-                                title="Next Result"
-                            >
-                                <ChevronDown size={16} />
-                            </button>
-                        </div>
                     </div>
 
                     {searchStats.totalMatches > 0 && (
@@ -1208,7 +801,7 @@ const SearchSidebar: React.FC = () => {
                             {isSearching ? (
                                 `Searching...`
                             ) : (
-                                `${calculateOverallResultIndex()} of ${searchStats.totalMatches} matches`
+                                `${searchStats.totalMatches} matches in ${fileSummaries.length} files`
                             )}
                         </div>
                     )}
