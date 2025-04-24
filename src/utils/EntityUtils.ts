@@ -5,9 +5,7 @@
  * Used by both the EntityDetectionSidebar and EntitySettings components
  */
 
-import React from 'react';
-import { OptionType } from '../types/types';
-import { ModelEntity } from '../types';
+import { OptionType } from '../types';
 
 // ======= SHARED ENTITY MODEL OPTIONS =======
 
@@ -132,14 +130,6 @@ export const METHOD_ID_MAP: { [key: string]: number } = {
     hideme: 4
 };
 
-// Reverse map for looking up model names from method IDs
-export const METHOD_ID_REVERSE_MAP: { [key: number]: string } = {
-    1: 'presidio',
-    2: 'gliner',
-    3: 'gemini',
-    4: 'hideme'
-};
-
 // ======= SHARED UI COMPONENTS =======
 
 /**
@@ -212,13 +202,11 @@ export const handleAllOptions = (
  * Converts UI selections (including "ALL" options) to backend-compatible format
  *
  * @param selectedOptions The options selected in the UI
- * @param allOptions All available options for this model
  * @param allOptionValue The value of the "ALL" option
  * @returns Array of entity values for the backend
  */
 export const prepareEntitiesForApi = (
     selectedOptions: OptionType[],
-    allOptions: OptionType[],
     allOptionValue: string
 ): string[] => {
     // Handle empty selection
@@ -276,54 +264,5 @@ export function entitiesToOptions(entities: string[], availableOptions: OptionTy
     });
 }
 
-/**
- * Get the appropriate options array for a specific model
- *
- * @param modelName The name of the model
- * @returns The options array for the model
- */
-export function getOptionsForModel(modelName: string): OptionType[] {
-    switch (modelName) {
-        case 'presidio':
-            return presidioOptions;
-        case 'gliner':
-            return glinerOptions;
-        case 'gemini':
-            return geminiOptions;
-        case 'hideme':
-            return hidemeOptions;
-        default:
-            return [];
-    }
-}
 
-/**
- * Convert selected entity options to backend ModelEntity format
- * Prepares entity data for saving to settings
- *
- * @param selectedEntities Map of model names to selected entity options
- * @returns Array of entities ready for saving
- */
-export function prepareEntitiesToSave(selectedEntities: {
-    [modelName: string]: OptionType[]
-}): { method_id: number; entity_text: string }[] {
-    const entities: { method_id: number; entity_text: string }[] = [];
 
-    // Process each model's selections
-    Object.entries(selectedEntities).forEach(([modelName, options]) => {
-        const methodId = METHOD_ID_MAP[modelName];
-        if (!methodId) return;
-
-        // Add each entity with the correct method ID
-        options
-            .filter(opt => !opt.value.startsWith('ALL_')) // Filter out "ALL_" options
-            .forEach(option => {
-                entities.push({
-                    method_id: methodId,
-                    entity_text: option.value
-                });
-            });
-    });
-
-    return entities;
-}

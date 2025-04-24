@@ -1,12 +1,13 @@
 // src/contexts/BatchSearchContext.tsx - Updated with unique ID handling
-import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
+import React, {createContext, useContext, useState, useCallback, useRef, useMemo, useEffect} from 'react';
 import { useFileContext } from './FileContext';
-import {HighlightRect, HighlightType} from '../types/pdfTypes';
+import {HighlightType} from '../types';
 import { getFileKey } from './PDFViewerContext';
 import { BatchSearchService, SearchResult, BatchSearchResponse } from '../services/BatchSearchService';
 import { usePDFApi } from "../hooks/usePDFApi";
-import {useHighlightStore} from '../hooks/useHighlightStore';
+import {useHighlightStore} from './HighlightStoreContext';
 import {SearchHighlightProcessor} from "../managers/SearchHighlightProcessor";
+import summaryPersistenceStore from "../store/SummaryPersistenceStore";
 
 interface SearchQuery {
     term: string;
@@ -66,7 +67,7 @@ export const useBatchSearch = () => {
 };
 
 export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { removeAllHighlightsByType, removeHighlightsByText, addHighlightsToPage} = useHighlightStore();
+    const { removeAllHighlightsByType, removeHighlightsByText} = useHighlightStore();
     const { currentFile, activeFiles } = useFileContext();
 
     // Main search state
@@ -84,37 +85,50 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
     searchStateRef.current = searchState;
     const { runBatchSearch } = usePDFApi();
 
-    function applySearchHighlights(searchResultsMap: Map<string, Map<number, SearchResult[]>>) {
-        // Iterate over the search results map and apply highlights
-        searchResultsMap.forEach((pageMap, fileKey) => {
-            pageMap.forEach((highlights, pageNumber) => {
-                // Apply highlights to the highlight store
-                highlights.forEach(highlight => {
-                    highlight.fileKey = fileKey; // Set the file key for each highlight
-                    highlight.type = HighlightType.SEARCH; // Set the type to SEARCH
-                });
-            });
-        });
-        // Add highlights to the highlight store
-        activeFiles.forEach(file => {
-            const fileKey = getFileKey(file);
-            const highlights = searchResultsMap.get(fileKey);
-            if (highlights) {
-                highlights.forEach((pageHighlights, pageNumber) => {
-                    const highlightRects: HighlightRect[] = [];
-                    pageHighlights.forEach(highlight => {
-                        highlightRects.push({
-                            ...highlight,
-                            fileKey,
-                            page: pageNumber
-                        });
-                    });
-                    // Add highlights to the store
-                    addHighlightsToPage(fileKey, pageNumber, highlightRects);
-                });
+    useEffect(() => {
+        // Load saved queries on mount
+        const savedQueries = summaryPersistenceStore.getActiveSearchQueries();
+
+        if (savedQueries.length > 0) {
+            console.log(`[BatchSearchContext] Restoring ${savedQueries.length} saved search queries`);
+
+            // Restore queries to state
+            setSearchState(prev => ({
+                ...prev,
+                activeQueries: savedQueries
+            }));
+
+            // Re-execute searches for each query
+            const filesToSearch = activeFiles;
+            if (filesToSearch.length > 0) {
+                // Process sequentially to avoid overwhelming the system
+                const processQueries = async () => {
+                    for (const query of savedQueries) {
+                        try {
+                            await runBatchSearch(filesToSearch, query.term, {
+                                isCaseSensitive: query.caseSensitive,
+                                isAiSearch: query.isAiSearch
+                            });
+                            console.log(`[BatchSearchContext] Restored search for "${query.term}"`);
+                        } catch (error) {
+                            console.error(`[BatchSearchContext] Error restoring search for "${query.term}":`, error);
+                        }
+                    }
+                };
+
+                processQueries();
             }
-        });
-    }
+        }
+    }, []);
+
+// Save queries whenever they change
+    useEffect(() => {
+        // Save active queries when they change
+        if (searchState.activeQueries.length > 0) {
+            summaryPersistenceStore.saveActiveSearchQueries(searchState.activeQueries);
+        }
+    }, [searchState.activeQueries]);
+
 
     /**
      * Execute a batch search operation
@@ -250,15 +264,18 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
      * Clear all search results and highlights
      */
     const clearAllSearches = useCallback(() => {
-        setSearchState(prev => ({
-            ...prev,
-            searchResults: new Map(),
-            activeQueries: []
-        }));
+            setSearchState(prev => ({
+                ...prev,
+                searchResults: new Map(),
+                activeQueries: []
+            }));
 
-        // Clear all search highlights
-        removeAllHighlightsByType(HighlightType.SEARCH);
-    }, [removeAllHighlightsByType]);
+            // Clear all search highlights
+            removeAllHighlightsByType(HighlightType.SEARCH);
+
+            // Clear saved queries
+            summaryPersistenceStore.saveActiveSearchQueries([]);
+        }, [removeAllHighlightsByType]);
 
     /**
      * Clear a specific search term or all searches
@@ -311,6 +328,7 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
                 // Find highlights matching this search term
                 removeHighlightsByText(searchTerm, targetFileKey)
+                summaryPersistenceStore.removeSearchQuery(searchTerm, targetFileKey);
 
 
             }

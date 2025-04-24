@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFileContext } from '../../../contexts/FileContext';
 import { useEditContext } from '../../../contexts/EditContext';
 import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
-import { HighlightType } from '../../../types/pdfTypes';
-import { useBatchSearch } from '../../../contexts/SearchContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
 import { createFullRedactionMapping, getRedactionStatistics, processRedactedFiles } from '../../../utils/redactionUtils';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
@@ -21,17 +19,14 @@ const RedactionSidebar: React.FC = () => {
     } = useFileContext();
 
     const {
-        detectionMapping,
         setDetectionMapping,
+        getFileDetectionMapping
     } = useEditContext();
 
     const {
-        getHighlightsForPage,
-        removeHighlightsFromFile
+        getHighlightsForFile,
+        refreshTrigger
     } = useHighlightStore();
-
-    // Get batch search context
-    const { getSearchResultsForPage, getSearchQueries } = useBatchSearch();
 
     // Use the refactored PDF API hook
     const {
@@ -91,6 +86,30 @@ const RedactionSidebar: React.FC = () => {
         return [];
     }, [redactionScope, currentFile, selectedFiles, files]);
 
+    /**
+     * Collects all annotations for a specific file
+     * Using a more efficient approach with direct file highlighting retrieval
+     */
+    const collectFileAnnotations = useCallback((file: File) => {
+        const fileKey = getFileKey(file);
+        const fileAnnotations: Record<number, any[]> = {};
+
+        // Get all annotations for this file in one call - more efficient than querying page by page
+        const allHighlights = getHighlightsForFile(fileKey);
+
+        // Group them by page
+        allHighlights.forEach(highlight => {
+            const page = highlight.page || 1;
+            if (!fileAnnotations[page]) {
+                fileAnnotations[page] = [];
+            }
+            fileAnnotations[page].push(highlight);
+        });
+
+        return fileAnnotations;
+    }, [getHighlightsForFile]);
+
+
     // Generate redaction preview when relevant state changes
     useEffect(() => {
         const filesToProcess = getFilesToProcess();
@@ -101,57 +120,14 @@ const RedactionSidebar: React.FC = () => {
         // Generate mapping for each file
         filesToProcess.forEach(file => {
             const fileKey = getFileKey(file);
-
             const { includeSearchHighlights, includeEntityHighlights, includeManualHighlights } = redactionOptions;
 
-            // Get annotations for the current file
-            // We need to get annotations for all pages, so we collect them in a map
-            const fileAnnotations: Record<number, any[]> = {};
-
-            // This is a simplification - you'd need to collect annotations for all pages of the file
-            for (let page = 1; page <= 1000; page++) { // Using a large arbitrary number
-                const pageAnnotations = getHighlightsForPage(fileKey,page);
-                if (pageAnnotations.length > 0) {
-                    fileAnnotations[page] = pageAnnotations;
-                }
-            }
-
-            // Get detection mapping for this file
-            const fileDetectionMapping = detectionMapping && currentFile &&
-            getFileKey(currentFile) === fileKey ? detectionMapping : null;
-
-            // Collect batch search results for this file
-            const searchResults = new Map<number, Map<string, any>>();
-            const searchQueries = getSearchQueries();
-
-            // If we want to include search highlights, gather the search results for all pages
-            if (includeSearchHighlights && searchQueries.length > 0) {
-                // For simplicity, check pages 1-100 (should be configurable based on file info)
-                for (let page = 1; page <= 100; page++) {
-                    const pageResults = getSearchResultsForPage(page, fileKey);
-                    if (pageResults.length > 0) {
-                        // Group by search term
-                        const termResults = new Map<string, any[]>();
-                        pageResults.forEach(result => {
-                            const term = result.text || 'unknown';
-                            if (!termResults.has(term)) {
-                                termResults.set(term, []);
-                            }
-                            termResults.get(term)!.push(result);
-                        });
-
-                        if (termResults.size > 0) {
-                            searchResults.set(page, termResults);
-                        }
-                    }
-                }
-            }
+            // Get annotations for the current file using the new collection method
+            const fileAnnotations = collectFileAnnotations(file);
 
             // Create full redaction mapping
             const fullMapping = createFullRedactionMapping(
                 fileAnnotations,
-                searchResults,
-                fileDetectionMapping,
                 includeSearchHighlights,
                 includeEntityHighlights,
                 includeManualHighlights
@@ -171,11 +147,10 @@ const RedactionSidebar: React.FC = () => {
         redactionOptions.includeSearchHighlights,
         redactionOptions.includeEntityHighlights,
         redactionOptions.includeManualHighlights,
-        detectionMapping,
-        getHighlightsForPage,
+        collectFileAnnotations,
+        getFileDetectionMapping,
         currentFile,
-        getSearchResultsForPage,
-        getSearchQueries
+        refreshTrigger // Important: ensures updates when highlights change
     ]);
 
     // Calculate combined redaction statistics across all files
@@ -222,7 +197,7 @@ const RedactionSidebar: React.FC = () => {
      * Handle redaction for multiple files
      * Uses the generated redaction mappings that include search results
      */
-    const handleRedact = async () => {
+    const handleRedact = useCallback(async () => {
         const filesToRedact = getFilesToProcess();
 
         if (filesToRedact.length === 0 || redactionMappings.size === 0) {
@@ -289,14 +264,7 @@ const RedactionSidebar: React.FC = () => {
                     redactedPdfs,
                     addFiles,
                     files,
-                    selectedFiles,
-                    redactionScope
                 );
-
-                // Clear highlights for processed files
-                Object.keys(filesToProcess).forEach(fileKey => {
-                    removeHighlightsFromFile(fileKey);
-                });
 
                 // Update success message
                 const successMessage = Object.keys(redactedPdfs).length === 1
@@ -320,25 +288,36 @@ const RedactionSidebar: React.FC = () => {
             setIsRedacting(false);
             setIsDownloading(false);
         }
-    };
+    }, [
+        getFilesToProcess,
+        redactionMappings,
+        redactionOptions.removeImages,
+        redactionScope,
+        addFiles,
+        files,
+        selectedFiles,
+        currentFile,
+        setDetectionMapping,
+        runRedactPdf,
+        runBatchRedactPdfs
+    ]);
 
     // Reset all redaction settings
-    const handleReset = () => {
+    const handleReset = useCallback(() => {
         setRedactionOptions({
             includeSearchHighlights: true,
             includeEntityHighlights: true,
             includeManualHighlights: true,
             removeImages: true
         });
-        setRedactionMappings(new Map());
+        setRedactionScope('all');
         setRedactionError(null);
         setRedactionSuccess(null);
         setFileErrors(new Map());
-        console.log('[RedactionSidebar] Redaction options reset');
-    };
+    }, []);
 
-    // Get overall stats
-    const stats = getOverallRedactionStats();
+    // Get overall stats - memoize for better performance
+    const stats = useMemo(() => getOverallRedactionStats(), [getOverallRedactionStats]);
 
     // Combined loading state
     const isCurrentlyRedacting = isRedacting || isApiLoading;

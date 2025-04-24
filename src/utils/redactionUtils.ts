@@ -1,14 +1,11 @@
-// src/utils/redactionUtils.ts
-import { HighlightRect, HighlightType } from "../types/pdfTypes";
-import { RedactionMapping, Page, Sensitive, FileInfo, FileResult } from "../types/types";
+import { RedactionMapping, Page, Sensitive, FileInfo, FileResult ,HighlightRect, HighlightType} from "../types";
 import { getFileKey } from "../contexts/PDFViewerContext";
+import {getCorrectedBoundingBox} from "./utilities";
 
 /**
  * Creates a full redaction mapping object from annotations, search results, and detection mapping
  *
  * @param fileAnnotations Record of page numbers to annotation arrays
- * @param searchResults Map of page numbers to search term maps
- * @param detectionMapping Existing detection mapping from entity detection
  * @param includeSearchHighlights Whether to include search highlights in redaction
  * @param includeEntityHighlights Whether to include entity highlights in redaction
  * @param includeManualHighlights Whether to include manual highlights in redaction
@@ -16,8 +13,6 @@ import { getFileKey } from "../contexts/PDFViewerContext";
  */
 export function createFullRedactionMapping(
     fileAnnotations: Record<number, HighlightRect[]>,
-    searchResults: Map<number, Map<string, any>>,
-    detectionMapping: any,
     includeSearchHighlights: boolean = true,
     includeEntityHighlights: boolean = true,
     includeManualHighlights: boolean = true
@@ -37,21 +32,6 @@ export function createFullRedactionMapping(
         });
     }
 
-    // Add pages from search results if they should be included
-    if (searchResults.size > 0 && includeSearchHighlights) {
-        searchResults.forEach((_, page) => {
-            pages.add(page);
-        });
-    }
-
-    // Add pages from detection mapping if they should be included
-    if (detectionMapping?.pages && includeEntityHighlights) {
-        detectionMapping.pages.forEach((page: any) => {
-            if (page.page) {
-                pages.add(page.page);
-            }
-        });
-    }
 
     // Process each page and build the redaction mapping
     Array.from(pages).sort((a, b) => a - b).forEach(pageNumber => {
@@ -60,52 +40,18 @@ export function createFullRedactionMapping(
             sensitive: []
         };
 
-        // Process annotations for this page
+        // Process annotations for this page, filtering by type according to inclusion settings
         if (fileAnnotations[pageNumber]) {
-            fileAnnotations[pageNumber].forEach(annotation => {
-                if (!shouldIncludeAnnotation(annotation, includeManualHighlights, includeSearchHighlights, includeEntityHighlights)) {
-                    return;
-                }
+            const filteredAnnotations = fileAnnotations[pageNumber].filter(annotation =>
+                shouldIncludeAnnotation(annotation, includeManualHighlights, includeSearchHighlights, includeEntityHighlights)
+            );
 
+            // Convert each filtered annotation to a sensitive item
+            filteredAnnotations.forEach(annotation => {
                 const sensitive: Sensitive = createSensitiveFromAnnotation(annotation);
                 pageMapping.sensitive.push(sensitive);
             });
         }
-
-        // Process search results for this page
-        if (searchResults.has(pageNumber) && includeSearchHighlights) {
-            const pageSearchResults = searchResults.get(pageNumber);
-            if (pageSearchResults) {
-                pageSearchResults.forEach((results, term) => {
-                    results.forEach((result: any) => {
-                        const sensitive: Sensitive = {
-                            original_text: term,
-                            entity_type: 'SEARCH',
-                            score: 1.0,
-                            start: 0, // Not tracked in our data model
-                            end: 0,   // Not tracked in our data model
-                            bbox: {
-                                x0: result.x,
-                                y0: result.y,
-                                x1: result.x + result.w,
-                                y1: result.y + result.h
-                            }
-                        };
-                        pageMapping.sensitive.push(sensitive);
-                    });
-                });
-            }
-        }
-
-        // Process entity detection results for this page if available
-        if (detectionMapping?.pages && includeEntityHighlights) {
-            const detectionPage = detectionMapping.pages.find((p: any) => p.page === pageNumber);
-            if (detectionPage?.sensitive && Array.isArray(detectionPage.sensitive)) {
-                // Add these sensitive items to our page mapping
-                pageMapping.sensitive.push(...detectionPage.sensitive);
-            }
-        }
-
         // Only add the page to the mapping if it has sensitive content to redact
         if (pageMapping.sensitive.length > 0) {
             fullMapping.pages.push(pageMapping);
@@ -125,7 +71,10 @@ function shouldIncludeAnnotation(
     includeSearchHighlights: boolean,
     includeEntityHighlights: boolean
 ): boolean {
-    switch (annotation.type) {
+    // If annotation doesn't have a type, treat it as manual
+    const type = annotation.type || HighlightType.MANUAL;
+
+    switch (type) {
         case HighlightType.MANUAL:
             return includeManualHighlights;
         case HighlightType.SEARCH:
@@ -133,7 +82,16 @@ function shouldIncludeAnnotation(
         case HighlightType.ENTITY:
             return includeEntityHighlights;
         default:
-            return false;
+            // For unknown types, check if it's a search highlight based on properties
+            if (annotation.type == HighlightType.SEARCH|| (annotation.text && annotation.text.length > 0)) {
+                return includeSearchHighlights;
+            }
+            // If it has an entity property, treat it as an entity highlight
+            if (annotation.entity) {
+                return includeEntityHighlights;
+            }
+            // Default to manual highlights for anything else
+            return includeManualHighlights;
     }
 }
 
@@ -141,49 +99,15 @@ function shouldIncludeAnnotation(
  * Creates a Sensitive object from a highlight annotation
  */
 function createSensitiveFromAnnotation(annotation: HighlightRect): Sensitive {
-   if (annotation.type === "SEARCH"){
        return {
            original_text: annotation.text ?? 'Unknown',
            entity_type: (annotation.entity ?? annotation.type) || 'MANUAL',
            score: 1.0,
            start: 0, // Not tracked in our highlighting model
            end: 0,   // Not tracked in our highlighting model
-           bbox: {
-               x0: annotation.x,
-               y0: annotation.y,
-               x1: annotation.x + annotation.w,
-               y1: annotation.y + annotation.h
-           }
-       };
-   }else if (annotation.type === 'ENTITY') {
-       return {
-           original_text: annotation.text ?? 'Unknown',
-           entity_type: (annotation.entity ?? annotation.type) || 'MANUAL',
-           score: 1.0,
-           start: 0, // Not tracked in our highlighting model
-           end: 0,   // Not tracked in our highlighting model
-           bbox: {
-               x0: annotation.x + 5,
-               y0: annotation.y + 5,
-               x1: (annotation.x + annotation.w) -4,
-               y1: (annotation.y + annotation.h)-4
-           }
-       };
-    }else {
-   return {
-       original_text: annotation.text ?? 'Unknown',
-       entity_type: annotation.entity ?? annotation.type ?? 'MANUAL',
-       score: 1.0,
-       start: 0, // Not tracked in our highlighting model
-       end: 0,   // Not tracked in our highlighting model
-       bbox: {
-           x0: annotation.x + 3,
-           y0: annotation.y + 3,
-           x1: annotation.x + annotation.w,
-           y1: annotation.y + annotation.h
-       }
-   };
-   }
+           bbox: getCorrectedBoundingBox(annotation)
+    };
+
 }
 
 /**
@@ -263,8 +187,6 @@ export async function processRedactedFiles(
     redactedFiles: Record<string, Blob>,
     updateFiles: (files: File[], replace: boolean) => void,
     currentFiles: File[],
-    selectedFiles: File[],
-    scope: 'current' | 'selected' | 'all'
 ): Promise<void> {
     // Convert blobs to File objects
     const redactedFileObjects: File[] = [];
@@ -285,39 +207,8 @@ export async function processRedactedFiles(
     if (redactedFileObjects.length === 0) {
         throw new Error('No redacted files were successfully processed');
     }
-
-    // Determine which existing files to keep based on scope
-    let filesToKeep: File[] = [];
-
-    switch (scope) {
-        case 'current':
-            // Keep all files except the current one(s) that were redacted
-            filesToKeep = currentFiles.filter(file => {
-                const fileKey = getFileKey(file);
-                return !redactedFiles[fileKey];
-            });
-            break;
-
-        case 'selected':
-            // Keep all files except the selected ones that were redacted
-            filesToKeep = currentFiles.filter(file => {
-                const fileKey = getFileKey(file);
-                const isSelected = selectedFiles.includes(file);
-                return !(isSelected && redactedFiles[fileKey]);
-            });
-            break;
-
-        case 'all':
-            // Replace all files, so keep none of the existing ones
-            filesToKeep = [];
-            break;
-    }
-
-    // Combine the files to keep with the new redacted files
-    const updatedFiles = [...filesToKeep, ...redactedFileObjects];
-
     // Update the files in the application state
-    updateFiles(updatedFiles, true);
+    updateFiles(redactedFileObjects ,false);
 
     return Promise.resolve();
 }

@@ -34,6 +34,27 @@ export interface Page {
     sensitive: Sensitive[]
 }
 
+export interface EntityFileSummary {
+    fileKey: string
+    fileName: string
+    entities_detected: EntitySummary
+    performance: Performance
+
+}
+export interface ByType {
+    entity_type: string
+    count: number
+}
+export interface ByPage {
+    page: string
+    count: number
+}
+export interface EntitySummary {
+    by_type: ByType
+    by_page: ByPage
+    total: number
+}
+
 export interface Sensitive {
     original_text: string
     entity_type: string

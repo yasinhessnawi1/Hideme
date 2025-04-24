@@ -1,3 +1,4 @@
+// Modified SearchSidebar.tsx implementation to use summaryPersistenceStore
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // Extend the Window interface to include our custom properties
@@ -16,7 +17,9 @@ import '../../../styles/modules/pdf/SearchSidebar.css';
 import { Search, XCircle, ChevronUp, ChevronDown, ChevronRight, Save, AlertTriangle, CheckCircle } from 'lucide-react';
 import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 import useSearchPatterns from "../../../hooks/settings/useSearchPatterns";
-import {useHighlightStore} from "../../../hooks/useHighlightStore";
+import { useHighlightStore } from "../../../hooks/useHighlightStore";
+import summaryPersistenceStore, { SearchFileSummary } from '../../../store/SummaryPersistenceStore';
+import {HighlightType} from "../../../types";
 
 const SearchSidebar: React.FC = () => {
     const { currentFile, selectedFiles, files } = useFileContext();
@@ -59,6 +62,13 @@ const SearchSidebar: React.FC = () => {
     const [contextMenuSearchTerm, setContextMenuSearchTerm] = useState('');
     const initialPatternFetchAttemptedRef = useRef(false);
 
+    // Add state for tracking searched files count
+    const [searchedFilesCount, setSearchedFilesCount] = useState<number>(0);
+    // Add state for file summaries
+    const [fileSummaries, setFileSummaries] = useState<SearchFileSummary[]>([]);
+    // Track searched files set
+    const searchedFilesRef = useRef<Set<string>>(new Set());
+
     // Ref for the context menu
     const contextMenuRef = useRef<HTMLDivElement>(null);
 
@@ -68,6 +78,179 @@ const SearchSidebar: React.FC = () => {
     // Get current search statistics
     const searchStats = getSearchResultsStats();
 
+    // Load persisted search data
+    useEffect(() => {
+        try {
+            // Load searched files from persistence service
+            const savedSearchedFiles = summaryPersistenceStore.getAnalyzedFiles('search');
+
+            // Only keep files that still exist
+            const availableFileKeys = new Set(files.map(getFileKey));
+            const validFileKeys = [...savedSearchedFiles].filter(key => availableFileKeys.has(key));
+
+            // Update our local state
+            searchedFilesRef.current = new Set(validFileKeys);
+            setSearchedFilesCount(validFileKeys.length);
+
+            // Load file summaries
+            const savedSummaries = summaryPersistenceStore.getFileSummaries<SearchFileSummary>('search');
+
+            // Filter to only include valid files
+            const validSummaries = savedSummaries.filter(summary =>
+                availableFileKeys.has(summary.fileKey)
+            );
+
+            setFileSummaries(validSummaries);
+            console.log(`[SearchSidebar] Loaded ${validSummaries.length} file summaries and ${validFileKeys.length} searched files`);
+
+            // Auto-expand summaries on load
+            if (validSummaries.length > 0) {
+                const newExpandedSet = new Set<string>();
+                validSummaries.forEach(summary => newExpandedSet.add(summary.fileKey));
+                setExpandedFileSummaries(newExpandedSet);
+            }
+        } catch (error) {
+            console.error('[SearchSidebar] Error loading persisted search data:', error);
+        }
+    }, [files]);
+    useEffect(() => {
+        const handleHighlightsCleared = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey, allTypes, type } = customEvent.detail || {};
+
+            // Skip if not related to search highlights
+            if (type && type !== HighlightType.SEARCH && !allTypes) return;
+
+            if (fileKey) {
+                console.log(`[SearchSidebar] Search highlights cleared for file: ${fileKey}`);
+
+                // Update file summaries to reflect cleared highlights
+                setFileSummaries(prev => {
+                    // Find the file summary for this file
+                    const updatedSummaries = prev.filter(summary => summary.fileKey !== fileKey);
+
+                    // Save the updated summaries
+                    summaryPersistenceStore.saveFileSummaries('search', updatedSummaries);
+
+                    return updatedSummaries;
+                });
+
+                // Update the search files count
+                if (searchedFilesRef.current.has(fileKey)) {
+                    searchedFilesRef.current.delete(fileKey);
+                    setSearchedFilesCount(searchedFilesRef.current.size);
+
+                    // Update the persistence store
+                    summaryPersistenceStore.removeAnalyzedFile('search', fileKey);
+                }
+            }
+        };
+
+        // Listen for both general highlights cleared and search-specific events
+        window.addEventListener('highlights-cleared', handleHighlightsCleared);
+        window.addEventListener('search-highlights-cleared', handleHighlightsCleared);
+
+        return () => {
+            window.removeEventListener('highlights-cleared', handleHighlightsCleared);
+            window.removeEventListener('search-highlights-cleared', handleHighlightsCleared);
+        };
+    }, []);
+    // Reconcile our data when files change
+    useEffect(() => {
+        if (files.length === 0) return;
+
+        // Get available file keys
+        const availableFileKeys = files.map(getFileKey);
+
+        // Reconcile analyzed files with persistence service
+        const validSearchedFiles = summaryPersistenceStore.reconcileAnalyzedFiles('search', availableFileKeys);
+
+        // Update local state if needed
+        if (searchedFilesRef.current.size !== validSearchedFiles.size) {
+            searchedFilesRef.current = validSearchedFiles;
+            setSearchedFilesCount(validSearchedFiles.size);
+        }
+
+        // Reconcile file summaries
+        const validSummaries = summaryPersistenceStore.reconcileFileSummaries<SearchFileSummary>('search', files);
+
+        // Update local state if needed
+        if (validSummaries.length !== fileSummaries.length) {
+            setFileSummaries(validSummaries);
+        }
+    }, [files, fileSummaries.length]);
+
+    // Listen for file removal events
+    useEffect(() => {
+        const handleFileRemoved = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey, fileName } = customEvent.detail || {};
+
+            if (fileKey) {
+                console.log(`[SearchSidebar] File removed: ${fileKey}`);
+
+                // Update our tracked files set
+                if (searchedFilesRef.current.has(fileKey)) {
+                    searchedFilesRef.current.delete(fileKey);
+                    setSearchedFilesCount(searchedFilesRef.current.size);
+
+                    // Save the updated set to persistence store
+                    summaryPersistenceStore.saveAnalyzedFiles('search', searchedFilesRef.current);
+                }
+
+                // Update file summaries
+                setFileSummaries(prev => {
+                    const updatedSummaries = prev.filter(summary => summary.fileKey !== fileKey);
+
+                    // Save the updated summaries if they changed
+                    if (updatedSummaries.length !== prev.length) {
+                        summaryPersistenceStore.saveFileSummaries('search', updatedSummaries);
+                    }
+
+                    return updatedSummaries;
+                });
+
+                // If there are active queries for this file, remove them
+                activeQueries.forEach(query => {
+                        clearSearch(query.term);
+                });
+            }
+        };
+
+        window.addEventListener('file-removed', handleFileRemoved);
+
+        return () => {
+            window.removeEventListener('file-removed', handleFileRemoved);
+        };
+    }, [activeQueries, clearSearch]);
+
+    // Save searched files to persistence when count changes
+    useEffect(() => {
+        summaryPersistenceStore.saveAnalyzedFiles('search', searchedFilesRef.current);
+    }, [searchedFilesCount]);
+
+    // Save file summaries when they change
+    useEffect(() => {
+        if (fileSummaries.length > 0) {
+            summaryPersistenceStore.saveFileSummaries('search', fileSummaries);
+        }
+    }, [fileSummaries]);
+
+    // Helper function to update file summaries
+    const updateFileSummary = useCallback((newSummary: SearchFileSummary) => {
+        setFileSummaries(prev => {
+            // Remove any existing summary for this file
+            const filteredSummaries = prev.filter(s => s.fileKey !== newSummary.fileKey);
+
+            // Add the new summary
+            const updatedSummaries = [...filteredSummaries, newSummary];
+
+            // Save to persistence
+            summaryPersistenceStore.saveFileSummaries('search', updatedSummaries);
+
+            return updatedSummaries;
+        });
+    }, []);
 
     // Track the currently visible result for navigation
     const [resultNavigation, setResultNavigation] = useState<{
@@ -145,10 +328,36 @@ const SearchSidebar: React.FC = () => {
                 // Auto-expand file summaries with results
                 const newExpandedSet = new Set<string>(expandedFileSummaries); // Preserve existing expansions
 
-                // Add any new files with results
-                currentStats.fileMatches.forEach((_, fileKey) => {
+                // Update file summaries based on search results
+                currentStats.fileMatches.forEach((matchCount, fileKey) => {
+                    // Add to expanded set
                     newExpandedSet.add(fileKey);
+
+                    // Add to searched files
+                    if (!searchedFilesRef.current.has(fileKey)) {
+                        searchedFilesRef.current.add(fileKey);
+                    }
+
+                    // Create or update file summary
+                    const file = files.find(f => getFileKey(f) === fileKey);
+                    if (file) {
+                        // Get page matches
+                        const pageMatches = currentStats.pageMatches.get(fileKey) || new Map();
+
+                        const summary: SearchFileSummary = {
+                            fileKey,
+                            fileName: file.name,
+                            matchCount,
+                            pageMatches: Object.fromEntries(pageMatches)
+                        };
+
+                        // Update file summary
+                        updateFileSummary(summary);
+                    }
                 });
+
+                // Update counter
+                setSearchedFilesCount(searchedFilesRef.current.size);
 
                 if (newExpandedSet.size > 0) {
                     setExpandedFileSummaries(newExpandedSet);
@@ -171,17 +380,164 @@ const SearchSidebar: React.FC = () => {
         isAiSearch,
         getSearchResultsStats,
         activeQueries,
-        expandedFileSummaries
+        expandedFileSummaries,
+        files,
+        updateFileSummary
     ]);
+    useEffect(() => {
+        const handleSearchSummaryUpdated = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey, fileName, summary } = customEvent.detail || {};
 
+            if (fileKey && summary) {
+                console.log(`[SearchSidebar] Received search summary update for file: ${fileName}`);
+
+                // Add to our tracked files set if not already there
+                if (!searchedFilesRef.current.has(fileKey)) {
+                    searchedFilesRef.current.add(fileKey);
+                    setSearchedFilesCount(searchedFilesRef.current.size);
+                }
+
+                // Update the file summary
+                updateFileSummary(summary);
+
+                // Ensure the file summary is expanded
+                setExpandedFileSummaries(prev => {
+                    const newSet = new Set(prev);
+                    newSet.add(fileKey);
+                    return newSet;
+                });
+            }
+        };
+
+        window.addEventListener('search-summary-updated', handleSearchSummaryUpdated);
+
+        return () => {
+            window.removeEventListener('search-summary-updated', handleSearchSummaryUpdated);
+        };
+    }, [updateFileSummary]);
     // Handle search term removal
+    useEffect(() => {
+        const handleAutoProcessingComplete = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey, hasSearchResults } = customEvent.detail || {};
+
+            if (fileKey && hasSearchResults) {
+                console.log(`[SearchSidebar] Auto-processing with search completed for file: ${fileKey}`);
+
+                // Short delay to ensure all search results are properly processed
+                setTimeout(() => {
+                    // Get fresh stats after search has completed
+                    const currentStats = getSearchResultsStats();
+
+                    // Check if this file has matches
+                    const fileMatches = currentStats.fileMatches.get(fileKey);
+                    if (fileMatches && fileMatches > 0) {
+                        // Add to searched files if not already there
+                        if (!searchedFilesRef.current.has(fileKey)) {
+                            searchedFilesRef.current.add(fileKey);
+                            setSearchedFilesCount(searchedFilesRef.current.size);
+                        }
+
+                        // Create or update file summary
+                        const file = files.find(f => getFileKey(f) === fileKey);
+                        if (file) {
+                            // Get page matches
+                            const pageMatches = currentStats.pageMatches.get(fileKey) || new Map();
+
+                            const summary = {
+                                fileKey,
+                                fileName: file.name,
+                                matchCount: fileMatches,
+                                pageMatches: Object.fromEntries(pageMatches)
+                            };
+
+                            // Update file summary
+                            updateFileSummary(summary);
+
+                            // Ensure the file summary is expanded
+                            setExpandedFileSummaries(prev => {
+                                const newSet = new Set(prev);
+                                newSet.add(fileKey);
+                                return newSet;
+                            });
+                        }
+                    }
+                }, 300); // Slightly longer delay for auto-processing completion
+            }
+        };
+
+        window.addEventListener('auto-processing-complete', handleAutoProcessingComplete);
+
+        return () => {
+            window.removeEventListener('auto-processing-complete', handleAutoProcessingComplete);
+        };
+    }, [files, getSearchResultsStats, updateFileSummary]);
     const removeSearchTerm = (term: string) => {
+        // First, call the existing clearSearch method from BatchSearchContext
         clearSearch(term);
-        // Refocus the search input after removing a search term
+        summaryPersistenceStore.removeSearchQuery(term);
+        // After a short delay to allow BatchSearchContext to update
         setTimeout(() => {
+            // Refocus the search input
             searchInputRef.current?.focus();
-           files.forEach(file => { removeHighlightsByText(file.name, term); });
-        }, 0);
+
+            // Get fresh search statistics after term removal
+            const currentStats = getSearchResultsStats();
+
+            // Update file summaries based on current search results
+            setFileSummaries(prev => {
+                const updatedSummaries: SearchFileSummary[] = [];
+                const filesToRemove: string[] = [];
+
+                // Process each existing summary
+                prev.forEach(summary => {
+                    const fileKey = summary.fileKey;
+                    const fileName = summary.fileName;
+
+                    // Check if this file still has matches
+                    const matchCount = currentStats.fileMatches.get(fileKey) || 0;
+
+                    if (matchCount > 0) {
+                        // File still has matches, update the summary
+                        const pageMatches = currentStats.pageMatches.get(fileKey) || new Map();
+
+                        updatedSummaries.push({
+                            fileKey,
+                            fileName,
+                            matchCount,
+                            pageMatches: Object.fromEntries(pageMatches)
+                        });
+                    } else {
+                        // No matches left, mark for removal
+                        filesToRemove.push(fileKey);
+                    }
+                });
+
+                // Save updated summaries to persistence
+                if (updatedSummaries.length > 0 || updatedSummaries.length !== prev.length) {
+                    summaryPersistenceStore.saveFileSummaries('search', updatedSummaries);
+                }
+
+                // Update analyzed files if needed
+                if (filesToRemove.length > 0) {
+                    filesToRemove.forEach(fileKey => {
+                        searchedFilesRef.current.delete(fileKey);
+                    });
+
+                    // Update counter
+                    setSearchedFilesCount(searchedFilesRef.current.size);
+                    summaryPersistenceStore.saveAnalyzedFiles('search', searchedFilesRef.current);
+                }
+
+                return updatedSummaries;
+            });
+
+            // Remove highlights for this term from all files
+            files.forEach(file => {
+                removeHighlightsByText(getFileKey(file), term);
+            });
+        }, 50); // Short delay to ensure BatchSearchContext has updated
     };
 
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -193,6 +549,16 @@ const SearchSidebar: React.FC = () => {
     const handleClearAllSearches = () => {
         clearAllSearches();
         setTempSearchTerm('');
+
+        // Clear search summaries and counters
+        setFileSummaries([]);
+        searchedFilesRef.current.clear();
+        setSearchedFilesCount(0);
+
+        // Clear from persistence
+        summaryPersistenceStore.saveFileSummaries('search', []);
+        summaryPersistenceStore.saveAnalyzedFiles('search', new Set());
+
         // Refocus the search input after clearing all searches
         setTimeout(() => {
             searchInputRef.current?.focus();
@@ -207,7 +573,7 @@ const SearchSidebar: React.FC = () => {
             initialPatternFetchAttemptedRef.current = true;
             getSearchPatterns();
         }
-    }, [userDataLoading]); // Only depends on loading state
+    }, [userDataLoading, getSearchPatterns]); // Added getSearchPatterns to dependencies
 
     // Add a special method to load and apply all default search terms
     const applyAllDefaultSearchTerms = useCallback(async () => {
@@ -261,11 +627,45 @@ const SearchSidebar: React.FC = () => {
             if (addedCount > 0) {
                 setSuccessMessage(`Added ${addedCount} default search ${addedCount === 1 ? 'term' : 'terms'}`);
                 setTimeout(() => setSuccessMessage(null), 3000);
+
+                // Update search summaries after a delay to allow search to complete
+                setTimeout(() => {
+                    // Get fresh stats after search has completed
+                    const currentStats = getSearchResultsStats();
+
+                    // Update file summaries based on search results
+                    currentStats.fileMatches.forEach((matchCount, fileKey) => {
+                        // Add to searched files
+                        if (!searchedFilesRef.current.has(fileKey)) {
+                            searchedFilesRef.current.add(fileKey);
+                        }
+
+                        // Create or update file summary
+                        const file = files.find(f => getFileKey(f) === fileKey);
+                        if (file) {
+                            // Get page matches
+                            const pageMatches = currentStats.pageMatches.get(fileKey) || new Map();
+
+                            const summary: SearchFileSummary = {
+                                fileKey,
+                                fileName: file.name,
+                                matchCount,
+                                pageMatches: Object.fromEntries(pageMatches)
+                            };
+
+                            // Update file summary
+                            updateFileSummary(summary);
+                        }
+                    });
+
+                    // Update counter
+                    setSearchedFilesCount(searchedFilesRef.current.size);
+                }, 300);
             }
         } else {
             setLocalSearchError('No default search terms available');
         }
-    }, [searchPatterns, activeQueries, batchSearch, getFilesToProcess]);
+    }, [searchPatterns, activeQueries, batchSearch, getFilesToProcess, getSearchResultsStats, files, updateFileSummary]);
 
     // Create a function to focus the search input
     const focusSearchInput = useCallback(() => {
@@ -348,7 +748,6 @@ const SearchSidebar: React.FC = () => {
             window.removeEventListener('execute-search', handleSearchRequest);
         };
     }, [focusSearchInput, tempSearchTerm, addSearchTerm, applyAllDefaultSearchTerms]);
-
 
     // Set error from API if available
     useEffect(() => {
@@ -488,7 +887,7 @@ const SearchSidebar: React.FC = () => {
         }
 
         return overallIndex;
-    }, [resultNavigation, resultNavigation.results.length]);
+    }, [resultNavigation]);
 
     // Handle right click on search term
     const handleSearchTermRightClick = (e: React.MouseEvent, term: string) => {
@@ -617,9 +1016,9 @@ const SearchSidebar: React.FC = () => {
         <div className="search-sidebar">
             <div className="sidebar-header search-header">
                 <h3>Search</h3>
-                {activeQueries.length > 0 && (
-                    <div className="search-badge">
-                        {searchStats.totalMatches} matches
+                {searchedFilesCount > 0 && (
+                    <div className="entity-badge">
+                        {searchedFilesCount} file{searchedFilesCount !== 1 ? 's' : ''} searched
                     </div>
                 )}
             </div>
@@ -815,15 +1214,17 @@ const SearchSidebar: React.FC = () => {
                     )}
 
                     <div className="search-results-list">
-                        {searchStats.totalMatches === 0 ? (
+                        {searchStats.totalMatches === 0 && fileSummaries.length === 0 ? (
                             <div className="no-results">No results found</div>
                         ) : (
-                            // Display results grouped by file
-                            Array.from(searchStats.fileMatches.entries()).map(([fileKey, fileCount]) => {
-                                // Find the corresponding file name
-                                const file = files.find(f => getFileKey(f) === fileKey);
-                                const fileName = file ? file.name : fileKey;
-                                const pageMatches = searchStats.pageMatches.get(fileKey) || new Map();
+                            // Display results grouped by file - use file summaries for display
+                            fileSummaries.map(summary => {
+                                const fileKey = summary.fileKey;
+                                const fileName = summary.fileName;
+                                const matchCount = summary.matchCount;
+                                const pageMatches = typeof summary.pageMatches === 'object' ?
+                                    new Map(Object.entries(summary.pageMatches).map(([k, v]) => [parseInt(k), v])) :
+                                    new Map();
                                 const isExpanded = expandedFileSummaries.has(fileKey);
 
                                 return (
@@ -835,7 +1236,7 @@ const SearchSidebar: React.FC = () => {
                                             <div className="file-summary-title">
                                                 <span className="file-name">{fileName}</span>
                                                 <span className="result-count-badge">
-                                                    {fileCount} matches
+                                                    {matchCount} matches
                                                 </span>
                                             </div>
                                             <div className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>
@@ -863,7 +1264,6 @@ const SearchSidebar: React.FC = () => {
                                                                     <button
                                                                         className="nav-button"
                                                                         onClick={(e) => {
-                                                                            console.log("Button fired");
                                                                             e.stopPropagation();
                                                                             navigateToPage(fileKey, pageNum);
                                                                         }}

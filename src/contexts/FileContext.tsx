@@ -3,10 +3,10 @@ import { getFileKey } from './PDFViewerContext';
 import { autoProcessManager } from '../managers/AutoProcessManager';
 import pdfStorageService from '../services/PDFStorageService';
 import { pdfjs } from 'react-pdf';
-import { StorageStats } from '../types/pdfTypes';
-import useSettings from "../hooks/settings/useSettings";
-import { useHighlightStore } from "../hooks/useHighlightStore";
+import { StorageStats } from '../types';
+import { useHighlightStore } from "./HighlightStoreContext";
 import processingStateService from "../services/ProcessingStateService";
+import summaryPersistenceStore from "../store/SummaryPersistenceStore";
 
 // Ensure PDF.js worker is loaded
 const loadPdfWorker = () => {
@@ -105,7 +105,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Ref to track storage loading attempts
     const storageLoadAttempted = useRef<boolean>(false);
-    const { settings, isLoading: userSettingsLoading } = useSettings();
+
     // Initialize PDF.js worker first
     useEffect(() => {
         const initializeWorker = async () => {
@@ -159,12 +159,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         initStorageSettings().then();
     }, []);
 
-    // Force-clear session storage key on mount to ensure we try loading
-    useEffect(() => {
-        // Remove any existing session storage flag that might block loading
-        sessionStorage.removeItem('pdf-storage-loading-attempted');
-        console.log('🧹 [FileContext] Cleared session storage loading flag on mount');
-    }, []);
 
     // Load files from storage - using a separate effect with fewer dependencies
     useEffect(() => {
@@ -408,8 +402,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (processingQueue.current.length > 0) {
                     setQueueTrigger(prev => prev + 1);
                 }
-            }, 30000); // 30 second timeout
-
+            }, 60000 * 10); // 10 min
             return () => clearTimeout(timeoutId);
         }
     }, [queueTrigger]);
@@ -445,10 +438,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setCurrentFile(file);
             }
 
-            // Add to active files automatically
-            addToActiveFiles(file);
-
-            // SIMPLIFIED LOGIC: Always queue file for auto-processing
+            // Always queue file for auto-processing
             // The AutoProcessManager will handle the decision about whether to process it
             processingQueue.current.push(file);
             setQueueTrigger(prev => prev + 1);
@@ -572,10 +562,15 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Notify of file removal via event
             processingStateService.removeFile(fileKey);
 
-            // Dispatch an additional explicit event for comprehensive notification
+            // Clear file from persistence store summaries
+            summaryPersistenceStore.removeFileFromSummaries('entity', fileKey);
+            summaryPersistenceStore.removeFileFromSummaries('search', fileKey);
+
+            // Dispatch a more detailed event for comprehensive notification
             window.dispatchEvent(new CustomEvent('file-removed', {
                 detail: {
                     fileKey,
+                    fileName: removedFile.name,
                     timestamp: Date.now()
                 }
             }));

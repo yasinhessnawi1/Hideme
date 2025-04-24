@@ -1,15 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Highlighter, Trash2, X } from 'lucide-react';
 import { useHighlightStore } from '../../../hooks/useHighlightStore';
-import { HighlightRect } from '../../../types/pdfTypes';
-import { useBatchSearch } from '../../../contexts/SearchContext';
+import { HighlightRect } from '../../../types';
 import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
 import { SearchHighlightProcessor } from '../../../managers/SearchHighlightProcessor';
 import '../../../styles/modules/pdf/HighlightContextMenu.css';
-import {HighlightType} from "../../../types";
 import {SearchResult} from "../../../services/BatchSearchService";
+import {getCorrectedBoundingBox} from "../../../utils/utilities";
 
 interface HighlightContextMenuProps {
     highlight: HighlightRect;
@@ -18,32 +17,6 @@ interface HighlightContextMenuProps {
     zoomLevel?: number;
 }
 
-function getCorrected(highlight: HighlightRect) {
-    let boundingBox = null;
-    // Get the bounding box from the current highlight
-    if (highlight.type === 'SEARCH') {
-        return {
-            x0: highlight.x + 4,
-            y0: highlight.y + 3,
-            x1: ((highlight.x + 4) + highlight.w) - 1,
-            y1: (highlight.y + 3) + highlight.h
-        };
-    } else if (highlight.type === 'ENTITY') {
-        return {
-            x0: highlight.x + 5,
-            y0: highlight.y + 5,
-            x1: ((highlight.x + 5) + highlight.w) - 3,
-            y1: ((highlight.y + 5) + highlight.h) - 5
-        };
-    } else {
-        return {
-            x0: highlight.x,
-            y0: highlight.y,
-            x1: (highlight.x + highlight.w),
-            y1: (highlight.y + highlight.h)
-        };
-    }
-}
 
 const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                                                                        highlight,
@@ -54,10 +27,8 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
     const menuRef = useRef<HTMLDivElement>(null);
     const {
         removeHighlight,
-        removeHighlightsByProperty,
         removeHighlightsByPropertyFromAllFiles,
         removeHighlightsByPosition,
-        removeMultipleHighlights
     } = useHighlightStore();
     const { files, selectedFiles } = useFileContext();
     const { runFindWords } = usePDFApi();
@@ -113,7 +84,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             console.log(`[HighlightContextMenu] Deleting all occurrences of text "${textToDelete}"`);
 
             // Get the bounding box from the current highlight
-            const boundingBox = getCorrected(highlight);
+            const boundingBox = getCorrectedBoundingBox(highlight);
 
             // Use the runFindWords function to find all occurrences across files
             const filesToSearch = selectedFiles.length > 0 ? selectedFiles : files;
@@ -124,14 +95,12 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             );
 
             // Process the results and delete highlights by position
-            if (findWordsResponse && findWordsResponse.file_results) {
+            if (findWordsResponse?.file_results) {
                 let totalDeleted = 0;
 
                 // Process each file's results
                 for (const fileResult of findWordsResponse.file_results) {
                     if (fileResult.status !== 'success' || !fileResult.results?.pages) continue;
-
-                    const fileKey = fileResult.file;
 
                     // Process all matches across pages
                     for (const page of fileResult.results.pages) {
@@ -145,7 +114,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                             const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
                             // Use the improved removeHighlightsByPosition method
                             const result = await removeHighlightsByPosition(
-                                files,
+                                allFiles,
                                 x0,
                                 y0,
                                 x1,
@@ -187,7 +156,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
         }
 
         try {
-            const textToHighlight = highlight.text || highlight.entity || '';
+            const textToHighlight = highlight.text ?? highlight.entity ?? '';
 
             if (!textToHighlight) {
                 alert("No text content found to highlight.");
@@ -196,7 +165,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             }
 
             console.log(`[HighlightContextMenu] Highlighting all occurrences of "${textToHighlight}"`);
-            let boundingBox = getCorrected(highlight);
+            let boundingBox = getCorrectedBoundingBox(highlight);
 
             // Use the runFindWords function to find all occurrences
             const findWordsResponse = await runFindWords(
@@ -206,7 +175,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             );
 
             // Process the results using the SearchHighlightProcessor
-            if (findWordsResponse && findWordsResponse.file_results) {
+            if (findWordsResponse?.file_results) {
                 let totalCount = 0;
 
                 // Process each file's results
@@ -237,7 +206,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                                 text: textToHighlight,
                                 fileKey,
                                 color: highlight.color,
-                                opacity: highlight.opacity || 0.4,
+                                opacity: highlight.opacity ?? 0.4,
                                 type: highlight.type,
                             });
                         }
@@ -315,7 +284,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
     }, [highlight]);
 
     // Only show text-specific options if highlight has text
-    const showTextOptions = !!highlight.text;
+    const showTextOptions = highlight.type === 'SEARCH' || highlight.type === 'ENTITY';
     // Check if this is an entity highlight
     const isEntityHighlight = highlight.type === 'ENTITY';
 
@@ -372,6 +341,8 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                     <Trash2 size={16}/>
                     <span>Delete</span>
                 </div>
+                { showTextOptions && (
+                    <>
 
                 {/* Delete options based on highlight type */}
                 {isEntityHighlight && (
@@ -390,6 +361,8 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                     <Highlighter size={16}/>
                     <span>Highlight All Same</span>
                 </div>
+                    </>
+                )}
 
                 {highlight.entity && (
                     <div className="context-menu-item-info" style={{

@@ -7,6 +7,8 @@ import MultiFileUploader from './pdf_component/MultiFileUploader';
 import {X} from 'lucide-react';
 import '../../styles/modules/pdf/PdfViewer.css';
 import scrollingService from '../../services/UnifiedScrollingService';
+import SummaryPersistenceStore from "../../store/SummaryPersistenceStore";
+import {useBatchSearch} from "../../contexts/SearchContext";
 
 // Wrapper component for PDF file container that only re-renders when necessary
 const PDFFileContainer = memo(({
@@ -64,6 +66,7 @@ const MultiPDFRenderer: React.FC = () => {
     } = useFileContext();
     const { removeAllHighlights , removeHighlightsByType} = useHighlightStore();
     const { mainContainerRef } = usePDFViewerContext();
+    const {clearSearch, getSearchQueries} = useBatchSearch();
 
 
     // State
@@ -174,6 +177,11 @@ const MultiPDFRenderer: React.FC = () => {
                     }
                 }));
             }
+            getSearchQueries().forEach(query => {
+                clearSearch(query);
+            });
+            SummaryPersistenceStore.removeFileFromSummaries("entity" ,file.name);
+            SummaryPersistenceStore.removeFileFromSummaries("search" ,file.name);
         } catch (error) {
             console.error("[MultiPDFRenderer] Error removing file:", error);
         }

@@ -79,13 +79,6 @@ const HighlightLayerFactory: React.FC<HighlightLayerFactoryProps> = ({
     const renderEntityLayer = showEntityHighlights && entityHighlights.length > 0;
     const renderManualLayer = showManualHighlights && manualHighlights.length > 0;
 
-    //debug
-    useEffect(() => {
-        console.log(`[HighlightLayerFactory] Page ${pageNumber}, File ${safeFileKey}`);
-        console.log(`Search highlights:`, searchHighlights);
-        console.log(`Entity highlights:`, entityHighlights);
-        console.log(`Manual highlights:`, manualHighlights);
-    }, [searchHighlights, entityHighlights, manualHighlights]);
     return (
         <div
             className="highlight-layer-factory"

@@ -14,7 +14,7 @@ import {
     FaEraser
 } from 'react-icons/fa';
 import { useFileContext } from '../../../contexts/FileContext';
-import { usePDFViewerContext } from '../../../contexts/PDFViewerContext';
+import {getFileKey, usePDFViewerContext} from '../../../contexts/PDFViewerContext';
 import { useEditContext } from '../../../contexts/EditContext';
 import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
 import { HighlightType } from '../../../types/pdfTypes';
@@ -337,23 +337,83 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const handleClearAllHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (window.confirm('Are you sure you want to clear all highlights?')) {
-             removeAllHighlights();
+            // Remove all highlights
+            removeAllHighlights();
+
+            // Update summaries after all highlights are removed
+            if (currentFile) {
+                const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
+                allFiles.forEach(file => {
+                    const fileKey = getFileKey(file);
+                    window.dispatchEvent(new CustomEvent('highlights-cleared', {
+                        detail: {
+                            fileKey,
+                            allTypes: true,
+                            timestamp: Date.now()
+                        }
+                    }));
+                });
+
+            }
+
         }
+
     };
+
+
 
     const handleClearManualHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
-       removeAllHighlightsByType(HighlightType.MANUAL);
-    };
+
+            removeAllHighlightsByType(HighlightType.MANUAL);
+            const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
+            // Dispatch event for manual highlights cleared
+           allFiles.forEach(file => {
+                const fileKey = getFileKey(file);
+                window.dispatchEvent(new CustomEvent('highlights-cleared', {
+                    detail: {
+                        fileKey,
+                        allTypes: false,
+                        timestamp: Date.now()
+                    }
+                }));
+            });
+
+        }
+
 
     const handleClearSearchHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
-        removeAllHighlightsByType(HighlightType.SEARCH);
+      removeAllHighlightsByType(HighlightType.SEARCH);
+        const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
+        // Dispatch event for search highlights cleared
+        allFiles.forEach(file => {
+            const fileKey = getFileKey(file);
+            window.dispatchEvent(new CustomEvent('search-highlights-cleared', {
+                detail: {
+                    fileKey,
+                    allTypes: false,
+                    timestamp: Date.now()
+                }
+            }));
+        });
     };
 
     const handleClearEntityHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
-        removeAllHighlightsByType(HighlightType.ENTITY);
+      removeAllHighlightsByType(HighlightType.ENTITY);
+        const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
+        // Dispatch event for entity highlights cleared
+        allFiles.forEach(file => {
+            const fileKey = getFileKey(file);
+            window.dispatchEvent(new CustomEvent('entity-highlights-cleared', {
+                detail: {
+                    fileKey,
+                    allTypes: false,
+                    timestamp: Date.now()
+                }
+            }));
+        });
     };
 
     // Handle color change

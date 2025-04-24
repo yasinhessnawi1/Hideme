@@ -165,7 +165,6 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
     }, [currentFile]);
 
-    // IMPROVEMENT: Replace the old scrollToPage with the unified scrolling service
     const scrollToPage = useCallback((pageNumber: number, fileKey?: string) => {
         // Get the file key to use
         const targetFileKey = fileKey ?? (currentFile ? getFileKey(currentFile) : null);

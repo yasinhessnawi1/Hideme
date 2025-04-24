@@ -1,6 +1,7 @@
 import { HighlightRect, HighlightType } from '../types';
 import { highlightStore } from '../store/HighlightStore';
 import processingStateService from '../services/ProcessingStateService';
+import summaryPersistenceStore from '../store/SummaryPersistenceStore';
 
 /**
  * Processes entity detection results into highlights
@@ -77,6 +78,34 @@ export class EntityHighlightProcessor {
         const highlightIds = await highlightStore.addMultipleHighlights(allHighlights);
 
         console.log(`[EntityHighlightProcessor] Added ${highlightIds.length} entity highlights for ${fileKey}`);
+
+        // Update the file in the persistence store
+        try {
+            // Track this file as analyzed in the persistence store
+            summaryPersistenceStore.addAnalyzedFile('entity', fileKey);
+
+            // If detection result has summary data, store it in the persistence service
+            if (detectionResult.entities_detected && detectionResult.performance) {
+                // Get the filename from the first page if available
+                let fileName = fileKey;
+                if (mapping.pages && mapping.pages.length > 0 && mapping.pages[0].file_name) {
+                    fileName = mapping.pages[0].file_name;
+                }
+
+                // Create and save the file summary
+                const summary = {
+                    fileKey,
+                    fileName,
+                    entities_detected: detectionResult.entities_detected,
+                    performance: detectionResult.performance
+                };
+
+                summaryPersistenceStore.updateFileSummary('entity', summary);
+                console.log(`[EntityHighlightProcessor] Updated entity summary for ${fileKey} in persistence store`);
+            }
+        } catch (error) {
+            console.error('[EntityHighlightProcessor] Error updating persistence store:', error);
+        }
 
         // If this is from auto-processing, dispatch an event with the detection result
         // for other components like EntityDetectionSidebar to update their state
