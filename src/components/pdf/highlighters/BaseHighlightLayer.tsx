@@ -63,8 +63,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
     // Handle double-click to delete
     const handleHighlightDoubleClick = useCallback((e: React.MouseEvent, highlight: HighlightRect) => {
         e.stopPropagation();
-        if (!isEditingMode) return;
-            removeHighlight(highlight.id);
+         removeHighlight(highlight.id);
     }, [isEditingMode, removeHighlight]);
 
     // Handle mouse enter for hover tooltip
