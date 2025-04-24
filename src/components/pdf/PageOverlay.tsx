@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useEditContext } from '../../contexts/EditContext';
 import { ManualHighlightProcessor } from '../../managers/ManualHighlightProcessor';
-import { PDFPageViewport } from '../../types/pdfTypes';
+import { PDFPageViewport, HighlightCreationMode } from '../../types/pdfTypes';
 
 interface PageOverlayProps {
     pageNumber: number;
@@ -16,18 +16,20 @@ interface PageOverlayProps {
         scaleY: number;
     };
     fileKey?: string; // Optional file key for multi-file support
+    highlightingMode: HighlightCreationMode; // Current highlighting mode
 }
 
 /**
  * Component for handling manual highlight creation through mouse interactions
- * Updated to use the ManualHighlightProcessor
+ * Updated to use the ManualHighlightProcessor and support different highlighting modes
  */
 const PageOverlay: React.FC<PageOverlayProps> = ({
                                                      pageNumber,
                                                      viewport,
                                                      isEditingMode,
                                                      pageSize,
-                                                     fileKey
+                                                     fileKey,
+                                                     highlightingMode
                                                  }) => {
     const { highlightColor } = useEditContext();
 
@@ -36,9 +38,12 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
     const [selectionEnd, setSelectionEnd] = useState<{x: number; y: number} | null>(null);
     const [isSelecting, setIsSelecting] = useState(false);
 
+    // Only handle rectangular selection in this component
+    const isRectangularMode = highlightingMode === HighlightCreationMode.RECTANGULAR;
+
     // Mousedown handling
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
-        if (!isEditingMode) return;
+        if (!isEditingMode || !isRectangularMode) return;
 
         // Avoid capturing text selections
         const selection = window.getSelection();
@@ -57,11 +62,11 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
         // Prevent event propagation
         e.stopPropagation();
         e.preventDefault();
-    }, [isEditingMode]);
+    }, [isEditingMode, isRectangularMode]);
 
     // Mouse move handling
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
-        if (!isSelecting || !selectionStart) return;
+        if (!isSelecting || !selectionStart || !isRectangularMode) return;
 
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -69,11 +74,11 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
 
         setSelectionEnd({x, y});
         e.preventDefault();
-    }, [isSelecting, selectionStart]);
+    }, [isSelecting, selectionStart, isRectangularMode]);
 
     // Mouse up handling
     const handleMouseUp = useCallback((e: React.MouseEvent) => {
-        if (!isSelecting || !selectionStart || !selectionEnd) {
+        if (!isSelecting || !selectionStart || !selectionEnd || !isRectangularMode) {
             setIsSelecting(false);
             return;
         }
@@ -92,15 +97,26 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
             if (width > 2 && height > 2) {
                 const safeFileKey = fileKey || '_default';
 
+                // Account for current zoom level
+                const zoomFactor = viewport.scale || 1;
+
+                // Convert coordinates to unzoomed values
+                const unzoomedStartX = startX / zoomFactor;
+                const unzoomedStartY = startY / zoomFactor;
+                const unzoomedEndX = endX / zoomFactor;
+                const unzoomedEndY = endY / zoomFactor;
+
                 // Create highlight using the processor
                 ManualHighlightProcessor.createRectangleHighlight(
                     safeFileKey,
                     pageNumber,
-                    startX,
-                    startY,
-                    endX,
-                    endY,
-                    highlightColor
+                    unzoomedStartX,
+                    unzoomedStartY,
+                    unzoomedEndX,
+                    unzoomedEndY,
+                    highlightColor,
+                    undefined,
+                    HighlightCreationMode.RECTANGULAR
                 ).then(highlight => {
                     if (highlight) {
                         console.log(`[PageOverlay] Successfully created highlight with ID ${highlight.id}`);
@@ -117,7 +133,7 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
             setSelectionStart(null);
             setSelectionEnd(null);
         }
-    }, [selectionStart, selectionEnd, pageNumber, fileKey, highlightColor]);
+    }, [selectionStart, selectionEnd, pageNumber, fileKey, highlightColor, isRectangularMode, viewport.scale]);
 
     // Mouse leave handling
     const handleMouseLeave = useCallback(() => {
@@ -126,6 +142,12 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
         }
         setIsSelecting(false);
     }, [handleMouseUp, isSelecting, selectionStart, selectionEnd]);
+
+    // Only show cursor style for rectangular mode
+    const cursorStyle = isEditingMode && isRectangularMode ? 'crosshair' : 'default';
+
+    // Only capture pointer events in rectangular mode
+    const pointerEvents = isEditingMode && isRectangularMode ? 'auto' : 'none';
 
     return (
         <div
@@ -137,9 +159,9 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
                 width: `${pageSize.cssWidth}px`,
                 height: `${pageSize.cssHeight}px`,
                 transform: `translate(${pageSize.offsetX}px, ${pageSize.offsetY}px)`,
-                pointerEvents: isEditingMode ? 'auto' : 'none',
+                pointerEvents: pointerEvents,
                 zIndex: 15,
-                cursor: isEditingMode ? 'crosshair' : 'default',
+                cursor: cursorStyle,
                 willChange: 'transform',
             }}
             onMouseDown={handleMouseDown}
@@ -147,7 +169,7 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
         >
-            {isSelecting && selectionStart && selectionEnd && (
+            {isSelecting && selectionStart && selectionEnd && isRectangularMode && (
                 <div
                     className="selection-overlay"
                     style={{

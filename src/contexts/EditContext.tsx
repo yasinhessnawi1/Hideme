@@ -2,10 +2,13 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 import { OptionType, RedactionMapping } from '../types';
 import { useFileContext } from './FileContext';
 import { getFileKey } from './PDFViewerContext';
+import { HighlightCreationMode } from '../types/pdfTypes';
 
 interface EditContextProps {
     isEditingMode: boolean;
     setIsEditingMode: React.Dispatch<React.SetStateAction<boolean>>;
+    highlightingMode: HighlightCreationMode;
+    setHighlightingMode: React.Dispatch<React.SetStateAction<HighlightCreationMode>>;
     highlightColor: string;
     setHighlightColor: React.Dispatch<React.SetStateAction<string>>;
     searchQueries: string[];
@@ -62,6 +65,8 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { currentFile } = useFileContext();
 
     const [isEditingMode, setIsEditingMode] = useState(false);
+    // New state for highlighting mode
+    const [highlightingMode, setHighlightingMode] = useState<HighlightCreationMode>(HighlightCreationMode.RECTANGULAR);
     const [highlightColor, setHighlightColor] = useState('#00ff15');
     const [searchQueries, setSearchQueries] = useState<string[]>([]);
     const [isRegexSearch, setIsRegexSearch] = useState(false);
@@ -265,6 +270,8 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setShowSearchHighlights(true);
         setShowEntityHighlights(true);
         setShowManualHighlights(true);
+        // Reset highlighting mode to default
+        setHighlightingMode(HighlightCreationMode.RECTANGULAR);
     }, []);
 
     // Function to get color based on model
@@ -284,7 +291,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [presidioColor, glinerColor, geminiColor, hidemeColor]);
 
     const getSearchColor  = useCallback((): string => {
-       return searchColor;
+        return searchColor;
     }, [searchColor]);
 
     return (
@@ -292,6 +299,8 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
             value={{
                 isEditingMode,
                 setIsEditingMode,
+                highlightingMode,
+                setHighlightingMode,
                 highlightColor,
                 setHighlightColor,
                 searchQueries,
@@ -306,8 +315,8 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setSelectedAiEntities,
                 selectedGlinerEntities,
                 setSelectedGlinerEntities,
-               selectedHideMeEntities,
-              setSelectedHideMeEntities,
+                selectedHideMeEntities,
+                setSelectedHideMeEntities,
                 detectionMapping,
                 setDetectionMapping,
                 fileDetectionMappings,

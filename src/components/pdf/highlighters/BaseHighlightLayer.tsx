@@ -1,3 +1,6 @@
+// The issue is in how we adjust the position based on zoom level
+// Let's update the renderedHighlights calculation in BaseHighlightLayer.tsx
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { useHighlightStore } from '../../../hooks/useHighlightStore';
 import { useEditContext } from '../../../contexts/EditContext';
@@ -46,7 +49,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
         } else if (highlight.type === 'SEARCH'){
             return getSearchColor();
         }
-        return highlight.color;
+        return highlight.color as string;
     }, [getColorForModel, getSearchColor]);
 
     // Handle click on highlight
@@ -61,10 +64,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
     const handleHighlightDoubleClick = useCallback((e: React.MouseEvent, highlight: HighlightRect) => {
         e.stopPropagation();
         if (!isEditingMode) return;
-
-        if (window.confirm('Remove this highlight?')) {
             removeHighlight(highlight.id);
-        }
     }, [isEditingMode, removeHighlight]);
 
     // Handle mouse enter for hover tooltip
@@ -101,43 +101,66 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
         setContextMenuState(null);
     }, []);
 
-    // Render highlights
+    // Render highlights with proper zoom handling
     const renderedHighlights = useMemo(() => {
         if (highlights.length === 0) {
             return null;
         }
 
-        return highlights.map((highlight) => (
-            <div
-                key={`highlight-${highlight.id}`}
-                className={`highlight-rect ${layerClass}-highlight ${
-                    selectedHighlightId === highlight.id ? 'selected' : ''
-                }`}
-                style={{
-                    position: 'absolute',
-                    left: highlight.x * zoomLevel,
-                    top: highlight.y * zoomLevel,
-                    width: highlight.w * zoomLevel,
-                    height: highlight.h * zoomLevel,
-                    backgroundColor: getHighlightColor(highlight),
-                    opacity: highlight.opacity ?? 0.4,
-                    cursor: isEditingMode ? 'pointer' : 'default',
-                    border: selectedHighlightId === highlight.id ? '2px dashed #000' : '1px solid rgba(0,0,0,0.2)',
-                    pointerEvents: 'auto',
-                    boxSizing: 'border-box',
-                    borderRadius: '3px',
-                }}
-                onClick={(e) => handleHighlightClick(e, highlight)}
-                onDoubleClick={(e) => handleHighlightDoubleClick(e, highlight)}
-                onMouseEnter={(e) => handleHighlightMouseEnter(e, highlight)}
-                onMouseLeave={handleHighlightMouseLeave}
-                onContextMenu={(e) => handleContextMenu(e, highlight)}
-                data-highlight-id={highlight.id}
-                data-highlight-type={highlight.type}
-                data-highlight-file={highlight.fileKey || 'default'}
-                data-highlight-page={pageNumber}
-            />
-        ));
+        return highlights.map((highlight) => {
+            // For existing highlights that don't have originalX/Y/W/H properties,
+            // use the current values as the original values
+            if (highlight.originalX === undefined) {
+                highlight.originalX = highlight.x;
+            }
+            if (highlight.originalY === undefined) {
+                highlight.originalY = highlight.y;
+            }
+            if (highlight.originalW === undefined) {
+                highlight.originalW = highlight.w;
+            }
+            if (highlight.originalH === undefined) {
+                highlight.originalH = highlight.h;
+            }
+
+            // Calculate the scaled position and size based on zoom level
+            const scaledX = (highlight.originalX || highlight.x) * zoomLevel;
+            const scaledY = (highlight.originalY || highlight.y) * zoomLevel;
+            const scaledW = (highlight.originalW || highlight.w) * zoomLevel;
+            const scaledH = (highlight.originalH || highlight.h) * zoomLevel;
+
+            return (
+                <div
+                    key={`highlight-${highlight.id}`}
+                    className={`highlight-rect ${layerClass}-highlight ${
+                        selectedHighlightId === highlight.id ? 'selected' : ''
+                    }`}
+                    style={{
+                        position: 'absolute',
+                        left: scaledX,
+                        top: scaledY,
+                        width: scaledW,
+                        height: scaledH,
+                        backgroundColor: getHighlightColor(highlight),
+                        opacity: highlight.opacity ?? 0.4,
+                        cursor: isEditingMode ? 'pointer' : 'default',
+                        border: selectedHighlightId === highlight.id ? '2px dashed #000' : '1px solid rgba(0,0,0,0.2)',
+                        pointerEvents: 'auto',
+                        boxSizing: 'border-box',
+                        borderRadius: '3px',
+                    }}
+                    onClick={(e) => handleHighlightClick(e, highlight)}
+                    onDoubleClick={(e) => handleHighlightDoubleClick(e, highlight)}
+                    onMouseEnter={(e) => handleHighlightMouseEnter(e, highlight)}
+                    onMouseLeave={handleHighlightMouseLeave}
+                    onContextMenu={(e) => handleContextMenu(e, highlight)}
+                    data-highlight-id={highlight.id}
+                    data-highlight-type={highlight.type}
+                    data-highlight-file={highlight.fileKey || 'default'}
+                    data-highlight-page={pageNumber}
+                />
+            );
+        });
     }, [
         highlights,
         layerClass,
@@ -178,8 +201,8 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                     className="highlight-tooltip"
                     style={{
                         position: 'fixed',
-                        left: (hoveredAnnotation.annotation.x * zoomLevel) + 20,
-                        top: (hoveredAnnotation.annotation.y * zoomLevel) - 5,
+                        left: (hoveredAnnotation.annotation.originalX ? hoveredAnnotation.annotation.originalX * zoomLevel : hoveredAnnotation.annotation.x * zoomLevel) + 20,
+                        top: (hoveredAnnotation.annotation.originalY ? hoveredAnnotation.annotation.originalY * zoomLevel : hoveredAnnotation.annotation.y * zoomLevel) - 5,
                         backgroundColor: 'rgba(0, 0, 0, 1)',
                         color: 'white',
                         padding: '4px 8px',

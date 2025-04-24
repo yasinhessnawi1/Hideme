@@ -46,6 +46,11 @@ export enum HighlightType {
 /**
  * Highlight rectangle representing a highlight on a page
  */
+export enum HighlightCreationMode {
+    RECTANGULAR = 'RECTANGULAR',
+    TEXT_SELECTION = 'TEXT_SELECTION',
+}
+
 export interface HighlightRect {
     id: string;
     page: number;
@@ -53,15 +58,21 @@ export interface HighlightRect {
     y: number;
     w: number;
     h: number;
-    color: string;
+    color?: string;
     opacity?: number;
-    type: HighlightType;
-    entity?: string;
+    type?: HighlightType;
     text?: string;
-    fileKey: string;
+    entity?: string;
     model?: string;
+    fileKey?: string;
     timestamp?: number;
-    instanceId?: string;
+    // Add these properties to store original coordinates for proper scaling
+    originalX?: number;
+    originalY?: number;
+    originalW?: number;
+    originalH?: number;
+    // Add this to track which method was used to create the highlight
+    creationMode?: HighlightCreationMode;
 }
 
 /**

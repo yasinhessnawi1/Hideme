@@ -3,8 +3,9 @@ import { Page } from 'react-pdf';
 import { usePDFViewerContext } from '../../contexts/PDFViewerContext';
 import { useEditContext } from '../../contexts/EditContext';
 import PageOverlay from './PageOverlay';
+import TextSelectionHighlighter from './highlighters/TextSelectionHighlighter';
 import HighlightLayerFactory from './highlighters/HighlightLayerFactory';
-import { PDFPageViewport, TextContent } from '../../types/pdfTypes';
+import { PDFPageViewport, TextContent, HighlightCreationMode } from '../../types/pdfTypes';
 import { useViewportSize } from '../../hooks/useViewportSize';
 import scrollManager from '../../services/ScrollManagerService';
 
@@ -29,7 +30,7 @@ const PageRenderer: React.FC<PageRendererProps> = ({
         getFileActiveScrollPage
     } = usePDFViewerContext();
 
-    const { isEditingMode } = useEditContext();
+    const { isEditingMode, highlightingMode } = useEditContext();
 
     const [viewport, setViewport] = useState<PDFPageViewport | null>(null);
     const [textContent, setTextContent] = useState<TextContent | null>(null);
@@ -154,6 +155,10 @@ const PageRenderer: React.FC<PageRendererProps> = ({
     // Determine if this page is currently active
     const isPageActive = isActive();
 
+    // Determine which highlighting mode is active
+    const isTextSelectionMode = highlightingMode === HighlightCreationMode.TEXT_SELECTION;
+    const isRectangularMode = highlightingMode === HighlightCreationMode.RECTANGULAR;
+
     // For virtualization, we can optionally only render visible pages
     if (!isVisible && !isPageActive) {
         // Render a placeholder if not visible and not active
@@ -216,12 +221,24 @@ const PageRenderer: React.FC<PageRendererProps> = ({
 
             {viewport && textContent && (
                 <>
+                    {/* PageOverlay for rectangular highlighting */}
                     <PageOverlay
                         pageNumber={pageNumber}
                         viewport={viewport}
                         isEditingMode={isEditingMode}
                         pageSize={viewportSize}
                         fileKey={fileKey}
+                        highlightingMode={highlightingMode}
+                    />
+
+                    {/* TextSelectionHighlighter for text selection highlighting */}
+                    <TextSelectionHighlighter
+                        pageNumber={pageNumber}
+                        viewport={viewport}
+                        isEditingMode={isEditingMode}
+                        pageSize={viewportSize}
+                        fileKey={fileKey}
+                        isActive={isEditingMode && isTextSelectionMode}
                     />
 
                     <HighlightLayerFactory

@@ -234,6 +234,74 @@ const EntityDetectionSidebar: React.FC = () => {
             return updatedSummaries;
         });
     }, []);
+    useEffect(() => {
+        // Skip if no files or no summaries
+        if (files.length === 0) {
+            return;
+        }
+
+        // Reconcile our data with the SummaryPersistenceStore
+        const validFiles = files.map(getFileKey);
+        const validSearchedFiles = summaryPersistenceStore.reconcileAnalyzedFiles('entity', validFiles);
+
+        // Update local state if needed
+        if (analyzedFilesRef.current.size !== validSearchedFiles.size) {
+            analyzedFilesRef.current = validSearchedFiles;
+            setAnalyzedFilesCount(validSearchedFiles.size);
+        }
+
+        // Reconcile file summaries
+        const validSummaries = summaryPersistenceStore.reconcileFileSummaries<EntityFileSummary>('entity', files);
+
+        // Update local state if needed
+        if (validSummaries.length !== fileSummaries.length) {
+            setFileSummaries(validSummaries);
+        }
+    }, [files, fileSummaries.length]);
+
+    //  Listen forauto-processing completion events
+    useEffect(() => {
+        const handleAutoProcessingComplete = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey, hasEntityResults, detectionResult } = customEvent.detail || {};
+
+            if (fileKey && hasEntityResults) {
+                console.log(`[EntityDetectionSidebar] Auto-processing completed for file: ${fileKey}`);
+
+                // Add to our tracked files through the persistence store
+                summaryPersistenceStore.addAnalyzedFile('entity', fileKey);
+
+                // Update local reference
+                analyzedFilesRef.current = summaryPersistenceStore.getAnalyzedFiles('entity');
+                setAnalyzedFilesCount(analyzedFilesRef.current.size);
+
+                // Add file summary if detection result is provided
+                if (detectionResult) {
+                    const file = files.find(f => getFileKey(f) === fileKey);
+                    if (file) {
+                        const newSummary: EntityFileSummary = {
+                            fileKey,
+                            fileName: file.name,
+                            entities_detected: detectionResult.entities_detected,
+                            performance: detectionResult.performance
+                        };
+
+                        // Use the persistence store to update file summaries
+                        summaryPersistenceStore.updateFileSummary('entity', newSummary);
+
+                        // Update our local state
+                        updateFileSummary(newSummary);
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('auto-processing-complete', handleAutoProcessingComplete);
+
+        return () => {
+            window.removeEventListener('auto-processing-complete', handleAutoProcessingComplete);
+        };
+    }, [files, updateFileSummary]);
 
     // Listen for file removal events
     useEffect(() => {
@@ -287,6 +355,7 @@ const EntityDetectionSidebar: React.FC = () => {
             window.removeEventListener('file-removed', handleFileRemoved);
         };
     }, [currentFile, setDetectionMapping, expandedFileSummaries]);
+
 
     // Handle batch entity detection across multiple files
     const handleDetect = useCallback(async () => {
@@ -430,6 +499,26 @@ const EntityDetectionSidebar: React.FC = () => {
         currentFile,
         updateFileSummary
     ]);
+    // Listen for external detection triggers (e.g., from toolbar button)
+    useEffect(() => {
+        const handleExternalDetectionTrigger = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const {source, filesToProcess} = customEvent.detail || {};
+
+            console.log(`[EntityDetectionSidebar] Received external detection trigger from ${source}`);
+
+            // Run detection process
+            handleDetect();
+        };
+
+        // Add event listener
+        window.addEventListener('trigger-entity-detection-process', handleExternalDetectionTrigger);
+
+        // Clean up
+        return () => {
+            window.removeEventListener('trigger-entity-detection-process', handleExternalDetectionTrigger);
+        };
+    }, [handleDetect]);
 
     // Toggle file summary expansion
     const toggleFileSummary = useCallback((fileKey: string) => {
@@ -453,6 +542,258 @@ const EntityDetectionSidebar: React.FC = () => {
             .join(' ');
     }, []);
 
+
+    //subscribe to the Summary processor to be notified of file summary changes and apply them
+    useEffect(() => {
+        const handleHighlightsCleared = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey, allTypes, type } = customEvent.detail || {};
+
+            // Skip if not related to entity highlights
+            if (type && type !== HighlightType.ENTITY && !allTypes) return;
+
+            if (fileKey) {
+                console.log(`[EntityDetectionSidebar] Entity highlights cleared for file: ${fileKey}`);
+
+                // Update file summaries to reflect cleared highlights
+                setFileSummaries(prev => {
+                    // Remove summary for this file
+                    const updatedSummaries = prev.filter(summary => summary.fileKey !== fileKey);
+
+                    // Save the updated summaries
+                    summaryPersistenceStore.saveFileSummaries('entity', updatedSummaries);
+
+                    return updatedSummaries;
+                });
+
+                // Update the analyzed files count
+                if (analyzedFilesRef.current.has(fileKey)) {
+                    analyzedFilesRef.current.delete(fileKey);
+                    setAnalyzedFilesCount(analyzedFilesRef.current.size);
+
+                    // Update the persistence store
+                    summaryPersistenceStore.removeAnalyzedFile('entity', fileKey);
+                }
+
+                // Remove from expanded summaries if present
+                if (expandedFileSummaries.has(fileKey)) {
+                    setExpandedFileSummaries(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(fileKey);
+                        return newSet;
+                    });
+                }
+
+                // If this is the current file, also update the current detection mapping
+                if (currentFile && getFileKey(currentFile) === fileKey) {
+                    setDetectionMapping(null);
+                }
+
+            }
+        };
+
+        // Listen for both general highlights cleared and entity-specific events
+        window.addEventListener('highlights-cleared', handleHighlightsCleared);
+        window.addEventListener('entity-highlights-cleared', handleHighlightsCleared);
+
+        return () => {
+            window.removeEventListener('highlights-cleared', handleHighlightsCleared);
+            window.removeEventListener('entity-highlights-cleared', handleHighlightsCleared);
+        };
+    }, [currentFile, setDetectionMapping]);
+
+    // Improved entity loading with better error handling and retry mechanism
+    useEffect(() => {
+        // Skip if not authenticated or still loading authentication
+        if (!isAuthenticated || isUserLoading) {
+            return;
+        }
+
+        // Skip if already initialized
+        if (entitiesInitialized) {
+            return;
+        }
+
+        // Load entities for all methods in parallel
+        const loadAllEntities = async () => {
+            try {
+                console.log("[EntityDetectionSidebar] Loading all entity types");
+
+                // Define methods to load
+                const methodsToLoad = [
+                    {id: METHOD_ID_MAP.presidio, name: 'presidio'},
+                    {id: METHOD_ID_MAP.gliner, name: 'gliner'},
+                    {id: METHOD_ID_MAP.gemini, name: 'gemini'},
+                    {id: METHOD_ID_MAP.hideme, name: 'hideme'}
+                ];
+
+                // Create parallel load promises
+                const loadPromises = methodsToLoad.map(async (method) => {
+                    try {
+                        // Skip if already attempted
+                        if (loadAttemptedRef.current.has(method.id)) {
+                            return;
+                        }
+
+                        // Mark as attempted
+                        loadAttemptedRef.current.add(method.id);
+
+                        console.log(`[EntityDetectionSidebar] Loading ${method.name} entities (Method ID: ${method.id})`);
+                        return await getModelEntities(method.id);
+                    } catch (err) {
+                        console.error(`[EntityDetectionSidebar] Error loading ${method.name} entities:`, err);
+                        return null;
+                    }
+                });
+
+                // Wait for all loads to complete
+                await Promise.all(loadPromises);
+
+                // Mark initialization as complete
+                setEntitiesInitialized(true);
+                console.log("[EntityDetectionSidebar] All entity types loaded successfully");
+            } catch (err) {
+                console.error("[EntityDetectionSidebar] Error loading entities:", err);
+            }
+        };
+
+        loadAllEntities();
+    }, [isAuthenticated, isUserLoading, getModelEntities, entitiesInitialized]);
+
+    useEffect(() => {
+        if (!entitiesInitialized) return;
+
+        const applyModelEntities = () => {
+            console.log("[EntityDetectionSidebar] Applying model entities to selections");
+
+            // Helper to safely map entities to option types and handle ALL options
+            const getEntityOptions = (methodId: number, allOptions: OptionType[], allOptionValue: string) => {
+                const entities = modelEntities[methodId];
+                if (!entities || !Array.isArray(entities) || entities.length === 0) {
+                    return [];
+                }
+
+                // Create a set of entity texts for faster lookup
+                const entityTexts = new Set(entities.map(e => e.entity_text));
+
+                // Find matching options
+                const matchedOptions = allOptions.filter(option =>
+                    !option.value.startsWith('ALL_') && entityTexts.has(option.value)
+                );
+
+                // Check if all non-ALL options are selected
+                const nonAllOptions = allOptions.filter(option => !option.value.startsWith('ALL_'));
+
+                if (matchedOptions.length === nonAllOptions.length) {
+                    // If all options are selected, return just the ALL option
+                    const allOption = allOptions.find(option => option.value === allOptionValue);
+                    return allOption ? [allOption] : [];
+                }
+
+                return matchedOptions;
+            };
+
+            // Apply entities for each method
+            const presOptions = getEntityOptions(METHOD_ID_MAP.presidio, presidioOptions, 'ALL_PRESIDIO_P');
+            if (presOptions.length > 0) {
+                console.log(`[EntityDetectionSidebar] Setting ${presOptions.length} Presidio entities`);
+                setSelectedMlEntities(presOptions);
+            }
+
+            const glinerOpts = getEntityOptions(METHOD_ID_MAP.gliner, glinerOptions, 'ALL_GLINER');
+            if (glinerOpts.length > 0) {
+                console.log(`[EntityDetectionSidebar] Setting ${glinerOpts.length} Gliner entities`);
+                setSelectedGlinerEntities(glinerOpts);
+            }
+
+            const geminiOpts = getEntityOptions(METHOD_ID_MAP.gemini, geminiOptions, 'ALL_GEMINI');
+            if (geminiOpts.length > 0) {
+                console.log(`[EntityDetectionSidebar] Setting ${geminiOpts.length} Gemini entities`);
+                setSelectedAiEntities(geminiOpts);
+            }
+
+            const hidemeOpts = getEntityOptions(METHOD_ID_MAP.hideme, hidemeOptions, 'ALL_HIDEME');
+            if (hidemeOpts.length > 0) {
+                console.log(`[EntityDetectionSidebar] Setting ${hidemeOpts.length} Hideme entities`);
+                setSelectedHideMeEntities(hidemeOpts);
+            }
+        };
+
+        applyModelEntities();
+    }, [
+        modelEntities,
+        entitiesInitialized,
+        setSelectedMlEntities,
+        setSelectedGlinerEntities,
+        setSelectedAiEntities,
+        setSelectedHideMeEntities
+    ]);
+
+    // Synchronize with settings when they change
+    useEffect(() => {
+        if (!settings) return;
+
+        // Update detection threshold
+        if (settings.detection_threshold !== undefined) {
+            setDetectionThreshold(settings.detection_threshold);
+        }
+
+        // Update ban list usage setting
+        if (settings.use_banlist_for_detection !== undefined) {
+            setUseBanlist(settings.use_banlist_for_detection);
+        }
+    }, [settings]);
+
+    // Listen for settings changes through events
+    useEffect(() => {
+        const handleSettingsChange = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const {type, settings} = customEvent.detail || {};
+
+            // Only apply entity settings
+            if (type === 'entity' && settings) {
+                console.log('[EntityDetectionSidebar] Received entity settings change event');
+
+                // Apply appropriate entity settings if provided
+                if (settings.presidio) {
+                    setSelectedMlEntities(settings.presidio);
+                }
+
+                if (settings.gliner) {
+                    setSelectedGlinerEntities(settings.gliner);
+                }
+
+                if (settings.gemini) {
+                    setSelectedAiEntities(settings.gemini);
+                }
+
+                if (settings.hideme) {
+                    setSelectedHideMeEntities(settings.hideme);
+                }
+
+                // Apply detection threshold if provided
+                if (settings.detectionThreshold !== undefined) {
+                    setDetectionThreshold(settings.detectionThreshold);
+                }
+
+                // Apply ban list setting if provided
+                if (settings.useBanlist !== undefined) {
+                    setUseBanlist(settings.useBanlist);
+                }
+            }
+        };
+
+        window.addEventListener('settings-changed', handleSettingsChange as EventListener);
+
+        return () => {
+            window.removeEventListener('settings-changed', handleSettingsChange as EventListener);
+        };
+    }, [
+        setSelectedMlEntities,
+        setSelectedGlinerEntities,
+        setSelectedAiEntities,
+        setSelectedHideMeEntities
+    ]);
     // Format for entity type display (shortens if too long)
     const formatEntityDisplay = (entityType: string): string => {
         const formatted = formatEntityName(entityType);

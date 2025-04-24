@@ -11,13 +11,15 @@ import {
     FaUpload,
     FaSearch,
     FaMagic,
-    FaEraser
+    FaEraser,
+    FaDrawPolygon,
+    FaFont
 } from 'react-icons/fa';
 import { useFileContext } from '../../../contexts/FileContext';
 import {getFileKey, usePDFViewerContext} from '../../../contexts/PDFViewerContext';
 import { useEditContext } from '../../../contexts/EditContext';
 import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
-import { HighlightType } from '../../../types/pdfTypes';
+import { HighlightType, HighlightCreationMode } from '../../../types/pdfTypes';
 import pdfUtilityService from '../../../store/PDFUtilityStore';
 import '../../../styles/modules/pdf/Toolbar.css';
 
@@ -44,6 +46,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const {
         isEditingMode,
         setIsEditingMode,
+        highlightingMode,
+        setHighlightingMode,
         highlightColor,
         setHighlightColor,
         showSearchHighlights,
@@ -59,11 +63,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setGlinerColor,
         geminiColor,
         setGeminiColor,
+        hidemeColor,
+        setHidemeColor,
+        searchColor,
+        setSearchColor,
+        getSearchColor,
 
-        // Add entity detection settings
-        selectedMlEntities,
-        selectedAiEntities,
-        selectedGlinerEntities
     } = useEditContext();
 
     const {
@@ -76,9 +81,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const visibilityMenuRef = useRef<HTMLDivElement | null>(null);
     const settingsButtonRef = useRef<HTMLButtonElement | null>(null);
     const settingsMenuRef = useRef<HTMLDivElement | null>(null);
+    const editButtonRef = useRef<HTMLButtonElement | null>(null);
+    const editMenuRef = useRef<HTMLDivElement | null>(null);
 
     const [isVisibilityMenuOpen, setIsVisibilityMenuOpen] = useState(false);
     const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+    const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
 
     // Handle clicks outside our dropdowns
     useEffect(() => {
@@ -102,6 +110,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     setIsSettingsMenuOpen(false);
                 }
             }
+
+            // Check if edit menu should close
+            if (isEditMenuOpen) {
+                const isClickInsideEditButton = editButtonRef.current?.contains(event.target as Node) || false;
+                const isClickInsideEditMenu = editMenuRef.current?.contains(event.target as Node) || false;
+
+                if (!isClickInsideEditButton && !isClickInsideEditMenu) {
+                    setIsEditMenuOpen(false);
+                }
+            }
         };
 
         // Add the event listener to handle outside clicks
@@ -111,13 +129,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [isVisibilityMenuOpen, isSettingsMenuOpen]);
+    }, [isVisibilityMenuOpen, isSettingsMenuOpen, isEditMenuOpen]);
 
     // Toggle visibility menu
     const toggleVisibilityMenu = (e: React.MouseEvent) => {
         e.preventDefault();
         setIsVisibilityMenuOpen(!isVisibilityMenuOpen);
         setIsSettingsMenuOpen(false);
+        setIsEditMenuOpen(false);
     };
 
     // Toggle settings menu
@@ -125,6 +144,15 @@ const Toolbar: React.FC<ToolbarProps> = ({
         e.preventDefault();
         setIsSettingsMenuOpen(!isSettingsMenuOpen);
         setIsVisibilityMenuOpen(false);
+        setIsEditMenuOpen(false);
+    };
+
+    // Toggle edit menu
+    const toggleEditMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsEditMenuOpen(!isEditMenuOpen);
+        setIsVisibilityMenuOpen(false);
+        setIsSettingsMenuOpen(false);
     };
 
     // Handle file upload - modified to support multiple files
@@ -163,6 +191,17 @@ const Toolbar: React.FC<ToolbarProps> = ({
     // Mode toggles
     const toggleEditingMode = () => {
         setIsEditingMode(!isEditingMode);
+    };
+
+    // Highlighting mode selection
+    const setRectangularHighlightingMode = () => {
+        setHighlightingMode(HighlightCreationMode.RECTANGULAR);
+        setIsEditMenuOpen(false);
+    };
+
+    const setTextSelectionHighlightingMode = () => {
+        setHighlightingMode(HighlightCreationMode.TEXT_SELECTION);
+        setIsEditMenuOpen(false);
     };
 
     // State for action feedback
@@ -353,38 +392,31 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         }
                     }));
                 });
-
             }
-
         }
-
     };
-
-
 
     const handleClearManualHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
 
-            removeAllHighlightsByType(HighlightType.MANUAL);
-            const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
-            // Dispatch event for manual highlights cleared
-           allFiles.forEach(file => {
-                const fileKey = getFileKey(file);
-                window.dispatchEvent(new CustomEvent('highlights-cleared', {
-                    detail: {
-                        fileKey,
-                        allTypes: false,
-                        timestamp: Date.now()
-                    }
-                }));
-            });
-
-        }
-
+        removeAllHighlightsByType(HighlightType.MANUAL);
+        const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
+        // Dispatch event for manual highlights cleared
+        allFiles.forEach(file => {
+            const fileKey = getFileKey(file);
+            window.dispatchEvent(new CustomEvent('highlights-cleared', {
+                detail: {
+                    fileKey,
+                    allTypes: false,
+                    timestamp: Date.now()
+                }
+            }));
+        });
+    }
 
     const handleClearSearchHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
-      removeAllHighlightsByType(HighlightType.SEARCH);
+        removeAllHighlightsByType(HighlightType.SEARCH);
         const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
         // Dispatch event for search highlights cleared
         allFiles.forEach(file => {
@@ -401,7 +433,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     const handleClearEntityHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
-      removeAllHighlightsByType(HighlightType.ENTITY);
+        removeAllHighlightsByType(HighlightType.ENTITY);
         const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
         // Dispatch event for entity highlights cleared
         allFiles.forEach(file => {
@@ -427,6 +459,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setPresidioColor('#ffd771'); // Yellow
         setGlinerColor('#ff7171'); // Red
         setGeminiColor('#7171ff'); // Blue
+        setHidemeColor('#71ff71'); // Green
     };
 
     // Custom sidebar toggle icons
@@ -494,6 +527,29 @@ const Toolbar: React.FC<ToolbarProps> = ({
             </g>
         </svg>
     );
+
+    // Get icon and label for current highlighting mode
+    const getHighlightIcon = () => {
+        switch (highlightingMode) {
+            case HighlightCreationMode.RECTANGULAR:
+                return <FaDrawPolygon />;
+            case HighlightCreationMode.TEXT_SELECTION:
+                return <FaFont />;
+            default:
+                return <FaHighlighter />;
+        }
+    };
+
+    const getHighlightLabel = () => {
+        switch (highlightingMode) {
+            case HighlightCreationMode.RECTANGULAR:
+                return "Rectangle";
+            case HighlightCreationMode.TEXT_SELECTION:
+                return "Text";
+            default:
+                return "Highlight";
+        }
+    };
 
     return (
         <div className="enhanced-toolbar">
@@ -580,14 +636,57 @@ const Toolbar: React.FC<ToolbarProps> = ({
             </div>
 
             <div className="toolbar-section">
-                <button
-                    onClick={toggleEditingMode}
-                    className={`toolbar-button ${isEditingMode ? 'active' : ''}`}
-                    title="Toggle Editing Mode"
-                >
-                    <FaHighlighter/>
-                    <span className="button-label">Edit</span>
-                </button>
+                {/* Edit button with dropdown for highlight modes */}
+                <div className="toolbar-dropdown">
+                    <button
+                        ref={editButtonRef}
+                        onClick={toggleEditMenu}
+                        className={`toolbar-button ${isEditingMode ? 'active' : ''}`}
+                        title="Toggle Editing Mode"
+                    >
+                        {getHighlightIcon()}
+                        <span className="button-label">{getHighlightLabel()}</span>
+                    </button>
+
+                    {isEditMenuOpen && (
+                        <div
+                            className="dropdown-menu"
+                            ref={editMenuRef}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="dropdown-section">
+                                <h5 className="dropdown-title">Highlight Mode</h5>
+                                <div
+                                    className={`dropdown-item ${highlightingMode === HighlightCreationMode.RECTANGULAR ? 'active' : ''}`}
+                                    onClick={setRectangularHighlightingMode}
+                                >
+                                    <FaDrawPolygon size={16} />
+                                    <span>Rectangular Selection</span>
+                                </div>
+                                <div
+                                    className={`dropdown-item ${highlightingMode === HighlightCreationMode.TEXT_SELECTION ? 'active' : ''}`}
+                                    onClick={setTextSelectionHighlightingMode}
+                                >
+                                    <FaFont size={16} />
+                                    <span>Text Selection</span>
+                                </div>
+                                <div className="dropdown-divider"></div>
+                                <div className="dropdown-item">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleEditingMode();
+                                            setIsEditMenuOpen(false);
+                                        }}
+                                        className={isEditingMode ? 'active' : ''}
+                                    >
+                                        {isEditingMode ? 'Disable Editing' : 'Enable Editing'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 <div className="toolbar-dropdown">
                     <button
@@ -728,6 +827,28 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                     </label>
                                 </div>
                                 <div className="dropdown-item">
+                                    <label onClick={(e) => e.stopPropagation()}>
+                                        HideMe AI
+                                        <input
+                                            type="color"
+                                            value={hidemeColor}
+                                            onChange={(e) => setHidemeColor(e.target.value)}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </label>
+                                </div>
+                                <div className="dropdown-item">
+                                    <label onClick={(e) => e.stopPropagation()}>
+                                        Search
+                                        <input
+                                            type="color"
+                                            value={searchColor}
+                                            onChange={(e) => setSearchColor(e.target.value)}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </label>
+                                </div>
+                                <div className="dropdown-item">
                                     <button onClick={handleResetEntityColors}>Reset Entity Colors</button>
                                 </div>
                             </div>
@@ -781,7 +902,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 <div className={`notification-toast ${showNotification.type}`}>
                     <span>{showNotification.message}</span>
                     <button
-                        className="notification-close"
+                        className="notification-toast-close"
                         onClick={() => setShowNotification(null)}
                         aria-label="Close notification"
                     >

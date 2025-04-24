@@ -31,7 +31,6 @@ const MultiPDFRenderer: React.FC = () => {
         mainContainerRef,
         getFileNumPages
     } = usePDFViewerContext();
-    const [loadError, setLoadError] = useState<string | null>(null);
     // State for window dimensions
     const [dimensions, setDimensions] = useState({
         width: window.innerWidth,

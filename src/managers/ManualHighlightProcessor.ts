@@ -1,4 +1,4 @@
-import { HighlightRect, HighlightType } from '../types/pdfTypes';
+import { HighlightRect, HighlightType, HighlightCreationMode } from '../types/pdfTypes';
 import { highlightStore } from '../store/HighlightStore';
 
 /**
@@ -14,6 +14,8 @@ export class ManualHighlightProcessor {
      * @param endX End X coordinate
      * @param endY End Y coordinate
      * @param color Highlight color (hex)
+     * @param text Optional text content for the highlight
+     * @param creationMode The method used to create the highlight
      * @returns Promise resolving to the created highlight or null if invalid
      */
     static async createRectangleHighlight(
@@ -23,7 +25,9 @@ export class ManualHighlightProcessor {
         startY: number,
         endX: number,
         endY: number,
-        color: string = '#00ff15'
+        color: string = '#00ff15',
+        text?: string,
+        creationMode: HighlightCreationMode = HighlightCreationMode.RECTANGULAR
     ): Promise<HighlightRect | null> {
         // Calculate highlight rectangle dimensions
         const x = Math.min(startX, endX);
@@ -45,17 +49,24 @@ export class ManualHighlightProcessor {
             y,
             w,
             h,
+            // Store original coordinates for proper scaling with zoom
+            originalX: x,
+            originalY: y,
+            originalW: w,
+            originalH: h,
             color,
             opacity: 0.5,
             type: HighlightType.MANUAL,
             fileKey,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            creationMode,
+            text: text || undefined
         };
 
         // Add the highlight to the store
         const id = await highlightStore.addHighlight(highlight);
 
-        console.log(`[ManualHighlightProcessor] Created manual highlight ID ${id} at (${x},${y}) with size ${w}x${h} on page ${pageNumber} for file ${fileKey}`);
+        console.log(`[ManualHighlightProcessor] Created manual highlight ID ${id} at (${x},${y}) with size ${w}x${h} on page ${pageNumber} for file ${fileKey} using mode ${creationMode}`);
 
         // Update the highlight object with the assigned ID
         highlight.id = id;
