@@ -75,11 +75,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             // Determine which text to delete
             let textToDelete = highlight.text || highlight.entity || '';
 
-            if (!textToDelete) {
-                alert("No text content found to delete.");
-                onClose();
-                return;
-            }
+
 
             console.log(`[HighlightContextMenu] Deleting all occurrences of text "${textToDelete}"`);
 
@@ -158,11 +154,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
         try {
             const textToHighlight = highlight.text ?? highlight.entity ?? '';
 
-            if (!textToHighlight) {
-                alert("No text content found to highlight.");
-                onClose();
-                return;
-            }
+
 
             console.log(`[HighlightContextMenu] Highlighting all occurrences of "${textToHighlight}"`);
             let boundingBox = getCorrectedBoundingBox(highlight);
