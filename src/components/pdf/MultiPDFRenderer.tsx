@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FixedSizeList as List } from 'react-window';
-import { useFileContext } from '../../contexts/FileContext';
-import { getFileKey, usePDFViewerContext } from '../../contexts/PDFViewerContext';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useFileContext} from '../../contexts/FileContext';
+import {getFileKey, usePDFViewerContext} from '../../contexts/PDFViewerContext';
 import PDFDocumentWrapper from './PDFDocumentWrapper';
 import scrollManager from '../../services/ScrollManagerService';
+import MultiFileUploader from "./pdf_component/MultiFileUploader";
 
 /**
  * Virtual item renderer for PDF files
@@ -31,7 +31,7 @@ const MultiPDFRenderer: React.FC = () => {
         mainContainerRef,
         getFileNumPages
     } = usePDFViewerContext();
-
+    const [loadError, setLoadError] = useState<string | null>(null);
     // State for window dimensions
     const [dimensions, setDimensions] = useState({
         width: window.innerWidth,
@@ -40,7 +40,6 @@ const MultiPDFRenderer: React.FC = () => {
 
     // Refs for tracking file operations
     const fileChangeInProgressRef = useRef<boolean>(false);
-    const listRef = useRef<List | null>(null);
 
     // Calculate estimated file heights for virtualization
     const fileHeights = useMemo(() => {
@@ -58,11 +57,10 @@ const MultiPDFRenderer: React.FC = () => {
     }, [activeFiles, getFileNumPages]);
 
     // Total height of all files
-    const totalHeight = useMemo(() => {
+    useMemo(() => {
         return fileHeights.reduce((sum, height) => sum + height, 0);
     }, [fileHeights]);
-
-    // Function to find file index by key
+// Function to find file index by key
     const getFileIndex = useCallback((file: File) => {
         return files.findIndex(f =>
             f.name === file.name &&
@@ -107,9 +105,7 @@ const MultiPDFRenderer: React.FC = () => {
                 if (mainContainerRef.current) {
                     const positionToRestore = savedPosition ?? currentScrollPosition;
 
-                    if (typeof positionToRestore === "number") {
-                        mainContainerRef.current.scrollTop = positionToRestore;
-                    }
+                    mainContainerRef.current.scrollTop = positionToRestore;
 
                     console.log(`[VirtualizedPDFRenderer] Restored scroll position: ${positionToRestore} for file ${fileKey}`);
                 }
@@ -158,16 +154,15 @@ const MultiPDFRenderer: React.FC = () => {
     }, [getFileIndex, removeFile]);
 
     // Prepare data for the virtualized list
-    const itemData: FileItemData = useMemo(() => ({
+    useMemo(() => ({
         files: activeFiles,
         currentFile,
         onSelect: handleFileSelection,
         onRemove: handleRemoveFile
     }), [activeFiles, currentFile, handleFileSelection, handleRemoveFile]);
-
     // Render a file item in the virtualized list
-    const FileItem = useCallback(({ index, style, data }: any) => {
-        const { files, currentFile, onSelect, onRemove } = data as FileItemData;
+    useCallback(({index, style, data}: any) => {
+        const {files, currentFile, onSelect, onRemove} = data as FileItemData;
         const file = files[index];
         const fileKey = getFileKey(file);
         const isCurrentFile = currentFile === file;
@@ -197,13 +192,12 @@ const MultiPDFRenderer: React.FC = () => {
                         </div>
                     </div>
 
-                    <PDFDocumentWrapper file={file} fileKey={fileKey} />
+                    <PDFDocumentWrapper file={file} fileKey={fileKey}/>
                 </div>
             </div>
         );
     }, []);
-
-    // Update dimensions on window resize
+// Update dimensions on window resize
     useEffect(() => {
         const handleResize = () => {
             setDimensions({
@@ -230,15 +224,13 @@ const MultiPDFRenderer: React.FC = () => {
     // If no active files, show message
     if (activeFiles.length === 0) {
         return (
-            <div className="no-files-message">
-                <p>No PDF files loaded. Please upload some files.</p>
+            <div className="pdf-error-container">
+                <div className="fallback-uploader">
+                    <MultiFileUploader mode="replace" buttonType="full" />
+                </div>
             </div>
         );
     }
-
-    // Calculate container dimensions
-    const containerWidth = mainContainerRef.current?.clientWidth || dimensions.width;
-    const containerHeight = mainContainerRef.current?.clientHeight || dimensions.height;
 
     return (
         <div className="multi-pdf-container">
@@ -275,7 +267,7 @@ const MultiPDFRenderer: React.FC = () => {
                                 </div>
                             </div>
 
-                            <PDFDocumentWrapper file={file} fileKey={fileKey} />
+                            <PDFDocumentWrapper file={file} fileKey={fileKey}/>
                         </div>
                     </div>
                 );

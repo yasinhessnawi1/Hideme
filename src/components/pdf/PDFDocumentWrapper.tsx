@@ -163,7 +163,7 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey }
             if (!pdfDocumentRef.current) return;
 
             // Get visible pages from scroll manager
-            const visiblePage = scrollManager.findMostVisiblePage(0.1);
+            const visiblePage = scrollManager.findMostVisiblePage();
 
             if (visiblePage.fileKey === pdfFileKey && visiblePage.pageNumber) {
                 // Update visible pages for virtualization
