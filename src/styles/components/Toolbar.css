@@ -51,6 +51,7 @@
 
 .sidebar-toggle.left {
   margin-right: var(--spacing-md);
+
 }
 
 .sidebar-toggle.right {
@@ -61,7 +62,6 @@
   width: 32px;
   height: 32px;
   transition: transform 0.3s var(--transition-function);
-  color: var(--primary);
 }
 
 .sidebar-toggle:hover {
@@ -82,7 +82,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-md);
   border: 1px solid var(--button-border);
   border-radius: var(--border-radius-md);
   background-color: var(--button-bg);
@@ -180,8 +180,7 @@
   border: 1px solid var(--dropdown-border);
   border-radius: var(--border-radius-md);
   box-shadow: 0 4px 12px var(--dropdown-shadow);
-  padding: var(--spacing-sm) 0;
-  margin-top: var(--spacing-xs);
+  opacity: 0;
   opacity: 0;
   transform: translateY(-10px);
   transition: all var(--transition-speed) var(--transition-function);
@@ -203,8 +202,7 @@
 .dropdown-title {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  margin: 0;
+  text-align: center;
   color: var(--primary);
 }
 

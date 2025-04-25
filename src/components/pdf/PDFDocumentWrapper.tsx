@@ -9,14 +9,17 @@ import { useInView } from 'react-intersection-observer';
 
 interface PDFDocumentWrapperProps {
     file?: File; // New prop to accept a specific file
-    fileKey?: string; // Optional fileKey prop for multi-file support
+    fileKey?: string;
+    forceOpen?: boolean;
+    pageWidth: number; // Add back pageWidth prop
 }
 
 /**
- * Component to render a PDF document with virtualized pages
+ * Component to render a PDF document with pages
  */
-const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey }) => {
-    const { currentFile } = useFileContext();
+const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, forceOpen = false, pageWidth // Default to false
+                                                               }) => {
+    const { currentFile, isFileOpen } = useFileContext();
     const {
         numPages,
         setNumPages,
@@ -34,11 +37,14 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey }
     const hasInitializedRef = useRef<boolean>(false);
     const pdfDocumentRef = useRef<any>(null);
 
-    // For virtualization, we'll use intersection observer to track visible pages
-    const { ref: documentRef, inView } = useInView({
+    // Configure IntersectionObserver options
+    const inViewOptions = {
         threshold: 0.1, // 10% visibility is enough
-        root: mainContainerRef.current
-    });
+        root: forceOpen ? null : mainContainerRef.current // Use viewport root in fullscreen overlay
+    };
+
+    // For intersection detection, we'll use react-intersection-observer
+    const { ref: documentRef, inView } = useInView(inViewOptions);
 
     // Use the provided file or fall back to currentFile from context
     const pdfFile = file || currentFile;
@@ -48,6 +54,10 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey }
 
     // Track whether this document is the current one
     const isCurrentDocument = currentFile && getFileKey(currentFile) === pdfFileKey;
+
+    // Check if the file is open - we only need to render if it's open
+    const isOpen = forceOpen || (pdfFile ? isFileOpen(pdfFile) : false);
+
 
     // Clean up state on file change
     useEffect(() => {
@@ -88,11 +98,9 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey }
             if (pdfFileKey) {
                 setFileNumPages(pdfFileKey, pageCount);
 
-                // Determine initial pages to render (first few pages)
-                const initialPagesToShow = Math.min(pageCount, 3);
+                // Initialize with all pages visible since we don't need virtualization anymore
                 const pagesToRender = new Set<number>();
-
-                for (let i = 1; i <= initialPagesToShow; i++) {
+                for (let i = 1; i <= pageCount; i++) {
                     pagesToRender.add(i);
                 }
 
@@ -108,11 +116,9 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey }
                 // Backward compatibility
                 setNumPages(pageCount);
 
-                // Initially render first few pages
+                // Render all pages
                 const pagesToRender = new Set<number>();
-                const initialPagesToShow = Math.min(pageCount, 3);
-
-                for (let i = 1; i <= initialPagesToShow; i++) {
+                for (let i = 1; i <= pageCount; i++) {
                     pagesToRender.add(i);
                 }
 
@@ -155,52 +161,6 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey }
         setLoadError(error);
     }, []);
 
-    // Listen for scroll events to update visible pages
-    useEffect(() => {
-        if (!pdfFile || !pdfFileKey || !mainContainerRef.current) return;
-
-        const handleScroll = () => {
-            if (!pdfDocumentRef.current) return;
-
-            // Get visible pages from scroll manager
-            const visiblePage = scrollManager.findMostVisiblePage();
-
-            if (visiblePage.fileKey === pdfFileKey && visiblePage.pageNumber) {
-                // Update visible pages for virtualization
-                const newVisiblePages = new Set<number>();
-                const pageNumber = visiblePage.pageNumber;
-                const pageCount = getFileNumPages(pdfFileKey);
-
-                // Add current page and surrounding pages
-                const pagesToShow = 3; // Number of pages to show above and below
-
-                for (
-                    let i = Math.max(1, pageNumber - pagesToShow);
-                    i <= Math.min(pageCount, pageNumber + pagesToShow);
-                    i++
-                ) {
-                    newVisiblePages.add(i);
-                }
-
-                // Only update if the set has changed
-                const hasChanged =
-                    newVisiblePages.size !== visiblePages.size ||
-                    Array.from(newVisiblePages).some(page => !visiblePages.has(page));
-
-                if (hasChanged) {
-                    setVisiblePages(newVisiblePages);
-                }
-            }
-        };
-
-        const scrollContainer = mainContainerRef.current;
-        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-
-        return () => {
-            scrollContainer.removeEventListener('scroll', handleScroll);
-        };
-    }, [pdfFile, pdfFileKey, mainContainerRef, getFileNumPages, visiblePages]);
-
     // Handle document requests from other components
     useEffect(() => {
         const handleDocumentRequest = (event: Event) => {
@@ -239,13 +199,18 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey }
         };
     }, [pdfFile, pdfFileKey]);
 
-    // If there's no file, don't render
-    if (!pdfFile) return null;
+    // If there's no file or the file is not open, don't render
+    if (!pdfFile || !isOpen) {
+        console.log(`[PDFDocumentWrapper] Not rendering - pdfFile: ${!!pdfFile}, isOpen: ${isOpen}, forceOpen: ${forceOpen}`);
+        return null;
+    }
 
     // Get the number of pages for this file
     const displayNumPages = pdfFileKey
         ? getFileNumPages(pdfFileKey) || numPages
         : numPages;
+
+    console.log(`[PDFDocumentWrapper] Rendering document - file: ${pdfFile.name}, pages: ${displayNumPages}, forceOpen: ${forceOpen}`);
 
     return (
         <div
@@ -270,18 +235,17 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey }
                 error={<div className="pdf-error-placeholder"></div>}
                 options={documentOptions}
                 className="pdf-document"
+                key={pdfFileKey} // Add key to force re-render when file changes
             >
                 {!loadError && inView && Array.from({ length: displayNumPages }, (_, i) => {
                     const pageNum = i + 1;
-                    // Check if this page should be visible
-                    const isVisible = visiblePages.has(pageNum);
 
                     return (
                         <PageRenderer
                             key={`page-${pdfFileKey}-${pageNum}`}
                             pageNumber={pageNum}
                             fileKey={pdfFileKey}
-                            isVisible={isVisible}
+                            isVisible={true} // Always visible since we don't need virtualization anymore
                         />
                     );
                 })}
@@ -292,9 +256,11 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey }
 
 // Memoize component to prevent unnecessary re-renders
 export default memo(PDFDocumentWrapper, (prevProps, nextProps) => {
-    // Only re-render if file or fileKey changes
+    // Re-render if file, fileKey, or forceOpen changes
     return (
         prevProps.file === nextProps.file &&
-        prevProps.fileKey === nextProps.fileKey
+        prevProps.fileKey === nextProps.fileKey &&
+        prevProps.forceOpen === nextProps.forceOpen &&
+        prevProps.pageWidth === nextProps.pageWidth
     );
 });

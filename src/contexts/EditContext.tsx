@@ -66,7 +66,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const [isEditingMode, setIsEditingMode] = useState(false);
     // New state for highlighting mode
-    const [highlightingMode, setHighlightingMode] = useState<HighlightCreationMode>(HighlightCreationMode.RECTANGULAR);
+    const [highlightingMode, setHighlightingMode] = useState<HighlightCreationMode>(HighlightCreationMode.TEXT_SELECTION);
     const [highlightColor, setHighlightColor] = useState('#00ff15');
     const [searchQueries, setSearchQueries] = useState<string[]>([]);
     const [isRegexSearch, setIsRegexSearch] = useState(false);

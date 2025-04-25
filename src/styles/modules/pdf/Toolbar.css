@@ -61,7 +61,7 @@
     align-items: center;
     justify-content: center;
     gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-xs) var(--spacing-md);
     border: 1px solid var(--button-border);
     border-radius: var(--border-radius-md);
     background-color: var(--button-bg);
@@ -258,7 +258,7 @@
 }
 
 .dropdown-item {
-    padding: var(--spacing-sm) var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-xl);
     font-size: var(--font-size-sm);
     cursor: pointer;
     display: flex;
@@ -266,6 +266,7 @@
     gap: var(--spacing-sm);
     color: var(--button-text);
     transition: background-color var(--transition-speed) var(--transition-function);
+    min-height: 36px;
 }
 
 .dropdown-item:hover {
@@ -310,14 +311,15 @@
 }
 
 .dropdown-item input[type="color"] {
-    width: 28px;
-    height: 28px;
-    border: 2px solid var(--button-border);
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--button-border);
     border-radius: var(--border-radius-sm);
     cursor: pointer;
     padding: 0;
     margin-left: auto;
     transition: all var(--transition-speed) var(--transition-function);
+    vertical-align: middle;
 }
 
 .dropdown-item input[type="color"]:focus {
@@ -342,10 +344,25 @@
     color: var(--primary-hover);
 }
 
+.dropdown-item button[onClick*="ResetEntityColors"] {
+}
+
+.dropdown-item:has(button[onClick*="ResetEntityColors"]) {
+    margin-top: var(--spacing-xs);
+}
+
 .dropdown-divider {
     height: 1px;
     background-color: var(--toolbar-border);
     margin: var(--spacing-sm) 0;
+}
+
+.dropdown-section {
+    margin-bottom: var(--spacing-sm);
+}
+
+.dropdown-section:last-child {
+    margin-bottom: 0;
 }
 
 /* Responsive adjustments */

@@ -47,7 +47,6 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
     const { removeAllHighlights } = useHighlightStore();
 
     const [showActions, setShowActions] = useState<number | null>(null);
-    const [showDropdown, setShowDropdown] = useState<number | null>(null);
     const [showTooltip, setShowTooltip] = useState<number | null>(null);
     const [showNotification, setShowNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
@@ -330,21 +329,6 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
         }
     };
 
-    // Handle dropdown toggle
-    const handleDropdownToggle = (index: number, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (showDropdown === index) {
-            setShowDropdown(null);
-        } else {
-            setShowDropdown(index);
-        }
-    };
-
-    // Handle click outside to close dropdown
-    const handleClickOutside = () => {
-        setShowDropdown(null);
-    };
-
     // Track if any files are selected but not all
     const someSelected = selectedFiles.length > 0 && selectedFiles.length < files.length;
     // Track if all files are selected
@@ -442,7 +426,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                         </button>
                     </div>
                 ) : (
-                    <div className="file-list" onClick={handleClickOutside}>
+                    <div className="file-list" >
                         {files.map((file, index) => {
                             const isSelected = isFileSelected(file);
                             const isActive = isFileActive(file);
@@ -511,14 +495,6 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                         {(showActions === index || window.innerWidth > 768) && (
                                             <>
                                                 <button
-                                                    className="file-action-button more-button"
-                                                    onClick={(e) => handleDropdownToggle(index, e)}
-                                                    title="More options"
-                                                    aria-label="More options"
-                                                >
-                                                    <MoreHorizontal size={16}/>
-                                                </button>
-                                                <button
                                                     className="file-action-button delete-button"
                                                     onClick={(e) => handleFileDelete(index, e)}
                                                     title="Remove file"
@@ -530,69 +506,6 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                         )}
                                     </div>
 
-                                    {showDropdown === index && (
-                                        <div className="file-dropdown">
-                                            <div className="dropdown-header">
-                                                <span className="dropdown-title">File Options</span>
-                                                <button
-                                                    className="dropdown-close"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setShowDropdown(null);
-                                                    }}
-                                                >
-                                                    <X size={14} />
-                                                </button>
-                                            </div>
-                                            <div className="dropdown-item" onClick={(e) => e.stopPropagation()}>
-                                                <button
-                                                    className="dropdown-button"
-                                                    onClick={(e) => handleToggleActive(file, e)}
-                                                >
-                                                    {isActive ? "Hide file" : "Show file"}
-                                                </button>
-                                            </div>
-                                            <div className="dropdown-item" onClick={(e) => e.stopPropagation()}>
-                                                <button
-                                                    className="dropdown-button"
-                                                    onClick={(e) => handleToggleSelection(file, e)}
-                                                >
-                                                    {isSelected ? "Deselect file" : "Select file"}
-                                                </button>
-                                            </div>
-                                            <div className="dropdown-item" onClick={(e) => e.stopPropagation()}>
-                                                <button
-                                                    className="dropdown-button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDownloadFiles();
-                                                    }}
-                                                >
-                                                    Download file
-                                                </button>
-                                            </div>
-                                            <div className="dropdown-item" onClick={(e) => e.stopPropagation()}>
-                                                <button
-                                                    className="dropdown-button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        printFiles([file]);
-                                                    }}
-                                                >
-                                                    Print file
-                                                </button>
-                                            </div>
-                                            <div className="dropdown-divider"></div>
-                                            <div className="dropdown-item" onClick={(e) => e.stopPropagation()}>
-                                                <button
-                                                    className="dropdown-button delete"
-                                                    onClick={(e) => handleFileDelete(index, e)}
-                                                >
-                                                    Remove file
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             );
                         })}

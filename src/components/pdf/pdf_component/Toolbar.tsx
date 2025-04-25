@@ -21,6 +21,7 @@ import { useEditContext } from '../../../contexts/EditContext';
 import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
 import { HighlightType, HighlightCreationMode } from '../../../types';
 import pdfUtilityService from '../../../store/PDFUtilityStore';
+import MinimalToolbar from '../../common/MinimalToolbar';
 import '../../../styles/modules/pdf/Toolbar.css';
 
 interface ToolbarProps {
@@ -48,15 +49,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setIsEditingMode,
         highlightingMode,
         setHighlightingMode,
-        highlightColor,
-        setHighlightColor,
         showSearchHighlights,
         setShowSearchHighlights,
         showEntityHighlights,
         setShowEntityHighlights,
         showManualHighlights,
         setShowManualHighlights,
-
+        highlightColor,
+        setHighlightColor,
         presidioColor,
         setPresidioColor,
         glinerColor,
@@ -68,7 +68,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
         searchColor,
         setSearchColor,
         getSearchColor,
-
     } = useEditContext();
 
     const {
@@ -92,72 +91,96 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const [isRedactionInProgress, setIsRedactionInProgress] = useState(false);
     const [redactedFiles, setRedactedFiles] = useState<File[]>([]);
 
-    // Handle clicks outside our dropdowns
+    // State for notification toast
+    const [showNotification, setShowNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+    // Handle clicks outside dropdowns
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            // Check if visibility menu should close
-            if (isVisibilityMenuOpen) {
-                const isClickInsideVisibilityButton = visibilityButtonRef.current?.contains(event.target as Node) || false;
-                const isClickInsideVisibilityMenu = visibilityMenuRef.current?.contains(event.target as Node) || false;
-
-                if (!isClickInsideVisibilityButton && !isClickInsideVisibilityMenu) {
+            // Visibility menu
+            if (isVisibilityMenuOpen && visibilityMenuRef.current && !visibilityMenuRef.current.contains(event.target as Node) && !visibilityButtonRef.current?.contains(event.target as Node)) {
                     setIsVisibilityMenuOpen(false);
                 }
-            }
-
-            // Check if settings menu should close
-            if (isSettingsMenuOpen) {
-                const isClickInsideSettingsButton = settingsButtonRef.current?.contains(event.target as Node) || false;
-                const isClickInsideSettingsMenu = settingsMenuRef.current?.contains(event.target as Node) || false;
-
-                if (!isClickInsideSettingsButton && !isClickInsideSettingsMenu) {
+            // Settings menu
+            if (isSettingsMenuOpen && settingsMenuRef.current && !settingsMenuRef.current.contains(event.target as Node) && !settingsButtonRef.current?.contains(event.target as Node)) {
                     setIsSettingsMenuOpen(false);
                 }
-            }
-
-            // Check if edit menu should close
-            if (isEditMenuOpen) {
-                const isClickInsideEditButton = editButtonRef.current?.contains(event.target as Node) || false;
-                const isClickInsideEditMenu = editMenuRef.current?.contains(event.target as Node) || false;
-
-                if (!isClickInsideEditButton && !isClickInsideEditMenu) {
+            // Edit menu
+            if (isEditMenuOpen && editMenuRef.current && !editMenuRef.current.contains(event.target as Node) && !editButtonRef.current?.contains(event.target as Node)) {
                     setIsEditMenuOpen(false);
-                }
             }
         };
-
-        // Add the event listener to handle outside clicks
         document.addEventListener('mousedown', handleClickOutside);
-
-        // Clean up the event listener
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [isVisibilityMenuOpen, isSettingsMenuOpen, isEditMenuOpen]);
 
-    // Toggle visibility menu
+    // Toggle handlers
     const toggleVisibilityMenu = (e: React.MouseEvent) => {
         e.preventDefault();
-        setIsVisibilityMenuOpen(!isVisibilityMenuOpen);
+        e.stopPropagation();
+        setIsVisibilityMenuOpen(prev => !prev);
         setIsSettingsMenuOpen(false);
         setIsEditMenuOpen(false);
     };
 
-    // Toggle settings menu
     const toggleSettingsMenu = (e: React.MouseEvent) => {
         e.preventDefault();
-        setIsSettingsMenuOpen(!isSettingsMenuOpen);
+        e.stopPropagation();
+        setIsSettingsMenuOpen(prev => !prev);
         setIsVisibilityMenuOpen(false);
         setIsEditMenuOpen(false);
     };
 
-    // Toggle edit menu
+    // This is now the Edit *button* click handler, toggles the menu
     const toggleEditMenu = (e: React.MouseEvent) => {
         e.preventDefault();
-        setIsEditMenuOpen(!isEditMenuOpen);
+        e.stopPropagation();
+        setIsEditMenuOpen(prev => !prev);
         setIsVisibilityMenuOpen(false);
         setIsSettingsMenuOpen(false);
     };
+
+    // Handlers passed to MinimalToolbar
+    const handleZoomIn = useCallback(() => {
+        setZoomLevel(prev => Math.min(prev + 0.2, 3.0));
+    }, [setZoomLevel]);
+
+    const handleZoomOut = useCallback(() => {
+        setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
+    }, [setZoomLevel]);
+
+    const handleZoomReset = useCallback(() => {
+        setZoomLevel(1.0);
+    }, [setZoomLevel]);
+
+    // This toggles the actual editing *state* (called from MinimalToolbar indirectly if needed)
+    // OR directly controls the button state in MinimalToolbar
+    // Let's rename the handler passed to MinimalToolbar to avoid confusion
+    const handleEditModeToggle = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Option 1: Just toggle menu (like visibility/settings)
+        // setIsEditMenuOpen(prev => !prev);
+        // Option 2: Directly toggle editing state AND open/close menu
+        setIsEditingMode(!isEditingMode);
+        setIsEditMenuOpen(prev => !prev); // Toggle menu visibility as well
+        setIsVisibilityMenuOpen(false);
+        setIsSettingsMenuOpen(false);
+    };
+
+    const setRectangularHighlightingMode = useCallback(() => {
+        setHighlightingMode(HighlightCreationMode.RECTANGULAR);
+        setIsEditingMode(true); // Ensure editing mode is on
+        setIsEditMenuOpen(false); // Close menu after selection
+    }, [setHighlightingMode, setIsEditingMode]);
+
+    const setTextSelectionHighlightingMode = useCallback(() => {
+        setHighlightingMode(HighlightCreationMode.TEXT_SELECTION);
+        setIsEditingMode(true); // Ensure editing mode is on
+        setIsEditMenuOpen(false); // Close menu after selection
+    }, [setHighlightingMode, setIsEditingMode]);
 
     // Handle file upload - modified to support multiple files
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,38 +201,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const handleUploadClick = () => {
         fileInputRef.current?.click();
     };
-
-    // Zoom controls
-    const handleZoomIn = () => {
-        setZoomLevel(Math.min(zoomLevel + 0.2, 3.0));
-    };
-
-    const handleZoomOut = () => {
-        setZoomLevel(Math.max(zoomLevel - 0.2, 0.5));
-    };
-
-    const handleZoomReset = () => {
-        setZoomLevel(1.0);
-    };
-
-    // Mode toggles
-    const toggleEditingMode = () => {
-        setIsEditingMode(!isEditingMode);
-    };
-
-    // Highlighting mode selection
-    const setRectangularHighlightingMode = () => {
-        setHighlightingMode(HighlightCreationMode.RECTANGULAR);
-        setIsEditMenuOpen(false);
-    };
-
-    const setTextSelectionHighlightingMode = () => {
-        setHighlightingMode(HighlightCreationMode.TEXT_SELECTION);
-        setIsEditMenuOpen(false);
-    };
-
-    // State for action feedback
-    const [showNotification, setShowNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
     // Create a promise-based redaction function
     const performRedaction = useCallback((): Promise<File[]> => {
@@ -630,24 +621,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
         }
     };
 
-    // Listen for redaction completion event
-    useEffect(() => {
-        const handleRedactionComplete = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { success, redactedFiles } = customEvent.detail || {};
-
-            if (success && Array.isArray(redactedFiles)) {
-                setRedactedFiles(redactedFiles);
-            }
-        };
-
-        window.addEventListener('redaction-process-complete', handleRedactionComplete);
-
-        return () => {
-            window.removeEventListener('redaction-process-complete', handleRedactionComplete);
-        };
-    }, []);
-
     return (
         <div className="enhanced-toolbar">
             {/* Left sidebar toggle button */}
@@ -734,257 +707,32 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 </button>
             </div>
 
-            <div className="toolbar-section">
-                {/* Edit button with dropdown for highlight modes */}
-                <div className="toolbar-dropdown">
-                    <button
-                        ref={editButtonRef}
-                        onClick={toggleEditMenu}
-                        className={`toolbar-button ${isEditingMode ? 'active' : ''}`}
-                        title="Toggle Editing Mode"
-                    >
-                        {getHighlightIcon()}
-                        <span className="button-label">{getHighlightLabel()}</span>
-                    </button>
-
-                    {isEditMenuOpen && (
-                        <div
-                            className="dropdown-menu"
-                            ref={editMenuRef}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="dropdown-section">
-                                <h5 className="dropdown-title">Highlight Mode</h5>
-                                <div
-                                    className={`dropdown-item ${highlightingMode === HighlightCreationMode.RECTANGULAR ? 'active' : ''}`}
-                                    onClick={setRectangularHighlightingMode}
-                                >
-                                    <FaDrawPolygon size={16} />
-                                    <span>Rectangular Selection</span>
-                                </div>
-                                <div
-                                    className={`dropdown-item ${highlightingMode === HighlightCreationMode.TEXT_SELECTION ? 'active' : ''}`}
-                                    onClick={setTextSelectionHighlightingMode}
-                                >
-                                    <FaFont size={16} />
-                                    <span>Text Selection</span>
-                                </div>
-                                <div className="dropdown-divider"></div>
-                                <div className="dropdown-item">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleEditingMode();
-                                            setIsEditMenuOpen(false);
-                                        }}
-                                        className={isEditingMode ? 'active' : ''}
-                                    >
-                                        {isEditingMode ? 'Disable Editing' : 'Enable Editing'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="toolbar-dropdown">
-                    <button
-                        ref={visibilityButtonRef}
-                        onClick={toggleVisibilityMenu}
-                        className="toolbar-button visibility-toggle"
-                        title="Highlight Visibility"
-                    >
-                        {showManualHighlights && showSearchHighlights && showEntityHighlights ? (
-                            <FaRegEye/>
-                        ) : (
-                            <FaRegEyeSlash/>
-                        )}
-                        <span className="button-label">Show</span>
-                    </button>
-
-                    {isVisibilityMenuOpen && (
-                        <div
-                            className="dropdown-menu"
-                            ref={visibilityMenuRef}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="dropdown-item">
-                                <label onClick={(e) => e.stopPropagation()}>
-                                    <input
-                                        type="checkbox"
-                                        checked={showManualHighlights}
-                                        onClick={handleToggleManualHighlights}
-                                        readOnly
-                                    />
-                                    Manual Highlights
-                                </label>
-                            </div>
-                            <div className="dropdown-item">
-                                <label onClick={(e) => e.stopPropagation()}>
-                                    <input
-                                        type="checkbox"
-                                        checked={showSearchHighlights}
-                                        onClick={handleToggleSearchHighlights}
-                                        readOnly
-                                    />
-                                    Search Highlights
-                                </label>
-                            </div>
-                            <div className="dropdown-item">
-                                <label onClick={(e) => e.stopPropagation()}>
-                                    <input
-                                        type="checkbox"
-                                        checked={showEntityHighlights}
-                                        onClick={handleToggleEntityHighlights}
-                                        readOnly
-                                    />
-                                    Entity Highlights
-                                </label>
-                            </div>
-                            <div className="dropdown-divider"></div>
-                            <div className="dropdown-item">
-                                <button onClick={handleClearAllHighlights}>Clear All</button>
-                            </div>
-                            <div className="dropdown-item">
-                                <button onClick={handleClearManualHighlights}>Clear Manual</button>
-                            </div>
-                            <div className="dropdown-item">
-                                <button onClick={handleClearSearchHighlights}>Clear Search</button>
-                            </div>
-                            <div className="dropdown-item">
-                                <button onClick={handleClearEntityHighlights}>Clear Entity</button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="toolbar-dropdown">
-                    <button
-                        ref={settingsButtonRef}
-                        onClick={toggleSettingsMenu}
-                        className="toolbar-button settings-toggle"
-                        title="Settings"
-                    >
-                        <FaCog/>
-                        <span className="button-label">Settings</span>
-                    </button>
-
-                    {isSettingsMenuOpen && (
-                        <div
-                            className="dropdown-menu"
-                            ref={settingsMenuRef}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="dropdown-section">
-                                <h5 className="dropdown-title">Manual Highlight</h5>
-                                <div className="dropdown-item">
-                                    <label onClick={(e) => e.stopPropagation()}>
-                                        Color
-                                        <input
-                                            type="color"
-                                            value={highlightColor}
-                                            onChange={handleColorChange}
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div className="dropdown-section">
-                                <h5 className="dropdown-title">Entity Model Colors</h5>
-                                <div className="dropdown-item">
-                                    <label onClick={(e) => e.stopPropagation()}>
-                                        Presidio
-                                        <input
-                                            type="color"
-                                            value={presidioColor}
-                                            onChange={(e) => setPresidioColor(e.target.value)}
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                    </label>
-                                </div>
-                                <div className="dropdown-item">
-                                    <label onClick={(e) => e.stopPropagation()}>
-                                        Gliner
-                                        <input
-                                            type="color"
-                                            value={glinerColor}
-                                            onChange={(e) => setGlinerColor(e.target.value)}
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                    </label>
-                                </div>
-                                <div className="dropdown-item">
-                                    <label onClick={(e) => e.stopPropagation()}>
-                                        Gemini
-                                        <input
-                                            type="color"
-                                            value={geminiColor}
-                                            onChange={(e) => setGeminiColor(e.target.value)}
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                    </label>
-                                </div>
-                                <div className="dropdown-item">
-                                    <label onClick={(e) => e.stopPropagation()}>
-                                        HideMe AI
-                                        <input
-                                            type="color"
-                                            value={hidemeColor}
-                                            onChange={(e) => setHidemeColor(e.target.value)}
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                    </label>
-                                </div>
-                                <div className="dropdown-item">
-                                    <label onClick={(e) => e.stopPropagation()}>
-                                        Search
-                                        <input
-                                            type="color"
-                                            value={searchColor}
-                                            onChange={(e) => setSearchColor(e.target.value)}
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                    </label>
-                                </div>
-                                <div className="dropdown-item">
-                                    <button onClick={handleResetEntityColors}>Reset Entity Colors</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="toolbar-section">
-                <button
-                    onClick={handleZoomOut}
-                    className="toolbar-button"
-                    title="Zoom Out"
-                    disabled={zoomLevel <= 0.5}
-                >
-                    <FaSearchMinus/>
-                </button>
-
-                <span className="zoom-level">{Math.round(zoomLevel * 100)}%</span>
-
-                <button
-                    onClick={handleZoomIn}
-                    className="toolbar-button"
-                    title="Zoom In"
-                    disabled={zoomLevel >= 3.0}
-                >
-                    <FaSearchPlus/>
-                </button>
-
-                <button
-                    onClick={handleZoomReset}
-                    className="toolbar-button"
-                    title="Reset Zoom"
-                >
-                    <span className="button-label">Reset</span>
-                </button>
-            </div>
+            {/* Use MinimalToolbar for common controls */}
+            <MinimalToolbar
+                zoomLevel={zoomLevel}
+                onZoomIn={handleZoomIn}
+                onZoomOut={handleZoomOut}
+                onZoomReset={handleZoomReset}
+                isEditingMode={isEditingMode}
+                highlightingMode={highlightingMode}
+                onEditModeToggle={handleEditModeToggle}
+                onSetRectangularHighlightingMode={setRectangularHighlightingMode}
+                onSetTextSelectionHighlightingMode={setTextSelectionHighlightingMode}
+                isEditMenuOpen={isEditMenuOpen}
+                editButtonRef={editButtonRef}
+                editMenuRef={editMenuRef}
+                showManualHighlights={showManualHighlights}
+                showSearchHighlights={showSearchHighlights}
+                showEntityHighlights={showEntityHighlights}
+                onVisibilityToggle={toggleVisibilityMenu}
+                isVisibilityMenuOpen={isVisibilityMenuOpen}
+                visibilityButtonRef={visibilityButtonRef}
+                visibilityMenuRef={visibilityMenuRef}
+                onSettingsToggle={toggleSettingsMenu}
+                isSettingsMenuOpen={isSettingsMenuOpen}
+                settingsButtonRef={settingsButtonRef}
+                settingsMenuRef={settingsMenuRef}
+            />
 
             {/* Right sidebar toggle button */}
             <button

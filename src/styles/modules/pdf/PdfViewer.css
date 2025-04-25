@@ -449,6 +449,355 @@ and related components including processing indicators
 }
 /*
 ==============================================
+OPEN/CLOSE FILE FUNCTIONALITY
+==============================================
+*/
+
+/* Enhanced file header with left and right sections */
+.pdf-file-header {
+    padding: var(--spacing-md) var(--spacing-lg);
+    background-color: var(--background);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(5px);
+    transition: all var(--transition-speed) var(--transition-function);
+}
+
+/* Left section of header with toggle button and title */
+.pdf-file-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex: 1;
+    min-width: 0; /* Allow flex item to shrink below min-content size */
+}
+
+/* Toggle button for open/close */
+.pdf-file-toggle-button {
+    background: none;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: all var(--transition-speed) var(--transition-function);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xs);
+    border-radius: var(--border-radius-sm);
+    margin-right: var(--spacing-xs);
+}
+
+.pdf-file-toggle-button:hover {
+    color: var(--primary);
+    background-color: var(--button-hover);
+}
+
+/* File title with overflow handling */
+.pdf-file-title {
+    margin: 0;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-medium);
+    color: var(--foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0; /* Allow truncation to work with flexbox */
+}
+
+/* Actions section with buttons */
+.pdf-file-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
+}
+
+/* Individual action buttons */
+.pdf-file-action-button {
+    background: none;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: all var(--transition-speed) var(--transition-function);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xs);
+    border-radius: var(--border-radius-sm);
+    width: 28px;
+    height: 28px;
+}
+
+.pdf-file-action-button:hover {
+    color: var(--primary);
+    background-color: var(--button-hover);
+}
+
+/* Special styling for the remove button */
+.pdf-file-action-button:last-child:hover {
+    color: var(--destructive);
+}
+
+/* Selection button states */
+.pdf-file-action-button.selected {
+    color: var(--primary);
+    background-color: rgba(var(--primary-rgb), 0.1);
+}
+
+/* selection button not selected states */
+.pdf-file-action-button:not(.selected) {
+    color: var(--foreground);
+    background-color: var(--button-hover);
+}
+
+/* Custom select icon for unselected state */
+.select-file-icon {
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-radius: 2px;
+    display: block;
+}
+
+/* File container states */
+.pdf-file-container {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-lg);
+    background-color: var(--background);
+    overflow: hidden;
+    transition: all var(--transition-speed) var(--transition-function);
+    position: relative;
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-sm);
+    will-change: transform;
+    contain: content;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+    isolation: isolate;
+    z-index: 1;
+}
+
+/* Current file state */
+.pdf-file-container.current {
+    border: 2px solid var(--primary);
+    box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.2), var(--shadow-md);
+    z-index: 2;
+}
+
+/* Open file state */
+.pdf-file-container.open {
+    box-shadow: var(--shadow-md);
+}
+
+/* Closed file state */
+.pdf-file-container.closed {
+    max-height: 60px; /* Just enough for the header */
+    overflow: hidden;
+}
+
+/* Selected file state */
+.pdf-file-container.selected {
+    background-color: rgba(var(--primary-rgb), 0.05);
+}
+
+/* Transitions for opening/closing */
+.pdf-document-container {
+    animation: fadeIn var(--transition-speed) var(--transition-function);
+    transform-origin: top center;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Loading placeholder when file is opening */
+.pdf-loading-placeholder {
+    min-height: 300px;
+    background-color: var(--background);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    position: relative;
+    animation: pulse 2s infinite;
+}
+
+.pdf-loading-placeholder::after {
+    content: "";
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid var(--primary);
+    border-top-color: transparent;
+    animation: spinner 1s linear infinite;
+}
+
+@keyframes spinner {
+    to { transform: rotate(360deg); }
+}
+
+/* Hover effects */
+.pdf-file-container:hover {
+    transform: translateY(-2px);
+}
+
+.pdf-file-container.closed:hover {
+    border-color: var(--button-border);
+    background-color: var(--dropdown-hover);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .pdf-file-header {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .pdf-file-actions {
+        gap: var(--spacing-xs);
+    }
+
+    .pdf-file-action-button {
+        width: 24px;
+        height: 24px;
+        padding: 2px;
+    }
+}
+
+/*
+==============================================
+FULLSCREEN OVERLAY STYLES
+==============================================
+*/
+
+/* Fullscreen overlay container */
+.fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--background);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeInOverlay 0.3s ease;
+}
+
+@keyframes fadeInOverlay {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Fullscreen toolbar */
+.fullscreen-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    background-color: var(--sidebar-bg);
+    border-bottom: 1px solid var(--border);
+    height: 50px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+/* File title in fullscreen mode */
+.fullscreen-title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-medium);
+    color: var(--foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80%;
+    margin: 0;
+}
+
+.fullscreen-close-button:hover {
+    color: var(--destructive);
+    background-color: var(--button-hover);
+}
+
+/* Content area for the fullscreen PDF */
+.fullscreen-content {
+    flex: 1;
+    overflow: auto;
+    background-color: var(--viewer-bg);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: calc(100vh - 60px); /* Account for toolbar height */
+}
+
+.fullscreen-content .pdf-document-container {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Ensure canvas is visible */
+.fullscreen-content .react-pdf__Page canvas {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+
+/* Focus styles for keyboard navigation */
+.pdf-file-action-button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Ensure PDF is centered in fullscreen mode */
+@media (min-width: 1200px) {
+    .fullscreen-content .pdf-document-container {
+        max-width: 1100px;
+    }
+}
+
+/* Mobile adjustments for fullscreen mode */
+@media (max-width: 768px) {
+    .fullscreen-toolbar {
+        padding: 0.5rem 1rem;
+        height: 50px;
+    }
+
+    .fullscreen-title {
+        font-size: var(--font-size-md);
+        max-width: 70%;
+    }
+
+    .fullscreen-content {
+        padding: var(--spacing-sm);
+    }
+}
+
+/*
+==============================================
 IMPROVED PDF SELECTION STYLES
 ==============================================
 Styles for precise text and rectangle selection in PDF viewer
