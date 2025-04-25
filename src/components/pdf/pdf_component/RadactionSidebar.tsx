@@ -43,6 +43,7 @@ const RedactionSidebar: React.FC = () => {
     const [redactionSuccess, setRedactionSuccess] = useState<string | null>(null);
     const [fileErrors, setFileErrors] = useState<Map<string, string>>(new Map());
     const [isDownloading, setIsDownloading] = useState(false);
+    const [processedRedactedFiles, setProcessedRedactedFiles] = useState<File[]>([]);
 
     const [redactionOptions, setRedactionOptions] = useState({
         includeSearchHighlights: true,
@@ -197,11 +198,31 @@ const RedactionSidebar: React.FC = () => {
      * Handle redaction for multiple files
      * Uses the generated redaction mappings that include search results
      */
-    const handleRedact = useCallback(async () => {
+    const handleRedact = useCallback(async (callbackFn?: (result: { success: boolean, redactedFiles: File[], error?: string }) => void) => {
         const filesToRedact = getFilesToProcess();
 
         if (filesToRedact.length === 0 || redactionMappings.size === 0) {
-            setRedactionError('No files selected for redaction or no content to redact.');
+            const errorMessage = 'No files selected for redaction or no content to redact.';
+            setRedactionError(errorMessage);
+
+            // Notify callback of failure
+            if (callbackFn) {
+                callbackFn({
+                    success: false,
+                    redactedFiles: [],
+                    error: errorMessage
+                });
+            }
+
+            // Also dispatch event for external components
+            window.dispatchEvent(new CustomEvent('redaction-process-complete', {
+                detail: {
+                    success: false,
+                    redactedFiles: [],
+                    error: errorMessage
+                }
+            }));
+
             return;
         }
 
@@ -212,17 +233,42 @@ const RedactionSidebar: React.FC = () => {
         });
 
         if (filesToProcess.length === 0) {
-            setRedactionError('No redaction content found in selected files.');
+            const errorMessage = 'No redaction content found in selected files.';
+            setRedactionError(errorMessage);
+
+            // Notify callback of failure
+            if (callbackFn) {
+                callbackFn({
+                    success: false,
+                    redactedFiles: [],
+                    error: errorMessage
+                });
+            }
+
+            // Also dispatch event for external components
+            window.dispatchEvent(new CustomEvent('redaction-process-complete', {
+                detail: {
+                    success: false,
+                    redactedFiles: [],
+                    error: errorMessage
+                }
+            }));
+
             return;
         }
 
-        // Confirm with user
-        const confirmMessage = filesToProcess.length === 1
-            ? `Are you sure you want to redact the highlighted content in ${filesToProcess[0].name}? This will create a new PDF document.`
-            : `Are you sure you want to redact the highlighted content in ${filesToProcess.length} files? This will create new PDF documents.`;
+        // For automated/programmatic redactions, skip the confirmation prompt
+        const shouldConfirm = !callbackFn;
 
-        if (!window.confirm(confirmMessage)) {
-            return;
+        if (shouldConfirm) {
+            // Confirm with user for manual interactions
+            const confirmMessage = filesToProcess.length === 1
+                ? `Are you sure you want to redact the highlighted content in ${filesToProcess[0].name}? This will create a new PDF document.`
+                : `Are you sure you want to redact the highlighted content in ${filesToProcess.length} files? This will create new PDF documents.`;
+
+            if (!window.confirm(confirmMessage)) {
+                return;
+            }
         }
 
         setIsRedacting(true);
@@ -260,12 +306,13 @@ const RedactionSidebar: React.FC = () => {
 
             try {
                 // Process the redacted files and update the application state
-                await processRedactedFiles(
+                 await processRedactedFiles(
                     redactedPdfs,
                     addFiles,
                     files,
                 );
 
+                 const newRedactedFiles = files.filter(file => file.name.includes('redacted'));
                 // Update success message
                 const successMessage = Object.keys(redactedPdfs).length === 1
                     ? `Redaction complete. ${Object.keys(redactedPdfs).length} file has been processed.`
@@ -273,17 +320,69 @@ const RedactionSidebar: React.FC = () => {
 
                 setRedactionSuccess(successMessage);
 
-                // If we redacted the current file, reset its mapping
-                if (currentFile && redactedPdfs[getFileKey(currentFile)]) {
-                    setDetectionMapping(null);
+
+                // Notify callback of success with the processed files
+                if (callbackFn) {
+                    callbackFn({
+                        success: true,
+                        redactedFiles: newRedactedFiles
+                    });
                 }
+
+                // Dispatch success event with redacted files
+                window.dispatchEvent(new CustomEvent('redaction-process-complete', {
+                    detail: {
+                        success: true,
+                        redactedFiles: newRedactedFiles
+                    }
+                }));
+
             } catch (processingError: any) {
-                setRedactionError(`Error processing redacted files: ${processingError.message}`);
+                const errorMessage = `Error processing redacted files: ${processingError.message}`;
+                setRedactionError(errorMessage);
+
+                // Notify callback of failure
+                if (callbackFn) {
+                    callbackFn({
+                        success: false,
+                        redactedFiles: [],
+                        error: errorMessage
+                    });
+                }
+
+                // Dispatch failure event
+                window.dispatchEvent(new CustomEvent('redaction-process-complete', {
+                    detail: {
+                        success: false,
+                        redactedFiles: [],
+                        error: errorMessage
+                    }
+                }));
             }
 
         } catch (error: any) {
             console.error('Error during redaction:', error);
-            setRedactionError(error.message || 'An error occurred during redaction');
+            const errorMessage = error.message || 'An error occurred during redaction';
+            setRedactionError(errorMessage);
+
+            // Notify callback of failure
+            if (callbackFn) {
+                callbackFn({
+                    success: false,
+                    redactedFiles: [],
+                    error: errorMessage
+                });
+            }
+
+            // Dispatch failure event
+            window.dispatchEvent(new CustomEvent('redaction-process-complete', {
+                detail: {
+                    success: false,
+                    redactedFiles: [],
+                    error: errorMessage
+                }
+            }));
+
         } finally {
             setIsRedacting(false);
             setIsDownloading(false);
@@ -358,10 +457,17 @@ const RedactionSidebar: React.FC = () => {
         // Event handler for direct redaction trigger
         const handleTriggerRedaction = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { source } = customEvent.detail || {};
+            const { source, callback } = customEvent.detail || {};
 
             console.log(`[RedactionSidebar] Received direct redaction trigger from ${source}`);
-            handleRedact();
+
+            if (typeof callback === 'function') {
+                // Pass the callback to handleRedact
+                handleRedact(callback);
+            } else {
+                // No callback provided, just redact
+                handleRedact();
+            }
         };
 
         // Listen for settings change events
@@ -388,7 +494,7 @@ const RedactionSidebar: React.FC = () => {
                         <button
                             className={`scope-button ${redactionScope === 'current' ? 'active' : ''}`}
                             onClick={() => setRedactionScope('current')}
-                            disabled={!currentFile}
+                            disabled={!currentFile || isCurrentlyRedacting}
                             title="Redact current file only"
                         >
                             Current File
@@ -396,7 +502,7 @@ const RedactionSidebar: React.FC = () => {
                         <button
                             className={`scope-button ${redactionScope === 'selected' ? 'active' : ''}`}
                             onClick={() => setRedactionScope('selected')}
-                            disabled={selectedFiles.length === 0}
+                            disabled={selectedFiles.length === 0 || isCurrentlyRedacting}
                             title={`Redact ${selectedFiles.length} selected files`}
                         >
                             Selected ({selectedFiles.length})
@@ -404,6 +510,7 @@ const RedactionSidebar: React.FC = () => {
                         <button
                             className={`scope-button ${redactionScope === 'all' ? 'active' : ''}`}
                             onClick={() => setRedactionScope('all')}
+                            disabled={isCurrentlyRedacting}
                             title={`Redact all ${files.length} files`}
                         >
                             All Files ({files.length})
@@ -422,6 +529,7 @@ const RedactionSidebar: React.FC = () => {
                                     ...prev,
                                     includeManualHighlights: !prev.includeManualHighlights
                                 }))}
+                                disabled={isCurrentlyRedacting}
                             />
                             <span className="checkmark"></span>
                             Include Manual Highlights
@@ -434,6 +542,7 @@ const RedactionSidebar: React.FC = () => {
                                     ...prev,
                                     includeSearchHighlights: !prev.includeSearchHighlights
                                 }))}
+                                disabled={isCurrentlyRedacting}
                             />
                             <span className="checkmark"></span>
                             Include Search Highlights
@@ -446,6 +555,7 @@ const RedactionSidebar: React.FC = () => {
                                     ...prev,
                                     includeEntityHighlights: !prev.includeEntityHighlights
                                 }))}
+                                disabled={isCurrentlyRedacting}
                             />
                             <span className="checkmark"></span>
                             Include Detected Entities
@@ -458,6 +568,7 @@ const RedactionSidebar: React.FC = () => {
                                     ...prev,
                                     removeImages: !prev.removeImages
                                 }))}
+                                disabled={isCurrentlyRedacting}
                             />
                             <span className="checkmark"></span>
                             Remove Images
@@ -532,7 +643,7 @@ const RedactionSidebar: React.FC = () => {
                         <div className="sidebar-section button-group">
                             <button
                                 className="sidebar-button redact-button"
-                                onClick={handleRedact}
+                                onClick={() => handleRedact()}
                                 disabled={isCurrentlyRedacting || redactionMappings.size === 0 || stats.totalItems === 0}
                             >
                                 {isCurrentlyRedacting ? (

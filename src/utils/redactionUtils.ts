@@ -198,7 +198,8 @@ export async function processRedactedFiles(
 
         if (originalFile) {
             // Create a new File object with '-redacted' suffix
-            const filename = originalFile.name.replace('.pdf', '-redacted.pdf');
+            const date = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = originalFile.name.replace('.pdf', `-redacted-${date}.pdf`);
             const redactedFile = new File([blob], filename, { type: 'application/pdf' });
             redactedFileObjects.push(redactedFile);
         }

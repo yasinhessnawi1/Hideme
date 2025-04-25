@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
     FaCog,
     FaFileDownload,
@@ -16,10 +16,10 @@ import {
     FaFont
 } from 'react-icons/fa';
 import { useFileContext } from '../../../contexts/FileContext';
-import {getFileKey, usePDFViewerContext} from '../../../contexts/PDFViewerContext';
+import { getFileKey, usePDFViewerContext } from '../../../contexts/PDFViewerContext';
 import { useEditContext } from '../../../contexts/EditContext';
 import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
-import { HighlightType, HighlightCreationMode } from '../../../types/pdfTypes';
+import { HighlightType, HighlightCreationMode } from '../../../types';
 import pdfUtilityService from '../../../store/PDFUtilityStore';
 import '../../../styles/modules/pdf/Toolbar.css';
 
@@ -36,7 +36,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                              toggleRightSidebar,
                                              isRightSidebarCollapsed
                                          }) => {
-    const { currentFile, addFile, addFiles, files, selectedFiles } = useFileContext();
+    const { currentFile, addFiles, files, selectedFiles } = useFileContext();
 
     const {
         zoomLevel,
@@ -87,6 +87,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const [isVisibilityMenuOpen, setIsVisibilityMenuOpen] = useState(false);
     const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
     const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
+
+    // State for redaction status and results
+    const [isRedactionInProgress, setIsRedactionInProgress] = useState(false);
+    const [redactedFiles, setRedactedFiles] = useState<File[]>([]);
 
     // Handle clicks outside our dropdowns
     useEffect(() => {
@@ -207,26 +211,100 @@ const Toolbar: React.FC<ToolbarProps> = ({
     // State for action feedback
     const [showNotification, setShowNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
+    // Create a promise-based redaction function
+    const performRedaction = useCallback((): Promise<File[]> => {
+        return new Promise((resolve, reject) => {
+            // Only start if we're not already redacting
+            if (isRedactionInProgress) {
+                reject(new Error("Redaction already in progress"));
+                return;
+            }
+
+            setIsRedactionInProgress(true);
+            setShowNotification({
+                message: 'Processing redaction...',
+                type: 'success'
+            });
+
+            // Determine which files to use for redaction
+            const filesToProcess = selectedFiles.length > 0 ? selectedFiles : files;
+
+            if (filesToProcess.length === 0) {
+                setIsRedactionInProgress(false);
+                setShowNotification({
+                    message: 'No files available for redaction',
+                    type: 'error'
+                });
+                reject(new Error("No files for redaction"));
+                return;
+            }
+
+            // Set up one-time event listener for redaction completion
+            const handleRedactionComplete = (event: Event) => {
+                const customEvent = event as CustomEvent;
+                const { success, redactedFiles: newRedactedFiles, error } = customEvent.detail || {};
+
+                window.removeEventListener('redaction-process-complete', handleRedactionComplete);
+
+                setIsRedactionInProgress(false);
+
+                if (success) {
+                    // Store the new redacted files
+                    if (Array.isArray(newRedactedFiles) && newRedactedFiles.length > 0) {
+                        setRedactedFiles(newRedactedFiles);
+                        resolve(newRedactedFiles);
+                    } else {
+                        // If no redacted files were created, use the original files
+                        resolve(filesToProcess);
+                    }
+                } else {
+                    reject(new Error(error || "Redaction failed"));
+                }
+            };
+
+            // Listen for the redaction complete event
+            window.addEventListener('redaction-process-complete', handleRedactionComplete, { once: true });
+
+            // Set a timeout to prevent hanging indefinitely
+            const timeoutId = setTimeout(() => {
+                window.removeEventListener('redaction-process-complete', handleRedactionComplete);
+                setIsRedactionInProgress(false);
+                reject(new Error("Redaction timed out"));
+            }, 60000); // 1 minute timeout
+
+            // Trigger the redaction process
+            window.dispatchEvent(new CustomEvent('trigger-redaction-process', {
+                detail: {
+                    source: 'toolbar-button',
+                    filesToProcess: filesToProcess,
+                    callback: () => {
+                        clearTimeout(timeoutId);
+                    }
+                }
+            }));
+        });
+    }, [files, selectedFiles, isRedactionInProgress]);
+
     // Download/save functions using enhanced utility service
     const handleDownloadPDF = async () => {
-        // Always use all files instead of just selected files (by default)
-        const filesToDownload = files.length > 0 ? files : [];
-
-        if (filesToDownload.length === 0) {
+        if (files.length === 0) {
             setShowNotification({message: 'No files available for download', type: 'error'});
             setTimeout(() => setShowNotification(null), 3000);
             return;
         }
 
-        setShowNotification({message: 'Preparing download...', type: 'success'});
-
         try {
-            // Use the appropriate download method based on number of files
-            const success = await pdfUtilityService.downloadMultiplePDFs(filesToDownload);
+            setShowNotification({message: 'Preparing files for download...', type: 'success'});
+
+            // First, perform redaction and wait for it to complete
+            const filesForDownload = await performRedaction();
+
+            // Then, download the redacted files
+            const success = await pdfUtilityService.downloadMultiplePDFs(filesForDownload);
 
             if (success) {
                 setShowNotification({
-                    message: `${filesToDownload.length > 1 ? 'Files' : 'File'} downloaded successfully`,
+                    message: `${filesForDownload.length > 1 ? 'Files' : 'File'} downloaded successfully`,
                     type: 'success'
                 });
             } else {
@@ -237,27 +315,30 @@ const Toolbar: React.FC<ToolbarProps> = ({
             }
         } catch (error) {
             console.error('Error downloading file(s):', error);
-            setShowNotification({message: 'Download failed', type: 'error'});
+            setShowNotification({
+                message: error instanceof Error ? error.message : 'Download failed',
+                type: 'error'
+            });
         }
 
         setTimeout(() => setShowNotification(null), 3000);
     };
 
     const handlePrint = async () => {
-        // Always use all files instead of just selected files (by default)
-        const filesToPrint = files.length > 0 ? files : [];
-
-        if (filesToPrint.length === 0) {
+        if (files.length === 0) {
             setShowNotification({message: 'No files available for printing', type: 'error'});
             setTimeout(() => setShowNotification(null), 3000);
             return;
         }
 
-        setShowNotification({message: 'Preparing print job...', type: 'success'});
-
         try {
-            // Use the appropriate print method based on number of files
-            const success = await pdfUtilityService.printMultiplePDFs(filesToPrint);
+            setShowNotification({message: 'Preparing files for printing...', type: 'success'});
+
+            // First, perform redaction and wait for it to complete
+            const filesForPrinting = await performRedaction();
+
+            // Then, print the redacted files
+            const success = await pdfUtilityService.printMultiplePDFs(filesForPrinting);
 
             if (success) {
                 setShowNotification({
@@ -272,7 +353,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
             }
         } catch (error) {
             console.error('Error printing file(s):', error);
-            setShowNotification({message: 'Print failed', type: 'error'});
+            setShowNotification({
+                message: error instanceof Error ? error.message : 'Print failed',
+                type: 'error'
+            });
         }
 
         setTimeout(() => setShowNotification(null), 3000);
@@ -327,26 +411,21 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setTimeout(() => setShowNotification(null), 2000);
     }
 
+    // This function now only triggers the redaction process directly
     const handleRedaction = () => {
-
-        // Determine which files to use for redaction
-        const filesToProcess = selectedFiles.length > 0 ? selectedFiles : files;
-
-        if (filesToProcess.length === 0) {
+        if (files.length === 0) {
             setShowNotification({message: 'No files available for redaction', type: 'error'});
             setTimeout(() => setShowNotification(null), 3000);
             return;
         }
 
-        setTimeout(() => {
-            // Directly trigger the redaction process in the sidebar
-            window.dispatchEvent(new CustomEvent('trigger-redaction-process', {
-                detail: {
-                    source: 'toolbar-button',
-                    filesToProcess: filesToProcess
-                }
-            }));
-        }, 10);
+        // Directly trigger the redaction process in the sidebar
+        window.dispatchEvent(new CustomEvent('trigger-redaction-process', {
+            detail: {
+                source: 'toolbar-button',
+                filesToProcess: selectedFiles.length > 0 ? selectedFiles : files
+            }
+        }));
 
         setShowNotification({
             message: 'Starting redaction process',
@@ -551,6 +630,24 @@ const Toolbar: React.FC<ToolbarProps> = ({
         }
     };
 
+    // Listen for redaction completion event
+    useEffect(() => {
+        const handleRedactionComplete = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { success, redactedFiles } = customEvent.detail || {};
+
+            if (success && Array.isArray(redactedFiles)) {
+                setRedactedFiles(redactedFiles);
+            }
+        };
+
+        window.addEventListener('redaction-process-complete', handleRedactionComplete);
+
+        return () => {
+            window.removeEventListener('redaction-process-complete', handleRedactionComplete);
+        };
+    }, []);
+
     return (
         <div className="enhanced-toolbar">
             {/* Left sidebar toggle button */}
@@ -585,7 +682,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     onClick={handleDownloadPDF}
                     className="toolbar-button"
                     title="Save PDF"
-                    disabled={files.length === 0}
+                    disabled={isRedactionInProgress || files.length === 0}
                 >
                     <FaFileDownload/>
                     <span className="button-label">Save</span>
@@ -595,7 +692,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     onClick={handlePrint}
                     className="toolbar-button"
                     title="Print PDF"
-                    disabled={files.length === 0}
+                    disabled={isRedactionInProgress || files.length === 0}
                 >
                     <FaPrint/>
                     <span className="button-label">Print</span>
@@ -606,7 +703,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <div className="toolbar-section">
                 <button
                     onClick={handleSearchShortcut}
-                    className={`toolbar-button `}
+                    className={`toolbar-button`}
                     title="Search PDFs"
                     disabled={files.length === 0}
                 >
@@ -626,12 +723,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
                 <button
                     onClick={handleRedaction}
-                    className={`toolbar-button `}
+                    className={`toolbar-button ${isRedactionInProgress ? 'processing' : ''}`}
                     title="Redact PDFs"
-                    disabled={files.length === 0}
+                    disabled={isRedactionInProgress || files.length === 0}
                 >
                     <FaEraser/>
-                    <span className="button-label">Redact</span>
+                    <span className="button-label">
+                        {isRedactionInProgress ? 'Redacting...' : 'Redact'}
+                    </span>
                 </button>
             </div>
 
