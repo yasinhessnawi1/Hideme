@@ -1,65 +1,33 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useFileContext} from '../../contexts/FileContext';
-import {getFileKey, usePDFViewerContext} from '../../contexts/PDFViewerContext';
+import React, { useCallback, useState } from 'react';
+import { useFileContext } from '../../contexts/FileContext';
+import { getFileKey } from '../../contexts/PDFViewerContext';
 import PDFDocumentWrapper from './PDFDocumentWrapper';
-import scrollManager from '../../services/ScrollManagerService';
+import FullScreenOverlay from './FullScreenOverlay';
 import MultiFileUploader from "./pdf_component/MultiFileUploader";
+import { ChevronDown, ChevronUp, Maximize, Check, X } from 'lucide-react';
 
 /**
- * Virtual item renderer for PDF files
- */
-interface FileItemData {
-    files: File[];
-    currentFile: File | null;
-    onSelect: (file: File) => void;
-    onRemove: (file: File, e: React.MouseEvent) => void;
-}
-
-/**
- * Component that renders a virtualized list of PDF files
+ * Component that renders a list of PDF files with open/close functionality
  */
 const MultiPDFRenderer: React.FC = () => {
     const {
-        activeFiles,
+        files,
         currentFile,
         setCurrentFile,
-        files,
-        removeFile
+        removeFile,
+        isFileOpen,
+        openFile,
+        closeFile,
+        toggleFileOpen,
+        openFiles,
+        selectedFiles,
+        setSelectedFiles
     } = useFileContext();
 
-    const {
-        mainContainerRef,
-        getFileNumPages
-    } = usePDFViewerContext();
-    // State for window dimensions
-    const [dimensions, setDimensions] = useState({
-        width: window.innerWidth,
-        height: window.innerHeight
-    });
+    // State for fullscreen mode
+    const [fullscreenFile, setFullscreenFile] = useState<File | null>(null);
 
-    // Refs for tracking file operations
-    const fileChangeInProgressRef = useRef<boolean>(false);
-
-    // Calculate estimated file heights for virtualization
-    const fileHeights = useMemo(() => {
-        return activeFiles.map(file => {
-            // Get number of pages in this file
-            const fileKey = getFileKey(file);
-            const numPages = getFileNumPages(fileKey) || 1;
-
-            // Use a base height plus height per page
-            const baseHeight = 100; // Header, margins, etc.
-            const pageHeight = 800; // Average page height
-
-            return baseHeight + (numPages * pageHeight);
-        });
-    }, [activeFiles, getFileNumPages]);
-
-    // Total height of all files
-    useMemo(() => {
-        return fileHeights.reduce((sum, height) => sum + height, 0);
-    }, [fileHeights]);
-// Function to find file index by key
+    // Find file index by key
     const getFileIndex = useCallback((file: File) => {
         return files.findIndex(f =>
             f.name === file.name &&
@@ -73,57 +41,16 @@ const MultiPDFRenderer: React.FC = () => {
         // Don't reselect the same file
         if (currentFile === file) return;
 
-        // Skip if a file change is already in progress
-        if (fileChangeInProgressRef.current) return;
+        console.log(`[MultiPDFRenderer] Switching to file: ${file.name} (${getFileKey(file)})`);
 
-        try {
-            // Mark that a file change is in progress
-            fileChangeInProgressRef.current = true;
-            scrollManager.setFileChanging(true);
+        // Set new current file
+        setCurrentFile(file);
 
-            console.log(`[VirtualizedPDFRenderer] Switching to file: ${file.name} (${getFileKey(file)})`);
-
-            // Get current scroll position before changing file
-            const currentScrollPosition = mainContainerRef.current?.scrollTop ?? 0;
-
-            // Store current file's scroll position
-            if (currentFile) {
-                const currentFileKey = getFileKey(currentFile);
-                scrollManager.saveScrollPosition(currentFileKey, currentScrollPosition);
-            }
-
-            // Set new current file
-            setCurrentFile(file);
-
-            // After switching files, try to restore the saved position
-            const fileKey = getFileKey(file);
-            const savedPosition = scrollManager.getSavedScrollPosition(fileKey);
-
-            // Restore scroll position after a delay
-            setTimeout(() => {
-                if (mainContainerRef.current) {
-                    const positionToRestore = savedPosition ?? currentScrollPosition;
-
-                    mainContainerRef.current.scrollTop = positionToRestore;
-
-                    console.log(`[VirtualizedPDFRenderer] Restored scroll position: ${positionToRestore} for file ${fileKey}`);
-                }
-
-                // Reset flags
-                scrollManager.setFileChanging(false);
-
-                setTimeout(() => {
-                    fileChangeInProgressRef.current = false;
-                }, 300);
-            }, 50);
-        } catch (error) {
-            console.error("[MultiPDFRenderer] Error selecting file:", error);
-
-            // Reset flags in case of error
-            fileChangeInProgressRef.current = false;
-            scrollManager.setFileChanging(false);
+        // Ensure the file is open when selected as current
+        if (!isFileOpen(file)) {
+            openFile(file);
         }
-    }, [currentFile, setCurrentFile, mainContainerRef]);
+    }, [currentFile, setCurrentFile, isFileOpen, openFile]);
 
     // Handle file removal
     const handleRemoveFile = useCallback((file: File, e: React.MouseEvent) => {
@@ -152,76 +79,65 @@ const MultiPDFRenderer: React.FC = () => {
         }
     }, [getFileIndex, removeFile]);
 
-    // Prepare data for the virtualized list
-    useMemo(() => ({
-        files: activeFiles,
-        currentFile,
-        onSelect: handleFileSelection,
-        onRemove: handleRemoveFile
-    }), [activeFiles, currentFile, handleFileSelection, handleRemoveFile]);
-    // Render a file item in the virtualized list
-    useCallback(({index, style, data}: any) => {
-        const {files, currentFile, onSelect, onRemove} = data as FileItemData;
-        const file = files[index];
-        const fileKey = getFileKey(file);
-        const isCurrentFile = currentFile === file;
+    // Handle entering fullscreen mode for a file
+    const handleEnterFullScreen = useCallback((file: File, e: React.MouseEvent) => {
+        e.stopPropagation();
 
-        return (
-            <div
-                style={style}
-                className="virtual-file-container"
-                data-file-index={index}
-            >
-                <div
-                    className={`pdf-file-container ${isCurrentFile ? 'current' : ''}`}
-                    onClick={() => onSelect(file)}
-                    data-file-key={fileKey}
-                    data-file-name={file.name}
-                >
-                    <div className="pdf-file-header">
-                        <h3 className="pdf-file-title">{file.name}</h3>
-                        <div className="pdf-file-actions">
-                            <button
-                                className="pdf-file-action-button"
-                                onClick={(e) => onRemove(file, e)}
-                                title="Remove file"
-                            >
-                                <span>✕</span>
-                            </button>
-                        </div>
-                    </div>
+        // Set as current file and ensure it's open
+        setCurrentFile(file);
+        openFile(file);
 
-                    <PDFDocumentWrapper file={file} fileKey={fileKey}/>
-                </div>
-            </div>
+        // Set the file for fullscreen display
+        setFullscreenFile(file);
+    }, [setCurrentFile, openFile]);
+
+    // Handle exiting fullscreen mode
+    const handleExitFullScreen = useCallback(() => {
+        setFullscreenFile(null);
+    }, []);
+
+    // Toggle file open/close state
+    const handleToggleOpen = useCallback((file: File, e: React.MouseEvent) => {
+        e.stopPropagation();
+        toggleFileOpen(file);
+    }, [toggleFileOpen]);
+
+    // Toggle file selection for batch operations
+    const handleToggleSelection = useCallback((file: File, e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        // Check if file is already selected
+        const isAlreadySelected = selectedFiles.some(f =>
+            f.name === file.name &&
+            f.size === file.size &&
+            f.lastModified === file.lastModified
         );
-    }, []);
-// Update dimensions on window resize
-    useEffect(() => {
-        const handleResize = () => {
-            setDimensions({
-                width: window.innerWidth,
-                height: window.innerHeight
-            });
-        };
 
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+        // Toggle selection state directly based on current state
+        if (isAlreadySelected) {
+            // Deselect the file
+            setSelectedFiles(prev => prev.filter(f =>
+                f.name !== file.name ||
+                f.size !== file.size ||
+                f.lastModified !== file.lastModified
+            ));
+        } else {
+            // Select the file
+            setSelectedFiles(prev => [...prev, file]);
+        }
+    }, [selectedFiles, setSelectedFiles]);
 
-    // Initialize observers after render
-    useEffect(() => {
-        // Wait for DOM to stabilize
-        const timeoutId = setTimeout(() => {
-            // Refresh intersection observers
-            scrollManager.refreshObservers();
-        }, 300);
+    // Check if a file is selected
+    const isFileSelected = useCallback((file: File) => {
+        return selectedFiles.some(f =>
+            f.name === file.name &&
+            f.size === file.size &&
+            f.lastModified === file.lastModified
+        );
+    }, [selectedFiles]);
 
-        return () => clearTimeout(timeoutId);
-    }, [activeFiles]);
-
-    // If no active files, show message
-    if (activeFiles.length === 0) {
+    // If no files, show message
+    if (files.length === 0) {
         return (
             <div className="pdf-error-container">
                 <div className="fallback-uploader">
@@ -232,46 +148,83 @@ const MultiPDFRenderer: React.FC = () => {
     }
 
     return (
-        <div className="multi-pdf-container">
-            {/*
-        We're not using react-window's VariableSizeList here because we would
-        need a more complex implementation to handle dynamic PDF heights.
-        Instead, we render the PDFs directly for better control.
-      */}
-            {activeFiles.map((file) => {
-                const isCurrentFileMatch = currentFile === file;
-                const fileKey = getFileKey(file);
+        <>
+            {/* Fullscreen overlay */}
+            {fullscreenFile && (
+                <FullScreenOverlay
+                    file={fullscreenFile}
+                    onClose={handleExitFullScreen}
+                />
+            )}
 
-                return (
-                    <div
-                        key={fileKey}
-                        className="pdf-file-wrapper"
-                    >
+            {/* Regular PDF file list */}
+            <div className="multi-pdf-container">
+                {files.map((file) => {
+                    const isCurrentFileMatch = currentFile === file;
+                    const fileKey = getFileKey(file);
+                    const isOpen = isFileOpen(file);
+                    const isSelected = isFileSelected(file);
+
+                    return (
                         <div
-                            className={`pdf-file-container ${isCurrentFileMatch ? 'current' : ''}`}
-                            onClick={() => handleFileSelection(file)}
-                            data-file-key={fileKey}
-                            data-file-name={file.name}
+                            key={fileKey}
+                            className="pdf-file-wrapper"
                         >
-                            <div className="pdf-file-header">
-                                <h3 className="pdf-file-title">{file.name}</h3>
-                                <div className="pdf-file-actions">
-                                    <button
-                                        className="pdf-file-action-button"
-                                        onClick={(e) => handleRemoveFile(file, e)}
-                                        title="Remove file"
-                                    >
-                                        <span>✕</span>
-                                    </button>
-                                </div>
-                            </div>
+                            <div
+                                className={`pdf-file-container ${isCurrentFileMatch ? 'current' : ''} ${isOpen ? 'open' : 'closed'} ${isSelected ? 'selected' : ''}`}
+                                onClick={() => handleFileSelection(file)}
+                                data-file-key={fileKey}
+                                data-file-name={file.name}
+                            >
+                                <div className="pdf-file-header">
+                                    <div className="pdf-file-header-left">
+                                        <button
+                                            className="pdf-file-toggle-button"
+                                            onClick={(e) => handleToggleOpen(file, e)}
+                                            title={isOpen ? "Collapse file" : "Expand file"}
+                                        >
+                                            {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                        </button>
+                                        <h3 className="pdf-file-title">{file.name}</h3>
+                                    </div>
 
-                            <PDFDocumentWrapper file={file} fileKey={fileKey}/>
+                                    {/* Ensure all action buttons are in the same container */}
+                                    <div className="pdf-file-actions">
+                                        <button
+                                            className={`pdf-file-action-button ${isSelected ? 'selected' : ''}`}
+                                            onClick={(e) => handleToggleSelection(file, e)}
+                                            title={isSelected ? "Deselect file" : "Select file"}
+                                            aria-pressed={isSelected}
+                                        >
+                                            {isSelected ? <Check size={18} /> : <span className="select-icon"></span>}
+                                        </button>
+                                        <button
+                                            className="pdf-file-action-button"
+                                            onClick={(e) => handleEnterFullScreen(file, e)}
+                                            title="View in full screen"
+                                        >
+                                            <Maximize size={18} />
+                                        </button>
+                                        <button
+                                            className="pdf-file-action-button"
+                                            onClick={(e) => handleRemoveFile(file, e)}
+                                            title="Remove file"
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Only render the PDF content if the file is open */}
+                                {isOpen && (
+                                    <PDFDocumentWrapper file={file} fileKey={fileKey} />
+                                )}
+                            </div>
                         </div>
-                    </div>
-                );
-            })}
-        </div>
+                    );
+                })}
+            </div>
+        </>
     );
 };
 

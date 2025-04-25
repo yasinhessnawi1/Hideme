@@ -59,8 +59,6 @@ interface FileContextProps {
     toggleActiveFile: (file: File) => void;
     isFileActive: (file: File) => boolean;
 
-
-
     // Storage-related properties and functions
     isStoragePersistenceEnabled: boolean;
     setStoragePersistenceEnabled: (enabled: boolean) => void;
@@ -69,6 +67,14 @@ interface FileContextProps {
 
     // File utility functions
     getFileByKey: (fileKey: string) => File | null;
+    openFiles: File[];
+    openFile: (file: File) => void;
+    closeFile: (file: File) => void;
+    toggleFileOpen: (file: File) => void;
+    isFileOpen: (file: File) => boolean;
+    openAllFiles: () => void;
+    closeAllFiles: () => void;
+    setSelectedFiles: React.Dispatch<React.SetStateAction<File[]>>;
 }
 
 const FileContext = createContext<FileContextProps | undefined>(undefined);
@@ -86,6 +92,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [currentFile, setCurrentFile] = useState<File | null>(null);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [activeFiles, setActiveFiles] = useState<File[]>([]); // Files currently displayed
+    const [openFiles, setOpenFiles] = useState<File[]>([]);
     const [isStoragePersistenceEnabled, setIsStoragePersistenceEnabled] = useState<boolean>(false);
     const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
     const { removeHighlightsFromFile } = useHighlightStore();
@@ -407,9 +414,26 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [queueTrigger]);
 
+    const openFile = useCallback((file: File) => {
+        setOpenFiles(prev => {
+            if (prev.some(f => f.name === file.name && f.lastModified === file.lastModified)) {
+                return prev;
+            }
+            return [...prev, file];
+        });
+
+        // Also make the file active when opened
+        addToActiveFiles(file);
+    }, []);
+
     // File management functions with storage integration
     const addFile = useCallback((file: File) => {
         setFiles((prevFiles) => {
+            if (prevFiles.length >= 20) {
+                console.warn(`[FileContext] Maximum file limit reached. Cannot add more files.`);
+                return prevFiles;
+            }
+
             // Check if file already exists in array (by name and size)
             const fileExists = prevFiles.some(f =>
                 f.name === file.name &&
@@ -419,16 +443,10 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (fileExists) {
                 setCurrentFile(file);
+                // Open the file if it's not already open
+                openFile(file);
                 return prevFiles;
             }
-
-            // If the file exists in the active files, remove it
-            const filteredActiveFiles = activeFiles.filter(activeFile =>
-                !(activeFile.name === file.name &&
-                    activeFile.size === file.size &&
-                    activeFile.lastModified === file.lastModified)
-            );
-            setActiveFiles(filteredActiveFiles);
 
             // Otherwise add to array
             const newFiles = [file, ...prevFiles];
@@ -437,6 +455,9 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (prevFiles.length === 0) {
                 setCurrentFile(file);
             }
+
+            // Automatically open the new file
+            openFile(file);
 
             // Always queue file for auto-processing
             // The AutoProcessManager will handle the decision about whether to process it
@@ -461,9 +482,9 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             return newFiles;
         });
-    }, [addToActiveFiles, activeFiles, isStoragePersistenceEnabled, setCurrentFile]);
+    }, [openFile, isStoragePersistenceEnabled, setCurrentFile]);
 
-// Modified addFiles method - simplified queueing logic
+    // Modified addFiles method - simplified queueing logic
     const addFiles = useCallback((newFiles: File[], replace = false) => {
         setFiles((prevFiles) => {
             // Start with either the existing files or an empty array if replace=true
@@ -477,6 +498,13 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     existingFile.lastModified === newFile.lastModified
                 )
             );
+
+            // Limit the number of files to 20
+            const totalFiles = baseFiles.length + uniqueNewFiles.length;
+            if (totalFiles > 20) {
+                console.warn(`[FileContext] Maximum file limit reached. Only the first 20 files will be added.`);
+                uniqueNewFiles.splice(20 - baseFiles.length);
+            }
 
             const updatedFiles = [...uniqueNewFiles, ...baseFiles];
 
@@ -551,6 +579,11 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Remove from active files
             removeFromActiveFiles(removedFile);
 
+            // Also remove from open files
+            setOpenFiles(prev => prev.filter(f =>
+                f.name !== removedFile.name || f.lastModified !== removedFile.lastModified
+            ));
+
             // Deselect the removed file if it was selected
             setSelectedFiles(prev => prev.filter(f => f !== removedFile));
 
@@ -623,6 +656,44 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [isStoragePersistenceEnabled]);
 
+
+    const closeFile = useCallback((file: File) => {
+        setOpenFiles(prev => prev.filter(f =>
+            f.name !== file.name || f.lastModified !== file.lastModified
+        ));
+    }, []);
+
+    // Toggle file open/closed state
+    const toggleFileOpen = useCallback((file: File) => {
+        setOpenFiles(prev => {
+            if (prev.some(f => f.name === file.name && f.lastModified === file.lastModified)) {
+                return prev.filter(f => f.name !== file.name || f.lastModified !== file.lastModified);
+            }
+            // Also make the file active when opened
+            addToActiveFiles(file);
+            return [...prev, file];
+        });
+    }, [addToActiveFiles]);
+
+    // Check if a file is open
+    const isFileOpen = useCallback((file: File) => {
+        return openFiles.some(f =>
+            f.name === file.name &&
+            f.size === file.size &&
+            f.lastModified === file.lastModified
+        );
+    }, [openFiles]);
+
+    // Open all files
+    const openAllFiles = useCallback(() => {
+        setOpenFiles([...files]);
+        setActiveFiles([...files]);
+    }, [files]);
+
+    // Close all files
+    const closeAllFiles = useCallback(() => {
+        setOpenFiles([]);
+    }, []);
     // File selection methods for batch operations
     const selectFile = useCallback((file: File) => {
         setSelectedFiles(prev => {
@@ -702,15 +773,21 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 toggleActiveFile,
                 isFileActive,
 
-
                 // Storage-related properties and functions
                 isStoragePersistenceEnabled,
                 setStoragePersistenceEnabled: handleToggleStoragePersistence,
                 storageStats,
                 clearStoredFiles,
-
+                openFiles,
+                openFile,
+                closeFile,
+                toggleFileOpen,
+                isFileOpen,
+                openAllFiles,
+                closeAllFiles,
                 // Utilities
-                getFileByKey
+                getFileByKey,
+                setSelectedFiles,
             }}
         >
             {children}

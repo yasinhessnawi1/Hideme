@@ -185,7 +185,8 @@ NAVBAR STYLES
     align-items: center;
     gap: 0.75rem;
     width: 100%;
-    padding: 0.85rem 1.25rem;
+    padding: 0.85rem 1.25rem !important;
+
     border: none;
     background-color: var(--background);
     text-align: left;

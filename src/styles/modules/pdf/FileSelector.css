@@ -369,6 +369,7 @@ transition: transform 0.2s;
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     color: var(--foreground);
+    padding: 0 var(--spacing-md);
 }
 
 .dropdown-close {
