@@ -64,7 +64,7 @@ export interface HighlightRect {
     text?: string;
     entity?: string;
     model?: string;
-    fileKey?: string;
+    fileKey: string;
     timestamp?: number;
     // Add these properties to store original coordinates for proper scaling
     originalX?: number;

@@ -190,6 +190,8 @@ const PageRenderer: React.FC<PageRendererProps> = ({
         <div
             className={`pdf-page-wrapper ${isPageActive ? 'active' : ''}`}
             data-page-number={pageNumber}
+            data-file-key={fileKey}  // Make sure this attribute is set
+            data-file={fileKey}
             ref={(el) => {
                 if (el) {
                     wrapperRef.current = el;

@@ -228,6 +228,17 @@ export class HighlightStore {
         // Notify subscribers
         this.notifySubscribers(foundFileKey || undefined, foundPage || undefined, foundHighlight.type);
 
+        // Dispatch a global event that a highlight was removed
+        window.dispatchEvent(new CustomEvent('highlight-removed', {
+            detail: {
+                id,
+                fileKey: foundFileKey,
+                page: foundPage,
+                type: foundHighlight.type,
+                timestamp: Date.now()
+            }
+        }));
+
         return true;
     }
 
@@ -259,7 +270,7 @@ export class HighlightStore {
             if (!highlight.timestamp) {
                 highlight.timestamp = Date.now();
             }
-            this.getHighlightsForFile(highlight.fileKey).forEach(h => {
+            this.getHighlightsForFile(highlight.fileKey ).forEach(h => {
                 if (h.x === highlight.x && h.y === highlight.y && h.w === highlight.w && h.h === highlight.h) {
                     this.removeHighlight(h.id);
                 }});

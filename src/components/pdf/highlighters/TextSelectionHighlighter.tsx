@@ -30,7 +30,25 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
     useEffect(() => {
         if (isActive && isEditingMode) {
             // Find the text layer for this page
-            const pageContainer = document.querySelector(`[data-page-number="${pageNumber}"]`);
+            // FIXED: Make the query more specific by including fileKey
+            let pageContainer;
+
+            if (fileKey) {
+                // First try with the specific file key
+                pageContainer = document.querySelector(
+                    `[data-file-key="${fileKey}"] [data-page-number="${pageNumber}"]`
+                );
+
+                // If that fails, try a more direct approach
+                if (!pageContainer) {
+                    pageContainer = document.querySelector(
+                        `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file="${fileKey}"]`
+                    );
+                }
+            } else {
+                // Fallback to the original behavior
+                pageContainer = document.querySelector(`[data-page-number="${pageNumber}"]`);
+            }
 
             if (pageContainer) {
                 // Find the text layer and enable pointer events
@@ -45,15 +63,23 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
                     textLayer.style.pointerEvents = 'auto';
                     textLayer.style.userSelect = 'text';
 
+                    // Log successful enabling of text selection
+                    console.log(`[TextSelectionHighlighter] Enabled text selection for page ${pageNumber} of file ${fileKey || 'default'}`);
+
                     // Restore original settings when deactivated
                     return () => {
                         textLayer.style.pointerEvents = originalPointerEvents;
                         textLayer.style.userSelect = originalUserSelect;
+                        console.log(`[TextSelectionHighlighter] Disabled text selection for page ${pageNumber} of file ${fileKey || 'default'}`);
                     };
+                } else {
+                    console.warn(`[TextSelectionHighlighter] Text layer not found for page ${pageNumber} of file ${fileKey || 'default'}`);
                 }
+            } else {
+                console.warn(`[TextSelectionHighlighter] Page container not found for page ${pageNumber} of file ${fileKey || 'default'}`);
             }
         }
-    }, [isActive, isEditingMode, pageNumber]);
+    }, [isActive, isEditingMode, pageNumber, fileKey]);
 
     // Safely trim trailing whitespace while preserving selection boundaries
     const getCleanRects = (rects: DOMRectList, range: Range, pageRect: DOMRect) => {
@@ -128,7 +154,6 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
         return processedRects;
     };
 
-    // Process the text selection
     const processTextSelection = useCallback(() => {
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0) return;
@@ -138,19 +163,65 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
 
         const range = selection.getRangeAt(0);
 
-        // Find the page container
-        const pageContainer = document.querySelector(`[data-page-number="${pageNumber}"]`);
-        if (!pageContainer) return;
+        // Find the page container - Make sure we use file-specific selector
+        const safeFileKey = fileKey || '_default';
+
+        // Try different selector strategies to ensure we find the right page
+        let pageContainer;
+
+        // Strategy 1: Direct selector with both attributes
+        pageContainer = document.querySelector(
+            `[data-page-number="${pageNumber}"][data-file-key="${safeFileKey}"]`
+        );
+
+        // Strategy 2: Nested selector approach
+        if (!pageContainer) {
+            pageContainer = document.querySelector(
+                `[data-file-key="${safeFileKey}"] [data-page-number="${pageNumber}"]`
+            );
+        }
+
+        // Strategy 3: File container with page inside
+        if (!pageContainer) {
+            const fileContainer = document.querySelector(`[data-file-key="${safeFileKey}"]`);
+            if (fileContainer) {
+                pageContainer = fileContainer.querySelector(`[data-page-number="${pageNumber}"]`);
+            }
+        }
+
+        // Strategy 4: Fallback to older approach
+        if (!pageContainer) {
+            pageContainer = document.querySelector(`[data-page-number="${pageNumber}"]`);
+
+            // Check if this page belongs to our file
+            if (pageContainer && pageContainer.closest(`[data-file-key="${safeFileKey}"]`) === null) {
+                console.warn(`[TextSelectionHighlighter] Found page ${pageNumber} but not in file ${safeFileKey}`);
+                pageContainer = null;
+            }
+        }
+
+        if (!pageContainer) {
+            console.warn(`[TextSelectionHighlighter] Could not find page container for page ${pageNumber} of file ${safeFileKey}`);
+            return;
+        }
 
         // Check if selection is within our page
-        if (!pageContainer.contains(range.commonAncestorContainer)) return;
+        if (!pageContainer.contains(range.commonAncestorContainer)) {
+            console.warn(`[TextSelectionHighlighter] Selection not within page ${pageNumber} of file ${safeFileKey}`);
+            return;
+        }
 
+        // Continue with the rest of the function...
         // Calculate the bounding rectangle of the selection
         const rects = range.getClientRects();
         if (rects.length === 0) return;
 
         // Get the page position
         const pageRect = pageContainer.getBoundingClientRect();
+
+        // Log successful selection processing
+        console.log(`[TextSelectionHighlighter] Processing selection for page ${pageNumber} of file ${safeFileKey}`);
+
 
         // Get clean rectangles with trailing spaces handled
         const cleanRects = getCleanRects(rects, range, pageRect);
@@ -228,8 +299,8 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
 
                 lineMinX = Math.max(0, lineMinX - horizontalPadding);
                 lineMinY = Math.max(0, lineMinY - verticalPadding);
-                lineMaxX = Math.min(pageSize.cssWidth, lineMaxX + horizontalPadding);
-                lineMaxY = Math.min(pageSize.cssHeight, lineMaxY + verticalPadding);
+                lineMaxX = Math.min(pageSize.cssWidth, lineMaxX );
+                lineMaxY = Math.min(pageSize.cssHeight, lineMaxY + verticalPadding );
 
                 // Account for current zoom level
                 const zoomFactor = viewport.scale || 1;
@@ -315,7 +386,7 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
             });
 
             // Apply coordinate correction
-            const correctionX = -6;
+            const correctionX = -9;
             const correctionY = -6;
 
             minX += correctionX;
@@ -324,8 +395,8 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
             maxY += correctionY;
 
             // Apply padding
-            const horizontalPadding = 4;
-            const verticalPadding = 3;
+            const horizontalPadding = 1;
+            const verticalPadding = 1;
 
             minX = Math.max(0, minX - horizontalPadding);
             minY = Math.max(0, minY - verticalPadding);

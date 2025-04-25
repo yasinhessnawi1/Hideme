@@ -1,7 +1,7 @@
 // The issue is in how we adjust the position based on zoom level
 // Let's update the renderedHighlights calculation in BaseHighlightLayer.tsx
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, {useState, useMemo, useCallback, useEffect} from 'react';
 import { useHighlightStore } from '../../../hooks/useHighlightStore';
 import { useEditContext } from '../../../contexts/EditContext';
 import { usePDFViewerContext } from '../../../contexts/PDFViewerContext';
@@ -66,6 +66,26 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
          removeHighlight(highlight.id);
     }, [isEditingMode, removeHighlight]);
 
+    useEffect(() => {
+        // Clear any stuck tooltips when highlights change
+        setHoveredAnnotation(null);
+        setContextMenuState(null);
+    }, [highlights]);
+
+// Add highlight removal event listener to ensure tooltips are cleared globally
+    useEffect(() => {
+        const handleHighlightRemoved = () => {
+            // Clear tooltip and context menu when any highlight is removed
+            setHoveredAnnotation(null);
+            setContextMenuState(null);
+        };
+
+        window.addEventListener('highlight-removed', handleHighlightRemoved);
+
+        return () => {
+            window.removeEventListener('highlight-removed', handleHighlightRemoved);
+        };
+    }, []);
     // Handle mouse enter for hover tooltip
     const handleHighlightMouseEnter = useCallback((e: React.MouseEvent, highlight: HighlightRect) => {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
