@@ -442,9 +442,96 @@ and related components including processing indicators
 .react-pdf__Page__textContent span {
     color: transparent;
     position: absolute;
-    white-space: pre;
-    cursor: text;
+    white-space: pre-wrap;
+    cursor: crosshair;
     transform-origin: 0 0;
+    user-select: text;
+}
+/*
+==============================================
+IMPROVED PDF SELECTION STYLES
+==============================================
+Styles for precise text and rectangle selection in PDF viewer
+*/
+
+/* Rectangle Selection Mode */
+.page-overlay.rectangle-mode {
+    cursor: crosshair;
+}
+.react-pdf__Page__textContent *::selection {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+/* Hide browser's default blue selection */
+.react-pdf__Page__textContent.text-selection-enabled ::selection {
+    background-color: transparent !important;
+    color: inherit !important;
+}
+
+/* Ensure text is still selectable */
+.react-pdf__Page__textContent.text-selection-enabled {
+    cursor: text !important;
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+}
+
+/* Container for highlight spans */
+.text-selection-highlight-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 999;
+    overflow: visible;
+}
+
+/* Individual highlight spans */
+.text-selection-highlight-span {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 1px;
+    will-change: transform, opacity;
+    box-sizing: border-box;
+}
+
+/* Mode indicator tooltips */
+.pdf-page-wrapper.text-selection-mode::before,
+.pdf-page-wrapper.rectangle-mode::before {
+    content: attr(data-mode-hint);
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--foreground);
+    color: var(--background);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 100;
+}
+
+.pdf-page-wrapper.text-selection-mode:hover::before,
+.pdf-page-wrapper.rectangle-mode:hover::before {
+    opacity: 0.8;
+}
+
+/* Rectangle selection overlay */
+.selection-overlay {
+    position: absolute;
+    pointer-events: none;
+    z-index: 50;
+    border: 1px solid rgba(39, 171, 111, 0.6);
+    background-color: rgba(39, 171, 111, 0.3);
+    border-radius: 2px;
 }
 
 .react-pdf__Page__annotations section {

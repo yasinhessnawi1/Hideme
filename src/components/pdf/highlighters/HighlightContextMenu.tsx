@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Highlighter, Trash2, X } from 'lucide-react';
 import { useHighlightStore } from '../../../hooks/useHighlightStore';
-import { HighlightRect } from '../../../types';
+import {HighlightRect, HighlightType} from '../../../types';
 import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
@@ -197,9 +197,9 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                                 h: (y1 - y0) ,
                                 text: textToHighlight,
                                 fileKey,
-                                color: highlight.color,
+                                color: highlight.color || '#71c4ff',
                                 opacity: highlight.opacity ?? 0.4,
-                                type: highlight.type,
+                                type: highlight.type || HighlightType.SEARCH,
                             });
                         }
                     }

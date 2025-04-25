@@ -1,13 +1,13 @@
 // The issue is in how we adjust the position based on zoom level
 // Let's update the renderedHighlights calculation in BaseHighlightLayer.tsx
 
-import React, {useState, useMemo, useCallback, useEffect} from 'react';
-import { useHighlightStore } from '../../../hooks/useHighlightStore';
-import { useEditContext } from '../../../contexts/EditContext';
-import { usePDFViewerContext } from '../../../contexts/PDFViewerContext';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {useHighlightStore} from '../../../hooks/useHighlightStore';
+import {useEditContext} from '../../../contexts/EditContext';
+import {usePDFViewerContext} from '../../../contexts/PDFViewerContext';
 import HighlightContextMenu from './HighlightContextMenu';
 import '../../../styles/modules/pdf/HighlightLayer.css';
-import { HighlightRect } from '../../../types/pdfTypes';
+import {HighlightRect, HighlightType} from '../../../types/pdfTypes';
 
 interface BaseHighlightLayerProps {
     pageNumber: number;
@@ -255,8 +255,8 @@ function getTooltipContent(highlight: HighlightRect): string {
         return `Entity: ${highlight.entity}${model}`;
     } else if (highlight.type === 'SEARCH' && highlight.text) {
         return `Search: "${highlight.text}"`;
-    } else if (highlight.text) {
-        return highlight.text;
+    } else if (highlight.text && highlight.type === HighlightType.MANUAL) {
+        return highlight.type + ': ' + highlight.text;
     } else {
         return highlight.type ?? 'Highlight';
     }

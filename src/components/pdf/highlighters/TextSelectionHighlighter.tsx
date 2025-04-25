@@ -26,60 +26,243 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
     const [isProcessingSelection, setIsProcessingSelection] = useState(false);
     const selectionTimeoutRef = useRef<number | null>(null);
 
-    // When text selection mode is activated, enable text selection on the page
+    // Reference to track which text layer we've modified
+    const modifiedTextLayerRef = useRef<HTMLElement | null>(null);
+
+    // Container for holding all highlight preview elements
+    const highlightContainerRef = useRef<HTMLDivElement | null>(null);
+
+    // Initialize the highlight container that will hold all selection preview spans
     useEffect(() => {
         if (isActive && isEditingMode) {
-            // Find the text layer for this page
-            // FIXED: Make the query more specific by including fileKey
+            // Find the page container
             let pageContainer;
+            const selectors = [
+                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file="${fileKey || '_default'}"]`,
+                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file-key="${fileKey || '_default'}"]`,
+                `[data-file-key="${fileKey || '_default'}"] [data-page-number="${pageNumber}"]`,
+                `[data-page-number="${pageNumber}"]`
+            ];
 
-            if (fileKey) {
-                // First try with the specific file key
-                pageContainer = document.querySelector(
-                    `[data-file-key="${fileKey}"] [data-page-number="${pageNumber}"]`
-                );
-
-                // If that fails, try a more direct approach
-                if (!pageContainer) {
-                    pageContainer = document.querySelector(
-                        `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file="${fileKey}"]`
-                    );
+            for (const selector of selectors) {
+                const container = document.querySelector(selector);
+                if (container) {
+                    pageContainer = container;
+                    break;
                 }
-            } else {
-                // Fallback to the original behavior
-                pageContainer = document.querySelector(`[data-page-number="${pageNumber}"]`);
             }
 
             if (pageContainer) {
-                // Find the text layer and enable pointer events
-                const textLayer = pageContainer.querySelector('.react-pdf__Page__textContent');
-
-                if (textLayer instanceof HTMLElement) {
-                    // Save original style to restore later
-                    const originalPointerEvents = textLayer.style.pointerEvents;
-                    const originalUserSelect = textLayer.style.userSelect;
-
-                    // Enable text selection
-                    textLayer.style.pointerEvents = 'auto';
-                    textLayer.style.userSelect = 'text';
-
-                    // Log successful enabling of text selection
-                    console.log(`[TextSelectionHighlighter] Enabled text selection for page ${pageNumber} of file ${fileKey || 'default'}`);
-
-                    // Restore original settings when deactivated
-                    return () => {
-                        textLayer.style.pointerEvents = originalPointerEvents;
-                        textLayer.style.userSelect = originalUserSelect;
-                        console.log(`[TextSelectionHighlighter] Disabled text selection for page ${pageNumber} of file ${fileKey || 'default'}`);
-                    };
-                } else {
-                    console.warn(`[TextSelectionHighlighter] Text layer not found for page ${pageNumber} of file ${fileKey || 'default'}`);
+                // Remove existing container if present
+                if (highlightContainerRef.current) {
+                    highlightContainerRef.current.remove();
+                    highlightContainerRef.current = null;
                 }
-            } else {
-                console.warn(`[TextSelectionHighlighter] Page container not found for page ${pageNumber} of file ${fileKey || 'default'}`);
+
+                // Create new highlight container
+                const container = document.createElement('div');
+                container.className = 'text-selection-highlight-container';
+                container.style.position = 'absolute';
+                container.style.top = '0';
+                container.style.left = '0';
+                container.style.right = '0';
+                container.style.bottom = '0';
+                container.style.pointerEvents = 'none';
+                container.style.zIndex = '999';
+                container.style.overflow = 'visible';
+
+                pageContainer.appendChild(container);
+                highlightContainerRef.current = container;
+
+                // Add data attribute for debugging
+                container.setAttribute('data-page', pageNumber.toString());
+                container.setAttribute('data-file', fileKey || '_default');
             }
         }
+
+        return () => {
+            // Clean up the container on unmount
+            if (highlightContainerRef.current) {
+                highlightContainerRef.current.remove();
+                highlightContainerRef.current = null;
+            }
+        };
     }, [isActive, isEditingMode, pageNumber, fileKey]);
+
+    // When text selection mode is activated, enable text selection on the page
+    useEffect(() => {
+        const cleanup = () => {
+            if (modifiedTextLayerRef.current) {
+                modifiedTextLayerRef.current.classList.remove('text-selection-enabled');
+                modifiedTextLayerRef.current.style.pointerEvents = 'none';
+                modifiedTextLayerRef.current.style.userSelect = 'none';
+                modifiedTextLayerRef.current = null;
+            }
+        };
+
+        if (isActive && isEditingMode) {
+            // Find the text layer for this page
+            let pageContainer;
+            let textLayer;
+
+            // Try several selector strategies
+            const selectors = [
+                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file="${fileKey || '_default'}"]`,
+                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file-key="${fileKey || '_default'}"]`,
+                `[data-file-key="${fileKey || '_default'}"] [data-page-number="${pageNumber}"]`,
+                `[data-page-number="${pageNumber}"]`
+            ];
+
+            for (const selector of selectors) {
+                pageContainer = document.querySelector(selector);
+                if (pageContainer) {
+                    textLayer = pageContainer.querySelector('.react-pdf__Page__textContent');
+                    if (textLayer instanceof HTMLElement) break;
+                }
+            }
+
+            if (textLayer instanceof HTMLElement) {
+                cleanup();
+
+                // Save reference to this text layer
+                modifiedTextLayerRef.current = textLayer;
+
+                // Enable text selection
+                textLayer.style.pointerEvents = 'auto';
+                textLayer.style.userSelect = 'text';
+
+                // Set page indicator if container found
+                if (pageContainer && pageContainer.classList.contains('pdf-page-wrapper')) {
+                    pageContainer.classList.add('text-selection-mode');
+                    pageContainer.setAttribute('data-mode-hint', 'Text Selection Mode');
+                }
+            }
+        } else {
+            cleanup();
+
+            // Remove page indicator
+            const pageContainer = document.querySelector(
+                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file="${fileKey || '_default'}"]`
+            );
+
+            if (pageContainer) {
+                pageContainer.classList.remove('text-selection-mode');
+                pageContainer.removeAttribute('data-mode-hint');
+            }
+        }
+
+        return cleanup;
+    }, [isActive, isEditingMode, pageNumber, fileKey]);
+
+    // Create selection highlight spans for each text selection rectangle
+    const createHighlightSpans = useCallback((range: Range, pageRect: DOMRect) => {
+        if (!highlightContainerRef.current) return;
+
+        // Clear existing highlights
+        highlightContainerRef.current.innerHTML = '';
+
+        // Get all client rects from the selection range
+        const rects = range.getClientRects();
+        if (!rects || rects.length === 0) return;
+
+        // Create individual highlight spans for each rectangle
+        for (let i = 0; i < rects.length; i++) {
+            const rect = rects[i];
+
+            // Skip very small rects (typically representing whitespace)
+            if (rect.width < 1 || rect.height < 1) continue;
+
+            const offsetX = 0; // Adjust this value to move horizontally (positive = right, negative = left)
+            const offsetY = -2; // Adjust this value to move vertically (positive = down, negative = up)
+
+            const relativeX = rect.left - pageRect.left + offsetX;
+            const relativeY = rect.top - pageRect.top + offsetY;
+
+            // Create highlight span
+            const highlight = document.createElement('span');
+            highlight.className = 'text-selection-highlight-span';
+            highlight.style.position = 'absolute';
+            highlight.style.left = `${relativeX}px`;
+            highlight.style.top = `${relativeY}px`;
+            highlight.style.width = `${rect.width}px`;
+            highlight.style.height = `${rect.height}px`;
+            highlight.style.backgroundColor = `${highlightColor}4D`; // 30% opacity
+            highlight.style.border = `1px solid ${highlightColor}99`; // 60% opacity
+            highlight.style.pointerEvents = 'none';
+            highlight.style.borderRadius = '1px';
+            highlight.style.transition = 'all 0.05s ease';
+            highlight.style.zIndex = '1000';
+
+            highlightContainerRef.current.appendChild(highlight);
+        }
+    }, [highlightColor]);
+
+    // Track selection changes to show highlight spans
+    useEffect(() => {
+        if (!isActive || !isEditingMode || !highlightContainerRef.current) return;
+
+        const handleSelectionChange = () => {
+            // Clear existing highlight spans if container exists
+            if (highlightContainerRef.current) {
+                highlightContainerRef.current.innerHTML = '';
+            }
+
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0 || selection.toString().trim() === '') {
+                return;
+            }
+
+            // Find the page container to get its position
+            let pageContainer;
+            const selectors = [
+                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file="${fileKey || '_default'}"]`,
+                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file-key="${fileKey || '_default'}"]`,
+                `[data-file-key="${fileKey || '_default'}"] [data-page-number="${pageNumber}"]`,
+                `[data-page-number="${pageNumber}"]`
+            ];
+
+            for (const selector of selectors) {
+                const container = document.querySelector(selector);
+                if (container) {
+                    pageContainer = container;
+                    break;
+                }
+            }
+
+            if (!pageContainer) return;
+
+            // Get the range from the selection
+            const range = selection.getRangeAt(0);
+
+            // Make sure the selection is within our page
+            const commonAncestor = range.commonAncestorContainer;
+            if (!pageContainer.contains(commonAncestor)) {
+                return;
+            }
+
+            // Get page position
+            const pageRect = pageContainer.getBoundingClientRect();
+
+            // Create highlight spans for this selection
+            createHighlightSpans(range, pageRect);
+        };
+
+        // Update on selection change
+        document.addEventListener('selectionchange', handleSelectionChange);
+
+        // Also update on mouseup to catch the final selection
+        const handleMouseUp = () => {
+            // Small delay to ensure selection is complete
+            setTimeout(handleSelectionChange, 0);
+        };
+
+        document.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            document.removeEventListener('selectionchange', handleSelectionChange);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isActive, isEditingMode, pageNumber, fileKey, createHighlightSpans]);
 
     // Safely trim trailing whitespace while preserving selection boundaries
     const getCleanRects = (rects: DOMRectList, range: Range, pageRect: DOMRect) => {
@@ -169,34 +352,18 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
         // Try different selector strategies to ensure we find the right page
         let pageContainer;
 
-        // Strategy 1: Direct selector with both attributes
-        pageContainer = document.querySelector(
-            `[data-page-number="${pageNumber}"][data-file-key="${safeFileKey}"]`
-        );
+        const selectors = [
+            `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file="${safeFileKey}"]`,
+            `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file-key="${safeFileKey}"]`,
+            `[data-file-key="${safeFileKey}"] [data-page-number="${pageNumber}"]`,
+            `[data-page-number="${pageNumber}"]`
+        ];
 
-        // Strategy 2: Nested selector approach
-        if (!pageContainer) {
-            pageContainer = document.querySelector(
-                `[data-file-key="${safeFileKey}"] [data-page-number="${pageNumber}"]`
-            );
-        }
-
-        // Strategy 3: File container with page inside
-        if (!pageContainer) {
-            const fileContainer = document.querySelector(`[data-file-key="${safeFileKey}"]`);
-            if (fileContainer) {
-                pageContainer = fileContainer.querySelector(`[data-page-number="${pageNumber}"]`);
-            }
-        }
-
-        // Strategy 4: Fallback to older approach
-        if (!pageContainer) {
-            pageContainer = document.querySelector(`[data-page-number="${pageNumber}"]`);
-
-            // Check if this page belongs to our file
-            if (pageContainer && pageContainer.closest(`[data-file-key="${safeFileKey}"]`) === null) {
-                console.warn(`[TextSelectionHighlighter] Found page ${pageNumber} but not in file ${safeFileKey}`);
-                pageContainer = null;
+        for (const selector of selectors) {
+            const container = document.querySelector(selector);
+            if (container) {
+                pageContainer = container;
+                break;
             }
         }
 
@@ -211,17 +378,12 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
             return;
         }
 
-        // Continue with the rest of the function...
         // Calculate the bounding rectangle of the selection
         const rects = range.getClientRects();
         if (rects.length === 0) return;
 
         // Get the page position
         const pageRect = pageContainer.getBoundingClientRect();
-
-        // Log successful selection processing
-        console.log(`[TextSelectionHighlighter] Processing selection for page ${pageNumber} of file ${safeFileKey}`);
-
 
         // Get clean rectangles with trailing spaces handled
         const cleanRects = getCleanRects(rects, range, pageRect);
@@ -235,8 +397,6 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
 
         // If it's a multi-line selection, create a highlight for each line
         if (isMultiLine) {
-            console.log(`Processing multi-line selection with ${cleanRects.length} line rectangles`);
-
             // Sort rectangles by vertical position (top to bottom)
             cleanRects.sort((a, b) => a.top - b.top);
 
@@ -261,8 +421,6 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
 
             // Add the last group
             lineGroups.push(currentGroup);
-
-            console.log(`Grouped into ${lineGroups.length} line groups`);
 
             // Process each line group and create a highlight for it
             const highlightPromises = lineGroups.map(async (group, index) => {
@@ -299,8 +457,8 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
 
                 lineMinX = Math.max(0, lineMinX - horizontalPadding);
                 lineMinY = Math.max(0, lineMinY - verticalPadding);
-                lineMaxX = Math.min(pageSize.cssWidth, lineMaxX );
-                lineMaxY = Math.min(pageSize.cssHeight, lineMaxY + verticalPadding );
+                lineMaxX = Math.min(pageSize.cssWidth, lineMaxX);
+                lineMaxY = Math.min(pageSize.cssHeight, lineMaxY + verticalPadding);
 
                 // Account for current zoom level
                 const zoomFactor = viewport.scale || 1;
@@ -312,7 +470,6 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
                 const unzoomedMaxY = lineMaxY / zoomFactor;
 
                 // Extract just this line's text content if possible
-                // This is approximate since we can't exactly know which text belongs to which line
                 let lineText = "";
                 try {
                     // Create a range for just this line to extract its text
@@ -342,8 +499,6 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
                     lineText = `${selectedText} (line ${index + 1})`;
                 }
 
-                console.log(`Line ${index + 1} highlight: (${lineMinX}, ${lineMinY}) to (${lineMaxX}, ${lineMaxY})`);
-
                 // Create the highlight for this line
                 return ManualHighlightProcessor.createRectangleHighlight(
                     fileKey || '_default',
@@ -360,9 +515,13 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
 
             // Wait for all highlights to be created
             Promise.all(highlightPromises).then(highlights => {
-                console.log(`Created ${highlights.filter(Boolean).length} line highlights`);
                 // Clear the selection after creating all highlights
                 selection.removeAllRanges();
+
+                // Clear highlight spans
+                if (highlightContainerRef.current) {
+                    highlightContainerRef.current.innerHTML = '';
+                }
             }).catch(error => {
                 console.error('Error creating line highlights:', error);
             });
@@ -425,9 +584,13 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
                 HighlightCreationMode.TEXT_SELECTION
             ).then(highlight => {
                 if (highlight) {
-                    console.log(`Created single-line highlight: ${highlight.id}`);
                     // Clear selection after creating highlight
                     selection.removeAllRanges();
+
+                    // Clear highlight spans
+                    if (highlightContainerRef.current) {
+                        highlightContainerRef.current.innerHTML = '';
+                    }
                 }
             });
         }
@@ -448,7 +611,7 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
             // If we're already processing a selection, don't start another one
             if (isProcessingSelection) return;
 
-            // Set a timeout to stabilize the selection before processing
+            // Set a short timeout to stabilize the selection before processing
             selectionTimeoutRef.current = window.setTimeout(() => {
                 setIsProcessingSelection(true);
 
@@ -458,9 +621,9 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
                     // Always reset the processing flag
                     setTimeout(() => {
                         setIsProcessingSelection(false);
-                    }, 100);
+                    }, 50);
                 }
-            }, 100); // Wait 100ms for selection to stabilize
+            }, 10); // Very short delay to ensure selection is complete
         };
 
         // Handler for mousedown to prevent processing during selection
