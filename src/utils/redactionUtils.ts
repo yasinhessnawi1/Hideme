@@ -182,12 +182,13 @@ export function getRedactionStatistics(mapping: RedactionMapping) {
 
 /**
  * Process the redacted file blobs and replace the appropriate files in the application state
+ * @returns A promise that resolves with the array of newly created redacted File objects
  */
 export async function processRedactedFiles(
     redactedFiles: Record<string, Blob>,
     updateFiles: (files: File[], replace: boolean) => void,
     currentFiles: File[],
-): Promise<void> {
+): Promise<File[]> {
     // Convert blobs to File objects
     const redactedFileObjects: File[] = [];
 
@@ -199,17 +200,21 @@ export async function processRedactedFiles(
         if (originalFile) {
             // Create a new File object with '-redacted' suffix
             const date = new Date().toISOString().replace(/[:.]/g, '-');
-            const filename = originalFile.name.replace('.pdf', `-redacted-${date}.pdf`);
+            const filename = originalFile.name.replace(/\.pdf$/i, `-redacted-${date}.pdf`);
             const redactedFile = new File([blob], filename, { type: 'application/pdf' });
             redactedFileObjects.push(redactedFile);
+        } else {
+            console.warn(`Original file not found for key: ${fileKey}`);
         }
     }
 
     if (redactedFileObjects.length === 0) {
-        throw new Error('No redacted files were successfully processed');
+        // Still resolve with empty array, but maybe log a warning
+        console.warn('No redacted files were successfully processed or matched to original files.');
     }
-    // Update the files in the application state
+    // Update the files in the application state (adding the new files)
     updateFiles(redactedFileObjects ,false);
 
-    return Promise.resolve();
+    // Return the newly created File objects
+    return redactedFileObjects;
 }

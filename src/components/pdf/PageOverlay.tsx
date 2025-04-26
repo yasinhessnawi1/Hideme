@@ -31,7 +31,7 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
                                                      fileKey,
                                                      highlightingMode
                                                  }) => {
-    const { highlightColor } = useEditContext();
+    const { manualColor } = useEditContext();
 
     // State for selection
     const [selectionStart, setSelectionStart] = useState<{x: number; y: number} | null>(null);
@@ -114,9 +114,9 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
                     unzoomedStartY,
                     unzoomedEndX,
                     unzoomedEndY,
-                    highlightColor,
+                    manualColor,
                     undefined,
-                    HighlightCreationMode.RECTANGULAR
+                    HighlightCreationMode.RECTANGULAR,
                 ).then(highlight => {
                     if (highlight) {
                         console.log(`[PageOverlay] Successfully created highlight with ID ${highlight.id}`);
@@ -133,7 +133,7 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
             setSelectionStart(null);
             setSelectionEnd(null);
         }
-    }, [selectionStart, selectionEnd, pageNumber, fileKey, highlightColor, isRectangularMode, viewport.scale]);
+    }, [selectionStart, selectionEnd, pageNumber, fileKey, manualColor, isRectangularMode, viewport.scale]);
 
     // Mouse leave handling
     const handleMouseLeave = useCallback(() => {
@@ -178,7 +178,7 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
                         top: Math.min(selectionStart.y, selectionEnd.y),
                         width: Math.abs(selectionEnd.x - selectionStart.x),
                         height: Math.abs(selectionEnd.y - selectionStart.y),
-                        backgroundColor: highlightColor,
+                        backgroundColor: manualColor,
                         opacity: 0.3,
                         zIndex: 20,
                     }}

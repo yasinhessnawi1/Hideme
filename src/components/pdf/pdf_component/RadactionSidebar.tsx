@@ -79,7 +79,7 @@ const RedactionSidebar: React.FC = () => {
     const getFilesToProcess = useCallback((): File[] => {
         if (redactionScope === 'current' && currentFile) {
             return [currentFile];
-        } else if (redactionScope === 'selected' && selectedFiles.length > 0) {
+        } else if (redactionScope === 'selected' || selectedFiles.length > 0) {
             return selectedFiles;
         } else if (redactionScope === 'all') {
             return files;
@@ -198,8 +198,10 @@ const RedactionSidebar: React.FC = () => {
      * Handle redaction for multiple files
      * Uses the generated redaction mappings that include search results
      */
-    const handleRedact = useCallback(async (callbackFn?: (result: { success: boolean, redactedFiles: File[], error?: string }) => void) => {
-        const filesToRedact = getFilesToProcess();
+    const handleRedact = useCallback(async (filesToRedact : File[] = [] ,callbackFn?: (result: { success: boolean, redactedFiles: File[], error?: string }) => void) => {
+        if(filesToRedact?.length ===0){
+             filesToRedact = getFilesToProcess();
+        }
 
         if (filesToRedact.length === 0 || redactionMappings.size === 0) {
             const errorMessage = 'No files selected for redaction or no content to redact.';
@@ -306,13 +308,12 @@ const RedactionSidebar: React.FC = () => {
 
             try {
                 // Process the redacted files and update the application state
-                 await processRedactedFiles(
+                const newRedactedFiles =  await processRedactedFiles(
                     redactedPdfs,
                     addFiles,
                     files,
                 );
 
-                 const newRedactedFiles = files.filter(file => file.name.includes('redacted'));
                 // Update success message
                 const successMessage = Object.keys(redactedPdfs).length === 1
                     ? `Redaction complete. ${Object.keys(redactedPdfs).length} file has been processed.`
@@ -425,7 +426,7 @@ const RedactionSidebar: React.FC = () => {
     useEffect(() => {
         const handleApplyRedactionSettings = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { applyToAllFiles, triggerRedaction, source } = customEvent.detail || {};
+            const { applyToAllFiles, triggerRedaction, source , filesToProcess} = customEvent.detail || {};
 
             console.log(`[RedactionSidebar] Received redaction settings from ${source}`);
 
@@ -438,7 +439,8 @@ const RedactionSidebar: React.FC = () => {
                     ...prev,
                     includeSearchHighlights: true,
                     includeEntityHighlights: true,
-                    includeManualHighlights: true
+                    includeManualHighlights: true,
+
                 }));
 
                 console.log('[RedactionSidebar] Set redaction scope to all files');
@@ -449,7 +451,7 @@ const RedactionSidebar: React.FC = () => {
                 console.log('[RedactionSidebar] Auto-triggering redaction process from external source');
                 // Delay slightly to ensure state updates have propagated
                 setTimeout(() => {
-                    handleRedact();
+                    handleRedact(filesToProcess);
                 }, 100);
             }
         };
@@ -457,13 +459,13 @@ const RedactionSidebar: React.FC = () => {
         // Event handler for direct redaction trigger
         const handleTriggerRedaction = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { source, callback } = customEvent.detail || {};
+            const { source, callback , filesToProcess} = customEvent.detail || {};
 
             console.log(`[RedactionSidebar] Received direct redaction trigger from ${source}`);
 
             if (typeof callback === 'function') {
                 // Pass the callback to handleRedact
-                handleRedact(callback);
+                handleRedact(filesToProcess, callback);
             } else {
                 // No callback provided, just redact
                 handleRedact();

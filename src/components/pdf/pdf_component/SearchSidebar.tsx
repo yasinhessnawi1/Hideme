@@ -247,7 +247,7 @@ const SearchSidebar: React.FC = () => {
     const getFilesToProcess = useCallback((): File[] => {
         if (searchScope === 'current' && currentFile) {
             return [currentFile];
-        } else if (searchScope === 'selected' && selectedFiles.length > 0) {
+        } else if (searchScope === 'selected' || selectedFiles.length > 0) {
             return selectedFiles;
         } else if (searchScope === 'all') {
             return files;

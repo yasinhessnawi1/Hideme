@@ -9,8 +9,6 @@ interface EditContextProps {
     setIsEditingMode: React.Dispatch<React.SetStateAction<boolean>>;
     highlightingMode: HighlightCreationMode;
     setHighlightingMode: React.Dispatch<React.SetStateAction<HighlightCreationMode>>;
-    highlightColor: string;
-    setHighlightColor: React.Dispatch<React.SetStateAction<string>>;
     searchQueries: string[];
     setSearchQueries: React.Dispatch<React.SetStateAction<string[]>>;
     isRegexSearch: boolean;
@@ -46,9 +44,12 @@ interface EditContextProps {
     setHidemeColor: React.Dispatch<React.SetStateAction<string>>;
     searchColor: string;
     setSearchColor: React.Dispatch<React.SetStateAction<string>>;
+    manualColor: string;
+    setManualColor: React.Dispatch<React.SetStateAction<string>>;
     resetEditState: () => void;
     getColorForModel: (model: string) => string;
     getSearchColor: () => string;
+    getManualColor: () => string;
 }
 
 const EditContext = createContext<EditContextProps | undefined>(undefined);
@@ -67,7 +68,6 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isEditingMode, setIsEditingMode] = useState(false);
     // New state for highlighting mode
     const [highlightingMode, setHighlightingMode] = useState<HighlightCreationMode>(HighlightCreationMode.TEXT_SELECTION);
-    const [highlightColor, setHighlightColor] = useState('#00ff15');
     const [searchQueries, setSearchQueries] = useState<string[]>([]);
     const [isRegexSearch, setIsRegexSearch] = useState(false);
     const [isCaseSensitive, setIsCaseSensitive] = useState(false);
@@ -80,6 +80,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [showEntityHighlights, setShowEntityHighlights] = useState(true);
     const [showManualHighlights, setShowManualHighlights] = useState(true);
     const [searchColor, setSearchColor] = useState('#71c4ff');
+    const [manualColor, setManualColor] = useState('#00ff15');
     const [presidioColor, setPresidioColor] = useState('#ffd771'); // Yellow
     const [glinerColor, setGlinerColor] = useState('#ff7171'); // Red
     const [geminiColor, setGeminiColor] = useState('#7171ff'); // Blue
@@ -294,6 +295,10 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return searchColor;
     }, [searchColor]);
 
+    const getManualColor = useCallback((): string => {
+        return manualColor;
+    }, [manualColor]);
+
     return (
         <EditContext.Provider
             value={{
@@ -301,8 +306,6 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setIsEditingMode,
                 highlightingMode,
                 setHighlightingMode,
-                highlightColor,
-                setHighlightColor,
                 searchQueries,
                 setSearchQueries,
                 isRegexSearch,
@@ -331,8 +334,12 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 presidioColor,
                 setPresidioColor,
                 searchColor,
+
                 setSearchColor,
                 getSearchColor,
+                manualColor,
+                getManualColor,
+                setManualColor,
                 glinerColor,
                 setGlinerColor,
                 geminiColor,

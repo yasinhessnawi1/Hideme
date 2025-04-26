@@ -785,17 +785,22 @@ export class HighlightStore {
     /**
      * Remove all highlights from all files
      */
-    async removeAllHighlights(): Promise<boolean> {
+    async removeAllHighlights(files : File[]): Promise<boolean> {
         await this.ensureDatabaseInitialized();
 
         if (!this.db) return false;
 
         try {
-            // Clear database
-            await this.db.clear('highlights');
-
-            // Clear memory store
-            this.highlights.clear();
+            if(files.length === 0) {
+                // Clear database
+                await this.db.clear('highlights');
+                this.highlights.clear();
+            } else {
+                // Clear database
+                for (const file of files) {
+                    await this.removeHighlightsFromFile(file.name);
+                }
+            }
 
             // Notify subscribers
             this.notifySubscribers();
@@ -809,19 +814,25 @@ export class HighlightStore {
     /**
      * Remove all highlights of a specific type from all files
      */
-    async removeAllHighlightsByType(type: HighlightType): Promise<boolean> {
+    async removeAllHighlightsByType(type: HighlightType, files : File[]): Promise<boolean> {
         await this.ensureDatabaseInitialized();
 
-        // Get all highlights of this type
-        const highlights = Array.from(this.highlights.values()).flatMap(fileMap =>
-            Array.from(fileMap.values()).flatMap(pageMap => Array.from(pageMap.values()))
-        ).filter(highlight => highlight.type === type);
+        if(files.length === 0) {
+            // Get all highlights of this type
+            const highlights = Array.from(this.highlights.values()).flatMap(fileMap =>
+                Array.from(fileMap.values()).flatMap(pageMap => Array.from(pageMap.values()))
+            ).filter(highlight => highlight.type === type);
 
         // Get IDs
         const ids = highlights.map(highlight => highlight.id);
 
         // Remove all highlights
         const result = await this.removeMultipleHighlights(ids);
+        }else{
+            for (const file of files) {
+                await this.removeHighlightsByType(file.name, type);
+            }
+        }
 
         // Notify subscribers
         this.notifySubscribers(undefined, undefined, type);

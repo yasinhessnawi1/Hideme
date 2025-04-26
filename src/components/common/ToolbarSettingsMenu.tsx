@@ -4,8 +4,6 @@ import '../../styles/modules/pdf/Toolbar.css'; // Assuming shared styles
 
 const ToolbarSettingsMenu: React.FC = () => {
     const {
-        highlightColor,
-        setHighlightColor,
         presidioColor,
         setPresidioColor,
         glinerColor,
@@ -16,24 +14,27 @@ const ToolbarSettingsMenu: React.FC = () => {
         setHidemeColor,
         searchColor,
         setSearchColor,
+        setManualColor,
+        manualColor
     } = useEditContext();
 
-    const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+
+    const handleManualColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         e.stopPropagation();
-        setHighlightColor(e.target.value);
+        setManualColor(e.target.value);
     };
 
+    //see edit context states.
     const handleResetEntityColors = (e: React.MouseEvent) => {
         e.stopPropagation();
-        // Assuming reset logic is handled within setPresidioColor, etc. or needs a specific context function
-        // For now, just setting default colors (replace with actual defaults or context call)
-        setPresidioColor('#FFDDC1'); // Example default
-        setGlinerColor('#C1FFD7'); // Example default
-        setGeminiColor('#D1C1FF'); // Example default
-        setHidemeColor('#FFC1E3'); // Example default
-        setSearchColor('#FFFFC1'); // Example default
+        setPresidioColor('#ffd771'); // Yellow
+        setGlinerColor('#ff7171'); // Red
+        setGeminiColor('#7171ff'); // Blue
+        setHidemeColor('#71ffa0'); // Gr
+        setSearchColor('#71c4ff');
+        setManualColor('#00ff15');
     };
-
     return (
         <>
             <div className="dropdown-section">
@@ -43,8 +44,8 @@ const ToolbarSettingsMenu: React.FC = () => {
                         Color
                         <input
                             type="color"
-                            value={highlightColor}
-                            onChange={handleColorChange}
+                            value={manualColor}
+                            onChange={handleManualColorChange}
                             onClick={(e) => e.stopPropagation()}
                         />
                     </label>
@@ -116,4 +117,4 @@ const ToolbarSettingsMenu: React.FC = () => {
     );
 };
 
-export default ToolbarSettingsMenu; 
+export default ToolbarSettingsMenu;

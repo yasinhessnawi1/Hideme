@@ -3,6 +3,7 @@ import { useEditContext } from '../../contexts/EditContext';
 import { useHighlightStore } from '../../contexts/HighlightStoreContext';
 import { HighlightType } from '../../types';
 import '../../styles/modules/pdf/Toolbar.css'; // Assuming shared styles
+import { useFileContext } from '../../contexts/FileContext';
 
 const ToolbarVisibilityMenu: React.FC = () => {
     const {
@@ -13,6 +14,8 @@ const ToolbarVisibilityMenu: React.FC = () => {
         showManualHighlights,
         setShowManualHighlights
     } = useEditContext();
+    const {files , selectedFiles} = useFileContext();
+    const filesToClear = selectedFiles.length > 0 ? selectedFiles : files;
 
     const {
         removeAllHighlights,
@@ -36,22 +39,22 @@ const ToolbarVisibilityMenu: React.FC = () => {
 
     const handleClearAllHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
-        removeAllHighlights();
+        removeAllHighlights(filesToClear);
     };
 
     const handleClearManualHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
-        removeAllHighlightsByType(HighlightType.MANUAL);
+        removeAllHighlightsByType(HighlightType.MANUAL, filesToClear);
     };
 
     const handleClearSearchHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
-        removeAllHighlightsByType(HighlightType.SEARCH);
+        removeAllHighlightsByType(HighlightType.SEARCH, filesToClear);
     };
 
     const handleClearEntityHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
-        removeAllHighlightsByType(HighlightType.ENTITY);
+        removeAllHighlightsByType(HighlightType.ENTITY,  filesToClear);
     };
 
 
@@ -107,4 +110,4 @@ const ToolbarVisibilityMenu: React.FC = () => {
     );
 };
 
-export default ToolbarVisibilityMenu; 
+export default ToolbarVisibilityMenu;

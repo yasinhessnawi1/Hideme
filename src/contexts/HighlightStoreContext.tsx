@@ -35,8 +35,8 @@ type HighlightStoreContextType = {
     removeHighlightsByText: (fileKey: string, text: string) => Promise<boolean>;
 
     // Global operations
-    removeAllHighlights: () => Promise<boolean>;
-    removeAllHighlightsByType: (type: HighlightType) => Promise<boolean>;
+    removeAllHighlights: (files : File[]) => Promise<boolean>;
+    removeAllHighlightsByType: (type: HighlightType, files : File[]) => Promise<boolean>;
     removeHighlightsByPosition: ( files: File[],
                                   x0: number,
                                   y0: number,

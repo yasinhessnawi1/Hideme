@@ -498,9 +498,15 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     existingFile.lastModified === newFile.lastModified
                 )
             );
+            let redactedFiles = baseFiles.filter(file => file.name.includes('redacted')); // don't count the redacted files in the total file count
+            redactedFiles = redactedFiles.concat(uniqueNewFiles.filter(file => file.name.includes('redacted')));
+
 
             // Limit the number of files to 20
-            const totalFiles = baseFiles.length + uniqueNewFiles.length;
+            const totalFiles = baseFiles.length + uniqueNewFiles.length - redactedFiles.length;
+            console.warn(redactedFiles.length)
+            console.warn(uniqueNewFiles.length)
+            console.warn(totalFiles)
             if (totalFiles > 20) {
                 console.warn(`[FileContext] Maximum file limit reached. Only the first 20 files will be added.`);
                 uniqueNewFiles.splice(20 - baseFiles.length);

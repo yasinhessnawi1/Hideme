@@ -173,7 +173,7 @@ const EntityDetectionSidebar: React.FC = () => {
     const getFilesToProcess = useCallback((): File[] => {
         if (detectionScope === 'current' && currentFile) {
             return [currentFile];
-        } else if (detectionScope === 'selected' && selectedFiles.length > 0) {
+        } else if (detectionScope === 'selected' || selectedFiles.length > 0) {
             return selectedFiles;
         } else if (detectionScope === 'all') {
             return files;
@@ -358,8 +358,10 @@ const EntityDetectionSidebar: React.FC = () => {
 
 
     // Handle batch entity detection across multiple files
-    const handleDetect = useCallback(async () => {
-        const filesToProcess = getFilesToProcess();
+    const handleDetect = useCallback(async (filesToProcess : File[] = []) => {
+        if(filesToProcess?.length === 0){
+             filesToProcess = getFilesToProcess();
+        }
 
         if (filesToProcess.length === 0) {
             setDetectionError("No files selected for detection.");
@@ -508,7 +510,7 @@ const EntityDetectionSidebar: React.FC = () => {
             console.log(`[EntityDetectionSidebar] Received external detection trigger from ${source}`);
 
             // Run detection process
-            handleDetect();
+            handleDetect(filesToProcess);
         };
 
         // Add event listener
@@ -1171,7 +1173,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 <div className="sidebar-section action-buttons">
                     <button
                         className="sidebar-button action-button detect-button"
-                        onClick={handleDetect}
+                        onClick={() => handleDetect()}
                         disabled={
                             isDetecting ||
                             getFilesToProcess().length === 0 ||
@@ -1186,7 +1188,7 @@ const EntityDetectionSidebar: React.FC = () => {
 
                     <div className="secondary-buttons">
                         <button
-                            className="sidebar-button secondary-button"
+                            className="sidebar-buFscopetton secondary-button"
                             onClick={handleReset}
                             disabled={isDetecting || (selectedMlEntities.length === 0 && selectedAiEntities.length === 0 && selectedGlinerEntities.length === 0 && selectedHideMeEntities.length === 0 && fileSummaries.length === 0)}
                         >

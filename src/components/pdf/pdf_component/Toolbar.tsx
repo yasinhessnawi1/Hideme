@@ -1,25 +1,16 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
-    FaCog,
     FaFileDownload,
-    FaHighlighter,
     FaPrint,
-    FaRegEye,
-    FaRegEyeSlash,
-    FaSearchMinus,
-    FaSearchPlus,
     FaUpload,
     FaSearch,
     FaMagic,
     FaEraser,
-    FaDrawPolygon,
-    FaFont
 } from 'react-icons/fa';
 import { useFileContext } from '../../../contexts/FileContext';
-import { getFileKey, usePDFViewerContext } from '../../../contexts/PDFViewerContext';
+import { usePDFViewerContext } from '../../../contexts/PDFViewerContext';
 import { useEditContext } from '../../../contexts/EditContext';
-import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
-import { HighlightType, HighlightCreationMode } from '../../../types';
+import { HighlightCreationMode } from '../../../types';
 import pdfUtilityService from '../../../store/PDFUtilityStore';
 import MinimalToolbar from '../../common/MinimalToolbar';
 import '../../../styles/modules/pdf/Toolbar.css';
@@ -50,30 +41,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
         highlightingMode,
         setHighlightingMode,
         showSearchHighlights,
-        setShowSearchHighlights,
         showEntityHighlights,
-        setShowEntityHighlights,
         showManualHighlights,
-        setShowManualHighlights,
-        highlightColor,
-        setHighlightColor,
-        presidioColor,
-        setPresidioColor,
-        glinerColor,
-        setGlinerColor,
-        geminiColor,
-        setGeminiColor,
-        hidemeColor,
-        setHidemeColor,
-        searchColor,
-        setSearchColor,
-        getSearchColor,
+
     } = useEditContext();
 
-    const {
-        removeAllHighlights,
-        removeAllHighlightsByType,
-    } = useHighlightStore();
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const visibilityButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -93,7 +65,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     // State for notification toast
     const [showNotification, setShowNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-
     // Handle clicks outside dropdowns
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -133,15 +104,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setIsEditMenuOpen(false);
     };
 
-    // This is now the Edit *button* click handler, toggles the menu
-    const toggleEditMenu = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsEditMenuOpen(prev => !prev);
-        setIsVisibilityMenuOpen(false);
-        setIsSettingsMenuOpen(false);
-    };
-
     // Handlers passed to MinimalToolbar
     const handleZoomIn = useCallback(() => {
         setZoomLevel(prev => Math.min(prev + 0.2, 3.0));
@@ -157,7 +119,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     // This toggles the actual editing *state* (called from MinimalToolbar indirectly if needed)
     // OR directly controls the button state in MinimalToolbar
-    // Let's rename the handler passed to MinimalToolbar to avoid confusion
     const handleEditModeToggle = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -218,9 +179,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
             });
 
             // Determine which files to use for redaction
-            const filesToProcess = selectedFiles.length > 0 ? selectedFiles : files;
 
-            if (filesToProcess.length === 0) {
+            const filesToHandle =  selectedFiles.length > 0 ? selectedFiles : files
+
+            if (filesToHandle.length === 0) {
                 setIsRedactionInProgress(false);
                 setShowNotification({
                     message: 'No files available for redaction',
@@ -240,16 +202,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 setIsRedactionInProgress(false);
 
                 if (success) {
-                    // Store the new redacted files
-                    if (Array.isArray(newRedactedFiles) && newRedactedFiles.length > 0) {
-                        setRedactedFiles(newRedactedFiles);
-                        resolve(newRedactedFiles);
-                    } else {
-                        // If no redacted files were created, use the original files
-                        resolve(filesToProcess);
-                    }
+                    // Resolve with the redacted files received from the event (ensuring it's an array)
+                    const resultingFiles = Array.isArray(newRedactedFiles) ? newRedactedFiles : [];
+                    setRedactedFiles(resultingFiles);
+                    resolve(resultingFiles);
                 } else {
-                    reject(new Error(error || "Redaction failed"));
+                    reject(new Error(error ?? "Redaction failed"));
                 }
             };
 
@@ -267,7 +225,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             window.dispatchEvent(new CustomEvent('trigger-redaction-process', {
                 detail: {
                     source: 'toolbar-button',
-                    filesToProcess: filesToProcess,
+                    filesToProcess: filesToHandle,
                     callback: () => {
                         clearTimeout(timeoutId);
                     }
@@ -355,9 +313,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     // Entity detection shortcut - triggers actual detection process
     const handleEntityDetection = () => {
-        const filesToProcess = selectedFiles.length > 0 ? selectedFiles : currentFile ? [currentFile] : [];
+        const filesToHandle =  selectedFiles.length > 0 ? selectedFiles : files
 
-        if (filesToProcess.length === 0) {
+        if (filesToHandle.length === 0) {
             setShowNotification({message: 'No files selected for detection', type: 'error'});
             setTimeout(() => setShowNotification(null), 3000);
             return;
@@ -367,7 +325,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         window.dispatchEvent(new CustomEvent('trigger-entity-detection-process', {
             detail: {
                 source: 'toolbar-button',
-                filesToProcess: filesToProcess
+                filesToProcess: filesToHandle
             }
         }));
 
@@ -404,7 +362,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     // This function now only triggers the redaction process directly
     const handleRedaction = () => {
-        if (files.length === 0) {
+        const filesToHandle =  selectedFiles.length > 0 ? selectedFiles : files
+        if (filesToHandle.length === 0) {
             setShowNotification({message: 'No files available for redaction', type: 'error'});
             setTimeout(() => setShowNotification(null), 3000);
             return;
@@ -414,7 +373,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         window.dispatchEvent(new CustomEvent('trigger-redaction-process', {
             detail: {
                 source: 'toolbar-button',
-                filesToProcess: selectedFiles.length > 0 ? selectedFiles : files
+                filesToProcess: filesToHandle
             }
         }));
 
@@ -425,113 +384,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setTimeout(() => setShowNotification(null), 2000);
     }
 
-    // Visibility toggle handlers
-    const handleToggleManualHighlights = (e: React.MouseEvent<HTMLInputElement>) => {
-        // Don't let the click close the menu
-        e.stopPropagation();
-        setShowManualHighlights(!showManualHighlights);
-    };
-
-    const handleToggleSearchHighlights = (e: React.MouseEvent<HTMLInputElement>) => {
-        e.stopPropagation();
-        setShowSearchHighlights(!showSearchHighlights);
-    };
-
-    const handleToggleEntityHighlights = (e: React.MouseEvent<HTMLInputElement>) => {
-        e.stopPropagation();
-        setShowEntityHighlights(!showEntityHighlights);
-    };
-
-    // Clear function handlers
-    const handleClearAllHighlights = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (window.confirm('Are you sure you want to clear all highlights?')) {
-            // Remove all highlights
-            removeAllHighlights();
-
-            // Update summaries after all highlights are removed
-            if (currentFile) {
-                const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
-                allFiles.forEach(file => {
-                    const fileKey = getFileKey(file);
-                    window.dispatchEvent(new CustomEvent('highlights-cleared', {
-                        detail: {
-                            fileKey,
-                            allTypes: true,
-                            timestamp: Date.now()
-                        }
-                    }));
-                });
-            }
-        }
-    };
-
-    const handleClearManualHighlights = (e: React.MouseEvent) => {
-        e.stopPropagation();
-
-        removeAllHighlightsByType(HighlightType.MANUAL);
-        const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
-        // Dispatch event for manual highlights cleared
-        allFiles.forEach(file => {
-            const fileKey = getFileKey(file);
-            window.dispatchEvent(new CustomEvent('highlights-cleared', {
-                detail: {
-                    fileKey,
-                    allTypes: false,
-                    timestamp: Date.now()
-                }
-            }));
-        });
-    }
-
-    const handleClearSearchHighlights = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        removeAllHighlightsByType(HighlightType.SEARCH);
-        const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
-        // Dispatch event for search highlights cleared
-        allFiles.forEach(file => {
-            const fileKey = getFileKey(file);
-            window.dispatchEvent(new CustomEvent('search-highlights-cleared', {
-                detail: {
-                    fileKey,
-                    allTypes: false,
-                    timestamp: Date.now()
-                }
-            }));
-        });
-    };
-
-    const handleClearEntityHighlights = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        removeAllHighlightsByType(HighlightType.ENTITY);
-        const allFiles = selectedFiles.length > 0 ? selectedFiles : files;
-        // Dispatch event for entity highlights cleared
-        allFiles.forEach(file => {
-            const fileKey = getFileKey(file);
-            window.dispatchEvent(new CustomEvent('entity-highlights-cleared', {
-                detail: {
-                    fileKey,
-                    allTypes: false,
-                    timestamp: Date.now()
-                }
-            }));
-        });
-    };
-
-    // Handle color change
-    const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        e.stopPropagation();
-        setHighlightColor(e.target.value);
-    };
-
-    const handleResetEntityColors = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setPresidioColor('#ffd771'); // Yellow
-        setGlinerColor('#ff7171'); // Red
-        setGeminiColor('#7171ff'); // Blue
-        setHidemeColor('#71ff71'); // Green
-    };
-
     // Custom sidebar toggle icons
     const LeftSidebarOpenIcon = () => (
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -540,10 +392,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <g id="SVGRepo_iconCarrier">
                 <path
                     d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
-                    stroke="#292D32" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                <path d="M14.97 2V22" stroke="#292D32" strokeWidth="1.5" strokeLinecap="round"
+                    stroke="var(--foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                <path d="M14.97 2V22" stroke='var(--primary)' strokeWidth="1.5" strokeLinecap="round"
                       strokeLinejoin="round"></path>
-                <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="#292D32" strokeWidth="1.5"
+                <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="var(--foreground)" strokeWidth="1.5"
                       strokeLinecap="round" strokeLinejoin="round"></path>
             </g>
         </svg>
@@ -556,10 +408,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <g id="SVGRepo_iconCarrier">
                 <path
                     d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
-                    stroke="#292D32" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                <path d="M7.96997 2V22" stroke="#292D32" strokeWidth="1.5" strokeLinecap="round"
+                    stroke="var(--foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                <path d="M7.96997 2V22" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round"
                       strokeLinejoin="round"></path>
-                <path d="M14.97 9.43994L12.41 11.9999L14.97 14.5599" stroke="#292D32" strokeWidth="1.5"
+                <path d="M14.97 9.43994L12.41 11.9999L14.97 14.5599" stroke="var(--foreground)" strokeWidth="1.5"
                       strokeLinecap="round" strokeLinejoin="round"></path>
             </g>
         </svg>
@@ -573,10 +425,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <g id="SVGRepo_iconCarrier">
                 <path
                     d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
-                    stroke="#292D32" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                <path d="M7.97 2V22" stroke="#292D32" strokeWidth="1.5" strokeLinecap="round"
+                    stroke="var(--foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                <path d="M7.97 2V22" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round"
                       strokeLinejoin="round"></path>
-                <path d="M16.97 9.43994L14.41 11.9999L16.97 14.5599" stroke="#292D32" strokeWidth="1.5"
+                <path d="M16.97 9.43994L14.41 11.9999L16.97 14.5599" stroke="var(--foreground)" strokeWidth="1.5"
                       strokeLinecap="round" strokeLinejoin="round"></path>
             </g>
         </svg>
@@ -589,37 +441,15 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <g id="SVGRepo_iconCarrier">
                 <path
                     d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
-                    stroke="#292D32" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                <path d="M14.97 2V22" stroke="#292D32" strokeWidth="1.5" strokeLinecap="round"
+                    stroke="var(--foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                <path d="M14.97 2V22" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round"
                       strokeLinejoin="round"></path>
-                <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="#292D32" strokeWidth="1.5"
+                <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="var(--foreground)" strokeWidth="1.5"
                       strokeLinecap="round" strokeLinejoin="round"></path>
             </g>
         </svg>
     );
 
-    // Get icon and label for current highlighting mode
-    const getHighlightIcon = () => {
-        switch (highlightingMode) {
-            case HighlightCreationMode.RECTANGULAR:
-                return <FaDrawPolygon />;
-            case HighlightCreationMode.TEXT_SELECTION:
-                return <FaFont />;
-            default:
-                return <FaHighlighter />;
-        }
-    };
-
-    const getHighlightLabel = () => {
-        switch (highlightingMode) {
-            case HighlightCreationMode.RECTANGULAR:
-                return "Rectangle";
-            case HighlightCreationMode.TEXT_SELECTION:
-                return "Text";
-            default:
-                return "Highlight";
-        }
-    };
 
     return (
         <div className="enhanced-toolbar">
