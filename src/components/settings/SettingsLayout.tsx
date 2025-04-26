@@ -8,6 +8,7 @@ import SearchSettings from "./tabs/SearchSettings";
 import BanListSettings from "./tabs/BanListSettings";
 import '../../styles/SettingsPage.css'; // Ensure this path is correct
 import useSettings from "../../hooks/settings/useSettings"; // Ensure this path is correct
+import { useLoading } from "../../contexts/LoadingContext";
 
 export default function SettingsLayout() {
     const [activeTab, setActiveTab] = useState("general");
@@ -19,8 +20,7 @@ export default function SettingsLayout() {
     const settingsLoadAttemptedRef = useRef(false);
 
     // Unified loading state to reduce flicker
-    const [isInitialLoading, setIsInitialLoading] = useState(true);
-
+    const { isLoading: globalLoading, stopLoading } = useLoading();
     // Load settings once on mount, with better safeguards
     useEffect(() => {
         let isMounted = true;
@@ -37,7 +37,7 @@ export default function SettingsLayout() {
                         .finally(() => {
                             if (isMounted) {
                                 initialLoadingRef.current = false;
-                                setIsInitialLoading(false);
+                                stopLoading('setting.general');
                             }
                         });
                 }
@@ -50,7 +50,7 @@ export default function SettingsLayout() {
         } else if (!isUserLoading && (settings || userError)) {
             // If we either have settings or an error, we're done loading
             initialLoadingRef.current = false;
-            setIsInitialLoading(false);
+            stopLoading('setting.general');
         }
     }, [settings, getSettings, isUserLoading, userError]);
 
@@ -60,7 +60,7 @@ export default function SettingsLayout() {
 
     // Lazy loading for tab components to reduce initial render time
     const renderTabContent = () => {
-        if (isInitialLoading) return null;
+        if (globalLoading(['setting.general'])) return null;
 
         switch (activeTab) {
             case "general":
@@ -95,14 +95,14 @@ export default function SettingsLayout() {
                     <p className="text-muted-foreground mt-1">Manage your account settings and preferences</p>
                 </div>
 
-                {isInitialLoading && (
+                {globalLoading(['setting.general']) && (
                     <div className="flex justify-center items-center py-10">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         <span className="ml-2 text-muted-foreground">Loading settings...</span>
                     </div>
                 )}
 
-                {userError && !isUserLoading && !isInitialLoading && (
+                {userError && !isUserLoading && globalLoading(['setting.general']) && (
                     <div className="alert alert-destructive mb-6">
                         <div>
                             <div className="alert-title">Error Loading Settings</div>
@@ -111,7 +111,7 @@ export default function SettingsLayout() {
                     </div>
                 )}
 
-                {!isInitialLoading && (
+                {!globalLoading(['setting.general']) && (
                     <div className="tabs">
                         <div className="tabs-list">
                             {/* Tab Triggers */}

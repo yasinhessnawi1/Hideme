@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useFileContext } from '../../contexts/FileContext';
 import { getFileKey, usePDFViewerContext } from '../../contexts/PDFViewerContext';
 import { usePDFNavigation } from '../../hooks/usePDFNavigation';
 import scrollManager from '../../services/ScrollManagerService';
-import { NavigationOptions } from '../../types/pdfTypes';
+import { NavigationOptions } from '../../types';
 
 interface PendingNavigation {
     fileKey: string;
@@ -41,7 +41,7 @@ const ViewportNavigationIntegrator: React.FC = () => {
     useEffect(() => {
         const handlePreciseNavigationRequest = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { fileKey, pageNumber, options } = customEvent.detail || {};
+            const { fileKey, pageNumber, options } = customEvent.detail ?? {};
 
             if (!fileKey || !pageNumber) return;
 
@@ -51,7 +51,7 @@ const ViewportNavigationIntegrator: React.FC = () => {
             pendingNavigationRef.current = {
                 fileKey,
                 pageNumber,
-                options: options || {}
+                options: options ?? {}
             };
 
             // Check if page is already initialized

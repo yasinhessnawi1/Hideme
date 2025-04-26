@@ -84,7 +84,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
             const response = await apiClient.get<{ data: User }>('/users/me');
             return response.data.data;
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to load user profile');
+            setError(error.userMessage ?? 'Failed to load user profile');
             return null;
         } finally {
             setIsLoading(false);
@@ -111,7 +111,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
 
             return response.data;
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to update profile');
+            setError(error.userMessage ?? 'Failed to update profile');
             throw error;
         } finally {
             setIsLoading(false);
@@ -133,7 +133,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
         try {
             await userService.changePassword(data);
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to change password');
+            setError(error.userMessage ?? 'Failed to change password');
             throw error;
         } finally {
             setIsLoading(false);
@@ -158,7 +158,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
             // Clear all cached data
             apiClient.clearCache();
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to delete account');
+            setError(error.userMessage ?? 'Failed to delete account');
             throw error;
         } finally {
             setIsLoading(false);
@@ -181,7 +181,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
             const response = await apiClient.get<ActiveSession[]>('/users/me/sessions');
             return response.data;
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to get active sessions');
+            setError(error.userMessage ?? 'Failed to get active sessions');
             return [];
         } finally {
             setIsLoading(false);
@@ -206,7 +206,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
             // Invalidate sessions cache
             apiClient.clearCacheEntry('/users/me/sessions');
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to invalidate session');
+            setError(error.userMessage ?? 'Failed to invalidate session');
             throw error;
         } finally {
             setIsLoading(false);

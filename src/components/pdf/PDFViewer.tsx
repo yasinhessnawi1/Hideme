@@ -6,8 +6,6 @@ import '../../styles/modules/pdf/PdfViewer.css';
 import ProcessingStatus from "./pdf_component/ProcessingStatus";
 import ScrollSync from './ScrollSync';
 import ViewportNavigationIntegrator from './ViewportNavigationIntegrator';
-import { getFileKey } from '../../contexts/PDFViewerContext';
-import MultiPDFRenderer from './MultiPDFRenderer';
 import scrollManager from '../../services/ScrollManagerService';
 
 /**

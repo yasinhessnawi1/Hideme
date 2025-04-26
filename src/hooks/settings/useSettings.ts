@@ -62,7 +62,6 @@ export const useSettings = (): UseSettingsReturn => {
      */
     const getSettings = useCallback(async (): Promise<UserSettings | null> => {
         if (!isAuthenticated) {
-            console.warn('[Settings] getSettings called but user is not authenticated');
             return null;
         }
 
@@ -73,7 +72,6 @@ export const useSettings = (): UseSettingsReturn => {
 
         // Skip if already in progress
         if (fetchInProgressRef.current) {
-            console.log('[Settings] Settings fetch already in progress');
             return null;
         }
 
@@ -97,7 +95,7 @@ export const useSettings = (): UseSettingsReturn => {
 
             return userSettings;
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to load settings');
+            setError(error.userMessage ?? 'Failed to load settings');
             return null;
         } finally {
             setIsLoading(false);
@@ -110,7 +108,6 @@ export const useSettings = (): UseSettingsReturn => {
      */
     const updateSettings = useCallback(async (data: UserSettingsUpdate): Promise<UserSettings | null> => {
         if (!isAuthenticated) {
-            console.warn('[Settings] updateSettings called but user is not authenticated');
             return null;
         }
 
@@ -133,7 +130,7 @@ export const useSettings = (): UseSettingsReturn => {
 
             return updatedSettings;
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to update settings');
+            setError(error.userMessage ?? 'Failed to update settings');
             throw error;
         } finally {
             setIsLoading(false);
@@ -147,14 +144,7 @@ export const useSettings = (): UseSettingsReturn => {
         if (isAuthenticated && !isInitialized && !fetchInProgressRef.current) {
             // Add a small delay to allow auth state to fully resolve
             const timeoutId = setTimeout(() => {
-                console.log('[Settings] User authenticated, loading initial settings');
-                getSettings().then(result => {
-                    if (result) {
-                        console.log('[Settings] Initial settings loaded successfully');
-                    } else {
-                        console.warn('[Settings] Failed to load initial settings');
-                    }
-                });
+                getSettings().then(()=>{});
             }, 50);
 
             return () => clearTimeout(timeoutId);

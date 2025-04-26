@@ -69,32 +69,7 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
         setVisiblePages(initialPages);
     }, []);
 
-    useEffect(() => {
-        const handleScrollServiceUpdate = (pageNumber: number, fileKey: string, source: string) => {
-            if (source === 'thumbnails') return; // Skip if we initiated the scroll
 
-            // Update the visible page
-            setVisiblePages(prev => {
-                const newMap = new Map(prev);
-                newMap.set(fileKey, pageNumber);
-                return newMap;
-            });
-
-            // Try to scroll to the thumbnail if needed
-            if (!userScrollingRef.current && expandedFiles.has(fileKey)) {
-                setTimeout(() => {
-                    const thumbnailElement = document.getElementById(`thumbnail-${fileKey}-${pageNumber}`);
-                    if (thumbnailElement && thumbnailsRef.current) {
-                        thumbnailElement.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center'
-                        });
-                    }
-                }, 100);
-            }
-        };
-        // Subscribe to scroll service updates
-    }, [expandedFiles]);
 
     // When the current file changes, expand and scroll to it
     useEffect(() => {

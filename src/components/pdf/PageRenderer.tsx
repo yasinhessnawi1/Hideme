@@ -5,7 +5,7 @@ import { useEditContext } from '../../contexts/EditContext';
 import PageOverlay from './PageOverlay';
 import TextSelectionHighlighter from './highlighters/TextSelectionHighlighter';
 import HighlightLayerFactory from './highlighters/HighlightLayerFactory';
-import { PDFPageViewport, TextContent, HighlightCreationMode } from '../../types/pdfTypes';
+import { PDFPageViewport, TextContent, HighlightCreationMode } from '../../types';
 import { useViewportSize } from '../../hooks/useViewportSize';
 import scrollManager from '../../services/ScrollManagerService';
 
@@ -72,7 +72,7 @@ const PageRenderer: React.FC<PageRendererProps> = ({
     useEffect(() => {
         const handlePageHighlighted = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { fileKey: eventFileKey, pageNumber: eventPageNumber } = customEvent.detail || {};
+            const { fileKey: eventFileKey, pageNumber: eventPageNumber } = customEvent.detail ?? {};
 
             // Only process if this event applies to our page
             if (fileKey === eventFileKey && pageNumber === eventPageNumber) {
@@ -157,7 +157,6 @@ const PageRenderer: React.FC<PageRendererProps> = ({
 
     // Determine which highlighting mode is active
     const isTextSelectionMode = highlightingMode === HighlightCreationMode.TEXT_SELECTION;
-    const isRectangularMode = highlightingMode === HighlightCreationMode.RECTANGULAR;
 
     // For virtualization, we can optionally only render visible pages
     if (!isVisible && !isPageActive) {

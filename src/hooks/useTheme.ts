@@ -82,7 +82,6 @@ export const useTheme = (defaultPreference: ThemePreference = 'system') => {
         setPreferenceState(pref);
         if (typeof window !== 'undefined') {
             localStorage.setItem(THEME_STORAGE_KEY, pref);
-            console.log(`[Theme] Preference saved to localStorage: ${pref}`);
         }
     }, []);
 
@@ -92,10 +91,8 @@ export const useTheme = (defaultPreference: ThemePreference = 'system') => {
 
         if (preference === 'system') {
             newAppliedTheme = getSystemTheme();
-            console.log(`[Theme] Preference is 'system', applying detected theme: ${newAppliedTheme}`);
         } else {
             newAppliedTheme = preference; // 'light' or 'dark'
-            console.log(`[Theme] Preference is '${preference}', applying directly.`);
         }
 
         setAppliedTheme(newAppliedTheme); // Update state for consumers
@@ -114,7 +111,6 @@ export const useTheme = (defaultPreference: ThemePreference = 'system') => {
 
         const handleChange = (event: MediaQueryListEvent) => {
             const systemThemeNow = event.matches ? 'dark' : 'light';
-            console.log(`[Theme] System theme changed event: ${systemThemeNow}`);
             setAppliedTheme(systemThemeNow); // Update the applied theme state
             applyThemeToDOM(systemThemeNow);   // Apply change immediately to DOM
         };
@@ -123,9 +119,9 @@ export const useTheme = (defaultPreference: ThemePreference = 'system') => {
         try {
             mediaQuery.addEventListener('change', handleChange);
             console.log("[Theme] Added system theme change listener.");
-        } catch (e) { // Fallback for older browsers
+        } catch {
+            // Fallback for older browsers
             mediaQuery.addListener(handleChange);
-            console.log("[Theme] Added legacy system theme change listener.");
         }
 
         // Cleanup listener on unmount or when preference changes away from 'system'
@@ -133,9 +129,8 @@ export const useTheme = (defaultPreference: ThemePreference = 'system') => {
             try {
                 mediaQuery.removeEventListener('change', handleChange);
                 console.log("[Theme] Removed system theme change listener.");
-            } catch (e) {
+            } catch {
                 mediaQuery.removeListener(handleChange);
-                console.log("[Theme] Removed legacy system theme change listener.");
             }
         };
     }, [preference]); // Re-run this effect setup only when preference changes

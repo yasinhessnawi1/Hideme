@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Save, Plus, X, AlertTriangle, Trash2, Loader2 } from "lucide-react";
 import useBanList from "../../../hooks/settings/useBanList"; // Adjust path if needed
+import { useLoading } from "../../../contexts/LoadingContext";
+import LoadingWrapper from "../../common/LoadingWrapper";
 
 export default function BanListSettings() {
     const {
@@ -16,9 +18,8 @@ export default function BanListSettings() {
     const [localBannedWords, setLocalBannedWords] = useState<string[]>([]);
     const [newBannedWord, setNewBannedWord] = useState("");
     const [localError, setLocalError] = useState("");
-    const [isAdding, setIsAdding] = useState(false);
     const [deletingWord, setDeletingWord] = useState<string | null>(null); // Store word being deleted
-    const [isClearingAll, setIsClearingAll] = useState(false);
+    const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
 
     // Add a ref to track initial loading
     const initialLoadAttemptedRef = useRef(false);
@@ -64,17 +65,17 @@ export default function BanListSettings() {
 
         clearUserError();
         setLocalError("");
-        setIsAdding(true);
+        startLoading('setting.banlist.add');
 
         try {
             await addBanListWords([wordToAdd]);
             // `localBannedWords` will update via useEffect watching `banList`
             setNewBannedWord("");
         } catch (err: any) {
-            setLocalError(err.userMessage || err.message || "Failed to add banned word.");
+            setLocalError((err.userMessage ?? err.message) ?? "Failed to add banned word.");
             console.error("Error adding banned word:", err);
         } finally {
-            setIsAdding(false);
+            stopLoading('setting.banlist.add');
         }
     };
 
@@ -87,7 +88,7 @@ export default function BanListSettings() {
             await removeBanListWords([wordToRemove]);
             // `localBannedWords` will update via useEffect
         } catch (err: any) {
-            setLocalError(err.userMessage || err.message || "Failed to remove banned word.");
+            setLocalError((err.userMessage ?? err.message) ?? "Failed to remove banned word.");
             console.error("Error removing banned word:", err);
         } finally {
             setDeletingWord(null);
@@ -98,22 +99,22 @@ export default function BanListSettings() {
         if (window.confirm("Are you sure you want to remove all banned words?")) {
             clearUserError();
             setLocalError("");
-            setIsClearingAll(true);
+            startLoading('setting.banlist.clear');
             try {
                 if (localBannedWords.length > 0) {
                     await removeBanListWords(localBannedWords);
                     // `localBannedWords` will update via useEffect
                 }
             } catch (err: any) {
-                setLocalError(err.userMessage || err.message || "Failed to clear ban list.");
+                setLocalError((err.userMessage ?? err.message) ?? "Failed to clear ban list.");
                 console.error("Error clearing ban list:", err);
             } finally {
-                setIsClearingAll(false);
+                stopLoading('setting.banlist.clear');
             }
         }
     };
 
-    const isLoading = isUserLoading || isAdding || deletingWord !== null || isClearingAll;
+    const isLoading = isUserLoading || globalLoading(['setting.banlist.add', 'setting.banlist.clear']);
 
     // Generate unique IDs for list items based on word and index
     const getWordItemId = (word: string, index: number) => `banword-${word}-${index}`;
@@ -148,8 +149,10 @@ export default function BanListSettings() {
                                     onClick={handleAddBannedWord}
                                     disabled={isLoading || !newBannedWord.trim()}
                                 >
-                                    {isAdding ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Plus size={16} className="button-icon" />}
-                                    {isAdding ? 'Adding...' : 'Add'}
+                                    <LoadingWrapper isLoading={isLoading} fallback="Adding...">
+                                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Plus size={16} className="button-icon" />}
+                                        {isLoading ? 'Adding...' : 'Add'}
+                                    </LoadingWrapper>
                                 </button>
                             </div>
                         </div>
@@ -166,8 +169,10 @@ export default function BanListSettings() {
                                         onClick={handleClearAllBannedWords}
                                         disabled={isLoading}
                                     >
-                                        {isClearingAll ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Trash2 size={14} className="button-icon" />}
-                                        {isClearingAll ? 'Clearing...' : 'Clear All'}
+                                        <LoadingWrapper isLoading={isLoading} fallback="Clearing...">
+                                            {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Trash2 size={14} className="button-icon" />}
+                                            {isLoading ? 'Clearing...' : 'Clear All'}
+                                        </LoadingWrapper>
                                     </button>
                                 )}
                             </div>

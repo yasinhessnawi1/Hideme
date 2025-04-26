@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { highlightStore, HighlightStore } from '../store/HighlightStore';
-import { HighlightRect, HighlightType } from '../types/pdfTypes';
+import { highlightStore } from '../store/HighlightStore';
+import { HighlightRect, HighlightType } from '../types';
 
 // Context type
 type HighlightStoreContextType = {
@@ -89,7 +89,7 @@ export const HighlightStoreProvider: React.FC<{ children: React.ReactNode }> = (
 
     // Subscribe to highlight changes
     useEffect(() => {
-        const subscription = highlightStore.subscribe((fileKey, page, type) => {
+        const subscription = highlightStore.subscribe(() => {
             // Increment refresh counter to trigger re-render
             setRefreshTrigger(prev => prev + 1);
         });

@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
-import { OptionType, RedactionMapping } from '../types';
+import React, {createContext, useContext, useState, useCallback, useRef, useEffect, useMemo} from 'react';
+import { OptionType, RedactionMapping ,  HighlightCreationMode } from '../types';
 import { useFileContext } from './FileContext';
 import { getFileKey } from './PDFViewerContext';
-import { HighlightCreationMode } from '../types/pdfTypes';
 
 interface EditContextProps {
     isEditingMode: boolean;
@@ -161,7 +160,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const handleEntityDetectionComplete = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { fileKey, source } = customEvent.detail || {};
+            const { fileKey, source } = customEvent.detail ?? {};
 
             if (!fileKey) return;
 
@@ -299,57 +298,102 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return manualColor;
     }, [manualColor]);
 
-    return (
-        <EditContext.Provider
-            value={{
-                isEditingMode,
-                setIsEditingMode,
-                highlightingMode,
-                setHighlightingMode,
-                searchQueries,
-                setSearchQueries,
-                isRegexSearch,
-                setIsRegexSearch,
-                isCaseSensitive,
-                setIsCaseSensitive,
-                selectedMlEntities,
-                setSelectedMlEntities,
-                selectedAiEntities,
-                setSelectedAiEntities,
-                selectedGlinerEntities,
-                setSelectedGlinerEntities,
-                selectedHideMeEntities,
-                setSelectedHideMeEntities,
-                detectionMapping,
-                setDetectionMapping,
-                fileDetectionMappings,
-                setFileDetectionMapping,
-                getFileDetectionMapping,
-                showSearchHighlights,
-                setShowSearchHighlights,
-                showEntityHighlights,
-                setShowEntityHighlights,
-                showManualHighlights,
-                setShowManualHighlights,
-                presidioColor,
-                setPresidioColor,
-                searchColor,
+    const contextValue = useMemo(() => ({
+        isEditingMode,
+        setIsEditingMode,
+        highlightingMode,
+        setHighlightingMode,
+        searchQueries,
+        setSearchQueries,
+        isRegexSearch,
+        setIsRegexSearch,
+        isCaseSensitive,
+        setIsCaseSensitive,
+        selectedMlEntities,
+        setSelectedMlEntities,
+        selectedAiEntities,
+        setSelectedAiEntities,
+        selectedGlinerEntities,
+        setSelectedGlinerEntities,
+        selectedHideMeEntities,
+        setSelectedHideMeEntities,
+        detectionMapping,
+        setDetectionMapping,
+        fileDetectionMappings,
+        setFileDetectionMapping,
+        getFileDetectionMapping,
+        showSearchHighlights,
+        setShowSearchHighlights,
+        showEntityHighlights,
+        setShowEntityHighlights,
+        showManualHighlights,
+        setShowManualHighlights,
+        presidioColor,
+        setPresidioColor,
+        searchColor,
+        setSearchColor,
+        getSearchColor,
+        manualColor,
+        getManualColor,
+        setManualColor,
+        glinerColor,
+        setGlinerColor,
+        geminiColor,
+        setGeminiColor,
+        hidemeColor,
+        setHidemeColor,
+        resetEditState,
+        getColorForModel
+    }), [
+        isEditingMode,
+        setIsEditingMode,
+        highlightingMode,
+        setHighlightingMode,
+        searchQueries,
+        setSearchQueries,
+        isRegexSearch,
+        setIsRegexSearch,
+        isCaseSensitive,
+        setIsCaseSensitive,
+        selectedMlEntities,
+        setSelectedMlEntities,
+        selectedAiEntities,
+        setSelectedAiEntities,
+        selectedGlinerEntities,
+        setSelectedGlinerEntities,
+        selectedHideMeEntities,
+        setSelectedHideMeEntities,
+        detectionMapping,
+        setDetectionMapping,
+        fileDetectionMappings,
+        setFileDetectionMapping,
+        getFileDetectionMapping,
+        showSearchHighlights,
+        setShowSearchHighlights,
+        showEntityHighlights,
+        setShowEntityHighlights,
+        showManualHighlights,
+        setShowManualHighlights,
+        presidioColor,
+        setPresidioColor,
+        searchColor,
+        setSearchColor,
+        getSearchColor,
+        manualColor,
+        getManualColor,
+        setManualColor,
+        glinerColor,
+        setGlinerColor,
+        geminiColor,
+        setGeminiColor,
+        hidemeColor,
+        setHidemeColor,
+        resetEditState,
+        getColorForModel
+    ]);
 
-                setSearchColor,
-                getSearchColor,
-                manualColor,
-                getManualColor,
-                setManualColor,
-                glinerColor,
-                setGlinerColor,
-                geminiColor,
-                setGeminiColor,
-                hidemeColor,
-                setHidemeColor,
-                resetEditState,
-                getColorForModel
-            }}
-        >
+    return (
+        <EditContext.Provider value={contextValue}>
             {children}
         </EditContext.Provider>
     );

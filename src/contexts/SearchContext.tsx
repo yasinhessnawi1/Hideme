@@ -1,8 +1,4 @@
-// src/contexts/BatchSearchContext.tsx - Updated with unique ID handling
 import React, {createContext, useContext, useState, useCallback, useRef, useMemo, useEffect} from 'react';
-import { useFileContext } from './FileContext';
-import {HighlightType} from '../types';
-import { getFileKey } from './PDFViewerContext';
 import { BatchSearchService, SearchResult, BatchSearchResponse } from '../services/BatchSearchService';
 import { usePDFApi } from "../hooks/usePDFApi";
 import {useHighlightStore} from './HighlightStoreContext';
@@ -47,7 +43,6 @@ interface BatchSearchContextProps {
     clearAllSearches: () => void;
 
     // Getters
-    getSearchResultsForPage: (pageNumber: number, fileKey?: string) => SearchResult[];
     getSearchResultsStats: () => {
         totalMatches: number;
         fileMatches: Map<string, number>;
@@ -68,7 +63,6 @@ export const useBatchSearch = () => {
 
 export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { removeAllHighlightsByType, removeHighlightsByText} = useHighlightStore();
-    const { currentFile, activeFiles } = useFileContext();
 
     // Main search state
     const [searchState, setSearchState] = useState<SearchState>({
@@ -85,42 +79,6 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
     searchStateRef.current = searchState;
     const { runBatchSearch } = usePDFApi();
 
-    useEffect(() => {
-        // Load saved queries on mount
-        const savedQueries = summaryPersistenceStore.getActiveSearchQueries();
-
-        if (savedQueries.length > 0) {
-            console.log(`[BatchSearchContext] Restoring ${savedQueries.length} saved search queries`);
-
-            // Restore queries to state
-            setSearchState(prev => ({
-                ...prev,
-                activeQueries: savedQueries
-            }));
-
-            // Re-execute searches for each query
-            const filesToSearch = activeFiles;
-            if (filesToSearch.length > 0) {
-                // Process sequentially to avoid overwhelming the system
-                const processQueries = async () => {
-                    for (const query of savedQueries) {
-                        try {
-                            await runBatchSearch(filesToSearch, query.term, {
-                                isCaseSensitive: query.caseSensitive,
-                                isAiSearch: query.isAiSearch
-                            });
-                            console.log(`[BatchSearchContext] Restored search for "${query.term}"`);
-                        } catch (error) {
-                            console.error(`[BatchSearchContext] Error restoring search for "${query.term}":`, error);
-                        }
-                    }
-                };
-
-                processQueries();
-            }
-        }
-    }, []);
-
 // Save queries whenever they change
     useEffect(() => {
         // Save active queries when they change
@@ -133,8 +91,6 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
     /**
      * Execute a batch search operation
      */
-        // Make the following changes to the batchSearch method
-
     const batchSearch = useCallback(async (
             files: File[],
             searchTerm: string,
@@ -248,14 +204,13 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
                     };
                 });
 
-                console.log(`[BatchSearchContext] Search complete for "${searchTerm}". Adding highlights...`);
 
             } catch (error: any) {
                 console.error('[BatchSearchContext] Search error:', error);
                 setSearchState(prev => ({
                     ...prev,
                     isSearching: false,
-                    error: error.message || 'Error performing batch search'
+                    error: error.message ?? 'Error performing batch search'
                 }));
             }
         }, [runBatchSearch]);
@@ -271,8 +226,6 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
             }));
 
             // Clear all search highlights
-            removeAllHighlightsByType(HighlightType.SEARCH);
-
             // Clear saved queries
             summaryPersistenceStore.saveActiveSearchQueries([]);
         }, [removeAllHighlightsByType]);
@@ -321,40 +274,9 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 };
             });
 
-            // Find all highlights with this search term and remove them
-            if (currentFile) {
-                // Use specific file key if provided, otherwise use current file
-                const targetFileKey = specificFileKey ?? getFileKey(currentFile);
 
-                // Find highlights matching this search term
-                removeHighlightsByText(searchTerm, targetFileKey)
-                summaryPersistenceStore.removeSearchQuery(searchTerm, targetFileKey);
+        }, [clearAllSearches, removeHighlightsByText]);
 
-
-            }
-        }, [currentFile, clearAllSearches, removeHighlightsByText]);
-
-    /**
-     * Get search results for a specific page and file
-     */
-    const getSearchResultsForPage = useCallback((pageNumber: number, fileKey?: string): SearchResult[] => {
-        const targetFileKey = fileKey ?? (currentFile ? getFileKey(currentFile) : '');
-        if (!targetFileKey) return [];
-
-        const fileResults = searchStateRef.current.searchResults.get(targetFileKey);
-        if (!fileResults) return [];
-
-        const pageResults = fileResults.get(pageNumber);
-        if (!pageResults) return [];
-
-        // Combine results from all search terms
-        const results: SearchResult[] = [];
-        pageResults.forEach(highlights => {
-            results.push(...highlights);
-        });
-
-        return results;
-    }, [currentFile]);
 
     /**
      * Get statistics about the current search results - memoized to prevent excessive recalculations
@@ -416,7 +338,6 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
         clearSearch,
         clearAllSearches,
 
-        getSearchResultsForPage,
         getSearchResultsStats,
         getSearchQueries
     }), [
@@ -427,7 +348,6 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
         batchSearch,
         clearSearch,
         clearAllSearches,
-        getSearchResultsForPage,
         getSearchResultsStats,
         getSearchQueries
     ]);

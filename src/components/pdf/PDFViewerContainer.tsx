@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { usePDFViewerContext } from '../../contexts/PDFViewerContext';
 import MultiPDFRenderer from './MultiPDFRenderer';
 import '../../styles/modules/pdf/PdfViewer.css';
 
 /**
  * PDFViewerContainer component
- * 
+ *
  * This component serves as the main scroll container for all PDF documents.
  * It:
  * - Connects to the PDFViewerContext

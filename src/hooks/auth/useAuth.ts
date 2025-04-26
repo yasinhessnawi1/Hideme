@@ -132,7 +132,7 @@ export const useAuth = (): UseAuthReturn => {
 
                 // Store user data for resilience during connection issues
                 localStorage.setItem('user_data', JSON.stringify(userProfile));
-
+                localStorage.setItem('access_token', token);
                 // Update auth state manager
                 authStateManager.saveState({
                     isAuthenticated: true,
@@ -187,7 +187,7 @@ export const useAuth = (): UseAuthReturn => {
                         verificationRef.current.lastVerified = now;
                         setIsLoading(false);
                         return true;
-                    } catch (e) {
+                    } catch {
                         setError("Unable to verify your session due to connection issues");
                     }
                 } else {
@@ -355,7 +355,7 @@ export const useAuth = (): UseAuthReturn => {
             apiClient.clearCache();
         } catch (err: any) {
             console.error("[useAuth] Login error:", err);
-            const errorMessage = err.userMessage || "Login failed. Please check your credentials.";
+            const errorMessage = err.userMessage ?? "Login failed. Please check your credentials.";
             setError(errorMessage);
             throw err;
         } finally {
@@ -390,7 +390,7 @@ export const useAuth = (): UseAuthReturn => {
             await login(username, password);
         } catch (err: any) {
             console.error("[useAuth] Registration error:", err);
-            const errorMessage = err.userMessage || "Registration failed";
+            const errorMessage = err.userMessage ?? "Registration failed";
             setError(errorMessage);
             throw err;
         } finally {

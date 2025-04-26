@@ -69,13 +69,11 @@ export const useSearchPatterns = (): UseSearchPatternsReturn => {
         // Fixed version without the problematic dependency
     const getSearchPatterns = useCallback(async (): Promise<SearchPattern[]> => {
             if (!isAuthenticated) {
-                console.warn('[SearchPatterns] getSearchPatterns called but user is not authenticated');
                 return [];
             }
 
             // Prevent duplicate fetch
             if (fetchInProgressRef.current) {
-                console.log('[SearchPatterns] Search patterns fetch already in progress');
                 return [];
             }
 
@@ -93,7 +91,7 @@ export const useSearchPatterns = (): UseSearchPatternsReturn => {
             } catch (error: any) {
                 // Don't set error for 404 (empty patterns is not an error)
                 if (error.response?.status !== 404) {
-                    setError(error.userMessage || 'Failed to load search patterns');
+                    setError(error.userMessage ?? 'Failed to load search patterns');
                 } else {
                     // For 404, set empty array explicitly to mark as initialized
                     setSearchPatterns([]);
@@ -114,7 +112,6 @@ export const useSearchPatterns = (): UseSearchPatternsReturn => {
         data: SearchPatternCreate
     ): Promise<SearchPattern | null> => {
         if (!isAuthenticated) {
-            console.warn('[SearchPatterns] createSearchPattern called but user is not authenticated');
             return null;
         }
 
@@ -146,7 +143,7 @@ export const useSearchPatterns = (): UseSearchPatternsReturn => {
 
             return newPattern;
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to create search pattern');
+            setError(error.userMessage ?? 'Failed to create search pattern');
             throw error;
         } finally {
             setIsLoading(false);
@@ -161,12 +158,10 @@ export const useSearchPatterns = (): UseSearchPatternsReturn => {
         data: SearchPatternUpdate
     ): Promise<SearchPattern | null> => {
         if (!isAuthenticated) {
-            console.warn('[SearchPatterns] updateSearchPattern called but user is not authenticated');
             return null;
         }
 
         if (data.pattern_text && !data.pattern_text.trim()) {
-            setError('Search pattern cannot be empty');
             return null;
         }
 
@@ -197,7 +192,7 @@ export const useSearchPatterns = (): UseSearchPatternsReturn => {
 
             return updatedPattern;
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to update search pattern');
+            setError(error.userMessage ?? 'Failed to update search pattern');
             throw error;
         } finally {
             setIsLoading(false);
@@ -209,7 +204,6 @@ export const useSearchPatterns = (): UseSearchPatternsReturn => {
      */
     const deleteSearchPattern = useCallback(async (patternId: number): Promise<void> => {
         if (!isAuthenticated) {
-            console.warn('[SearchPatterns] deleteSearchPattern called but user is not authenticated');
             return;
         }
 
@@ -232,7 +226,7 @@ export const useSearchPatterns = (): UseSearchPatternsReturn => {
                 }
             }));
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to delete search pattern');
+            setError(error.userMessage ?? 'Failed to delete search pattern');
             throw error;
         } finally {
             setIsLoading(false);
@@ -244,7 +238,6 @@ export const useSearchPatterns = (): UseSearchPatternsReturn => {
      */
     useEffect(() => {
         if (isAuthenticated && !isInitialized && !fetchInProgressRef.current) {
-            console.log('[SearchPatterns] User authenticated, loading search patterns');
             getSearchPatterns().then(patterns => setSearchPatterns(patterns)).catch(err => {
                 console.error('[SearchPatterns] Failed to load search patterns on init:', err);
             });

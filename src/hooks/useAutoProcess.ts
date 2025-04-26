@@ -1,5 +1,3 @@
-// src/hooks/useAutoProcess.ts
-
 import {useEffect, useCallback, useState} from 'react';
 import { autoProcessManager } from '../managers/AutoProcessManager';
 import { useBatchSearch } from '../contexts/SearchContext';
@@ -104,13 +102,12 @@ export const useAutoProcess = () => {
         }
 
         // 1. Format Search Queries from user.searchPatterns
-        let formattedSearchQueries: any[] = [];
+        let formattedSearchQueries: any[];
         if (searchPatterns && Array.isArray(searchPatterns) && searchPatterns.length > 0) {
             formattedSearchQueries = searchPatterns.map((pattern: SearchPattern) => ({
                 term: pattern.pattern_text, // Add the term field with pattern_text
                 pattern_type: pattern.pattern_type,
                 setting_id: pattern.setting_id,
-                // Set appropriate flags based on pattern_type
                 caseSensitive: pattern.pattern_type === 'case_sensitive',
                 ai_search: pattern.pattern_type === 'ai_search'
             }));
@@ -125,8 +122,8 @@ export const useAutoProcess = () => {
             if (!methodEntities || !Array.isArray(methodEntities)) return [];
 
             return methodEntities.map(entity => ({
-                value: entity?.entity_text || '',
-                label: entity?.entity_text || ''
+                value: entity?.entity_text ?? '',
+                label: entity?.entity_text ?? ''
             })).filter(entity => entity.value); // Filter out empty values
         };
 
@@ -169,7 +166,6 @@ export const useAutoProcess = () => {
 
     // Function to enable/disable auto-processing
     const setAutoProcessingEnabled = useCallback((enabled: boolean) => {
-        console.warn('[useAutoProcess] setAutoProcessingEnabled called directly. This might be overridden by user settings. Use the settings toggle instead.');
         autoProcessManager.updateConfig({
             isActive: enabled
         });

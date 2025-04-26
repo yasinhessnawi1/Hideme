@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useEditContext } from '../../contexts/EditContext';
 import { ManualHighlightProcessor } from '../../managers/ManualHighlightProcessor';
-import { PDFPageViewport, HighlightCreationMode } from '../../types/pdfTypes';
+import { PDFPageViewport, HighlightCreationMode } from '../../types';
 
 interface PageOverlayProps {
     pageNumber: number;
@@ -95,10 +95,10 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
             const height = endY - startY;
 
             if (width > 2 && height > 2) {
-                const safeFileKey = fileKey || '_default';
+                const safeFileKey = fileKey ?? '_default';
 
                 // Account for current zoom level
-                const zoomFactor = viewport.scale || 1;
+                const zoomFactor = viewport.scale ?? 1;
 
                 // Convert coordinates to unzoomed values
                 const unzoomedStartX = startX / zoomFactor;

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useFileContext } from '../../../contexts/FileContext';
 import '../../../styles/modules/pdf/StorageSettings.css';
 import { Database, Trash2, HardDrive, AlertTriangle } from 'lucide-react';
+import {useLoading} from "../../../contexts/LoadingContext";
+import LoadingWrapper from "../../common/LoadingWrapper";
 
 /**
  * Component for managing PDF storage persistence settings
@@ -17,7 +19,7 @@ const StorageSettings: React.FC = () => {
     } = useFileContext();
 
     const [showConfirmation, setShowConfirmation] = useState(false);
-    const [isClearing, setIsClearing] = useState(false);
+    const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
 
     const handleTogglePersistence = (e: React.ChangeEvent<HTMLInputElement>) => {
         const enabled = e.target.checked;
@@ -36,14 +38,14 @@ const StorageSettings: React.FC = () => {
     };
 
     const handleClearStoredFiles = async () => {
-        setIsClearing(true);
+        startLoading('file_storage.clean')
         try {
             await clearStoredFiles();
             setShowConfirmation(false);
         } catch (error) {
             console.error('Error clearing stored files:', error);
         } finally {
-            setIsClearing(false);
+            stopLoading('file_storage.clean');
         }
     };
 
@@ -96,10 +98,14 @@ const StorageSettings: React.FC = () => {
                     <button
                         className="clear-storage-button"
                         onClick={() => setShowConfirmation(true)}
-                        disabled={storageStats.fileCount === 0 || isClearing}
+                        disabled={storageStats.fileCount === 0 || globalLoading('file_storage.clean')}
                     >
-                        <Trash2 size={14} />
-                        <span>Clear Stored PDFs</span>
+
+                        <LoadingWrapper isLoading={globalLoading('file_storage.clean')} overlay={true} fallback={'Clearing....'}
+                        >
+                            <Trash2 size={14} />
+                            {globalLoading('file_storage.clean') ? '' :  'Clear All PDFs'}
+                        </LoadingWrapper>
                     </button>
                 </div>
             )}
@@ -121,16 +127,19 @@ const StorageSettings: React.FC = () => {
                             <button
                                 className="cancel-button"
                                 onClick={() => setShowConfirmation(false)}
-                                disabled={isClearing}
+                                disabled={globalLoading('file_storage.clean')}
                             >
                                 Cancel
                             </button>
                             <button
                                 className="delete-button"
                                 onClick={handleClearStoredFiles}
-                                disabled={isClearing}
+                                disabled={globalLoading('file_storage.clean')}
                             >
-                                {isClearing ? 'Clearing...' : 'Clear All PDFs'}
+                                <LoadingWrapper isLoading={globalLoading('file_storage.clean')} overlay={true} fallback={'Clearing....'}
+                                              >
+                                    {globalLoading('file_storage.clean') ? '' : 'Clear All PDFs'}
+                                </LoadingWrapper>
                             </button>
                         </div>
                     </div>

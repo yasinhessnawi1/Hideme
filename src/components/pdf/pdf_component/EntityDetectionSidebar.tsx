@@ -26,8 +26,11 @@ import useSettings from "../../../hooks/settings/useSettings";
 import useEntityDefinitions from "../../../hooks/settings/useEntityDefinitions";
 import useAuth from "../../../hooks/auth/useAuth";
 import {EntityHighlightProcessor} from "../../../managers/EntityHighlightProcessor";
-import processingStateService, {ProcessingInfo} from '../../../services/ProcessingStateService';
+import processingStateService from '../../../services/ProcessingStateService';
 import summaryPersistenceStore from '../../../store/SummaryPersistenceStore';
+import {useUserContext} from "../../../contexts/UserContext";
+import {useLoading} from "../../../contexts/LoadingContext";
+import LoadingOverlay, {LoadingWrapper} from '../../common/LoadingWrapper';
 
 /**
  * EntityDetectionSidebar component
@@ -46,7 +49,22 @@ const EntityDetectionSidebar: React.FC = () => {
     const pdfNavigation = usePDFNavigation('entity-sidebar');
 
     const {
-        selectedMlEntities,
+
+        isLoading: isUserLoading,
+        isAuthenticated,
+        error: userError,
+        clearError: clearUserError,
+        modelEntities,
+        getModelEntities,
+        replaceModelEntities,
+        modelLoading: entitiesLoading,
+        settings, updateSettings,
+        settingsLoading: isSettingsLoading,
+        banList,
+        banListLoading: isBanListLoading
+    } = useUserContext();
+
+    const {        selectedMlEntities,
         setSelectedMlEntities,
         selectedAiEntities,
         setSelectedAiEntities,
@@ -55,44 +73,26 @@ const EntityDetectionSidebar: React.FC = () => {
         selectedHideMeEntities,
         setSelectedHideMeEntities,
         setDetectionMapping,
-        setFileDetectionMapping,
-        fileDetectionMappings
-    } = useEditContext();
+        setFileDetectionMapping,} = useEditContext();
 
-    const {
-        isLoading: isUserLoading,
-        isAuthenticated,
-        error: userError,
-        clearError: clearUserError
-    } = useAuth();
-
-    const {
-        modelEntities,
-        getModelEntities,
-        replaceModelEntities,
-        isLoading: entitiesLoading,
-    } = useEntityDefinitions();
-
-    const {settings, updateSettings, isLoading: isSettingsLoading} = useSettings();
-    const {banList, isLoading: isBanListLoading} = useBanList();
 
     const {
         removeHighlightsByType,
     } = useHighlightStore();
 
     // Component state
-    const [isDetecting, setIsDetecting] = useState(false);
+    const { startLoading, stopLoading, isLoading: isGlobalLoading } = useLoading();
+
     const [detectionScope, setDetectionScope] = useState<'current' | 'selected' | 'all'>('all');
-    const [detectionResults, setDetectionResults] = useState<Map<string, any>>(new Map());
     const [detectionError, setDetectionError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [fileSummaries, setFileSummaries] = useState<EntityFileSummary[]>([]);
     const [expandedFileSummaries, setExpandedFileSummaries] = useState<Set<string>>(new Set());
     const [detectionThreshold, setDetectionThreshold] = useState(() =>
-        settings?.detection_threshold !== undefined ? settings.detection_threshold : 0.5
+        settings?.detection_threshold ?? 0.5
     );
     const [useBanlist, setUseBanlist] = useState(() =>
-        settings?.use_banlist_for_detection !== undefined ? settings.use_banlist_for_detection : false
+        settings?.use_banlist_for_detection ?? false
     );
 
     // Add state for tracking processed files
@@ -106,8 +106,6 @@ const EntityDetectionSidebar: React.FC = () => {
 
     const {
         loading,
-        error,
-        progress,
         runBatchHybridDetect,
         resetErrors
     } = usePDFApi();
@@ -259,7 +257,7 @@ const EntityDetectionSidebar: React.FC = () => {
         }
     }, [files, fileSummaries.length]);
 
-    //  Listen forauto-processing completion events
+    //  Listen for auto-processing completion events
     useEffect(() => {
         const handleAutoProcessingComplete = (event: Event) => {
             const customEvent = event as CustomEvent;
@@ -307,7 +305,7 @@ const EntityDetectionSidebar: React.FC = () => {
     useEffect(() => {
         const handleFileRemoved = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { fileKey, fileName } = customEvent.detail || {};
+            const { fileKey } = customEvent.detail || {};
 
             if (fileKey) {
                 console.log(`[EntityDetectionSidebar] File removed: ${fileKey}`);
@@ -368,19 +366,17 @@ const EntityDetectionSidebar: React.FC = () => {
             return;
         }
 
-        setIsDetecting(true);
+        startLoading('detection_sidebar.detect')
         setDetectionError(null);
         resetErrors();
 
         try {
             // Initialize processing state for all files
             filesToProcess.forEach(file => {
-                const fileKey = getFileKey(file);
-
                 processingStateService.startProcessing(file, {
                     method: 'manual',
                     pageCount: 1, // Will be updated after detection
-                    expectedTotalTimeMs: 30000 // Default estimate
+                    expectedTotalTimeMs: 15000 // Default estimate
                 });
             });
 
@@ -419,7 +415,6 @@ const EntityDetectionSidebar: React.FC = () => {
             const results = await runBatchHybridDetect(filesToProcess, detectionOptions);
 
             // Update results state
-            setDetectionResults(new Map(Object.entries(results)));
 
             // Process detection for each file using the EntityHighlightProcessor
             for (const [fileKey, result] of Object.entries(results)) {
@@ -483,7 +478,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 processingStateService.completeProcessing(fileKey, false);
             });
         } finally {
-            setIsDetecting(false);
+            stopLoading('detection_sidebar.detect');
         }
     }, [
         getFilesToProcess,
@@ -499,7 +494,9 @@ const EntityDetectionSidebar: React.FC = () => {
         setFileDetectionMapping,
         setDetectionMapping,
         currentFile,
-        updateFileSummary
+        updateFileSummary,
+        startLoading,
+        stopLoading,
     ]);
     // Listen for external detection triggers (e.g., from toolbar button)
     useEffect(() => {
@@ -549,7 +546,7 @@ const EntityDetectionSidebar: React.FC = () => {
     useEffect(() => {
         const handleHighlightsCleared = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { fileKey, allTypes, type } = customEvent.detail || {};
+            const { fileKey, allTypes, type } = customEvent.detail ?? {};
 
             // Skip if not related to entity highlights
             if (type && type !== HighlightType.ENTITY && !allTypes) return;
@@ -735,7 +732,7 @@ const EntityDetectionSidebar: React.FC = () => {
     useEffect(() => {
         if (!settings) return;
 
-        // Update detection threshold
+        // Update a detection threshold
         if (settings.detection_threshold !== undefined) {
             setDetectionThreshold(settings.detection_threshold);
         }
@@ -871,7 +868,6 @@ const EntityDetectionSidebar: React.FC = () => {
             setDetectionMapping(null);
         }
 
-        setDetectionResults(new Map());
         setExpandedFileSummaries(new Set());
         setDetectionError(null);
 
@@ -892,7 +888,7 @@ const EntityDetectionSidebar: React.FC = () => {
     // Save detection settings to user preferences
     const handleSaveSettings = useCallback(async () => {
         try {
-            setIsDetecting(true);
+            startLoading('detection_sidebar.save');
             clearUserError();
             setDetectionError(null);
 
@@ -955,7 +951,7 @@ const EntityDetectionSidebar: React.FC = () => {
             console.error("[EntityDetectionSidebar] Error saving settings:", error);
             setDetectionError("Failed to save settings");
         } finally {
-            setIsDetecting(false);
+            stopLoading('detection_sidebar.save');
         }
     }, [
         replaceModelEntities,
@@ -966,7 +962,9 @@ const EntityDetectionSidebar: React.FC = () => {
         selectedHideMeEntities,
         detectionThreshold,
         useBanlist,
-        clearUserError
+        clearUserError,
+        startLoading,
+        stopLoading,
     ]);
 
     const ColorDot: React.FC<{ color: string }> = ({color}) => (
@@ -977,7 +975,7 @@ const EntityDetectionSidebar: React.FC = () => {
     );
 
     // Combined loading state
-    const isLoading = isUserLoading || isDetecting || loading || isSettingsLoading || isBanListLoading || entitiesLoading;
+    const isLoading = isUserLoading || isGlobalLoading('detection_sidebar.save') || loading || isSettingsLoading || isBanListLoading || entitiesLoading ;
 
     return (
         <div className="entity-detection-sidebar">
@@ -1034,7 +1032,8 @@ const EntityDetectionSidebar: React.FC = () => {
                         placeholder="Select entities to detect..."
                         className="entity-select"
                         classNamePrefix="entity-select"
-                        isDisabled={isDetecting}
+                        isDisabled={isLoading}
+                        isLoading={isLoading}
                         closeMenuOnSelect={false}
                         menuPortalTarget={document.body}
                         styles={customSelectStyles}
@@ -1055,7 +1054,8 @@ const EntityDetectionSidebar: React.FC = () => {
                         placeholder="Select entities to detect..."
                         className="entity-select"
                         classNamePrefix="entity-select"
-                        isDisabled={isDetecting}
+                        isDisabled={isLoading}
+                        isLoading={isLoading}
                         closeMenuOnSelect={false}
                         menuPortalTarget={document.body}
                         styles={customSelectStyles}
@@ -1076,7 +1076,8 @@ const EntityDetectionSidebar: React.FC = () => {
                         placeholder="Select entities to detect..."
                         className="entity-select"
                         classNamePrefix="entity-select"
-                        isDisabled={isDetecting}
+                        isDisabled={isLoading}
+                        isLoading={isLoading}
                         closeMenuOnSelect={false}
                         menuPortalTarget={document.body}
                         styles={customSelectStyles}
@@ -1096,7 +1097,7 @@ const EntityDetectionSidebar: React.FC = () => {
                         placeholder="Select entities to detect..."
                         className="entity-select"
                         classNamePrefix="entity-select"
-                        isDisabled={isDetecting}
+                        isDisabled={isLoading}
                         closeMenuOnSelect={false}
                         menuPortalTarget={document.body}
                         styles={customSelectStyles}
@@ -1111,7 +1112,7 @@ const EntityDetectionSidebar: React.FC = () => {
                     </div>
                     <div className="form-group mt-2">
                         <label className="text-sm font-medium mb-2 block">
-                            Detection Threshold ({Math.round(detectionThreshold * 100)}%)
+                            Accuracy ({Math.round(detectionThreshold * 100)}%)
                         </label>
                         <p className="text-xs text-muted-foreground mb-2">
                             Higher values reduce false positives but may miss some entities
@@ -1126,7 +1127,7 @@ const EntityDetectionSidebar: React.FC = () => {
                                 value={detectionThreshold}
                                 onChange={(e) => setDetectionThreshold(parseFloat(e.target.value))}
                                 className="flex-1 accent-primary"
-                                disabled={isDetecting}
+                                disabled={isLoading}
                             />
                             <span className="text-xs text-muted-foreground">High</span>
                         </div>
@@ -1145,7 +1146,7 @@ const EntityDetectionSidebar: React.FC = () => {
                                     type="checkbox"
                                     checked={useBanlist}
                                     onChange={(e) => setUseBanlist(e.target.checked)}
-                                    disabled={isDetecting}
+                                    disabled={isLoading}
                                 />
                                 <span className="switch-slider"></span>
                             </label>
@@ -1171,11 +1172,12 @@ const EntityDetectionSidebar: React.FC = () => {
                     </div>
                 )}
                 <div className="sidebar-section action-buttons">
-                    <button
+
+                        <button
                         className="sidebar-button action-button detect-button"
                         onClick={() => handleDetect()}
                         disabled={
-                            isDetecting ||
+                            isLoading||
                             getFilesToProcess().length === 0 ||
                             (selectedMlEntities.length === 0 &&
                                 selectedAiEntities.length === 0 &&
@@ -1183,14 +1185,20 @@ const EntityDetectionSidebar: React.FC = () => {
                                 selectedHideMeEntities.length === 0)
                         }
                     >
-                        {isDetecting ? 'Detecting...' : 'Detect Entities'}
+                            <LoadingWrapper
+                                isLoading={isLoading}
+                                overlay={true}
+                            >
+                            <span > {'Detect Sensitive information'}</span>
+                        </LoadingWrapper>
                     </button>
+
 
                     <div className="secondary-buttons">
                         <button
-                            className="sidebar-buFscopetton secondary-button"
+                            className="sidebar-button  secondary-button"
                             onClick={handleReset}
-                            disabled={isDetecting || (selectedMlEntities.length === 0 && selectedAiEntities.length === 0 && selectedGlinerEntities.length === 0 && selectedHideMeEntities.length === 0 && fileSummaries.length === 0)}
+                            disabled={isLoading || (selectedMlEntities.length === 0 && selectedAiEntities.length === 0 && selectedGlinerEntities.length === 0 && selectedHideMeEntities.length === 0 && fileSummaries.length === 0)}
                         >
                             Reset
                         </button>
@@ -1198,7 +1206,7 @@ const EntityDetectionSidebar: React.FC = () => {
                         <button
                             className="sidebar-button save-button"
                             onClick={handleSaveSettings}
-                            disabled={isDetecting || !isAuthenticated}
+                            disabled={isLoading || !isAuthenticated}
                         >
                             <Save size={16}/>
                             <span>{'Save to Settings'}</span>

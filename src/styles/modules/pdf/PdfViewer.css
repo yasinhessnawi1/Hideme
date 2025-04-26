@@ -532,15 +532,13 @@ OPEN/CLOSE FILE FUNCTIONALITY
     height: 28px;
 }
 
+
 .pdf-file-action-button:hover {
     color: var(--primary);
     background-color: var(--button-hover);
 }
 
-/* Special styling for the remove button */
-.pdf-file-action-button:last-child:hover {
-    color: var(--destructive);
-}
+
 
 /* Selection button states */
 .pdf-file-action-button.selected {
@@ -552,6 +550,14 @@ OPEN/CLOSE FILE FUNCTIONALITY
 .pdf-file-action-button:not(.selected) {
     color: var(--foreground);
     background-color: var(--button-hover);
+}
+.pdf-file-action-button:not(.selected):first-child {
+    color: var(--foreground);
+    background-color: var(--button-hover);
+    border: 1px dotted var(--muted-foreground);
+}
+.pdf-file-action-button:not(.selected):last-of-type:hover {
+    color: var(--destructive);
 }
 
 /* Custom select icon for unselected state */
@@ -708,13 +714,9 @@ FULLSCREEN OVERLAY STYLES
 
 /* Fullscreen toolbar */
 .fullscreen-toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem;
     background-color: var(--sidebar-bg);
     border-bottom: 1px solid var(--border);
-    height: 50px;
+    height: 40px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     z-index: 10;
 }
@@ -727,7 +729,6 @@ FULLSCREEN OVERLAY STYLES
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 80%;
     margin: 0;
 }
 

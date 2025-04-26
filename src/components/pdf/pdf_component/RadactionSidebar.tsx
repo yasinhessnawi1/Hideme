@@ -8,6 +8,8 @@ import { getFileKey } from '../../../contexts/PDFViewerContext';
 import '../../../styles/modules/pdf/SettingsSidebar.css';
 import '../../../styles/modules/pdf/RedactionSidebar.css';
 import { AlertCircle, Check, Loader2 } from 'lucide-react';
+import {useLoading} from "../../../contexts/LoadingContext";
+import LoadingWrapper from '../../common/LoadingWrapper';
 
 const RedactionSidebar: React.FC = () => {
     const {
@@ -37,13 +39,11 @@ const RedactionSidebar: React.FC = () => {
         runBatchRedactPdfs
     } = usePDFApi();
 
-    const [isRedacting, setIsRedacting] = useState(false);
     const [redactionScope, setRedactionScope] = useState<'current' | 'selected' | 'all'>('all');
     const [redactionError, setRedactionError] = useState<string | null>(null);
     const [redactionSuccess, setRedactionSuccess] = useState<string | null>(null);
     const [fileErrors, setFileErrors] = useState<Map<string, string>>(new Map());
-    const [isDownloading, setIsDownloading] = useState(false);
-    const [processedRedactedFiles, setProcessedRedactedFiles] = useState<File[]>([]);
+    const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
 
     const [redactionOptions, setRedactionOptions] = useState({
         includeSearchHighlights: true,
@@ -54,9 +54,6 @@ const RedactionSidebar: React.FC = () => {
 
     // Map of fileKey -> redaction mapping
     const [redactionMappings, setRedactionMappings] = useState<Map<string, any>>(new Map());
-
-    // Update progress from API
-    const progress = apiProgress;
 
     // Set error from API if available
     useEffect(() => {
@@ -273,7 +270,7 @@ const RedactionSidebar: React.FC = () => {
             }
         }
 
-        setIsRedacting(true);
+        startLoading('redaction.redact');
         setRedactionError(null);
         setFileErrors(new Map());
         setRedactionSuccess(null);
@@ -304,7 +301,6 @@ const RedactionSidebar: React.FC = () => {
                 redactedPdfs = await runBatchRedactPdfs(filesToProcess, mappingsObj, redactionOptions.removeImages);
             }
 
-            setIsDownloading(true);
 
             try {
                 // Process the redacted files and update the application state
@@ -385,8 +381,7 @@ const RedactionSidebar: React.FC = () => {
             }));
 
         } finally {
-            setIsRedacting(false);
-            setIsDownloading(false);
+            stopLoading('redaction.redact');
         }
     }, [
         getFilesToProcess,
@@ -399,7 +394,9 @@ const RedactionSidebar: React.FC = () => {
         currentFile,
         setDetectionMapping,
         runRedactPdf,
-        runBatchRedactPdfs
+        runBatchRedactPdfs,
+        startLoading,
+        stopLoading
     ]);
 
     // Reset all redaction settings
@@ -420,7 +417,7 @@ const RedactionSidebar: React.FC = () => {
     const stats = useMemo(() => getOverallRedactionStats(), [getOverallRedactionStats]);
 
     // Combined loading state
-    const isCurrentlyRedacting = isRedacting || isApiLoading;
+    const isCurrentlyRedacting = globalLoading('redaction.redact') || isApiLoading;
 
     // Listen for external redaction settings/options
     useEffect(() => {
@@ -643,26 +640,21 @@ const RedactionSidebar: React.FC = () => {
                         )}
 
                         <div className="sidebar-section button-group">
-                            <button
-                                className="sidebar-button redact-button"
-                                onClick={() => handleRedact()}
-                                disabled={isCurrentlyRedacting || redactionMappings.size === 0 || stats.totalItems === 0}
+
+                                <button
+                                    className="sidebar-button redact-button action-button"
+                                    onClick={() => handleRedact()}
+                                    disabled={isCurrentlyRedacting || redactionMappings.size === 0 || stats.totalItems === 0}
                             >
-                                {isCurrentlyRedacting ? (
-                                    <>
-                                        <Loader2 className="animate-spin" size={16} />
-                                        {isDownloading ?
-                                            `Processing... ${progress}%` :
-                                            `Redacting... ${progress}%`}
-                                        <div className="progress-container">
-                                            <div
-                                                className="progress-bar"
-                                                style={{ width: `${progress}%` }}
-                                            ></div>
-                                        </div>
-                                    </>
-                                ) : 'Redact Content'}
+                                    <LoadingWrapper
+                                        isLoading={isCurrentlyRedacting}
+                                        overlay={true}
+                                        fallback='Redacting...'
+                                    >
+                                        {isCurrentlyRedacting ? '' : 'Redact Content'}
+                            </LoadingWrapper>
                             </button>
+
 
                             <button
                                 className="sidebar-button secondary-button"

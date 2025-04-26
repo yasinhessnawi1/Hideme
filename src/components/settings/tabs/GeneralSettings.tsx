@@ -5,6 +5,8 @@ import { useAutoProcess } from "../../../hooks/useAutoProcess"; // Adjust path i
 import { ThemePreference } from "../../../hooks/useTheme";
 import { useThemeContext } from "../../../contexts/ThemeContext";
 import useSettings from "../../../hooks/settings/useSettings"; // Adjust path if needed
+import { useLoading } from "../../../contexts/LoadingContext";
+import LoadingWrapper from "../../common/LoadingWrapper";
 
 export default function GeneralSettings() {
     const { settings, updateSettings, isLoading: isUserLoading, error: userError, clearError: clearUserError } = useSettings();
@@ -36,11 +38,9 @@ export default function GeneralSettings() {
         if (settings?.use_banlist_for_detection !== undefined) return settings.use_banlist_for_detection;
         return false; // Default to not using ban list
     });
-
+    const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
     const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
-    const [isClearingStorage, setIsClearingStorage] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -100,7 +100,7 @@ export default function GeneralSettings() {
     };
 
     const handleSaveChanges = async () => {
-        setIsSaving(true);
+        startLoading('setting.general.save');
         setSaveError(null);
         setSaveSuccess(false);
         clearUserError();
@@ -138,13 +138,13 @@ export default function GeneralSettings() {
             setSaveError(message);
             console.error("[GeneralSettings] Error saving general settings:", err);
         } finally {
-            setIsSaving(false);
+            stopLoading('setting.general.save');
         }
     };
 
     const handleClearStoredFilesClick = async () => {
         // ... (Clear logic remains the same) ...
-        setIsClearingStorage(true);
+        startLoading('setting.general.clear');
         try {
             await clearStoredFiles();
             setShowConfirmation(false);
@@ -152,9 +152,10 @@ export default function GeneralSettings() {
             console.error('Error clearing stored files:', error);
             setSaveError("Failed to clear stored files.");
         } finally {
-            setIsClearingStorage(false);
+            stopLoading('setting.general.clear');
         }
     };
+    const isLoading = isUserLoading;
 
     const effectiveStorageStats = storageStats || { percentUsed: 0, totalSize: "0 MB", fileCount: 0 };
 
@@ -195,7 +196,7 @@ export default function GeneralSettings() {
                                 id="theme-select"
                                 value={currentThemePreference}
                                 onChange={(e) => handleThemeChange(e.target.value as ThemePreference)}
-                                disabled={isSaving || isUserLoading}
+                                disabled={isLoading}
                             >
                                 <option value="light">Light</option>
                                 <option value="dark">Dark</option>
@@ -229,7 +230,7 @@ export default function GeneralSettings() {
                                 id="auto-process"
                                 checked={isAutoProcessing}
                                 onChange={(e) => handleAutoProcessToggle(e.target.checked)}
-                                disabled={isSaving || isUserLoading}
+                                disabled={isLoading}
                             />
                             <span className="switch-slider"></span>
                         </label>
@@ -257,7 +258,7 @@ export default function GeneralSettings() {
                                 value={detectionThreshold}
                                 onChange={(e) => setDetectionThreshold(parseFloat(e.target.value))}
                                 className="flex-1 accent-primary"
-                                disabled={isSaving || isUserLoading}
+                                disabled={isLoading}
                             />
                             <span className="text-xs text-muted-foreground">High</span>
                         </div>
@@ -277,7 +278,7 @@ export default function GeneralSettings() {
                                 id="use-banlist"
                                 checked={useBanlist}
                                 onChange={(e) => setUseBanlist(e.target.checked)}
-                                disabled={isSaving || isUserLoading}
+                                disabled={isLoading}
                             />
                             <span className="switch-slider"></span>
                         </label>
@@ -297,7 +298,7 @@ export default function GeneralSettings() {
                                 id="storage-persistence"
                                 checked={isStorageEnabled}
                                 onChange={(e) => handleStorageToggle(e.target.checked)}
-                                disabled={isSaving || isUserLoading}
+                                disabled={isLoading}
                             />
                             <span className="switch-slider"></span>
                         </label>
@@ -327,11 +328,11 @@ export default function GeneralSettings() {
                                 <button
                                     className="button button-outline button-sm w-full text-destructive hover:bg-destructive hover:text-destructive-foreground"
                                     onClick={() => setShowConfirmation(true)}
-                                    disabled={effectiveStorageStats.fileCount === 0 || isClearingStorage || isSaving || isUserLoading}
+                                    disabled={effectiveStorageStats.fileCount === 0 || isLoading}
                                 >
                                     <Trash2 size={14} className="mr-2" />
                                     <span>Clear Stored PDFs</span>
-                                    {isClearingStorage && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                                    {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                                 </button>
                             </div>
                             <div className="flex items-start gap-2 rounded-md bg-amber-50 p-3 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
@@ -353,10 +354,12 @@ export default function GeneralSettings() {
                 <button
                     className="button button-primary"
                     onClick={handleSaveChanges}
-                    disabled={isSaving || isUserLoading}
+                    disabled={isLoading}
                 >
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Save size={16} className="button-icon" />}
-                    {isSaving ? 'Saving...' : 'Save Changes'}
+                    <LoadingWrapper isLoading={globalLoading('setting.general.save')} fallback="Saving...">
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Save size={16} className="button-icon" />}
+                        {isLoading ? 'Saving...' : 'Save Changes'}
+                    </LoadingWrapper>
                 </button>
             </div>
 
@@ -369,10 +372,12 @@ export default function GeneralSettings() {
                             This will permanently delete all PDFs stored in your browser. This action cannot be undone.
                         </p>
                         <div className="mt-6 flex justify-end gap-3">
-                            <button className="button button-outline" onClick={() => setShowConfirmation(false)} disabled={isClearingStorage}>Cancel</button>
-                            <button className="button button-destructive" onClick={handleClearStoredFilesClick} disabled={isClearingStorage}>
-                                {isClearingStorage ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                                {isClearingStorage ? "Clearing..." : "Clear All PDFs"}
+                            <button className="button button-outline" onClick={() => setShowConfirmation(false)} disabled={isLoading}>Cancel</button>
+                            <button className="button button-destructive" onClick={handleClearStoredFilesClick} disabled={isLoading}>
+                                <LoadingWrapper isLoading={globalLoading('setting.general.clear')} fallback="Clearing...">
+                                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                    {isLoading ? "Clearing..." : "Clear All PDFs"}
+                                </LoadingWrapper>
                             </button>
                         </div>
                     </div>

@@ -19,7 +19,6 @@ export const usePDFNavigation = (sourceName: string = 'navigation-hook') => {
     const { setFileActiveScrollPage } = usePDFViewerContext();
     // Use a ref to track if navigation is in progress
     const navigationInProgressRef = useRef<boolean>(false);
-    const lastNavigationTimeRef = useRef<number>(0);
 
     /**
      * Navigate to a specific page in a file
@@ -30,27 +29,19 @@ export const usePDFNavigation = (sourceName: string = 'navigation-hook') => {
             fileKey?: string,
             options: ScrollOptions = {}
         ): void => {
-            // Enhanced logging and validation
-            console.log(`[PDFNavigation] Navigating to page ${pageNumber} in file ${fileKey || 'current'}`);
-
             // Get the file key to use
-            const targetFileKey = fileKey || (currentFile ? getFileKey(currentFile) : null);
+            const targetFileKey = fileKey ?? (currentFile ? getFileKey(currentFile) : null);
             if (!targetFileKey) {
-                console.error('[PDFNavigation] No target file key, cannot navigate');
                 return;
             }
 
             // Validate page number
             const totalPages = getFileNumPages(targetFileKey);
             if (!totalPages) {
-                console.error(`[PDFNavigation] Unknown page count for file ${targetFileKey}`);
                 return;
             }
 
             const validPageNumber = Math.max(1, Math.min(pageNumber, totalPages));
-            if (validPageNumber !== pageNumber) {
-                console.warn(`[PDFNavigation] Adjusted page number from ${pageNumber} to ${validPageNumber}`);
-            }
 
             // This is critical: update state first to ensure components are in sync
             setFileCurrentPage(targetFileKey, validPageNumber, 'navigation-hook');
@@ -63,9 +54,9 @@ export const usePDFNavigation = (sourceName: string = 'navigation-hook') => {
                     validPageNumber,
                     targetFileKey,
                     {
-                        behavior: options.behavior || 'smooth',
-                        alignToTop: options.alignToTop !== undefined ? options.alignToTop : false,
-                        highlightThumbnail: options.highlightThumbnail !== undefined ? options.highlightThumbnail : true
+                        behavior: options.behavior ?? 'smooth',
+                        alignToTop: options.alignToTop ?? false,
+                        highlightThumbnail: options.highlightThumbnail ?? true
                     },
                     sourceName
                 );
@@ -145,7 +136,7 @@ export const usePDFNavigation = (sourceName: string = 'navigation-hook') => {
             console.error(`[PDFNavigation] File with key ${fileKey} not found`);
             return;
         }
-
+        setCurrentFile(file)
         // Navigate to the file and page
         navigateToPage(pageNumber, fileKey, options);
     }, [files, navigateToPage]);

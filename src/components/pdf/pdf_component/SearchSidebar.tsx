@@ -1,4 +1,5 @@
-// Extend the Window interface to include our custom properties
+import LoadingWrapper from "../../common/LoadingWrapper";
+
 declare global {
     interface Window {
         defaultSearchTerms?: string[];
@@ -10,7 +11,6 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useFileContext} from '../../../contexts/FileContext';
 import {getFileKey} from '../../../contexts/PDFViewerContext';
 import {useBatchSearch} from '../../../contexts/SearchContext';
-import {usePDFApi} from '../../../hooks/usePDFApi';
 import '../../../styles/modules/pdf/SettingsSidebar.css';
 import '../../../styles/modules/pdf/SearchSidebar.css';
 import {AlertTriangle, CheckCircle, ChevronDown, ChevronRight, ChevronUp, Save, Search, XCircle} from 'lucide-react';
@@ -48,13 +48,10 @@ const SearchSidebar: React.FC = () => {
         getSearchResultsStats
     } = useBatchSearch();
 
-    const {
-        loading: isApiLoading, error: apiError, progress: apiProgress, runBatchSearch, resetErrors
-    } = usePDFApi();
 
     // Component state
     const [tempSearchTerm, setTempSearchTerm] = useState('');
-    const [searchScope, setSearchScope] = useState<'current' | 'selected' | 'all'>('all');
+    const [searchScope, setSearchScope] = useState<'current' | 'selected' | 'all'>(selectedFiles.length > 0 ? 'selected' : 'all');
     const [isAiSearch, setIsAiSearch] = useState(false);
     const [isCaseSensitive, setIsCaseSensitive] = useState(false);
     const [localSearchError, setLocalSearchError] = useState<string | null>(null);
@@ -104,7 +101,7 @@ const SearchSidebar: React.FC = () => {
             setFileSummaries(validSummaries);
             console.log(`[SearchSidebar] Loaded ${validSummaries.length} file summaries and ${validFileKeys.length} searched files`);
 
-            // Auto-expand summaries on load
+            // Auto-expand summaries on a load
             if (validSummaries.length > 0) {
                 const newExpandedSet = new Set<string>();
                 validSummaries.forEach(summary => newExpandedSet.add(summary.fileKey));
@@ -115,11 +112,11 @@ const SearchSidebar: React.FC = () => {
         }
     }, [files]);
 
-    // Listen for highlights cleared events
+    // Listen for highlight cleared events
     useEffect(() => {
         const handleHighlightsCleared = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const {fileKey, allTypes, type} = customEvent.detail || {};
+            const {fileKey, allTypes, type} = customEvent.detail ?? {};
 
             // Skip if not related to search highlights
             if (type && type !== HighlightType.SEARCH && !allTypes) return;
@@ -188,7 +185,7 @@ const SearchSidebar: React.FC = () => {
     useEffect(() => {
         const handleFileRemoved = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const {fileKey, fileName} = customEvent.detail || {};
+            const {fileKey} = customEvent.detail ?? {};
 
             if (fileKey) {
                 console.log(`[SearchSidebar] File removed: ${fileKey}`);
@@ -240,8 +237,6 @@ const SearchSidebar: React.FC = () => {
         }
     }, [fileSummaries]);
 
-    // Helper function to update file summaries
-
 
     // Get files to process based on selected scope
     const getFilesToProcess = useCallback((): File[] => {
@@ -279,7 +274,7 @@ const SearchSidebar: React.FC = () => {
     useEffect(() => {
         const handleSearchSummaryUpdated = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const {fileKey, fileName, summary} = customEvent.detail || {};
+            const {fileKey, fileName, summary} = customEvent.detail ?? {};
 
             if (fileKey && summary) {
                 console.log(`[SearchSidebar] Received search summary update for file: ${fileName}`);
@@ -312,7 +307,7 @@ const SearchSidebar: React.FC = () => {
     useEffect(() => {
         const handleAutoProcessingComplete = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const {fileKey, hasSearchResults} = customEvent.detail || {};
+            const {fileKey, hasSearchResults} = customEvent.detail ?? {};
 
             if (fileKey && hasSearchResults) {
                 console.log(`[SearchSidebar] Auto-processing with search completed for file: ${fileKey}`);
@@ -375,7 +370,6 @@ const SearchSidebar: React.FC = () => {
         }
 
         setLocalSearchError(null);
-        resetErrors();
 
         try {
             // Store the search term before clearing the input field
@@ -438,15 +432,15 @@ const SearchSidebar: React.FC = () => {
                     setExpandedFileSummaries(newExpandedSet);
                 }
 
-                // Refocus the search input after search completes
+                // Refocus the search input after search completed
                 searchInputRef.current?.focus();
             }, 100);
         } catch (error: any) {
-            setLocalSearchError(error.message || 'Error performing search');
+            setLocalSearchError(error.message ?? 'Error performing search');
             // Refocus input even when there's an error
             searchInputRef.current?.focus();
         }
-    }, [tempSearchTerm, getFilesToProcess, resetErrors, batchSearch, isCaseSensitive, isAiSearch, getSearchResultsStats, activeQueries, expandedFileSummaries, files, updateFileSummary]);
+    }, [tempSearchTerm, getFilesToProcess, batchSearch, isCaseSensitive, isAiSearch, getSearchResultsStats, activeQueries, expandedFileSummaries, files, updateFileSummary]);
 
     // Remove search term with cleanup
     const removeSearchTerm = (term: string) => {
@@ -473,7 +467,7 @@ const SearchSidebar: React.FC = () => {
                     const fileName = summary.fileName;
 
                     // Check if this file still has matches
-                    const matchCount = currentStats.fileMatches.get(fileKey) || 0;
+                    const matchCount = currentStats.fileMatches.get(fileKey) ?? 0;
 
                     if (matchCount > 0) {
                         // File still has matches, update the summary
@@ -798,20 +792,18 @@ const SearchSidebar: React.FC = () => {
 
     // Set error from API if available
     useEffect(() => {
-        if (apiError) {
-            setLocalSearchError(apiError);
-        } else if (contextSearchError) {
+        if (contextSearchError) {
             setLocalSearchError(contextSearchError);
         } else {
             setLocalSearchError(null);
         }
-    }, [apiError, contextSearchError]);
+    }, [contextSearchError]);
 
     // Listen for settings changes from user preferences
     useEffect(() => {
         const handleSettingsChange = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const {type, settings} = customEvent.detail || {};
+            const {type, settings} = customEvent.detail ?? {};
 
             // Only apply search settings
             if (type === 'search' && settings) {
@@ -837,8 +829,7 @@ const SearchSidebar: React.FC = () => {
     }, [getSearchPatterns]);
 
     // Combined loading state
-    const isSearching = isContextSearching || isApiLoading;
-    const searchProgress = apiProgress;
+    const isSearching = isContextSearching;
 
     // Simple navigation to a page with our improved navigation system
     const navigateToPage = useCallback((fileKey: string, pageNumber: number) => {
@@ -854,11 +845,15 @@ const SearchSidebar: React.FC = () => {
             highlightThumbnail: true
         });
     }, [pdfNavigation, files]);
+
+
     const [resultNavigation, setResultNavigation] = useState<{
         results: { fileKey: string; page: number; count: number }[]; currentIndex: number;
     }>({
         results: [], currentIndex: -1
     });
+
+
     const navigateToSearchResult = useCallback((direction: 'next' | 'prev') => {
         const {results, currentIndex} = resultNavigation;
 
@@ -886,7 +881,7 @@ const SearchSidebar: React.FC = () => {
         // Use our improved navigation mechanism
         navigateToPage(target.fileKey, target.page);
     }, [resultNavigation, navigateToPage]);
-    // Handle right click on search term
+
 
     const calculateOverallResultIndex = useCallback(() => {
         if (resultNavigation.currentIndex === -1 || resultNavigation.results.length === 0) {
@@ -1107,18 +1102,17 @@ const SearchSidebar: React.FC = () => {
                         </div>
                     </div>)}
 
-                {isSearching && (<div className="sidebar-section">
-                        <div className="progress-container">
-                            <div className="progress-label">Searching...</div>
-                            <div className="progress-bar-container">
-                                <div
-                                    className="progress-bar"
-                                    style={{width: `${searchProgress}%`}}
-                                ></div>
+
+                {isSearching && (
+                    <LoadingWrapper isLoading={isSearching} overlay={true} fallback={'Searching...'}
+                    >
+                        <div className="sidebar-section">
+                            <div className="progress-container">
+                                <div className="progress-label">Searching...</div>
                             </div>
-                            <div className="progress-percentage">{searchProgress}%</div>
                         </div>
-                    </div>)}
+                    </LoadingWrapper>
+                )}
 
                 <div className="sidebar-section">
                     <div className="search-results-header">

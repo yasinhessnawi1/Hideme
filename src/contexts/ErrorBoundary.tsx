@@ -76,7 +76,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
                         {error && (
                             <div className="error-details">
-                                <p><strong>Error:</strong> {error.toString()}</p>
+                                <p><strong>Error:</strong> {"Internal error"}</p>
                             </div>
                         )}
 

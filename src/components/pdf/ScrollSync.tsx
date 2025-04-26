@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useFileContext } from '../../contexts/FileContext';
 import { getFileKey, usePDFViewerContext } from '../../contexts/PDFViewerContext';
 import scrollManager from '../../services/ScrollManagerService';
@@ -26,7 +26,6 @@ const ScrollSync: React.FC = () => {
         setFileCurrentPage,
         setFileActiveScrollPage,
         getFileCurrentPage,
-        getFileNumPages
     } = usePDFViewerContext();
 
     // Refs for tracking scroll state
@@ -110,7 +109,6 @@ const ScrollSync: React.FC = () => {
             // Process scroll after it stops
             scrollTimeoutRef.current = setTimeout(() => {
                 // Calculate how long user has been scrolling
-                const scrollTime = Date.now() - scrollStartTimeRef.current;
                 scrollStartTimeRef.current = 0;
 
                 // Get the most visible page
@@ -128,7 +126,6 @@ const ScrollSync: React.FC = () => {
                         currentFile &&
                         getFileKey(currentFile) !== visiblePage.fileKey
 
-                    // Change current file if needed
                     if (shouldSwitchFiles) {
                         const newFile = files.find(file => getFileKey(file) === visiblePage.fileKey);
                         if (newFile) {
@@ -178,43 +175,7 @@ const ScrollSync: React.FC = () => {
         setFileActiveScrollPage
     ]);
 
-    // Listen for page change events to update state
-    const handlePageChange = useCallback((event: Event) => {
-        const customEvent = event as CustomEvent;
-        const { fileKey, pageNumber, source, timestamp } = customEvent.detail || {};
 
-        // Skip if we caused this event
-        if (source === 'scroll-sync') return;
-
-        // Skip if we're already processing an event or if it happened too recently
-        const now = Date.now();
-        if (eventProcessingRef.current.isProcessing ||
-            (now - eventProcessingRef.current.lastEventTimestamp < 100) ||
-            (timestamp && now - timestamp > 200)) { // Skip stale events
-            return;
-        }
-
-        // Update the page tracking if we have a valid page and file
-        if (fileKey && pageNumber && !isScrollingRef.current) {
-            try {
-                eventProcessingRef.current.isProcessing = true;
-                eventProcessingRef.current.lastEventTimestamp = now;
-
-                // Use a flag to prevent ScrollManagerService from emitting events
-                scrollManager.setManualEventHandling(true);
-
-                // Update state without triggering events
-                setFileCurrentPage(fileKey, pageNumber, 'scroll-sync');
-                setFileActiveScrollPage(fileKey, pageNumber);
-            } finally {
-                // Reset after a short delay
-                setTimeout(() => {
-                    eventProcessingRef.current.isProcessing = false;
-                    scrollManager.setManualEventHandling(false);
-                }, 50);
-            }
-        }
-    }, [setFileCurrentPage, setFileActiveScrollPage]);
 
     // Restore scroll position when current file changes
     useEffect(() => {
@@ -278,7 +239,7 @@ const ScrollSync: React.FC = () => {
     // Register with the scroll manager
     useEffect(() => {
         // Register a scroll handler to keep our state in sync
-        scrollManager.addScrollListener('scroll-sync', (pageNumber, fileKey, source) => {
+        scrollManager.addScrollListener('scroll-sync', (pageNumber, fileKey) => {
             // Update the file's current page
             setFileCurrentPage(fileKey, pageNumber, "scroll-sync");
             setFileActiveScrollPage(fileKey, pageNumber);

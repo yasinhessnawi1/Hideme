@@ -1,5 +1,5 @@
 import { useCallback, useState, useRef } from 'react';
-import { RedactionMapping } from '../types/types';
+import { RedactionMapping } from '../types';
 import {batchHybridDetect, batchRedactPdfs, findWords} from '../services/BatchApiService';
 import { BatchSearchService } from '../services/BatchSearchService';
 import { getFileKey } from '../contexts/PDFViewerContext';
@@ -100,8 +100,6 @@ export const usePDFApi = () => {
                 removeCachedResult(cacheKey);
             }
 
-            console.log(`[APIDebug] Starting batch hybrid detection for ${files.length} files`);
-
             // Progressive progress updates
             setProgress(10);
 
@@ -109,9 +107,6 @@ export const usePDFApi = () => {
             const results = await batchHybridDetect(files, options);
 
             setProgress(50);
-
-            console.log(`[APIDebug] Detection complete for ${Object.keys(results).length} files`);
-
             // Process each file to use the proper file key
             // Clear existing cache entries for these files first to prevent stale data
             files.forEach(file => {
@@ -142,21 +137,16 @@ export const usePDFApi = () => {
 
                     // Store in our detection cache
                     detectionResultsCache.current.set(fileKey, resultCopy);
-                    console.log(`[APIDebug] Mapped detection results from ${fileName} to ${fileKey}`);
                 }
             });
 
             // Store in API cache
             setCachedResult(cacheKey, resultsWithCorrectKeys);
 
-            console.log(`[APIDebug] Updated detection results cache:`,
-                `(${Object.keys(resultsWithCorrectKeys).length})`,
-                Object.keys(resultsWithCorrectKeys));
-
             setProgress(100);
             return resultsWithCorrectKeys;
         } catch (err: any) {
-            const errorMsg = err.message || 'Error in batch hybrid detection';
+            const errorMsg = err.message ?? 'Error in batch hybrid detection';
             setError(errorMsg);
             setProgress(0);
             throw err;
@@ -179,7 +169,6 @@ export const usePDFApi = () => {
         setProgress(0);
 
         try {
-            console.log(`[APIDebug] Starting redaction for file: ${file.name}`);
 
             // Create a mapping object with this file's redaction mapping
             const fileKey = getFileKey(file);
@@ -201,7 +190,7 @@ export const usePDFApi = () => {
             }
             return redactedBlob;
         } catch (err: any) {
-            const errorMsg = err.message || 'Error in redaction';
+            const errorMsg = err.message ?? 'Error in redaction';
             setError(errorMsg);
             setProgress(0);
             throw err;
@@ -248,7 +237,7 @@ export const usePDFApi = () => {
             setProgress(100);
             return results;
         } catch (err: any) {
-            const errorMsg = err.message || 'Error in batch redaction';
+            const errorMsg = err.message ?? 'Error in batch redaction';
             setError(errorMsg);
             setProgress(0);
             throw err;
@@ -316,7 +305,7 @@ export const usePDFApi = () => {
             return results;
         } catch (error: any) {
             console.error("[APIDebug] Search error:", error);
-            setError(error.message || 'Error during batch search');
+            setError(error.message ?? 'Error during batch search');
             setProgress(0);
             throw error;
         } finally {
@@ -356,7 +345,7 @@ export const usePDFApi = () => {
             // Create cache key
             const cacheKey = getOrCreateCacheKey(files, 'find-words', {
                 boundingBox,
-                selectedFilesCount: selectedFiles?.length || 0
+                selectedFilesCount: selectedFiles?.length ?? 0
             });
 
             // Check cache first
@@ -373,19 +362,13 @@ export const usePDFApi = () => {
             const results = await findWords(files, boundingBox, selectedFiles);
 
             setProgress(50);
-
-            // Process results
-            if (results && results.file_results) {
-                console.log(`[PDFApi] Found ${results.batch_summary?.total_matches || 0} word matches`);
-            }
-
             // Cache results
             setCachedResult(cacheKey, results);
 
             setProgress(100);
             return results;
         } catch (err: any) {
-            const errorMsg = err.message || 'Error finding matching words';
+            const errorMsg = err.message ?? 'Error finding matching words';
             setError(errorMsg);
             console.error('[PDFApi] Find words error:', err);
             setProgress(0);
@@ -403,11 +386,9 @@ export const usePDFApi = () => {
             fileKeys.forEach(key => {
                 detectionResultsCache.current.delete(key);
             });
-            console.log(`[APIDebug] Cleared detection cache for ${fileKeys.length} files`);
         } else {
             // Clear entire cache
             detectionResultsCache.current.clear();
-            console.log(`[APIDebug] Cleared entire detection cache`);
         }
     }, []);
 

@@ -11,13 +11,12 @@ interface PDFDocumentWrapperProps {
     file?: File; // New prop to accept a specific file
     fileKey?: string;
     forceOpen?: boolean;
-    pageWidth: number; // Add back pageWidth prop
 }
 
 /**
  * Component to render a PDF document with pages
  */
-const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, forceOpen = false, pageWidth // Default to false
+const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, forceOpen = false // Default to false
                                                                }) => {
     const { currentFile, isFileOpen } = useFileContext();
     const {
@@ -31,7 +30,6 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
     } = usePDFViewerContext();
 
     const [loadError, setLoadError] = useState<Error | null>(null);
-    const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set([1]));
 
     // Track document initialization
     const hasInitializedRef = useRef<boolean>(false);
@@ -105,7 +103,6 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
                 }
 
                 setFileRenderedPages(pdfFileKey, pagesToRender);
-                setVisiblePages(pagesToRender);
 
                 // Also update global state if this is the current file
                 if (isCurrentDocument) {
@@ -123,7 +120,6 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
                 }
 
                 setRenderedPages(pagesToRender);
-                setVisiblePages(pagesToRender);
             }
 
             // Dispatch document loaded event
@@ -165,15 +161,15 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
     useEffect(() => {
         const handleDocumentRequest = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { fileKey: requestedKey, requestId } = customEvent.detail || {};
+            const { fileKey: requestedKey, requestId } = customEvent.detail ?? {};
 
             if (!requestedKey || !pdfFile || !pdfFileKey) return;
 
             // Check if this is our file
-            const isMatch = pdfFileKey === requestedKey ||
-                pdfFileKey.includes(requestedKey) ||
-                requestedKey.includes(pdfFileKey) ||
-                pdfFile.name.includes(requestedKey) ||
+            const isMatch = (pdfFileKey === requestedKey ||
+                    pdfFileKey.includes(requestedKey) ||
+                    requestedKey.includes(pdfFileKey) ||
+                    pdfFile.name.includes(requestedKey)) ??
                 requestedKey.includes(pdfFile.name);
 
             if (isMatch && pdfDocumentRef.current) {
@@ -260,7 +256,6 @@ export default memo(PDFDocumentWrapper, (prevProps, nextProps) => {
     return (
         prevProps.file === nextProps.file &&
         prevProps.fileKey === nextProps.fileKey &&
-        prevProps.forceOpen === nextProps.forceOpen &&
-        prevProps.pageWidth === nextProps.pageWidth
+        prevProps.forceOpen === nextProps.forceOpen
     );
 });

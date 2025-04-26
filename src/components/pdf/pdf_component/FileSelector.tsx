@@ -8,13 +8,11 @@ import {
     Square,
     Eye,
     EyeOff,
-    MoreHorizontal,
     Download,
     Printer,
     X
 } from 'lucide-react';
 import '../../../styles/modules/pdf/FileSelector.css';
-import { useHighlightStore } from "../../../contexts/HighlightStoreContext";
 import AutoProcessControls from "./AutoProcessControls";
 import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 import { getFileKey } from "../../../contexts/PDFViewerContext";
@@ -44,7 +42,6 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
         toggleActiveFile,
         isFileActive
     } = useFileContext();
-    const { removeAllHighlights } = useHighlightStore();
 
     const [showActions, setShowActions] = useState<number | null>(null);
     const [showTooltip, setShowTooltip] = useState<number | null>(null);

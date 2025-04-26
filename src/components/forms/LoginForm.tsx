@@ -6,29 +6,13 @@
  * This component is designed to be reused in different authentication contexts and
  * intelligently adapts its display based on whether the user is signing up or logging in.
  *
- * It integrates with the UserContext to handle authentication state and API calls.
- *
- * Features:
- * - Dynamic form that switches between login and registration modes
- * - Form validation with helpful error messages
- * - Integration with authentication context
- * - Social login UI options (not functional in this implementation)
- * - Loading state handling during authentication
- *
- * When isSignUp is true, the form displays:
- * 1. Full Name
- * 2. Email
- * 3. Password
- * 4. Confirm Password
- *
- * For Login (isSignUp = false), the form displays:
- * 1. Email
- * 2. Password
  */
 
 import React, {JSX, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserContext } from '../../contexts/UserContext';
+import { useLoading } from '../../contexts/LoadingContext';
+import LoadingWrapper from "../common/LoadingWrapper";
 
 /**
  * Props interface for the LoginForm component.
@@ -87,6 +71,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
   // Local form error state separate from the global auth context errors
   // This allows for form-specific validation errors
   const [formError, setFormError] = useState<string | null>(null);
+  const { startLoading, stopLoading, isLoading: isGlobalLoading } = useLoading();
 
   /**
    * Handles form submission for both Login and Sign-Up modes.
@@ -97,12 +82,13 @@ const LoginForm: React.FC<LoginFormProps> = ({
    */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isLoading) return; // Prevent multiple submissions while loading
+    if (isLoading || isGlobalLoading()) return; // Prevent multiple submissions while loading
     // Clear any previous errors from both local state and context
     clearError();
     setFormError(null);
 
     try {
+      startLoading('login.submit');
       if (isSignUp) {
         // ---------- SIGN UP VALIDATION ----------
 
@@ -134,6 +120,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
         // Register the new user with the provided details
         // The register function will automatically log the user in on success
         await register(fullName, email, password, confirmPassword);
+        stopLoading('login.submit');
         console.log('Registration and auto-login successful!');
       } else {
         // ---------- LOGIN VALIDATION ----------
@@ -151,6 +138,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
         // Attempt to log in the user with credentials
         await login(email, password);
+        stopLoading('login.submit');
         console.log('Login successful!');
       }
 
@@ -160,7 +148,9 @@ const LoginForm: React.FC<LoginFormProps> = ({
     } catch (err: any) {
       // Error is already handled by context through the error state
       // We just need to log it here for debugging purposes
+      stopLoading('login.submit');
       console.error('Authentication error:', err);
+
     }
   };
 
@@ -290,12 +280,16 @@ const LoginForm: React.FC<LoginFormProps> = ({
           )}
 
           {/* Submit button - text changes based on mode and loading state */}
+
           <button
               type="submit"
               className="login-button"
               disabled={isLoading}
           >
-            {isLoading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Login')}
+            <LoadingWrapper isLoading={isLoading || isGlobalLoading('login.submit')} overlay={true} fallback={'Logging in...'}
+                            >
+              {isLoading || isGlobalLoading('login.submit') ? '' : (isSignUp ? 'Sign Up' : 'Login')}
+            </LoadingWrapper>
           </button>
         </form>
 

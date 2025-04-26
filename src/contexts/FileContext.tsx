@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import React, {createContext, useContext, useState, useCallback, useEffect, useRef, useMemo} from 'react';
 import { getFileKey } from './PDFViewerContext';
 import { autoProcessManager } from '../managers/AutoProcessManager';
 import pdfStorageService from '../services/PDFStorageService';
@@ -7,8 +7,8 @@ import { StorageStats } from '../types';
 import { useHighlightStore } from "./HighlightStoreContext";
 import processingStateService from "../services/ProcessingStateService";
 import summaryPersistenceStore from "../store/SummaryPersistenceStore";
+import { useLoading } from './LoadingContext';
 
-// Ensure PDF.js worker is loaded
 const loadPdfWorker = () => {
     return new Promise<void>((resolve) => {
         // Check if worker is already loaded
@@ -36,13 +36,12 @@ const loadPdfWorker = () => {
 interface FileContextProps {
     // File management
     files: File[];
-    currentFile: File | null;
     addFile: (file: File) => void;
     addFiles: (newFiles: File[], replace?: boolean) => void;
     removeFile: (fileIndex: number) => void;
     setCurrentFile: (file: File | null) => void;
     clearFiles: () => void;
-
+    currentFile: File | null;
     // File selection for batch operations
     selectedFiles: File[];
     selectFile: (file: File) => void;
@@ -96,15 +95,11 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isStoragePersistenceEnabled, setIsStoragePersistenceEnabled] = useState<boolean>(false);
     const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
     const { removeHighlightsFromFile } = useHighlightStore();
-    // Add state to track if PDF worker is ready
-    const [isPdfWorkerReady, setIsPdfWorkerReady] = useState<boolean>(false);
 
-    // Add a debug state to track loading attempts
-    const [loadingDebugState, setLoadingDebugState] = useState<string>('initial');
+    const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
 
     // Keep a queue of newly added files that need processing
     const processingQueue = useRef<File[]>([]);
-    const processingInProgress = useRef<boolean>(false);
     const [queueTrigger, setQueueTrigger] = useState(0);
 
     // Flag to track initial loading
@@ -115,35 +110,27 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Initialize PDF.js worker first
     useEffect(() => {
+        startLoading('file.worker');
         const initializeWorker = async () => {
             try {
-                setLoadingDebugState('worker-initializing');
-                console.log('🔄 [FileContext] Initializing PDF.js worker...');
                 await loadPdfWorker();
                 console.log('✅ [FileContext] PDF.js worker initialized successfully');
-                setIsPdfWorkerReady(true);
-                setLoadingDebugState('worker-ready');
             } catch (error) {
                 console.error('❌ [FileContext] Failed to initialize PDF.js worker:', error);
-                setLoadingDebugState('worker-error');
-                // Set ready anyway after a timeout to prevent permanently blocking the app
-                setTimeout(() => setIsPdfWorkerReady(true), 10);
             }
         };
 
-        initializeWorker().then(() => {});
+        initializeWorker().then(() => {
+            stopLoading('file.worker');
+        });
     }, []);
 
     // Initialize storage persistence settings from the service
     useEffect(() => {
         const initStorageSettings = async () => {
-            try {
-                setLoadingDebugState('storage-initializing');
-                console.log('🔄 [FileContext] Initializing storage service...');
-                // Get current storage status from the service
+            try {                // Get current storage status from the service
                 const enabled = pdfStorageService.isStorageEnabled();
                 setIsStoragePersistenceEnabled(enabled);
-
                 // Load storage statistics
                 const stats = await pdfStorageService.getStorageStats();
                 setStorageStats({
@@ -152,14 +139,8 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     percentUsed: stats.percentUsed
                 });
 
-                console.log('✅ [FileContext] Storage service initialized', {
-                    enabled,
-                    stats
-                });
-                setLoadingDebugState('storage-ready');
             } catch (error) {
                 console.error('❌ [FileContext] Error initializing storage service:', error);
-                setLoadingDebugState('storage-error');
             }
         };
 
@@ -170,7 +151,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Load files from storage - using a separate effect with fewer dependencies
     useEffect(() => {
         // Skip if either PDF worker or storage initialization is not complete
-        if (!isPdfWorkerReady) {
+        if (!globalLoading(['file.worker'])) {
             console.log('⏳ [FileContext] Waiting for PDF.js worker to initialize before loading files');
             return;
         }
@@ -192,11 +173,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // This is the main loading function
         const loadFilesFromStorage = async () => {
             try {
-                setLoadingDebugState('files-loading');
-                console.log('🔄 [FileContext] Loading files from persistent storage');
                 let storedFiles = await pdfStorageService.getAllFiles();
-
-                console.log(`[FileContext] Storage returned ${storedFiles.length} files`);
 
                 // Ensure files are properly converted and valid
                 storedFiles = storedFiles.filter(file => {
@@ -212,32 +189,26 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 });
 
                 if (storedFiles.length > 0) {
-                    console.log(`✅ [FileContext] Found ${storedFiles.length} valid files in storage`);
 
                     // Update files state with stored files
                     setFiles(storedFiles);
-                    setLoadingDebugState('files-loaded');
 
                     // Wait for state to update before setting current file
                     setTimeout(() => {
                         if (storedFiles.length > 0) {
-                            console.log(`🔄 [FileContext] Setting first file as current and active`);
                             // Set only the first file as active initially
                             setActiveFiles(storedFiles);
                             setCurrentFile(storedFiles[0]);
                         }
 
-                        console.log(`✅ [FileContext] Loaded ${storedFiles.length} files from storage`);
                         initialLoadComplete.current = true;
                     }, 300);
                 } else {
                     console.log('ℹ️ [FileContext] No valid stored files found');
-                    setLoadingDebugState('no-files');
                     initialLoadComplete.current = true;
                 }
             } catch (error) {
                 console.error('❌ [FileContext] Error loading files from storage:', error);
-                setLoadingDebugState('files-error');
             }
         };
 
@@ -248,7 +219,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             loadFilesFromStorage().then(() => {});
         }, 80);
 
-    }, [isPdfWorkerReady, isStoragePersistenceEnabled]);
+    }, [isStoragePersistenceEnabled]);
 
     // Update storage stats when files change
     useEffect(() => {
@@ -279,11 +250,9 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Update local state
             setIsStoragePersistenceEnabled(enabled);
 
-            console.log(`✅ [FileContext] Storage persistence ${enabled ? 'enabled' : 'disabled'}`);
 
             // If enabling, and we have files, store them
             if (enabled && files.length > 0 && initialLoadComplete.current) {
-                console.log(`🔄 [FileContext] Storing ${files.length} files in persistent storage`);
 
                 // Store all current files
                 for (const file of files) {
@@ -316,7 +285,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 percentUsed: stats.percentUsed
             });
 
-            console.log('✅ [FileContext] All stored files cleared');
         } catch (error) {
             console.error('❌ [FileContext] Error clearing stored files:', error);
         }
@@ -360,11 +328,11 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Process queued files in a controlled manner
     useEffect(() => {
         const processQueue = async () => {
-            if (processingInProgress.current || processingQueue.current.length === 0) {
+            if (globalLoading(['file.processing']) || processingQueue.current.length === 0) {
                 return;
             }
 
-            processingInProgress.current = true;
+            startLoading('file.processing');
 
             try {
                 // Get files to process (up to 3 at a time)
@@ -374,13 +342,12 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     console.log(`[FileContext] Processing ${filesToProcess.length} queued files`);
 
                     // Process files with current settings
-                    const successCount = await autoProcessManager.processNewFiles(filesToProcess);
-                    console.log(`[FileContext] Successfully processed ${successCount}/${filesToProcess.length} files`);
+                     await autoProcessManager.processNewFiles(filesToProcess);
                 }
             } catch (error) {
                 console.error('[FileContext] Error processing file queue:', error);
             } finally {
-                processingInProgress.current = false;
+                stopLoading('file.processing');
 
                 // Continue processing queue if there are more files
                 if (processingQueue.current.length > 0) {
@@ -393,17 +360,16 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         // Start processing if needed
-        if (processingQueue.current.length > 0 && !processingInProgress.current) {
+        if (processingQueue.current.length > 0 && !globalLoading(['file.processing'])) {
             processQueue().then();
         }
     }, [queueTrigger]);
 
     // If processing is in progress, set a timeout to clear it if it gets stuck
     useEffect(() => {
-        if (processingInProgress.current) {
+        if (globalLoading(['file.processing'])) {
             const timeoutId = setTimeout(() => {
-                console.log('[FileContext] Processing timeout - resetting state');
-                processingInProgress.current = false;
+                stopLoading('file.processing');
 
                 // Trigger processing again if there are files in the queue
                 if (processingQueue.current.length > 0) {
@@ -463,18 +429,10 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // The AutoProcessManager will handle the decision about whether to process it
             processingQueue.current.push(file);
             setQueueTrigger(prev => prev + 1);
-            console.log(`[FileContext] Queued new file for auto-processing: ${file.name}`);
 
             // Store file in persistent storage if enabled
             if (isStoragePersistenceEnabled) {
                 pdfStorageService.storeFile(file)
-                    .then(success => {
-                        if (success) {
-                            console.log(`[FileContext] File "${file.name}" stored in persistent storage`);
-                        } else {
-                            console.warn(`[FileContext] Failed to store file "${file.name}" in persistent storage`);
-                        }
-                    })
                     .catch(error => {
                         console.error(`[FileContext] Error storing file "${file.name}":`, error);
                     });
@@ -504,9 +462,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Limit the number of files to 20
             const totalFiles = baseFiles.length + uniqueNewFiles.length - redactedFiles.length;
-            console.warn(redactedFiles.length)
-            console.warn(uniqueNewFiles.length)
-            console.warn(totalFiles)
             if (totalFiles > 20) {
                 console.warn(`[FileContext] Maximum file limit reached. Only the first 20 files will be added.`);
                 uniqueNewFiles.splice(20 - baseFiles.length);
@@ -536,20 +491,12 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // Store file in persistent storage if enabled
                 if (isStoragePersistenceEnabled) {
                     pdfStorageService.storeFile(file)
-                        .then(success => {
-                            if (success) {
-                                console.log(`[FileContext] File "${file.name}" stored in persistent storage`);
-                            } else {
-                                console.warn(`[FileContext] Failed to store file "${file.name}" in persistent storage`);
-                            }
-                        })
                         .catch(error => {
                             console.error(`[FileContext] Error storing file "${file.name}":`, error);
                         });
                 }
             });
 
-            // SIMPLIFIED LOGIC: Always queue unique new files for auto-processing
             // Let the AutoProcessManager handle the decision logic
             if (uniqueNewFiles.length > 0) {
                 // Avoid duplicates in the queue
@@ -562,7 +509,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (filesToQueue.length > 0) {
                     processingQueue.current.push(...filesToQueue);
                     setQueueTrigger(prev => prev + 1);
-                    console.log(`[FileContext] Queued ${filesToQueue.length} new files for auto-processing`);
                 }
             }
 
@@ -617,11 +563,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Remove file from persistent storage if enabled
             if (isStoragePersistenceEnabled) {
                 pdfStorageService.deleteFile(fileKey)
-                    .then(success => {
-                        if (success) {
-                            console.log(`[FileContext] File "${removedFile.name}" removed from persistent storage`);
-                        }
-                    })
                     .catch(error => {
                         console.error(`[FileContext] Error removing file "${removedFile.name}" from storage:`, error);
                     });
@@ -653,9 +594,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Clear files from persistent storage if enabled
         if (isStoragePersistenceEnabled) {
             pdfStorageService.clearAllFiles()
-                .then(() => {
-                    console.log('[FileContext] All files cleared from persistent storage');
-                })
                 .catch(error => {
                     console.error('[FileContext] Error clearing files from storage:', error);
                 });
@@ -700,6 +638,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const closeAllFiles = useCallback(() => {
         setOpenFiles([]);
     }, []);
+
     // File selection methods for batch operations
     const selectFile = useCallback((file: File) => {
         setSelectedFiles(prev => {
@@ -742,60 +681,84 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return file || null;
     }, [files]);
 
-    // Debug logging for component state
-    useEffect(() => {
-        console.log(`[FileContext] Current debug state: ${loadingDebugState}`);
-        console.log(`[FileContext] Worker ready: ${isPdfWorkerReady}`);
-        console.log(`[FileContext] Storage enabled: ${isStoragePersistenceEnabled}`);
-        console.log(`[FileContext] Files count: ${files.length}`);
-        console.log(`[FileContext] Active files count: ${activeFiles.length}`);
-    }, [loadingDebugState, isPdfWorkerReady, isStoragePersistenceEnabled, files.length, activeFiles.length]);
+
+    const contextValue = useMemo(() => ({
+        // File management
+        files,
+        currentFile,
+        addFile,
+        addFiles,
+        removeFile,
+        setCurrentFile,
+        clearFiles,
+        // File selection
+        selectedFiles,
+        selectFile,
+        deselectFile,
+        toggleFileSelection,
+        isFileSelected,
+        selectAllFiles,
+        deselectAllFiles,
+
+        // Active files
+        activeFiles,
+        addToActiveFiles,
+        removeFromActiveFiles,
+        toggleActiveFile,
+        isFileActive,
+
+        // Storage-related properties and functions
+        isStoragePersistenceEnabled,
+        setStoragePersistenceEnabled: handleToggleStoragePersistence,
+        storageStats,
+        clearStoredFiles,
+        openFiles,
+        openFile,
+        closeFile,
+        toggleFileOpen,
+        isFileOpen,
+        openAllFiles,
+        closeAllFiles,
+        // Utilities
+        getFileByKey,
+        setSelectedFiles,
+    }), [
+        files,
+        currentFile,
+        addFile,
+        addFiles,
+        removeFile,
+        setCurrentFile,
+        clearFiles,
+        selectedFiles,
+        selectFile,
+        deselectFile,
+        toggleFileSelection,
+        isFileSelected,
+        selectAllFiles,
+        deselectAllFiles,
+        activeFiles,
+        addToActiveFiles,
+        removeFromActiveFiles,
+        toggleActiveFile,
+        isFileActive,
+        isStoragePersistenceEnabled,
+        handleToggleStoragePersistence,
+        storageStats,
+        clearStoredFiles,
+        openFiles,
+        openFile,
+        closeFile,
+        toggleFileOpen,
+        isFileOpen,
+        openAllFiles,
+        closeAllFiles,
+        getFileByKey,
+        setSelectedFiles,
+    ]);
 
     return (
-        <FileContext.Provider
-            value={{
-                // File management
-                files,
-                currentFile,
-                addFile,
-                addFiles,
-                removeFile,
-                setCurrentFile,
-                clearFiles,
-
-                // File selection
-                selectedFiles,
-                selectFile,
-                deselectFile,
-                toggleFileSelection,
-                isFileSelected,
-                selectAllFiles,
-                deselectAllFiles,
-
-                // Active files
-                activeFiles,
-                addToActiveFiles,
-                removeFromActiveFiles,
-                toggleActiveFile,
-                isFileActive,
-
-                // Storage-related properties and functions
-                isStoragePersistenceEnabled,
-                setStoragePersistenceEnabled: handleToggleStoragePersistence,
-                storageStats,
-                clearStoredFiles,
-                openFiles,
-                openFile,
-                closeFile,
-                toggleFileOpen,
-                isFileOpen,
-                openAllFiles,
-                closeAllFiles,
-                // Utilities
-                getFileByKey,
-                setSelectedFiles,
-            }}
-        >
+        <FileContext.Provider value={contextValue}>
             {children}
         </FileContext.Provider>
     );

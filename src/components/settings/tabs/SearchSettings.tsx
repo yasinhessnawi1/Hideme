@@ -3,7 +3,8 @@ import { Save, Search, X, AlertTriangle, Trash2, Loader2 } from "lucide-react";
 import { SearchPattern, SearchPatternCreate } from "../../../types";
 import useSearchPatterns from "../../../hooks/settings/useSearchPatterns";
 import useAuth from "../../../hooks/auth/useAuth"; // Adjust path
-
+import { useLoading } from "../../../contexts/LoadingContext";
+import LoadingWrapper from "../../common/LoadingWrapper";
 export default function SearchSettings() {
     const {
         searchPatterns, // This comes from useUser hook
@@ -22,10 +23,8 @@ export default function SearchSettings() {
     const [isCaseSensitive, setIsCaseSensitive] = useState(false); // Keep for potential future backend support
     const [isAiSearch, setIsAiSearch] = useState(false);
     const [localError, setLocalError] = useState("");
-    const [isAdding, setIsAdding] = useState(false);
-    const [isDeleting, setIsDeleting] = useState<number | null>(null); // Store ID being deleted
-    const [isClearingAll, setIsClearingAll] = useState(false);
     const initialFetchDoneRef = useRef(false); // Ref to track if initial fetch has happened
+    const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
     // Add a ref to track if initial fetch has happened
 
     // Load patterns when hook provides them or fetch if needed - WITH FIXES
@@ -68,7 +67,7 @@ export default function SearchSettings() {
         }
         clearUserError(); // Clear hook errors first
         setLocalError(""); // Clear local errors
-        setIsAdding(true);
+        startLoading('setting.search');
 
         const newPatternData: SearchPatternCreate = {
             pattern_text: newSearchTerm.trim(),
@@ -84,7 +83,7 @@ export default function SearchSettings() {
 
         if (termExists) {
             setLocalError("This search term/type combination already exists.");
-            setIsAdding(false);
+            stopLoading('setting.search');
             return;
         }
 
@@ -99,14 +98,14 @@ export default function SearchSettings() {
             setLocalError(err.userMessage || err.message || "Failed to add search term.");
             console.error("Error adding search term:", err);
         } finally {
-            setIsAdding(false);
+            stopLoading('setting.search');
         }
     };
 
     const handleRemoveSearchTerm = async (id: number) => {
         clearUserError();
         setLocalError("");
-        setIsDeleting(id);
+        startLoading('setting.search');
 
         try {
             await deleteSearchPattern(id);
@@ -116,7 +115,7 @@ export default function SearchSettings() {
             setLocalError(err.userMessage || err.message || "Failed to remove search term.");
             console.error("Error removing search term:", err);
         } finally {
-            setIsDeleting(null);
+            stopLoading('setting.search');
         }
     };
 
@@ -128,7 +127,7 @@ export default function SearchSettings() {
         if (window.confirm(`Are you sure you want to remove all ${currentLocalPatterns.length} saved search terms?`)) {
             clearUserError();
             setLocalError("");
-            setIsClearingAll(true);
+            startLoading('setting.search');
             try {
                 // Create a list of promises for deletion
                 const deletePromises = currentLocalPatterns.map(p => deleteSearchPattern(p.id));
@@ -139,13 +138,13 @@ export default function SearchSettings() {
                 setLocalError(err.userMessage || err.message || "Failed to clear all search terms.");
                 console.error("Error clearing all search terms:", err);
             } finally {
-                setIsClearingAll(false);
+                stopLoading('setting.search');
             }
         }
     };
 
     // Combined loading state for UI elements
-    const isLoading = isUserLoading || isAdding || isDeleting !== null || isClearingAll;
+    const isLoading = isUserLoading || globalLoading(['setting.search']);
     // Ensure localPatterns is always an array for rendering
     const patternsToRender = Array.isArray(localPatterns) ? localPatterns : [];
 
@@ -189,9 +188,11 @@ export default function SearchSettings() {
                                     onClick={handleAddSearchTerm}
                                     disabled={isLoading || !newSearchTerm.trim()}
                                 >
-                                    {isAdding ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
-                                        <Search size={16} className="button-icon"/>}
-                                    {isAdding ? 'Adding...' : 'Add Term'}
+                                    <LoadingWrapper isLoading={isLoading} fallback="Adding...">
+                                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
+                                            <Search size={16} className="button-icon"/>}
+                                        {isLoading ? 'Adding...' : 'Add Term'}
+                                    </LoadingWrapper>
                                 </button>
                             </div>
 
@@ -243,20 +244,23 @@ export default function SearchSettings() {
                                         onClick={handleClearAllSearchTerms}
                                         disabled={isLoading}
                                     >
-                                        {isClearingAll ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
+                                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
                                             <Trash2 size={14} className="button-icon"/>}
-                                        {isClearingAll ? 'Clearing...' : 'Clear All'}
+                                        {isLoading ? 'Clearing...' : 'Clear All'}
                                     </button>
                                 )}
                             </div>
 
                             {/* Loading State */}
-                            {isUserLoading && patternsToRender.length === 0  && (
-                                <div className="flex justify-center items-center py-6">
-                                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                    <span className="ml-2 text-muted-foreground">Loading terms...</span>
-                                </div>
-                            )}
+                            {isUserLoading && (
+                                <LoadingWrapper isLoading={isLoading} fallback="Loading...">
+                                    <div className="flex justify-center items-center py-6">
+                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                        <span className="ml-2 text-muted-foreground">Loading terms...</span>
+                                    </div>
+                                </LoadingWrapper>
+                            )
+                            }
 
                             {/* Empty State */}
                             {!isUserLoading && patternsToRender.length === 0 ? (
@@ -280,10 +284,12 @@ export default function SearchSettings() {
                                             <button
                                                 className="button button-ghost button-sm p-1 text-muted-foreground hover:text-destructive" // Subtle styling
                                                 onClick={() => handleRemoveSearchTerm(pattern.id)}
-                                                disabled={isLoading || isDeleting === pattern.id}
+                                                disabled={isLoading}
                                                 title="Remove term"
                                             >
-                                                {isDeleting === pattern.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X size={16} />}
+                                                <LoadingWrapper isLoading={isLoading} fallback="Removing...">
+                                                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <X size={16} />}
+                                                </LoadingWrapper>
                                             </button>
                                         </div>
                                     ))}
@@ -294,7 +300,6 @@ export default function SearchSettings() {
                 </div>
             </div>
 
-            {/* No Save Changes button needed as actions are immediate */}
         </div>
     );
 }

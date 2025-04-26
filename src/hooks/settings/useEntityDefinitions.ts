@@ -10,11 +10,10 @@
  * This hook depends on the auth hook for authentication state.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import useAuth from '../auth/useAuth';
 import apiClient from '../../services/apiClient';
 import { ModelEntity, ModelEntityBatch, OptionType } from '../../types';
-import useSettings from "./useSettings";
 
 export interface UseEntityDefinitionsReturn {
     // Entity definitions state
@@ -55,7 +54,6 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
     const [modelEntities, setModelEntities] = useState<Record<number, ModelEntity[]>>({});
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const {settings} = useSettings();
     // Track method loading to prevent duplicate requests
     const loadingMethodsRef = useRef<Record<number, boolean>>({});
 
@@ -111,7 +109,7 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
         } catch (error: any) {
             // Don't set error for 404 (empty entities is not an error)
             if (error.response?.status !== 404) {
-                setError(error.userMessage || `Failed to load entities for method ${methodId}`);
+                setError(error.userMessage ?? `Failed to load entities for method ${methodId}`);
             }
 
             return [];
@@ -162,7 +160,7 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
 
             return newEntities;
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to add entity definitions');
+            setError(error.userMessage ?? 'Failed to add entity definitions');
             throw error;
         } finally {
             setIsLoading(false);
@@ -209,7 +207,7 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
                 }
             }));
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to delete entity definition');
+            setError(error.userMessage ?? 'Failed to delete entity definition');
             throw error;
         } finally {
             setIsLoading(false);
@@ -259,7 +257,7 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
                     }
                 }));
             } catch (error: any) {
-                setError(error.userMessage || `Failed to delete entities for method ${methodId}`);
+                setError(error.userMessage ?? `Failed to delete entities for method ${methodId}`);
                 throw error;
             } finally {
                 setIsLoading(false);
@@ -309,7 +307,7 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
                 return await addModelEntities(entityBatch);
 
             } catch (error: any) {
-                setError(error.userMessage || `Failed to replace entities for method ${methodId}`);
+                setError(error.userMessage ?? `Failed to replace entities for method ${methodId}`);
                 throw error;
             } finally {
                 setIsLoading(false);
@@ -382,7 +380,7 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
             }));
 
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to update entity selections');
+            setError(error.userMessage ?? 'Failed to update entity selections');
             throw error;
         } finally {
             setIsLoading(false);

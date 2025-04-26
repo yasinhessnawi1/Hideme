@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import {
     FaFileDownload,
     FaPrint,
@@ -9,11 +9,11 @@ import {
 } from 'react-icons/fa';
 import { useFileContext } from '../../../contexts/FileContext';
 import { usePDFViewerContext } from '../../../contexts/PDFViewerContext';
-import { useEditContext } from '../../../contexts/EditContext';
-import { HighlightCreationMode } from '../../../types';
 import pdfUtilityService from '../../../store/PDFUtilityStore';
 import MinimalToolbar from '../../common/MinimalToolbar';
 import '../../../styles/modules/pdf/Toolbar.css';
+import {useLoading} from "../../../contexts/LoadingContext";
+import LoadingWrapper from "../../common/LoadingWrapper";
 
 interface ToolbarProps {
     toggleLeftSidebar: () => void;
@@ -28,120 +28,22 @@ const Toolbar: React.FC<ToolbarProps> = ({
                                              toggleRightSidebar,
                                              isRightSidebarCollapsed
                                          }) => {
-    const { currentFile, addFiles, files, selectedFiles } = useFileContext();
+    const { addFiles, files, selectedFiles } = useFileContext();
 
     const {
         zoomLevel,
         setZoomLevel,
     } = usePDFViewerContext();
 
-    const {
-        isEditingMode,
-        setIsEditingMode,
-        highlightingMode,
-        setHighlightingMode,
-        showSearchHighlights,
-        showEntityHighlights,
-        showManualHighlights,
-
-    } = useEditContext();
-
-
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const visibilityButtonRef = useRef<HTMLButtonElement | null>(null);
-    const visibilityMenuRef = useRef<HTMLDivElement | null>(null);
-    const settingsButtonRef = useRef<HTMLButtonElement | null>(null);
-    const settingsMenuRef = useRef<HTMLDivElement | null>(null);
-    const editButtonRef = useRef<HTMLButtonElement | null>(null);
-    const editMenuRef = useRef<HTMLDivElement | null>(null);
 
-    const [isVisibilityMenuOpen, setIsVisibilityMenuOpen] = useState(false);
-    const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
-    const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
-
-    // State for redaction status and results
-    const [isRedactionInProgress, setIsRedactionInProgress] = useState(false);
-    const [redactedFiles, setRedactedFiles] = useState<File[]>([]);
+    const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
 
     // State for notification toast
     const [showNotification, setShowNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-    // Handle clicks outside dropdowns
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            // Visibility menu
-            if (isVisibilityMenuOpen && visibilityMenuRef.current && !visibilityMenuRef.current.contains(event.target as Node) && !visibilityButtonRef.current?.contains(event.target as Node)) {
-                    setIsVisibilityMenuOpen(false);
-                }
-            // Settings menu
-            if (isSettingsMenuOpen && settingsMenuRef.current && !settingsMenuRef.current.contains(event.target as Node) && !settingsButtonRef.current?.contains(event.target as Node)) {
-                    setIsSettingsMenuOpen(false);
-                }
-            // Edit menu
-            if (isEditMenuOpen && editMenuRef.current && !editMenuRef.current.contains(event.target as Node) && !editButtonRef.current?.contains(event.target as Node)) {
-                    setIsEditMenuOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isVisibilityMenuOpen, isSettingsMenuOpen, isEditMenuOpen]);
 
     // Toggle handlers
-    const toggleVisibilityMenu = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsVisibilityMenuOpen(prev => !prev);
-        setIsSettingsMenuOpen(false);
-        setIsEditMenuOpen(false);
-    };
 
-    const toggleSettingsMenu = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsSettingsMenuOpen(prev => !prev);
-        setIsVisibilityMenuOpen(false);
-        setIsEditMenuOpen(false);
-    };
-
-    // Handlers passed to MinimalToolbar
-    const handleZoomIn = useCallback(() => {
-        setZoomLevel(prev => Math.min(prev + 0.2, 3.0));
-    }, [setZoomLevel]);
-
-    const handleZoomOut = useCallback(() => {
-        setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
-    }, [setZoomLevel]);
-
-    const handleZoomReset = useCallback(() => {
-        setZoomLevel(1.0);
-    }, [setZoomLevel]);
-
-    // This toggles the actual editing *state* (called from MinimalToolbar indirectly if needed)
-    // OR directly controls the button state in MinimalToolbar
-    const handleEditModeToggle = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        // Option 1: Just toggle menu (like visibility/settings)
-        // setIsEditMenuOpen(prev => !prev);
-        // Option 2: Directly toggle editing state AND open/close menu
-        setIsEditingMode(!isEditingMode);
-        setIsEditMenuOpen(prev => !prev); // Toggle menu visibility as well
-        setIsVisibilityMenuOpen(false);
-        setIsSettingsMenuOpen(false);
-    };
-
-    const setRectangularHighlightingMode = useCallback(() => {
-        setHighlightingMode(HighlightCreationMode.RECTANGULAR);
-        setIsEditingMode(true); // Ensure editing mode is on
-        setIsEditMenuOpen(false); // Close menu after selection
-    }, [setHighlightingMode, setIsEditingMode]);
-
-    const setTextSelectionHighlightingMode = useCallback(() => {
-        setHighlightingMode(HighlightCreationMode.TEXT_SELECTION);
-        setIsEditingMode(true); // Ensure editing mode is on
-        setIsEditMenuOpen(false); // Close menu after selection
-    }, [setHighlightingMode, setIsEditingMode]);
 
     // Handle file upload - modified to support multiple files
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -167,12 +69,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const performRedaction = useCallback((): Promise<File[]> => {
         return new Promise((resolve, reject) => {
             // Only start if we're not already redacting
-            if (isRedactionInProgress) {
+            if (globalLoading('toolbar.redact')) {
                 reject(new Error("Redaction already in progress"));
                 return;
             }
 
-            setIsRedactionInProgress(true);
+            startLoading('toolbar.redact');
             setShowNotification({
                 message: 'Processing redaction...',
                 type: 'success'
@@ -183,7 +85,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             const filesToHandle =  selectedFiles.length > 0 ? selectedFiles : files
 
             if (filesToHandle.length === 0) {
-                setIsRedactionInProgress(false);
+                stopLoading('toolbar.redact');
                 setShowNotification({
                     message: 'No files available for redaction',
                     type: 'error'
@@ -199,12 +101,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
                 window.removeEventListener('redaction-process-complete', handleRedactionComplete);
 
-                setIsRedactionInProgress(false);
+                stopLoading('toolbar.redact');
 
                 if (success) {
                     // Resolve with the redacted files received from the event (ensuring it's an array)
                     const resultingFiles = Array.isArray(newRedactedFiles) ? newRedactedFiles : [];
-                    setRedactedFiles(resultingFiles);
                     resolve(resultingFiles);
                 } else {
                     reject(new Error(error ?? "Redaction failed"));
@@ -217,7 +118,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             // Set a timeout to prevent hanging indefinitely
             const timeoutId = setTimeout(() => {
                 window.removeEventListener('redaction-process-complete', handleRedactionComplete);
-                setIsRedactionInProgress(false);
+                stopLoading('toolbar.redact');
                 reject(new Error("Redaction timed out"));
             }, 60000); // 1 minute timeout
 
@@ -232,7 +133,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 }
             }));
         });
-    }, [files, selectedFiles, isRedactionInProgress]);
+    }, [files, selectedFiles, stopLoading, startLoading]);
 
     // Download/save functions using enhanced utility service
     const handleDownloadPDF = async () => {
@@ -244,13 +145,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
         try {
             setShowNotification({message: 'Preparing files for download...', type: 'success'});
-
+            startLoading('toolbar.save');
             // First, perform redaction and wait for it to complete
             const filesForDownload = await performRedaction();
 
             // Then, download the redacted files
             const success = await pdfUtilityService.downloadMultiplePDFs(filesForDownload);
-
+            stopLoading('toolbar.save');
             if (success) {
                 setShowNotification({
                     message: `${filesForDownload.length > 1 ? 'Files' : 'File'} downloaded successfully`,
@@ -268,6 +169,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 message: error instanceof Error ? error.message : 'Download failed',
                 type: 'error'
             });
+            stopLoading('toolbar.save');
         }
 
         setTimeout(() => setShowNotification(null), 3000);
@@ -282,13 +184,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
         try {
             setShowNotification({message: 'Preparing files for printing...', type: 'success'});
-
+            startLoading('toolbar.print');
             // First, perform redaction and wait for it to complete
             const filesForPrinting = await performRedaction();
 
             // Then, print the redacted files
             const success = await pdfUtilityService.printMultiplePDFs(filesForPrinting);
-
+            stopLoading('toolbar.print');
             if (success) {
                 setShowNotification({
                     message: 'Print job sent to browser',
@@ -306,6 +208,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 message: error instanceof Error ? error.message : 'Print failed',
                 type: 'error'
             });
+            stopLoading('toolbar.print');
         }
 
         setTimeout(() => setShowNotification(null), 3000);
@@ -320,7 +223,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             setTimeout(() => setShowNotification(null), 3000);
             return;
         }
-
+        startLoading('toolbar.detect');
         // Also directly trigger the entity detection process in the sidebar
         window.dispatchEvent(new CustomEvent('trigger-entity-detection-process', {
             detail: {
@@ -328,7 +231,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 filesToProcess: filesToHandle
             }
         }));
-
+        stopLoading('toolbar.detect');
         // Show feedback to the user
         setShowNotification({
             message: 'Running entity detection',
@@ -337,7 +240,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setTimeout(() => setShowNotification(null), 2000);
     }
 
-    const handleSearchShortcut = () => {        // Add a slight delay to ensure the sidebar is active
+    const handleSearchShortcut = () => {
+        startLoading('toolbar.search');
+// Add a slight delay to ensure the sidebar is active
         setTimeout(() => {
             // Trigger search with default terms
             window.dispatchEvent(new CustomEvent('execute-search', {
@@ -352,7 +257,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 window.executeSearchWithDefaultTerms();
             }
         }, 300);
-
+        stopLoading('toolbar.search');
         setShowNotification({
             message: 'Searching with default terms',
             type: 'success'
@@ -368,6 +273,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             setTimeout(() => setShowNotification(null), 3000);
             return;
         }
+        startLoading('toolbar.redact');
 
         // Directly trigger the redaction process in the sidebar
         window.dispatchEvent(new CustomEvent('trigger-redaction-process', {
@@ -376,6 +282,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 filesToProcess: filesToHandle
             }
         }));
+        stopLoading('toolbar.redact');
 
         setShowNotification({
             message: 'Starting redaction process',
@@ -392,10 +299,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <g id="SVGRepo_iconCarrier">
                 <path
                     d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
-                    stroke="var(--foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                    stroke="var(--muted-foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
                 <path d="M14.97 2V22" stroke='var(--primary)' strokeWidth="1.5" strokeLinecap="round"
                       strokeLinejoin="round"></path>
-                <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="var(--foreground)" strokeWidth="1.5"
+                <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="var(--muted-foreground)" strokeWidth="1.5"
                       strokeLinecap="round" strokeLinejoin="round"></path>
             </g>
         </svg>
@@ -408,10 +315,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <g id="SVGRepo_iconCarrier">
                 <path
                     d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
-                    stroke="var(--foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                    stroke="var(--muted-foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
                 <path d="M7.96997 2V22" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round"
                       strokeLinejoin="round"></path>
-                <path d="M14.97 9.43994L12.41 11.9999L14.97 14.5599" stroke="var(--foreground)" strokeWidth="1.5"
+                <path d="M14.97 9.43994L12.41 11.9999L14.97 14.5599" stroke="var(--muted-foreground)" strokeWidth="1.5"
                       strokeLinecap="round" strokeLinejoin="round"></path>
             </g>
         </svg>
@@ -425,10 +332,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <g id="SVGRepo_iconCarrier">
                 <path
                     d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
-                    stroke="var(--foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                    stroke="var(--muted-foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
                 <path d="M7.97 2V22" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round"
                       strokeLinejoin="round"></path>
-                <path d="M16.97 9.43994L14.41 11.9999L16.97 14.5599" stroke="var(--foreground)" strokeWidth="1.5"
+                <path d="M16.97 9.43994L14.41 11.9999L16.97 14.5599" stroke="var(--muted-foreground)" strokeWidth="1.5"
                       strokeLinecap="round" strokeLinejoin="round"></path>
             </g>
         </svg>
@@ -441,10 +348,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <g id="SVGRepo_iconCarrier">
                 <path
                     d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
-                    stroke="var(--foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                    stroke="var(--muted-foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
                 <path d="M14.97 2V22" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round"
                       strokeLinejoin="round"></path>
-                <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="var(--foreground)" strokeWidth="1.5"
+                <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="var(--muted-foreground)" strokeWidth="1.5"
                       strokeLinecap="round" strokeLinejoin="round"></path>
             </g>
         </svg>
@@ -485,7 +392,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     onClick={handleDownloadPDF}
                     className="toolbar-button"
                     title="Save PDF"
-                    disabled={isRedactionInProgress || files.length === 0}
+                    disabled={globalLoading('toolbar.save') || files.length === 0}
                 >
                     <FaFileDownload/>
                     <span className="button-label">Save</span>
@@ -495,7 +402,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     onClick={handlePrint}
                     className="toolbar-button"
                     title="Print PDF"
-                    disabled={isRedactionInProgress || files.length === 0}
+                    disabled={globalLoading('toolbar.print') || files.length === 0}
                 >
                     <FaPrint/>
                     <span className="button-label">Print</span>
@@ -508,60 +415,65 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     onClick={handleSearchShortcut}
                     className={`toolbar-button`}
                     title="Search PDFs"
-                    disabled={files.length === 0}
+                    disabled={ globalLoading('toolbar.search') || files.length === 0 }
                 >
-                    <FaSearch/>
-                    <span className="button-label">Search</span>
+
+                    <LoadingWrapper isLoading={globalLoading('toolbar.search')} overlay={true} fallback={'Searching...'}
+                    >
+                        {globalLoading('toolbar.search') ? '' :
+                            <>
+                                <FaSearch/>
+                                <span className="button-label">Search</span>
+                            </>
+                        }
+
+                    </LoadingWrapper>
                 </button>
 
                 <button
                     onClick={handleEntityDetection}
                     className="toolbar-button"
                     title="Detect Entities"
-                    disabled={files.length === 0}
+                    disabled={globalLoading('toolbar.search') ||files.length === 0  }
                 >
-                    <FaMagic/>
-                    <span className="button-label">Detect</span>
+
+                    <LoadingWrapper isLoading={globalLoading('toolbar.detect')} overlay={false} fallback={'Detecting...'}
+                    >
+                            {globalLoading('toolbar.detect') ? '' :
+                            <>
+                                <FaMagic/>
+                                <span className="button-label">Detect</span>
+                            </>
+                        }
+                    </LoadingWrapper>
                 </button>
 
                 <button
                     onClick={handleRedaction}
-                    className={`toolbar-button ${isRedactionInProgress ? 'processing' : ''}`}
+                    className={`toolbar-button ${globalLoading('toolbar.redact') ? 'processing' : ''}`}
                     title="Redact PDFs"
-                    disabled={isRedactionInProgress || files.length === 0}
+                    disabled={globalLoading('toolbar.redact') || files.length === 0}
                 >
-                    <FaEraser/>
-                    <span className="button-label">
-                        {isRedactionInProgress ? 'Redacting...' : 'Redact'}
-                    </span>
+
+                    <LoadingWrapper isLoading={globalLoading('toolbar.redact')} overlay={true} fallback={'Redacting...'}
+                    >
+                            {globalLoading('toolbar.redact') ? '' :
+                            <>
+                                <FaEraser/>
+                                <span className="button-label">
+                                Redact
+                            </span>
+                            </>
+                        }
+                    </LoadingWrapper>
                 </button>
             </div>
 
             {/* Use MinimalToolbar for common controls */}
             <MinimalToolbar
                 zoomLevel={zoomLevel}
-                onZoomIn={handleZoomIn}
-                onZoomOut={handleZoomOut}
-                onZoomReset={handleZoomReset}
-                isEditingMode={isEditingMode}
-                highlightingMode={highlightingMode}
-                onEditModeToggle={handleEditModeToggle}
-                onSetRectangularHighlightingMode={setRectangularHighlightingMode}
-                onSetTextSelectionHighlightingMode={setTextSelectionHighlightingMode}
-                isEditMenuOpen={isEditMenuOpen}
-                editButtonRef={editButtonRef}
-                editMenuRef={editMenuRef}
-                showManualHighlights={showManualHighlights}
-                showSearchHighlights={showSearchHighlights}
-                showEntityHighlights={showEntityHighlights}
-                onVisibilityToggle={toggleVisibilityMenu}
-                isVisibilityMenuOpen={isVisibilityMenuOpen}
-                visibilityButtonRef={visibilityButtonRef}
-                visibilityMenuRef={visibilityMenuRef}
-                onSettingsToggle={toggleSettingsMenu}
-                isSettingsMenuOpen={isSettingsMenuOpen}
-                settingsButtonRef={settingsButtonRef}
-                settingsMenuRef={settingsMenuRef}
+                setZoomLevel={setZoomLevel}
+
             />
 
             {/* Right sidebar toggle button */}

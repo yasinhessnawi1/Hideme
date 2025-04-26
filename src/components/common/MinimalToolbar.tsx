@@ -1,86 +1,98 @@
-import React from 'react';
-import {
-    FaCog,
-    FaHighlighter,
-    FaRegEye,
-    FaRegEyeSlash,
-    FaSearchMinus,
-    FaSearchPlus,
-    FaDrawPolygon,
-    FaFont
-} from 'react-icons/fa';
-import { HighlightCreationMode } from '../../types';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {FaCog, FaDrawPolygon, FaFont, FaHighlighter, FaRegEye, FaRegEyeSlash} from 'react-icons/fa';
+import {HighlightCreationMode} from '../../types';
 import ToolbarVisibilityMenu from './ToolbarVisibilityMenu';
 import ToolbarSettingsMenu from './ToolbarSettingsMenu';
 import '../../styles/modules/pdf/Toolbar.css';
+import {ZoomControls} from "./Toolbar";
+import {useEditContext} from "../../contexts/EditContext";
 
 interface MinimalToolbarProps {
     zoomLevel: number;
-    onZoomIn: () => void;
-    onZoomOut: () => void;
-    onZoomReset: () => void;
+    setZoomLevel: (zoomLevel: number) => void;
 
-    isEditingMode: boolean;
-    highlightingMode: HighlightCreationMode;
-    onEditModeToggle: (e: React.MouseEvent) => void;
-    onSetRectangularHighlightingMode: () => void;
-    onSetTextSelectionHighlightingMode: () => void;
-    isEditMenuOpen: boolean;
-    editButtonRef: React.RefObject<HTMLButtonElement | null>;
-    editMenuRef: React.RefObject<HTMLDivElement | null>;
 
-    showManualHighlights: boolean;
-    showSearchHighlights: boolean;
-    showEntityHighlights: boolean;
-    onVisibilityToggle: (e: React.MouseEvent) => void;
-    isVisibilityMenuOpen: boolean;
-    visibilityButtonRef: React.RefObject<HTMLButtonElement | null>;
-    visibilityMenuRef: React.RefObject<HTMLDivElement | null>;
-
-    onSettingsToggle: (e: React.MouseEvent) => void;
-    isSettingsMenuOpen: boolean;
-    settingsButtonRef: React.RefObject<HTMLButtonElement | null>;
-    settingsMenuRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
                                                            zoomLevel,
-                                                           onZoomIn,
-                                                           onZoomOut,
-                                                           onZoomReset,
-                                                           isEditingMode,
-                                                           highlightingMode,
-                                                           onEditModeToggle,
-                                                           onSetRectangularHighlightingMode,
-                                                           onSetTextSelectionHighlightingMode,
-                                                           isEditMenuOpen,
-                                                           editButtonRef,
-                                                           editMenuRef,
-                                                           showManualHighlights,
-                                                           showSearchHighlights,
-                                                           showEntityHighlights,
-                                                           onVisibilityToggle,
-                                                           isVisibilityMenuOpen,
-                                                           visibilityButtonRef,
-                                                           visibilityMenuRef,
-                                                           onSettingsToggle,
-                                                           isSettingsMenuOpen,
-                                                           settingsButtonRef,
-                                                           settingsMenuRef,
+                                                           setZoomLevel,
+
                                                        }) => {
 
+    const {
+        setIsEditingMode,
+        setHighlightingMode,
+    } = useEditContext();
+    // --- State and Refs for Toolbar Dropdowns --- //
+    const visibilityButtonRef = useRef<HTMLButtonElement | null>(null);
+    const visibilityMenuRef = useRef<HTMLDivElement | null>(null);
+    const settingsButtonRef = useRef<HTMLButtonElement | null>(null);
+    const settingsMenuRef = useRef<HTMLDivElement | null>(null);
+    const editButtonRef = useRef<HTMLButtonElement | null>(null);
+    const editMenuRef = useRef<HTMLDivElement | null>(null);
+    const [isVisibilityMenuOpen, setIsVisibilityMenuOpen] = useState(false);
+    const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+
+    const {
+        isEditingMode,
+        highlightingMode,
+        showManualHighlights,
+        showSearchHighlights,
+        showEntityHighlights,
+        // Colors are handled by ToolbarSettingsMenu
+    } = useEditContext();
+
+
+    const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
+
+    // --- Dropdown Toggle Handlers --- //
+    const toggleVisibilityMenu = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsVisibilityMenuOpen(prev => !prev);
+        setIsSettingsMenuOpen(false);
+        setIsEditMenuOpen(false);
+    }, []);
+
+    const toggleSettingsMenu = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsSettingsMenuOpen(prev => !prev);
+        setIsVisibilityMenuOpen(false);
+        setIsEditMenuOpen(false);
+    }, []);
+
+    const handleEditModeToggle = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsEditingMode(!isEditingMode);
+        setIsEditMenuOpen(prev => !prev);
+        setIsVisibilityMenuOpen(false);
+        setIsSettingsMenuOpen(false);
+    }, [isEditingMode, setIsEditingMode]);
     const getHighlightIcon = () => {
-        if (!isEditingMode) return <FaRegEye />;
+        if (!isEditingMode) return <FaRegEye/>;
         switch (highlightingMode) {
             case HighlightCreationMode.RECTANGULAR:
-                return <FaDrawPolygon />;
+                return <FaDrawPolygon/>;
             case HighlightCreationMode.TEXT_SELECTION:
-                return <FaFont />;
+                return <FaFont/>;
             default:
-                return <FaHighlighter />; // Default or fallback icon
+                return <FaHighlighter/>; // Default or fallback icon
         }
     };
+    const onSetRectangularHighlightingMode = useCallback(() => {
+        setHighlightingMode(HighlightCreationMode.RECTANGULAR);
+        setIsEditingMode(true);
+        setIsEditMenuOpen(false);
+    }, [setHighlightingMode, setIsEditingMode]);
 
+    const onSetTextSelectionHighlightingMode = useCallback(() => {
+        setHighlightingMode(HighlightCreationMode.TEXT_SELECTION);
+        setIsEditingMode(true);
+        setIsEditMenuOpen(false);
+    }, [setHighlightingMode, setIsEditingMode]);
     const getHighlightLabel = () => {
         if (!isEditingMode) return 'View';
         switch (highlightingMode) {
@@ -92,7 +104,24 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
                 return 'Edit';
         }
     };
-
+    // Handle clicks outside dropdowns
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (isVisibilityMenuOpen && visibilityMenuRef.current && !visibilityMenuRef.current.contains(event.target as Node) && !visibilityButtonRef.current?.contains(event.target as Node)) {
+                setIsVisibilityMenuOpen(false);
+            }
+            if (isSettingsMenuOpen && settingsMenuRef.current && !settingsMenuRef.current.contains(event.target as Node) && !settingsButtonRef.current?.contains(event.target as Node)) {
+                setIsSettingsMenuOpen(false);
+            }
+            if (isEditMenuOpen && editMenuRef.current && !editMenuRef.current.contains(event.target as Node) && !editButtonRef.current?.contains(event.target as Node)) {
+                setIsEditMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isVisibilityMenuOpen, isSettingsMenuOpen, isEditMenuOpen]);
     return (
         <>
             {/* Edit Mode / Visibility / Settings Section */}
@@ -100,7 +129,7 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
                 <div className="toolbar-dropdown">
                     <button
                         ref={editButtonRef}
-                        onClick={onEditModeToggle} // Use the passed toggle handler
+                        onClick={handleEditModeToggle} // Use the passed toggle handler
                         className={`toolbar-button ${isEditingMode ? 'active' : ''}`}
                         title={isEditingMode ? `Highlight Mode: ${getHighlightLabel()}` : "Enable Editing Mode"}
                     >
@@ -120,14 +149,14 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
                                     className={`dropdown-item ${highlightingMode === HighlightCreationMode.RECTANGULAR ? 'active' : ''}`}
                                     onClick={onSetRectangularHighlightingMode}
                                 >
-                                    <FaDrawPolygon size={16} />
+                                    <FaDrawPolygon size={16}/>
                                     <span>Rectangular Selection</span>
                                 </div>
                                 <div
                                     className={`dropdown-item ${highlightingMode === HighlightCreationMode.TEXT_SELECTION ? 'active' : ''}`}
                                     onClick={onSetTextSelectionHighlightingMode}
                                 >
-                                    <FaFont size={16} />
+                                    <FaFont size={16}/>
                                     <span>Text Selection</span>
                                 </div>
                             </div>
@@ -138,7 +167,7 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
                 <div className="toolbar-dropdown">
                     <button
                         ref={visibilityButtonRef}
-                        onClick={onVisibilityToggle}
+                        onClick={toggleVisibilityMenu}
                         className="toolbar-button visibility-toggle"
                         title="Highlight Visibility"
                     >
@@ -155,7 +184,7 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
                             ref={visibilityMenuRef}
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <ToolbarVisibilityMenu />
+                            <ToolbarVisibilityMenu/>
                         </div>
                     )}
                 </div>
@@ -163,7 +192,7 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
                 <div className="toolbar-dropdown">
                     <button
                         ref={settingsButtonRef}
-                        onClick={onSettingsToggle}
+                        onClick={toggleSettingsMenu}
                         className="toolbar-button settings-toggle"
                         title="Settings"
                     >
@@ -176,7 +205,7 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
                             ref={settingsMenuRef}
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <ToolbarSettingsMenu />
+                            <ToolbarSettingsMenu/>
                         </div>
                     )}
                 </div>
@@ -184,31 +213,10 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
 
             {/* Zoom Section */}
             <div className="toolbar-section">
-                <button
-                    onClick={onZoomOut}
-                    className="toolbar-button"
-                    title="Zoom Out"
-                    disabled={zoomLevel <= 0.5}
-                >
-                    <FaSearchMinus/>
-                </button>
-
-                {/* Use onClick for reset zoom */}
-                <span className="zoom-level" onClick={onZoomReset} title="Reset Zoom (100%)" style={{ cursor: 'pointer' }}>
-                    {Math.round(zoomLevel * 100)}%
-                </span>
-
-                <button
-                    onClick={onZoomIn}
-                    className="toolbar-button"
-                    title="Zoom In"
-                    disabled={zoomLevel >= 3.0}
-                >
-                    <FaSearchPlus/>
-                </button>
+                <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel}></ZoomControls>
             </div>
         </>
     );
 };
 
-export default MinimalToolbar; 
+export default MinimalToolbar;

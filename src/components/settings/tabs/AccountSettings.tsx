@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { Save, User, AlertCircle, Loader2 } from "lucide-react";
-import useUserProfile from "../../../hooks/auth/useUserProfile"; // Adjust path if needed
+import React, {useEffect, useState} from "react";
+import {AlertCircle, Loader2, Save} from "lucide-react";
+import useUserProfile from "../../../hooks/auth/useUserProfile";
+import {useLoading} from "../../../contexts/LoadingContext"; // Adjust path if needed
+import LoadingWrapper from "../../common/LoadingWrapper";
 
 export default function AccountSettings() {
     const {
@@ -33,9 +35,7 @@ export default function AccountSettings() {
     const [deleteError, setDeleteError] = useState("");
 
     // General Loading/Saving State
-    const [isSavingProfile, setIsSavingProfile] = useState(false);
-    const [isChangingPassword, setIsChangingPassword] = useState(false);
-    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+    const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
     const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
     const [generalError, setGeneralError] = useState<string | null>(null);
 
@@ -68,14 +68,13 @@ export default function AccountSettings() {
     // --- Handlers ---
 
     const handleProfileSave = async () => {
-        setIsSavingProfile(true);
+        startLoading('setting.save');
         setProfileSaveSuccess(false);
         setGeneralError(null);
         clearUserError();
 
         // Construct name/username as needed by your backend
         const combinedName = `${name} ${surname}`.trim();
-
         try {
             await updateUserProfile({
                 username: combinedName || user?.username,
@@ -84,9 +83,9 @@ export default function AccountSettings() {
             setProfileSaveSuccess(true);
             setTimeout(() => setProfileSaveSuccess(false), 3000);
         } catch (err: any) {
-            setGeneralError(err.userMessage || err.message || "Failed to update profile.");
+            setGeneralError((err.userMessage ?? err.message) ?? "Failed to update profile.");
         } finally {
-            setIsSavingProfile(false);
+            stopLoading('setting.save');
         }
     };
 
@@ -109,7 +108,7 @@ export default function AccountSettings() {
             return;
         }
 
-        setIsChangingPassword(true);
+        startLoading('setting.password');
         try {
             await changePassword({
                 current_password: currentPassword,
@@ -122,9 +121,9 @@ export default function AccountSettings() {
             setConfirmPassword("");
             setTimeout(() => setPasswordSuccess(false), 3000);
         } catch (err: any) {
-            setPasswordError(err.userMessage || err.message || "Failed to change password.");
+            setPasswordError((err.userMessage ?? err.message) ?? "Failed to change password.");
         } finally {
-            setIsChangingPassword(false);
+            stopLoading('setting.password');
         }
     };
 
@@ -147,7 +146,7 @@ export default function AccountSettings() {
             return;
         }
 
-        setIsDeletingAccount(true);
+        startLoading('setting.delete');
         try {
             await deleteAccount({
                 password: deletePassword,
@@ -155,16 +154,16 @@ export default function AccountSettings() {
             });
             // Logout should be handled by useUser/AuthService after successful deletion
             alert("Account deletion initiated. You will be logged out.");
-            // Optionally trigger logout from context here if not automatic
-            // logout();
         } catch (err: any) {
-            setDeleteError(err.userMessage || err.message || "Failed to delete account. Check your password.");
-            setIsDeletingAccount(false); // Keep modal open on error
+            setDeleteError(err.userMessage ?? err.message ?? "Failed to delete account. Check your password.");
+             // Keep modal open on error
+        } finally {
+            stopLoading('setting.delete');
         }
         // Don't reset loading state on success, as user should be logged out/redirected
     };
 
-    const isLoading = isUserLoading || isSavingProfile || isChangingPassword || isDeletingAccount;
+    const isLoading = isUserLoading || globalLoading(['setting.save', 'setting.password', 'setting.delete']);
 
     return (
         <div className="space-y-6">
@@ -244,8 +243,11 @@ export default function AccountSettings() {
                                     onClick={handleProfileSave}
                                     disabled={isLoading || !user || !name || !surname || !email}
                                 >
-                                    {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Save size={16} className="button-icon" />}
-                                    {isSavingProfile ? 'Saving...' : 'Save Profile'}
+                                    <LoadingWrapper isLoading={isLoading} fallback="Saving...">
+                                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Save size={16} className="button-icon" />}
+                                    {isLoading ? 'Saving...' : 'Save Profile'}
+                                    </LoadingWrapper>
+                                    
                                 </button>
                             </div>
                         </div>
@@ -330,8 +332,8 @@ export default function AccountSettings() {
                         onClick={handlePasswordChange}
                         disabled={isLoading || !currentPassword || !newPassword || !confirmPassword}
                     >
-                        {isChangingPassword ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Save size={16} className="button-icon" />}
-                        {isChangingPassword ? 'Updating...' : 'Update Password'}
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Save size={16} className="button-icon" />}
+                        {isLoading ? 'Updating...' : 'Update Password'}
                     </button>
                 </div>
             </div>
@@ -367,7 +369,7 @@ export default function AccountSettings() {
                                     value={deleteConfirmText}
                                     onChange={(e) => setDeleteConfirmText(e.target.value)}
                                     placeholder='Type "DELETE" here'
-                                    disabled={isDeletingAccount}
+                                    disabled={isLoading}
                                 />
                                 <input
                                     className="form-input"
@@ -375,21 +377,21 @@ export default function AccountSettings() {
                                     value={deletePassword}
                                     onChange={(e) => setDeletePassword(e.target.value)}
                                     placeholder="Enter your password"
-                                    disabled={isDeletingAccount}
+                                    disabled={isLoading}
                                 />
                                 <div className="flex gap-3">
                                     <button
                                         className="button button-destructive"
                                         onClick={handleConfirmDeleteAccount}
-                                        disabled={isDeletingAccount || deleteConfirmText !== 'DELETE' || !deletePassword}
+                                        disabled={isLoading || deleteConfirmText !== 'DELETE' || !deletePassword}
                                     >
-                                        {isDeletingAccount ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                                        {isDeletingAccount ? 'Deleting...' : 'Confirm Deletion'}
+                                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                        {isLoading ? 'Deleting...' : 'Confirm Deletion'}
                                     </button>
                                     <button
                                         className="button button-outline"
                                         onClick={() => setShowDeleteConfirm(false)}
-                                        disabled={isDeletingAccount}
+                                        disabled={isLoading}
                                     >
                                         Cancel
                                     </button>

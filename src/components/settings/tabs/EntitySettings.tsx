@@ -2,7 +2,6 @@ import React, {useCallback, useEffect, useRef, useState} from "react";
 import {AlertTriangle, CheckCircle, ChevronDown, Loader2, Save} from "lucide-react";
 import {OptionType} from "../../../types";
 import {
-    createEntityBatch,
     entitiesToOptions,
     geminiOptions,
     getColorDotStyle,
@@ -14,8 +13,9 @@ import {
 } from "../../../utils/EntityUtils";
 import useEntityDefinitions from "../../../hooks/settings/useEntityDefinitions";
 import useAuth from "../../../hooks/auth/useAuth";
-import useSettings from "../../../hooks/settings/useSettings";
-import * as repl from "node:repl";
+import { useLoading } from "../../../contexts/LoadingContext";
+import LoadingWrapper from "../../common/LoadingWrapper";
+
 
 export default function EntitySettings() {
     // Get user and entity settings data
@@ -38,9 +38,8 @@ export default function EntitySettings() {
     const [selectedGemini, setSelectedGemini] = useState<string[]>([]);
     const [selectedHideme, setSelectedHideme] = useState<string[]>([]);
     const [openAccordions, setOpenAccordions] = useState<string[]>(["presidio", "gliner", "gemini", "hideme"]);
-    const [isSaving, setIsSaving] = useState(false);
     const [localSaveSuccess, setLocalSaveSuccess] = useState(false);
-
+    const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
     // Refs to track which entity types we've already tried to load
     const loadedEntityTypesRef = useRef<Set<string>>(new Set());
 
@@ -175,7 +174,7 @@ export default function EntitySettings() {
 
     // --- Save Changes ---
     const handleSaveChanges = useCallback(async () => {
-        setIsSaving(true);
+            startLoading('setting.entity');
         setLocalSaveSuccess(false);
         clearError();
 
@@ -201,7 +200,7 @@ export default function EntitySettings() {
         } catch (err: any) {
             console.error("Error saving entity settings:", err);
         } finally {
-            setIsSaving(false);
+            stopLoading('setting.entity');
         }
     }, [
         entitiesToOptions,
@@ -284,10 +283,10 @@ export default function EntitySettings() {
                                         <div className="space-y-4 py-2 px-1">
                                             <div className="flex justify-between gap-2">
                                                 <button className="button button-outline button-sm"
-                                                        onClick={selectAllPresidio} disabled={isSaving}>Select All
+                                                        onClick={selectAllPresidio} disabled={isLoading}>Select All
                                                 </button>
                                                 <button className="button button-outline button-sm"
-                                                        onClick={clearAllPresidio} disabled={isSaving}>Clear All
+                                                        onClick={clearAllPresidio} disabled={isLoading}>Clear All
                                                 </button>
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -299,7 +298,7 @@ export default function EntitySettings() {
                                                             id={`presidio-${option.value}`}
                                                             checked={selectedPresidio.includes(option.value)}
                                                             onChange={() => togglePresidio(option.value)}
-                                                            disabled={isSaving}
+                                                            disabled={isLoading}
                                                         />
                                                         <label className="checkbox-label"
                                                                htmlFor={`presidio-${option.value}`}>
@@ -331,11 +330,11 @@ export default function EntitySettings() {
                                         <div className="space-y-4 py-2 px-1">
                                             <div className="flex justify-between gap-2">
                                                 <button className="button button-outline button-sm"
-                                                        onClick={selectAllGliner} disabled={isSaving}>Select All
+                                                        onClick={selectAllGliner} disabled={isLoading}>Select All
                                                 </button>
                                                 <button className="button button-outline button-sm"
                                                         onClick={clearAllGliner}
-                                                        disabled={isSaving}>Clear All
+                                                        disabled={isLoading}>Clear All
                                                 </button>
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -347,7 +346,7 @@ export default function EntitySettings() {
                                                             id={`gliner-${option.value}`}
                                                             checked={selectedGliner.includes(option.value)}
                                                             onChange={() => toggleGliner(option.value)}
-                                                            disabled={isSaving}
+                                                            disabled={isLoading}
                                                         />
                                                         <label className="checkbox-label"
                                                                htmlFor={`gliner-${option.value}`}>
@@ -379,11 +378,11 @@ export default function EntitySettings() {
                                         <div className="space-y-4 py-2 px-1">
                                             <div className="flex justify-between gap-2">
                                                 <button className="button button-outline button-sm"
-                                                        onClick={selectAllGemini} disabled={isSaving}>Select All
+                                                        onClick={selectAllGemini} disabled={isLoading}>Select All
                                                 </button>
                                                 <button className="button button-outline button-sm"
                                                         onClick={clearAllGemini}
-                                                        disabled={isSaving}>Clear All
+                                                        disabled={isLoading}>Clear All
                                                 </button>
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -395,7 +394,7 @@ export default function EntitySettings() {
                                                             id={`gemini-${option.value}`}
                                                             checked={selectedGemini.includes(option.value)}
                                                             onChange={() => toggleGemini(option.value)}
-                                                            disabled={isSaving}
+                                                            disabled={isLoading}
                                                         />
                                                         <label className="checkbox-label"
                                                                htmlFor={`gemini-${option.value}`}>
@@ -427,11 +426,11 @@ export default function EntitySettings() {
                                         <div className="space-y-4 py-2 px-1">
                                             <div className="flex justify-between gap-2">
                                                 <button className="button button-outline button-sm"
-                                                        onClick={selectAllHideme} disabled={isSaving}>Select All
+                                                        onClick={selectAllHideme} disabled={isLoading}>Select All
                                                 </button>
                                                 <button className="button button-outline button-sm"
                                                         onClick={clearAllHideme}
-                                                        disabled={isSaving}>Clear All
+                                                        disabled={isLoading}>Clear All
                                                 </button>
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -443,7 +442,7 @@ export default function EntitySettings() {
                                                             id={`hideme-${option.value}`}
                                                             checked={selectedHideme.includes(option.value)}
                                                             onChange={() => toggleHideme(option.value)}
-                                                            disabled={isSaving}
+                                                            disabled={isLoading}
                                                         />
                                                         <label className="checkbox-label"
                                                                htmlFor={`hideme-${option.value}`}>
@@ -466,11 +465,13 @@ export default function EntitySettings() {
                 <button
                     className="button button-primary"
                     onClick={handleSaveChanges}
-                    disabled={isSaving || isLoading}
+                    disabled={isLoading}
                 >
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
-                        <Save size={16} className="button-icon"/>}
-                    {isSaving ? 'Saving...' : 'Save Entity Settings'}
+                    <LoadingWrapper isLoading={isLoading} fallback="Saving...">
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
+                            <Save size={16} className="button-icon"/>}
+                        {isLoading ? 'Saving...' : 'Save Entity Settings'}
+                    </LoadingWrapper>
                 </button>
             </div>
         </div>

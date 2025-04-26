@@ -9,11 +9,13 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import ErrorBoundary from "./contexts/ErrorBoundary";
 import {BatchSearchProvider} from "./contexts/SearchContext";
 import AutoProcessProvider from "./contexts/AutoProcessProvider";
+import { LoadingProvider } from './contexts/LoadingContext';
 
 const App: React.FC = () => {
 
     return (
         <ErrorBoundary>
+            <LoadingProvider>
             <UserContextProvider>
                 <ThemeProvider >
                     <FileProvider>
@@ -31,6 +33,7 @@ const App: React.FC = () => {
                     </FileProvider>
                 </ThemeProvider>
             </UserContextProvider>
+            </LoadingProvider>
         </ErrorBoundary>
 
     );

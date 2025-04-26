@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useFileContext } from './FileContext';
 import scrollManager from '../services/ScrollManagerService';
 
@@ -82,7 +82,6 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
     const mainContainerRef = useRef<HTMLDivElement | null>(null);
-    const lastVisibleFileRef = useRef<string | null>(null);
     const contextInitializedRef = useRef<boolean>(false);
 
     // Simple getter/setter for file-specific values that don't trigger renders
@@ -123,7 +122,6 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (EVENT_PROCESSING.isProcessing &&
             EVENT_PROCESSING.sourceId === source &&
             now - EVENT_PROCESSING.lastEventTimestamp < 100) {
-            console.log(`[PDFViewerContext] Skipping redundant page change from ${source}`);
             return;
         }
 
@@ -221,7 +219,6 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Initialize ScrollManagerService when component mounts
     useEffect(() => {
         if (mainContainerRef.current && !contextInitializedRef.current) {
-            console.log('[PDFViewerContext] Initializing ScrollManagerService');
             // Initialize after a short delay to ensure DOM is ready
             setTimeout(() => {
                 scrollManager.refreshObservers();
@@ -291,7 +288,7 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     useEffect(() => {
         const handlePageVisibilityChange = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { fileKey, pageNumber, visibilityRatio, source } = customEvent.detail || {};
+            const { fileKey, pageNumber, visibilityRatio, source } = customEvent.detail ?? {};
 
             // Skip our own events or when no meaningful data
             if (source === 'pdf-context' || !fileKey || !pageNumber) return;
@@ -324,12 +321,11 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 if (
                     currentFile &&
                     getFileKey(currentFile) !== fileKey &&
-                    visibilityRatio > 0.8 &&
+                    visibilityRatio > 0.6 &&
                     !scrollManager.isFileChangeInProgress()
                 ) {
                     const fileToSwitch = activeFiles.find(f => getFileKey(f) === fileKey);
                     if (fileToSwitch) {
-                        console.log(`[PDFViewerContext] Switching current file to ${fileKey} based on visibility`);
                         setCurrentFile(fileToSwitch);
                     }
                 }
@@ -378,7 +374,7 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     useEffect(() => {
         const handleExternalPageChange = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const { fileKey, pageNumber, source } = customEvent.detail || {};
+            const { fileKey, pageNumber, source } = customEvent.detail ?? {};
 
             // Skip our own events
             if (source === 'pdf-context') return;
@@ -420,9 +416,6 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     if (fileToSwitch) {
                         // Mark that we're changing files
                         scrollManager.setFileChanging(true);
-
-                        console.log(`[PDFViewerContext] Switching current file to ${fileKey} based on external request`);
-
                         // Update file-specific state before switching
                         fileCurrentPageRef.current.set(fileKey, pageNumber);
                         fileActiveScrollPageRef.current.set(fileKey, pageNumber);
@@ -433,7 +426,7 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                         // Allow scrolling again after a short delay
                         setTimeout(() => {
                             scrollManager.setFileChanging(false);
-                        }, 200);
+                        }, 50);
                     }
                 }
             }
@@ -488,45 +481,73 @@ export const PDFViewerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         };
     }, [currentFile, getFileCurrentPage, getFileNumPages, scrollToPage]);
 
+    const contextValue = useMemo(() => ({
+        // Global state (for backward compatibility)
+        numPages,
+        setNumPages,
+        currentPage,
+        setCurrentPage,
+        scrollToPage,
+        zoomLevel,
+        setZoomLevel,
+        pageRefs,
+        renderedPages,
+        setRenderedPages,
+        activeScrollPage,
+        setActiveScrollPage,
+        mainContainerRef,
+
+        // File-specific functions
+        getFileNumPages,
+        setFileNumPages,
+        getFileCurrentPage,
+        setFileCurrentPage,
+        getFileActiveScrollPage,
+        setFileActiveScrollPage,
+        getFileRenderedPages,
+        setFileRenderedPages,
+
+        // New virtualization properties
+        visiblePages,
+        setVisiblePages,
+        getFileVisiblePages,
+        setFileVisiblePages,
+
+        // Scroll manager state
+        isScrollingInProgress,
+        isFileChangeInProgress
+    }), [
+        numPages,
+        setNumPages,
+        currentPage,
+        setCurrentPage,
+        scrollToPage,
+        zoomLevel,
+        setZoomLevel,
+        pageRefs,
+        renderedPages,
+        setRenderedPages,
+        activeScrollPage,
+        setActiveScrollPage,
+        mainContainerRef,
+        getFileNumPages,
+        setFileNumPages,
+        getFileCurrentPage,
+        setFileCurrentPage,
+        getFileActiveScrollPage,
+        setFileActiveScrollPage,
+        getFileRenderedPages,
+        setFileRenderedPages,
+        visiblePages,
+        setVisiblePages,
+        getFileVisiblePages,
+        setFileVisiblePages,
+        isScrollingInProgress,
+        isFileChangeInProgress
+    ]);
+
     return (
-        <PDFViewerContext.Provider
-            value={{
-                // Global state (for backward compatibility)
-                numPages,
-                setNumPages,
-                currentPage,
-                setCurrentPage,
-                scrollToPage,
-                zoomLevel,
-                setZoomLevel,
-                pageRefs,
-                renderedPages,
-                setRenderedPages,
-                activeScrollPage,
-                setActiveScrollPage,
-                mainContainerRef,
-
-                // File-specific functions
-                getFileNumPages,
-                setFileNumPages,
-                getFileCurrentPage,
-                setFileCurrentPage,
-                getFileActiveScrollPage,
-                setFileActiveScrollPage,
-                getFileRenderedPages,
-                setFileRenderedPages,
-
-                // New virtualization properties
-                visiblePages,
-                setVisiblePages,
-                getFileVisiblePages,
-                setFileVisiblePages,
-
-                // Scroll manager state
-                isScrollingInProgress,
-                isFileChangeInProgress
-            }}
-        >
+        <PDFViewerContext.Provider value={contextValue}>
             {children}
         </PDFViewerContext.Provider>
     );

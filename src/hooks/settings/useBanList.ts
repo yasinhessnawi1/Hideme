@@ -97,7 +97,7 @@ export const useBanList = (): UseBanListReturn => {
         } catch (error: any) {
             // Don't set error for 404 (empty ban list is not an error)
             if (error.response?.status !== 404) {
-                setError(error.userMessage || 'Failed to load ban list');
+                setError(error.userMessage ?? 'Failed to load ban list');
             }
 
             // Return empty ban list on error
@@ -145,7 +145,7 @@ export const useBanList = (): UseBanListReturn => {
 
             return updatedList;
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to add words to ban list');
+            setError(error.userMessage ?? 'Failed to add words to ban list');
             throw error;
         } finally {
             setIsLoading(false);
@@ -189,7 +189,7 @@ export const useBanList = (): UseBanListReturn => {
 
             return updatedList;
         } catch (error: any) {
-            setError(error.userMessage || 'Failed to remove words from ban list');
+            setError(error.userMessage ?? 'Failed to remove words from ban list');
             throw error;
         } finally {
             setIsLoading(false);

@@ -17,13 +17,10 @@ const MultiPDFRenderer: React.FC = () => {
         removeFile,
         isFileOpen,
         openFile,
-        closeFile,
         toggleFileOpen,
-        openFiles,
         selectedFiles,
         setSelectedFiles
     } = useFileContext();
-
     // State for fullscreen mode
     const [fullscreenFile, setFullscreenFile] = useState<File | null>(null);
 
@@ -176,7 +173,7 @@ const MultiPDFRenderer: React.FC = () => {
                                 data-file-key={fileKey}
                                 data-file-name={file.name}
                             >
-                                <div className="pdf-file-header">
+                                <div className="pdf-file-header" onClick={(e)=> handleToggleOpen(file, e)}>
                                     <div className="pdf-file-header-left">
                                         <button
                                             className="pdf-file-toggle-button"
@@ -217,7 +214,7 @@ const MultiPDFRenderer: React.FC = () => {
 
                                 {/* Only render the PDF content if the file is open */}
                                 {isOpen && (
-                                    <PDFDocumentWrapper file={file} fileKey={fileKey} />
+                                    <PDFDocumentWrapper file={file} fileKey={fileKey}/>
                                 )}
                             </div>
                         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useLayoutEffect, useRef, useCallback } from 'react';
-import { PDFPageViewport, ViewportSize } from '../types/pdfTypes';
+import { PDFPageViewport, ViewportSize } from '../types';
 
 export const useViewportSize = (
     wrapperRef: React.RefObject<HTMLDivElement | null>,
