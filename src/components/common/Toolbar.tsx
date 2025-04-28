@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { IconType } from 'react-icons';
-
+import '../../styles/modules/pdf/Toolbar.css';
 export type ToolbarSectionAlignment = 'left' | 'center' | 'right';
 
 export interface ToolbarButtonProps {
@@ -128,7 +128,7 @@ const ToolbarDropdown: React.FC<ToolbarDropdownProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           {sectionTitle && <h5 className="dropdown-title">{sectionTitle}</h5>}
-
+          
           {items.map((item) => {
             if (item.type === 'divider') {
               return <div key={item.id} className="dropdown-divider"></div>;
@@ -196,6 +196,89 @@ const ToolbarSection: React.FC<ToolbarSectionProps> = ({
 };
 
 // Sidebar toggle button
+const ToolbarSidebarToggle: React.FC<ToolbarSidebarToggleProps> = ({
+  isCollapsed,
+  position,
+  onClick,
+}) => {
+  const LeftSidebarOpenIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+      <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+      <g id="SVGRepo_iconCarrier">
+        <path
+          d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
+          stroke="#292D32" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+        <path d="M14.97 2V22" stroke="#292D32" strokeWidth="1.5" strokeLinecap="round"
+            strokeLinejoin="round"></path>
+        <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="#292D32" strokeWidth="1.5"
+            strokeLinecap="round" strokeLinejoin="round"></path>
+      </g>
+    </svg>
+  );
+
+  const LeftSidebarCloseIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+      <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+      <g id="SVGRepo_iconCarrier">
+        <path
+          d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
+          stroke="#292D32" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+        <path d="M7.96997 2V22" stroke="#292D32" strokeWidth="1.5" strokeLinecap="round"
+            strokeLinejoin="round"></path>
+        <path d="M14.97 9.43994L12.41 11.9999L14.97 14.5599" stroke="#292D32" strokeWidth="1.5"
+            strokeLinecap="round" strokeLinejoin="round"></path>
+      </g>
+    </svg>
+  );
+
+  const RightSidebarOpenIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+      <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+      <g id="SVGRepo_iconCarrier">
+        <path
+          d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
+          stroke="#292D32" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+        <path d="M7.97 2V22" stroke="#292D32" strokeWidth="1.5" strokeLinecap="round"
+            strokeLinejoin="round"></path>
+        <path d="M16.97 9.43994L14.41 11.9999L16.97 14.5599" stroke="#292D32" strokeWidth="1.5"
+            strokeLinecap="round" strokeLinejoin="round"></path>
+      </g>
+    </svg>
+  );
+
+  const RightSidebarCloseIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+      <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+      <g id="SVGRepo_iconCarrier">
+        <path
+          d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
+          stroke="#292D32" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+        <path d="M14.97 2V22" stroke="#292D32" strokeWidth="1.5" strokeLinecap="round"
+            strokeLinejoin="round"></path>
+        <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="#292D32" strokeWidth="1.5"
+            strokeLinecap="round" strokeLinejoin="round"></path>
+      </g>
+    </svg>
+  );
+
+  return (
+    <button
+      onClick={onClick}
+      className={`toolbar-button sidebar-toggle ${position} ${isCollapsed ? 'collapsed' : ''}`}
+      title={isCollapsed ? `Show ${position} sidebar` : `Hide ${position} sidebar`}
+      style={{ backgroundColor: 'transparent', border: 'none' }}
+    >
+      {position === 'left' ? 
+        (isCollapsed ? <LeftSidebarOpenIcon /> : <LeftSidebarCloseIcon />) : 
+        (isCollapsed ? <RightSidebarOpenIcon /> : <RightSidebarCloseIcon />)
+      }
+    </button>
+  );
+};
 
 // Main toolbar component
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -234,7 +317,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
     setZoomLevel(Math.max(zoomLevel - zoomStep, minZoom));
   }, [zoomLevel, zoomStep, minZoom, setZoomLevel]);
 
- const handleZoomReset = useCallback(() => {
+  const handleZoomReset = useCallback(() => {
     setZoomLevel(1.0);
   }, [setZoomLevel]);
 
@@ -272,4 +355,5 @@ export {
   ToolbarSection,
   ToolbarButton,
   ToolbarDropdown,
+  ToolbarSidebarToggle,
 };

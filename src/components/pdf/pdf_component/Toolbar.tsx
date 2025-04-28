@@ -8,12 +8,13 @@ import {
     FaEraser,
 } from 'react-icons/fa';
 import { useFileContext } from '../../../contexts/FileContext';
-import { usePDFViewerContext } from '../../../contexts/PDFViewerContext';
+import { getFileKey, usePDFViewerContext } from '../../../contexts/PDFViewerContext';
 import pdfUtilityService from '../../../store/PDFUtilityStore';
 import MinimalToolbar from '../../common/MinimalToolbar';
 import '../../../styles/modules/pdf/Toolbar.css';
-import {useLoading} from "../../../contexts/LoadingContext";
+import { useLoading } from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
+import { useNotification } from '../../../contexts/NotificationContext';
 
 interface ToolbarProps {
     toggleLeftSidebar: () => void;
@@ -23,11 +24,11 @@ interface ToolbarProps {
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
-                                             toggleLeftSidebar,
-                                             isLeftSidebarCollapsed,
-                                             toggleRightSidebar,
-                                             isRightSidebarCollapsed
-                                         }) => {
+    toggleLeftSidebar,
+    isLeftSidebarCollapsed,
+    toggleRightSidebar,
+    isRightSidebarCollapsed
+}) => {
     const { addFiles, files, selectedFiles } = useFileContext();
 
     const {
@@ -39,8 +40,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
 
-    // State for notification toast
-    const [showNotification, setShowNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const { notify } = useNotification();
 
     // Toggle handlers
 
@@ -52,12 +52,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
             const newFiles = Array.from(e.target.files);
             addFiles(newFiles);
 
-            // Show notification about added files
-            setShowNotification({
-                message: `Added ${newFiles.length} file${newFiles.length > 1 ? 's' : ''}`,
-                type: 'success'
-            });
-            setTimeout(() => setShowNotification(null), 3000);
+                // Show notification about added files
+                notify({
+                    message: `Added ${newFiles.length} file${newFiles.length > 1 ? 's' : ''}`,
+                    type: 'success',
+                    duration: 3000
+                });
         }
     };
 
@@ -75,20 +75,22 @@ const Toolbar: React.FC<ToolbarProps> = ({
             }
 
             startLoading('toolbar.redact');
-            setShowNotification({
+            notify({
                 message: 'Processing redaction...',
-                type: 'success'
+                type: 'success',
+                duration: 3000
             });
 
             // Determine which files to use for redaction
 
-            const filesToHandle =  selectedFiles.length > 0 ? selectedFiles : files
+            const filesToHandle = selectedFiles.length > 0 ? selectedFiles : files
 
             if (filesToHandle.length === 0) {
                 stopLoading('toolbar.redact');
-                setShowNotification({
+                notify({
                     message: 'No files available for redaction',
-                    type: 'error'
+                    type: 'error',
+                    duration: 3000
                 });
                 reject(new Error("No files for redaction"));
                 return;
@@ -138,89 +140,95 @@ const Toolbar: React.FC<ToolbarProps> = ({
     // Download/save functions using enhanced utility service
     const handleDownloadPDF = async () => {
         if (files.length === 0) {
-            setShowNotification({message: 'No files available for download', type: 'error'});
-            setTimeout(() => setShowNotification(null), 3000);
+            notify({ message: 'No files available for download', type: 'error' });
             return;
         }
 
         try {
-            setShowNotification({message: 'Preparing files for download...', type: 'success'});
+            notify({ message: 'Preparing files for download...', type: 'success' });
             startLoading('toolbar.save');
-            // First, perform redaction and wait for it to complete
-            const filesForDownload = await performRedaction();
+            //check if the files are already redacted
+            let filesForDownload = files.filter(file => getFileKey(file).includes('redacted'));
+            if (filesForDownload.length === 0) {
+                // First, perform redaction and wait for it to complete
+                filesForDownload = await performRedaction();
+            }
 
             // Then, download the redacted files
             const success = await pdfUtilityService.downloadMultiplePDFs(filesForDownload);
             stopLoading('toolbar.save');
             if (success) {
-                setShowNotification({
+                notify({
                     message: `${filesForDownload.length > 1 ? 'Files' : 'File'} downloaded successfully`,
                     type: 'success'
                 });
             } else {
-                setShowNotification({
+                notify({
                     message: 'Download failed. Please try again.',
-                    type: 'error'
+                    type: 'error',
+                    duration: 3000
                 });
             }
         } catch (error) {
             console.error('Error downloading file(s):', error);
-            setShowNotification({
+            notify({
                 message: error instanceof Error ? error.message : 'Download failed',
-                type: 'error'
+                type: 'error',
+                duration: 3000
             });
             stopLoading('toolbar.save');
         }
 
-        setTimeout(() => setShowNotification(null), 3000);
     };
 
     const handlePrint = async () => {
         if (files.length === 0) {
-            setShowNotification({message: 'No files available for printing', type: 'error'});
-            setTimeout(() => setShowNotification(null), 3000);
+            notify({ message: 'No files available for printing', type: 'error' });
             return;
         }
 
-        try {
-            setShowNotification({message: 'Preparing files for printing...', type: 'success'});
-            startLoading('toolbar.print');
-            // First, perform redaction and wait for it to complete
-            const filesForPrinting = await performRedaction();
 
+        try {
+            notify({ message: 'Preparing files for printing...', type: 'success' });
+            startLoading('toolbar.print');
+            let filesForPrinting = files.filter(file => getFileKey(file).includes('redacted'));
+            if (filesForPrinting.length === 0) {
+                // First, perform redaction and wait for it to complete
+                filesForPrinting = await performRedaction();
+            }
             // Then, print the redacted files
             const success = await pdfUtilityService.printMultiplePDFs(filesForPrinting);
             stopLoading('toolbar.print');
             if (success) {
-                setShowNotification({
+                notify({
                     message: 'Print job sent to browser',
                     type: 'success'
                 });
             } else {
-                setShowNotification({
+                notify({
                     message: 'Print failed. Please check popup blocker settings.',
-                    type: 'error'
+                    type: 'error',
+                    duration: 3000
                 });
             }
         } catch (error) {
             console.error('Error printing file(s):', error);
-            setShowNotification({
+            notify({
                 message: error instanceof Error ? error.message : 'Print failed',
-                type: 'error'
+                type: 'error',
+                duration: 3000
             });
             stopLoading('toolbar.print');
         }
 
-        setTimeout(() => setShowNotification(null), 3000);
     };
 
     // Entity detection shortcut - triggers actual detection process
     const handleEntityDetection = () => {
-        const filesToHandle =  selectedFiles.length > 0 ? selectedFiles : files
+        const filesToHandle = selectedFiles.length > 0 ? selectedFiles : files
 
         if (filesToHandle.length === 0) {
-            setShowNotification({message: 'No files selected for detection', type: 'error'});
-            setTimeout(() => setShowNotification(null), 3000);
+            notify({ message: 'No files selected for detection', type: 'error' });
             return;
         }
         startLoading('toolbar.detect');
@@ -232,17 +240,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
             }
         }));
         stopLoading('toolbar.detect');
-        // Show feedback to the user
-        setShowNotification({
-            message: 'Running entity detection',
-            type: 'success'
-        });
-        setTimeout(() => setShowNotification(null), 2000);
     }
 
     const handleSearchShortcut = () => {
         startLoading('toolbar.search');
-// Add a slight delay to ensure the sidebar is active
+        // Add a slight delay to ensure the sidebar is active
         setTimeout(() => {
             // Trigger search with default terms
             window.dispatchEvent(new CustomEvent('execute-search', {
@@ -258,19 +260,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
             }
         }, 300);
         stopLoading('toolbar.search');
-        setShowNotification({
+        notify({
             message: 'Searching with default terms',
-            type: 'success'
+            type: 'success',
+            duration: 3000
         });
-        setTimeout(() => setShowNotification(null), 2000);
     }
 
     // This function now only triggers the redaction process directly
     const handleRedaction = () => {
-        const filesToHandle =  selectedFiles.length > 0 ? selectedFiles : files
+        const filesToHandle = selectedFiles.length > 0 ? selectedFiles : files
         if (filesToHandle.length === 0) {
-            setShowNotification({message: 'No files available for redaction', type: 'error'});
-            setTimeout(() => setShowNotification(null), 3000);
+            notify({ message: 'No files available for redaction', type: 'error' });
             return;
         }
         startLoading('toolbar.redact');
@@ -284,12 +285,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
         }));
         stopLoading('toolbar.redact');
 
-        setShowNotification({
+        notify({
             message: 'Starting redaction process',
-            type: 'success'
+            type: 'success',
+            duration: 3000
         });
-        setTimeout(() => setShowNotification(null), 2000);
     }
+
 
     // Custom sidebar toggle icons
     const LeftSidebarOpenIcon = () => (
@@ -301,9 +303,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
                     stroke="var(--muted-foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
                 <path d="M14.97 2V22" stroke='var(--primary)' strokeWidth="1.5" strokeLinecap="round"
-                      strokeLinejoin="round"></path>
+                    strokeLinejoin="round"></path>
                 <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="var(--muted-foreground)" strokeWidth="1.5"
-                      strokeLinecap="round" strokeLinejoin="round"></path>
+                    strokeLinecap="round" strokeLinejoin="round"></path>
             </g>
         </svg>
     );
@@ -317,9 +319,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
                     stroke="var(--muted-foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
                 <path d="M7.96997 2V22" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round"
-                      strokeLinejoin="round"></path>
+                    strokeLinejoin="round"></path>
                 <path d="M14.97 9.43994L12.41 11.9999L14.97 14.5599" stroke="var(--muted-foreground)" strokeWidth="1.5"
-                      strokeLinecap="round" strokeLinejoin="round"></path>
+                    strokeLinecap="round" strokeLinejoin="round"></path>
             </g>
         </svg>
     );
@@ -334,9 +336,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
                     stroke="var(--muted-foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
                 <path d="M7.97 2V22" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round"
-                      strokeLinejoin="round"></path>
+                    strokeLinejoin="round"></path>
                 <path d="M16.97 9.43994L14.41 11.9999L16.97 14.5599" stroke="var(--muted-foreground)" strokeWidth="1.5"
-                      strokeLinecap="round" strokeLinejoin="round"></path>
+                    strokeLinecap="round" strokeLinejoin="round"></path>
             </g>
         </svg>
     );
@@ -350,9 +352,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
                     stroke="var(--muted-foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
                 <path d="M14.97 2V22" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round"
-                      strokeLinejoin="round"></path>
+                    strokeLinejoin="round"></path>
                 <path d="M7.96997 9.43994L10.53 11.9999L7.96997 14.5599" stroke="var(--muted-foreground)" strokeWidth="1.5"
-                      strokeLinecap="round" strokeLinejoin="round"></path>
+                    strokeLinecap="round" strokeLinejoin="round"></path>
             </g>
         </svg>
     );
@@ -365,9 +367,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 onClick={toggleLeftSidebar}
                 className={`toolbar-button sidebar-toggle left ${isLeftSidebarCollapsed ? 'collapsed' : ''}`}
                 title={isLeftSidebarCollapsed ? "Show left sidebar" : "Hide left sidebar"}
-                style={{backgroundColor: 'transparent', border: 'none'}}
+                style={{ backgroundColor: 'transparent', border: 'none' }}
             >
-                {isLeftSidebarCollapsed ? <LeftSidebarOpenIcon/> : <LeftSidebarCloseIcon/>}
+                {isLeftSidebarCollapsed ? <LeftSidebarOpenIcon /> : <LeftSidebarCloseIcon />}
             </button>
 
             <div className="toolbar-section">
@@ -376,7 +378,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     accept="application/pdf"
                     ref={fileInputRef}
                     onChange={handleFileUpload}
-                    style={{display: 'none'}}
+                    style={{ display: 'none' }}
                     multiple
                 />
                 <button
@@ -384,7 +386,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     className="toolbar-button"
                     title="Open PDF"
                 >
-                    <FaUpload/>
+                    <FaUpload />
                     <span className="button-label">Open</span>
                 </button>
 
@@ -394,7 +396,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     title="Save PDF"
                     disabled={globalLoading('toolbar.save') || files.length === 0}
                 >
-                    <FaFileDownload/>
+                    <FaFileDownload />
                     <span className="button-label">Save</span>
                 </button>
 
@@ -404,7 +406,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     title="Print PDF"
                     disabled={globalLoading('toolbar.print') || files.length === 0}
                 >
-                    <FaPrint/>
+                    <FaPrint />
                     <span className="button-label">Print</span>
                 </button>
             </div>
@@ -415,14 +417,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     onClick={handleSearchShortcut}
                     className={`toolbar-button`}
                     title="Search PDFs"
-                    disabled={ globalLoading('toolbar.search') || files.length === 0 }
+                    disabled={globalLoading('toolbar.search') || files.length === 0}
                 >
 
                     <LoadingWrapper isLoading={globalLoading('toolbar.search')} overlay={true} fallback={'Searching...'}
                     >
                         {globalLoading('toolbar.search') ? '' :
                             <>
-                                <FaSearch/>
+                                <FaSearch />
                                 <span className="button-label">Search</span>
                             </>
                         }
@@ -434,14 +436,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     onClick={handleEntityDetection}
                     className="toolbar-button"
                     title="Detect Entities"
-                    disabled={globalLoading('toolbar.search') ||files.length === 0  }
+                    disabled={globalLoading('toolbar.search') || files.length === 0}
                 >
 
                     <LoadingWrapper isLoading={globalLoading('toolbar.detect')} overlay={false} fallback={'Detecting...'}
                     >
-                            {globalLoading('toolbar.detect') ? '' :
+                        {globalLoading('toolbar.detect') ? '' :
                             <>
-                                <FaMagic/>
+                                <FaMagic />
                                 <span className="button-label">Detect</span>
                             </>
                         }
@@ -457,12 +459,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
                     <LoadingWrapper isLoading={globalLoading('toolbar.redact')} overlay={true} fallback={'Redacting...'}
                     >
-                            {globalLoading('toolbar.redact') ? '' :
+                        {globalLoading('toolbar.redact') ? '' :
                             <>
-                                <FaEraser/>
+                                <FaEraser />
                                 <span className="button-label">
-                                Redact
-                            </span>
+                                    Redact
+                                </span>
                             </>
                         }
                     </LoadingWrapper>
@@ -481,24 +483,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 onClick={toggleRightSidebar}
                 className={`toolbar-button sidebar-toggle right ${isRightSidebarCollapsed ? 'collapsed' : ''}`}
                 title={isRightSidebarCollapsed ? "Show right sidebar" : "Hide right sidebar"}
-                style={{backgroundColor: 'transparent', border: 'none'}}
+                style={{ backgroundColor: 'transparent', border: 'none' }}
             >
-                {isRightSidebarCollapsed ? <RightSidebarOpenIcon/> : <RightSidebarCloseIcon/>}
+                {isRightSidebarCollapsed ? <RightSidebarOpenIcon /> : <RightSidebarCloseIcon />}
             </button>
 
-            {/* Notification toast */}
-            {showNotification && (
-                <div className={`notification-toast ${showNotification.type}`}>
-                    <span>{showNotification.message}</span>
-                    <button
-                        className="notification-toast-close"
-                        onClick={() => setShowNotification(null)}
-                        aria-label="Close notification"
-                    >
-                        ✕
-                    </button>
-                </div>
-            )}
+
         </div>
     );
 };

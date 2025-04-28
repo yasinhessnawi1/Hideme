@@ -4,8 +4,9 @@ import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey, usePDFViewerContext } from '../../../contexts/PDFViewerContext';
 import { FaChevronUp, FaChevronDown, FaFile } from 'react-icons/fa';
 import '../../../styles/modules/pdf/PageThumbnails.css';
-import scrollCoordinator from '../../../services/ScrollManagerService';
 import usePDFNavigation from "../../../hooks/usePDFNavigation";
+import { ChevronRight } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 interface PageThumbnailsProps {
     isSidebarCollapsed?: boolean;
@@ -15,7 +16,8 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
     // Previous sidebar collapsed state for detecting changes
     const wasCollapsed = useRef<boolean | undefined>(isSidebarCollapsed);
 
-    const { activeFiles, currentFile } = useFileContext();
+    const { activeFiles, currentFile , isFileOpen, openFile, closeFile, files} = useFileContext();
+    const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
     const {
         getFileNumPages,
         getFileCurrentPage,
@@ -40,8 +42,6 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
     // Track navigation in progress to prevent update loops
     const navigationInProgress = useRef(false);
 
-    // Track which file's thumbnails are expanded
-    const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
 
     // We need to track visible page per file
     const [visiblePages, setVisiblePages] = useState<Map<string, number>>(new Map());
@@ -57,8 +57,11 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
             const fileKey = getFileKey(file);
             initialExpanded.add(fileKey);
         });
-        setExpandedFiles(initialExpanded);
-
+        files.forEach(file => {
+            const fileKey = getFileKey(file);
+            isFileOpen(file) ? initialExpanded.add(fileKey) : initialExpanded.delete(fileKey);
+            setExpandedFiles(initialExpanded);
+        });
         // Initialize with current pages for each file
         const initialPages = new Map<string, number>();
         activeFiles.forEach(file => {
@@ -81,7 +84,11 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
         // Ensure this file is expanded
         setExpandedFiles(prev => {
             const newExpanded = new Set(prev);
-            newExpanded.add(fileKey);
+            if (isFileOpen(currentFile)) {
+                newExpanded.add(fileKey);
+            } else {
+                newExpanded.delete(fileKey);
+            }
             return newExpanded;
         });
 
@@ -131,7 +138,11 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
                 // Make sure the file is expanded
                 setExpandedFiles(prev => {
                     const newExpanded = new Set(prev);
-                    newExpanded.add(fileKey);
+                    if (isFileOpen(currentFile)) {
+                        newExpanded.add(fileKey);
+                    } else {
+                        newExpanded.delete(fileKey);
+                    }
                     return newExpanded;
                 });
 
@@ -244,7 +255,15 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
                 // Ensure this file is expanded
                 setExpandedFiles(prev => {
                     const newExpanded = new Set(prev);
-                    newExpanded.add(fileKey);
+                    if (currentFile) {
+                        if (getFileKey(currentFile) === fileKey) {
+                            newExpanded.add(fileKey);
+                        } else {
+                            newExpanded.delete(fileKey);
+                        }
+                    } else {
+                        newExpanded.add(fileKey);
+                    }
                     return newExpanded;
                 });
 
@@ -318,13 +337,20 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
     const handleThumbnailClick = useCallback((file: File, pageNumber: number) => {
         const fileKey = getFileKey(file);
 
+        // Open the file if it's not already open
+        if (!isFileOpen(file)) {
+            openFile(file);
+        } else {
+            closeFile(file);
+        }
+
         // Use our navigation hook for consistent behavior
         pdfNavigation.navigateToPage(pageNumber, fileKey, {
             behavior: 'smooth',
             highlightThumbnail: false // We're already in the thumbnails, so no need to highlight
         });
 
-    }, [pdfNavigation]);
+    }, [pdfNavigation, isFileOpen, openFile, closeFile]);
 
     const handleNavigatePrevious = useCallback((file: File) => {
         const fileKey = getFileKey(file);
@@ -399,33 +425,10 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
             const newExpanded = new Set(prev);
             if (newExpanded.has(fileKey)) {
                 newExpanded.delete(fileKey);
+                closeFile(activeFiles.find(file => getFileKey(file) === fileKey)!);
             } else {
                 newExpanded.add(fileKey);
-
-                // If expanding the current file, wait for thumbnails to load and then scroll
-                if (currentFile && getFileKey(currentFile) === fileKey) {
-                    const currentPage = getFileCurrentPage(fileKey);
-
-                    // Wait for thumbnails to render
-                    setTimeout(() => {
-                        const thumbnailElement = document.getElementById(`thumbnail-${fileKey}-${currentPage}`);
-                        if (thumbnailElement) {
-                            thumbnailElement.scrollIntoView({ behavior: 'auto', block: 'center' });
-                        } else {
-                            // If thumbnails aren't rendered yet, wait a bit more
-                            const checkInterval = setInterval(() => {
-                                const thumbnail = document.getElementById(`thumbnail-${fileKey}-${currentPage}`);
-                                if (thumbnail) {
-                                    thumbnail.scrollIntoView({ behavior: 'auto', block: 'center' });
-                                    clearInterval(checkInterval);
-                                }
-                            }, 200);
-
-                            // Don't check forever
-                            setTimeout(() => clearInterval(checkInterval), 3000);
-                        }
-                    }, 250);
-                }
+                openFile(activeFiles.find(file => getFileKey(file) === fileKey)!);
             }
             return newExpanded;
         });
@@ -435,18 +438,6 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
         return null;
     }
 
-    if (activeFiles.length === 0) {
-        return (
-            <div
-                className="page-thumbnails-wrapper empty"
-                ref={containerRef}
-                style={{ width: '100%' }}
-            >
-                <div>Upload a PDF to view thumbnails</div>
-            </div>
-        );
-    }
-
     return (
         <div
             className="page-thumbnails-wrapper"
@@ -454,127 +445,133 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
             style={{ width: '100%' }}
         >
             <div className="thumbnails-header">
-                <h3>Files ({activeFiles.length})</h3>
+                    <div className="thumbnails-title-area">
+                        <h3 className="thumbnails-title">Files ({files.length})</h3>
+                    </div>
             </div>
 
-            <div className="thumbnails-container" ref={thumbnailsRef}>
-                {activeFiles.map((file) => {
-                    const fileKey = getFileKey(file);
-                    const numPagesForFile = getFileNumPages(fileKey);
-                    const currentPageForFile = getFileCurrentPage(fileKey);
-                    const isExpanded = expandedFiles.has(fileKey);
-                    const isCurrentFile = currentFile === file;
-                    const visiblePageForFile = visiblePages.get(fileKey) ?? currentPageForFile;
+            {files.length === 0 ? (
+                <div className="empty-message">Upload a PDF to view thumbnails</div>
+            ) : (
+                <div className="thumbnails-container" ref={thumbnailsRef}>
+                    {files.map((file) => {
+                        const fileKey = getFileKey(file);
+                        const numPagesForFile = getFileNumPages(fileKey);
+                        const currentPageForFile = getFileCurrentPage(fileKey);
+                        const isExpanded = expandedFiles.has(fileKey);
+                        const isCurrentFile = currentFile === file;
+                        const visiblePageForFile = visiblePages.get(fileKey) ?? currentPageForFile;
 
-                    // Generate array of page numbers for this file
-                    const pagesToRender = isExpanded
-                        ? Array.from({ length: numPagesForFile || 0 }, (_, i) => i + 1)
-                        : [];
+                        // Generate array of page numbers for this file
+                        const pagesToRender = isExpanded
+                            ? Array.from({ length: numPagesForFile || 0 }, (_, i) => i + 1)
+                            : [];
 
-                    return (
-                        <div
-                            key={`file-thumbnails-${fileKey}`}
-                            className={`file-thumbnails-section ${isCurrentFile ? 'current-file' : ''}`}
-                        >
+                        return (
                             <div
-                                className="file-thumbnails-header"
-                                onClick={() => toggleFileExpansion(fileKey)}
-                                id={`file-thumbnail-header-${fileKey}`}
+                                key={`file-thumbnails-${fileKey}`}
+                                className={`file-thumbnails-section ${isCurrentFile ? 'current-file' : ''}`}
                             >
-                                <div className="file-info">
-                                    <FaFile className="file-icon" />
-                                    <span className="file-name">{file.name}</span>
-                                </div>
-                                <div className="expansion-indicator">
-                                    {isExpanded ? "▼" : "►"}
-                                </div>
-                            </div>
-
-                            {isExpanded && (
-                                <>
-                                    <div className="file-page-navigation">
-                                        <button
-                                            className="nav-button"
-                                            onClick={() => handleNavigatePrevious(file)}
-                                            disabled={currentPageForFile <= 1}
-                                            aria-label="Previous page"
-                                            title="Previous page"
-                                        >
-                                            <FaChevronUp size={18} />
-                                        </button>
-                                        <div className="page-input-container">
-                                            <input
-                                                type="text"
-                                                className="page-input"
-                                                value={visiblePageForFile.toString()}
-                                                onChange={(e) => handlePageInputChange(e)}
-                                                onKeyDown={(e) => handlePageInputKeyDown(e, file)}
-                                                onBlur={(e) => handlePageInputBlur(e, file)}
-                                                title="Enter page number"
-                                                aria-label="Enter page number"
-                                            />
-                                            <span className="page-separator">/</span>
-                                            <span className="total-pages">{numPagesForFile}</span>
-                                        </div>
-                                        <button
-                                            className="nav-button"
-                                            onClick={() => handleNavigateNext(file)}
-                                            disabled={currentPageForFile >= numPagesForFile}
-                                            aria-label="Next page"
-                                            title="Next page"
-                                        >
-                                            <FaChevronDown size={18} />
-                                        </button>
+                                <div
+                                    className="file-thumbnails-header"
+                                    onClick={() => toggleFileExpansion(fileKey)}
+                                    id={`file-thumbnail-header-${fileKey}`}
+                                >
+                                    <div className="file-info">
+                                        <FaFile className="file-icon" />
+                                        <span className="file-name">{file.name}</span>
                                     </div>
+                                    <div className="expansion-indicator">
+                                        {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                                    </div>
+                                </div>
 
-                                    <Document
-                                        file={file}
-                                        loading={<p className="thumbnails-loading">Loading thumbnails...</p>}
-                                        error={<p className="thumbnails-loading">Error loading thumbnails</p>}
-                                    >
-                                        <div className="file-thumbnails-grid">
-                                            {pagesToRender.map(pageNumber => {
-                                                // Only mark as active if this is the current file and the active page
-                                                const isActivePage = isCurrentFile && getFileActiveScrollPage(fileKey) === pageNumber;
-
-                                                return (
-                                                    <div
-                                                        key={`thumb-${fileKey}-${pageNumber}`}
-                                                        className={`thumbnail-wrapper ${isActivePage ? 'active' : ''}`}
-                                                        onClick={() => handleThumbnailClick(file, pageNumber)}
-                                                        title={`Go to page ${pageNumber}`}
-                                                        data-page={pageNumber}
-                                                        id={`thumbnail-${fileKey}-${pageNumber}`}
-                                                    >
-                                                        <div className="thumbnail-inner">
-                                                            <Page
-                                                                pageNumber={pageNumber}
-                                                                renderTextLayer={false}
-                                                                renderAnnotationLayer={false}
-                                                                className="thumbnail-page"
-                                                                scale={0.2}
-                                                                loading={
-                                                                    <div style={{
-                                                                        width: 100,
-                                                                        height: 100,
-                                                                        backgroundColor: 'var(--bg-tertiary)',
-                                                                        borderRadius: 'var(--border-radius-sm)'
-                                                                    }} />
-                                                                }
-                                                            />
-                                                        </div>
-                                                        <div className="page-number-label">{pageNumber}</div>
-                                                    </div>
-                                                );
-                                            })}
+                                {isExpanded && (
+                                    <>
+                                        <div className="file-page-navigation">
+                                            <button
+                                                className="nav-button"
+                                                onClick={() => handleNavigatePrevious(file)}
+                                                disabled={currentPageForFile <= 1}
+                                                aria-label="Previous page"
+                                                title="Previous page"
+                                            >
+                                                <FaChevronUp size={18} />
+                                            </button>
+                                            <div className="page-input-container">
+                                                <input
+                                                    type="text"
+                                                    className="page-input"
+                                                    value={visiblePageForFile.toString()}
+                                                    onChange={(e) => handlePageInputChange(e)}
+                                                    onKeyDown={(e) => handlePageInputKeyDown(e, file)}
+                                                    onBlur={(e) => handlePageInputBlur(e, file)}
+                                                    title="Enter page number"
+                                                    aria-label="Enter page number"
+                                                />
+                                                <span className="page-separator">/</span>
+                                                <span className="total-pages">{numPagesForFile}</span>
+                                            </div>
+                                            <button
+                                                className="nav-button"
+                                                onClick={() => handleNavigateNext(file)}
+                                                disabled={currentPageForFile >= numPagesForFile}
+                                                aria-label="Next page"
+                                                title="Next page"
+                                            >
+                                                <FaChevronDown size={18} />
+                                            </button>
                                         </div>
-                                    </Document>
-                                </>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
+
+                                        <Document
+                                            file={file}
+                                            loading={<p className="thumbnails-loading">Loading thumbnails...</p>}
+                                            error={<p className="thumbnails-loading">Error loading thumbnails</p>}
+                                        >
+                                            <div className="file-thumbnails-grid">
+                                                {pagesToRender.map(pageNumber => {
+                                                    // Only mark as active if this is the current file and the active page
+                                                    const isActivePage = isCurrentFile && getFileActiveScrollPage(fileKey) === pageNumber;
+
+                                                    return (
+                                                        <div
+                                                            key={`thumb-${fileKey}-${pageNumber}`}
+                                                            className={`thumbnail-wrapper ${isActivePage ? 'active' : ''}`}
+                                                            onClick={() => handleThumbnailClick(file, pageNumber)}
+                                                            title={`Go to page ${pageNumber}`}
+                                                            data-page={pageNumber}
+                                                            id={`thumbnail-${fileKey}-${pageNumber}`}
+                                                        >
+                                                            <div className="thumbnail-inner">
+                                                                <Page
+                                                                    pageNumber={pageNumber}
+                                                                    renderTextLayer={false}
+                                                                    renderAnnotationLayer={false}
+                                                                    className="thumbnail-page"
+                                                                    scale={0.2}
+                                                                    loading={
+                                                                        <div style={{
+                                                                            width: 100,
+                                                                            height: 100,
+                                                                            backgroundColor: 'var(--bg-tertiary)',
+                                                                            borderRadius: 'var(--border-radius-sm)'
+                                                                        }} />
+                                                                    }
+                                                                />
+                                                            </div>
+                                                            <div className="page-number-label">{pageNumber}</div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </Document>
+                                    </>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 };

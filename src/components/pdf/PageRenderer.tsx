@@ -8,6 +8,7 @@ import HighlightLayerFactory from './highlighters/HighlightLayerFactory';
 import { PDFPageViewport, TextContent, HighlightCreationMode } from '../../types';
 import { useViewportSize } from '../../hooks/useViewportSize';
 import scrollManager from '../../services/ScrollManagerService';
+import { useNotification } from '../../contexts/NotificationContext';
 
 interface PageRendererProps {
     pageNumber: number;
@@ -31,6 +32,7 @@ const PageRenderer: React.FC<PageRendererProps> = ({
     } = usePDFViewerContext();
 
     const { isEditingMode, highlightingMode } = useEditContext();
+    const { notify } = useNotification();
 
     const [viewport, setViewport] = useState<PDFPageViewport | null>(null);
     const [textContent, setTextContent] = useState<TextContent | null>(null);
@@ -148,7 +150,11 @@ const PageRenderer: React.FC<PageRendererProps> = ({
                 scrollManager.refreshObservers();
             }, 100);
         } catch (err) {
-            console.error('Error on page render success', pageNumber, err);
+            notify({
+                message: `Error loading pdf page: ${err}`,
+                type: 'error',
+                duration: 3000
+            });
         }
     }, [pageNumber, zoomLevel, setCanvasReference, viewport, textContent, fileKey]);
 

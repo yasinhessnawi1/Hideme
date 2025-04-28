@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Highlighter, Trash2, X } from 'lucide-react';
+import { Ban, Highlighter, Trash2, X } from 'lucide-react';
 import { useHighlightStore } from '../../../hooks/useHighlightStore';
 import {HighlightRect, HighlightType} from '../../../types';
 import { useFileContext } from '../../../contexts/FileContext';
@@ -9,6 +9,8 @@ import { SearchHighlightProcessor } from '../../../managers/SearchHighlightProce
 import '../../../styles/modules/pdf/HighlightContextMenu.css';
 import {SearchResult} from "../../../services/BatchSearchService";
 import {getCorrectedBoundingBox} from "../../../utils/utilities";
+import { useNotification } from '../../../contexts/NotificationContext';
+import useBanList from '../../../hooks/settings/useBanList';
 
 interface HighlightContextMenuProps {
     highlight: HighlightRect;
@@ -32,19 +34,56 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
     } = useHighlightStore();
     const { files, selectedFiles } = useFileContext();
     const { runFindWords } = usePDFApi();
+    const {notify} = useNotification();
+    const {addBanListWords} = useBanList();
 
     // Handle delete current highlight
     const handleDelete = () => {
         if (highlight?.id) {
             removeHighlight(highlight.id);
             onClose();
+            notify({
+                type: 'success',
+                message: 'Highlight deleted!',
+                position: 'top-right'
+            });
         }
+    };
+
+    const handleAddToBanList = () => {
+        if (!highlight.text) {
+            notify({
+                type: 'error',
+                message: 'No text to add to ignore list (This type of highlight does not have text)',
+                position: 'top-right'
+            });
+            return;
+        }
+        if(highlight.type === 'ENTITY') {
+            notify({
+                type: 'error',
+                message: 'Entities are not supported for the ignore list',
+                position: 'top-right'
+            });
+            return;
+        }
+        addBanListWords([highlight.text]);
+        notify({
+            type: 'success',
+            message: 'Added to ignore list',
+            position: 'top-right'
+        });
+        onClose();
     };
 
     // Delete all occurrences of the same entity type
     const handleDeleteAllSameEntityType = () => {
         if (!highlight.entity || !highlight.fileKey) {
-            console.warn("[HighlightContextMenu] Missing entity or fileKey");
+            notify({
+                type: 'error',
+                message: 'Delete All Same failed! Try refreshing the page!',
+                position: 'top-right'
+            });
             onClose();
             return;
         }
@@ -52,11 +91,19 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
         const entityType = highlight.entity;
         removeHighlightsByPropertyFromAllFiles( 'entity', entityType, allFiles)
             .then(success => {
-                console.log(`[HighlightContextMenu] Deleted all highlights with entity type "${entityType}" in file ${highlight.fileKey}`);
                 onClose();
+                notify({
+                    type: 'success',
+                    message: 'All ' + entityType + ' highlights deleted!',
+                    position: 'top-right'
+                });
             })
             .catch(error => {
-                console.error('[HighlightContextMenu] Error deleting entity highlights:', error);
+                notify({
+                    type: 'error',
+                    message: 'Delete All Same failed! Try refreshing the page!' + error.message,
+                    position: 'top-right'
+                });
                 onClose();
             });
     };
@@ -66,7 +113,11 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
 
     const handleDeleteAllSameText = async () => {
         if (!highlight.fileKey) {
-            console.warn("[HighlightContextMenu] Missing fileKey");
+            notify({
+                type: 'error',
+                message: 'Delete All Same failed! Try refreshing the page!',
+                position: 'top-right'
+            });
             onClose();
             return;
         }
@@ -75,9 +126,6 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             // Determine which text to delete
             let textToDelete = highlight.text || highlight.entity || '';
 
-
-
-            console.log(`[HighlightContextMenu] Deleting all occurrences of text "${textToDelete}"`);
 
             // Get the bounding box from the current highlight
             const boundingBox = getCorrectedBoundingBox(highlight);
@@ -131,14 +179,25 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                 }
 
                 if (totalDeleted > 0) {
-                    console.log(`[HighlightContextMenu] Deleted highlights for ${totalDeleted} text occurrences`);
+                        notify({
+                            type: 'success',
+                        message: 'Deleted highlights for ' + totalDeleted + ' text occurrences',
+                        position: 'top-right'
+                    });
                 } else {
-                    console.log(`[HighlightContextMenu] No matching highlights found to delete`);
+                    notify({
+                        type: 'error',
+                        message: 'No matching highlights found to delete',
+                        position: 'top-right'
+                    });
                 }
             }
         } catch (error) {
-            console.error('[HighlightContextMenu] Error removing highlights by text:', error);
-            alert('An error occurred while deleting highlights');
+                notify({
+                    type: 'error',
+                    message: 'Error removing highlights by text: ' + error.message,
+                    position: 'top-right'
+                });
         }
 
         onClose();
@@ -147,6 +206,11 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
     // Handle highlight all instances of the same text
     const handleHighlightAllSame = async () => {
         if (!highlight.fileKey) {
+            notify({
+                type: 'error',
+                message: 'Highlight All Same failed! Try refreshing the page!',
+                position: 'top-right'
+            });
             onClose();
             return;
         }
@@ -156,7 +220,6 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
 
 
 
-            console.log(`[HighlightContextMenu] Highlighting all occurrences of "${textToHighlight}"`);
             let boundingBox = getCorrectedBoundingBox(highlight);
 
             // Use the runFindWords function to find all occurrences
@@ -217,14 +280,24 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                 }
 
                 if (totalCount > 0) {
-                    console.log(`[HighlightContextMenu] Added ${totalCount} highlights for text "${textToHighlight}"`);
+                    notify({
+                        type: 'success',
+                        message: 'Added ' + totalCount + ' highlights for text "' + textToHighlight + '"',
+                        position: 'top-right'
+                    });
                 } else {
-                    alert(`No additional occurrences of text "${textToHighlight}" found.`);
-                }
+                    notify({
+                        type: 'error',
+                        message: 'No additional occurrences of text "' + textToHighlight + '" found.',
+                })
+            }
             }
         } catch (error) {
-            console.error('[HighlightContextMenu] Error highlighting all occurrences:', error);
-            alert('An error occurred while highlighting all occurrences.');
+            notify({
+                type: 'error',
+                message: 'Error highlighting all occurrences: ' + error.message,
+                position: 'top-right'
+            });
         }
 
         onClose();
@@ -355,6 +428,10 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                 </div>
                     </>
                 )}
+                <div className="context-menu-item" onClick={handleAddToBanList}>
+                    <Ban size={16}/>
+                    <span>Add to Ignore List</span>
+                </div>
 
                 {highlight.entity && (
                     <div className="context-menu-item-info" style={{

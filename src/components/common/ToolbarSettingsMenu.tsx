@@ -1,6 +1,7 @@
 import React from 'react';
 import { useEditContext } from '../../contexts/EditContext';
 import '../../styles/modules/pdf/Toolbar.css'; // Assuming shared styles
+import { useNotification } from '../../contexts/NotificationContext';
 
 const ToolbarSettingsMenu: React.FC = () => {
     const {
@@ -18,6 +19,7 @@ const ToolbarSettingsMenu: React.FC = () => {
         manualColor
     } = useEditContext();
 
+    const { notify } = useNotification();
 
 
     const handleManualColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,6 +36,11 @@ const ToolbarSettingsMenu: React.FC = () => {
         setHidemeColor('#71ffa0'); // Gr
         setSearchColor('#71c4ff');
         setManualColor('#00ff15');
+        notify({
+            type: 'success',
+            message: 'Colors reset successfully!',
+            position: 'top-right'
+        });
     };
     return (
         <>

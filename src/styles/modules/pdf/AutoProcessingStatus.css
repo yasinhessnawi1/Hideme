@@ -7,12 +7,28 @@ status component that displays processing information for multiple files.
 */
 
 /* Main container for processing status display */
+
+.processing-status-container-wrapper {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 9000;
+    background-color: var(--background);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg), 0 0 15px rgba(0, 0, 0, 0.1);
+    padding: 0.25rem;
+    z-index: 9000;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border: 1px solid var(--border);
+
+}
+
 .processing-status-container {
     position: fixed;
     bottom: 1.5rem;
     right: 1.5rem;
     max-width: 350px;
-    background-color: var(--background);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-lg), 0 0 15px rgba(0, 0, 0, 0.1);
     padding: 0.25rem;

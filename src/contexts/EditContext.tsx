@@ -2,7 +2,7 @@ import React, {createContext, useContext, useState, useCallback, useRef, useEffe
 import { OptionType, RedactionMapping ,  HighlightCreationMode } from '../types';
 import { useFileContext } from './FileContext';
 import { getFileKey } from './PDFViewerContext';
-
+import { useNotification } from './NotificationContext';
 interface EditContextProps {
     isEditingMode: boolean;
     setIsEditingMode: React.Dispatch<React.SetStateAction<boolean>>;
@@ -49,6 +49,10 @@ interface EditContextProps {
     getColorForModel: (model: string) => string;
     getSearchColor: () => string;
     getManualColor: () => string;
+    selectedHighlightId: string | null;
+    setSelectedHighlightId: React.Dispatch<React.SetStateAction<string | null>>;
+    selectedHighlightIds: string[];
+    setSelectedHighlightIds: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const EditContext = createContext<EditContextProps | undefined>(undefined);
@@ -84,7 +88,9 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [glinerColor, setGlinerColor] = useState('#ff7171'); // Red
     const [geminiColor, setGeminiColor] = useState('#7171ff'); // Blue
     const [hidemeColor, setHidemeColor] = useState('#71ffa0'); // Green
-
+    const [selectedHighlightId, setSelectedHighlightId] = useState<string | null>(null);
+    const [selectedHighlightIds, setSelectedHighlightIds] = useState<string[]>([]);
+    const { notify } = useNotification();
     // Set up a listener for double-click to toggle edit mode
     useEffect(() => {
         const handleDoubleClick = (e: MouseEvent) => {
@@ -100,6 +106,19 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // Prevent default behavior and stop propagation
                 e.preventDefault();
                 e.stopPropagation();
+                if (isEditingMode) {
+                    notify({
+                        message: 'Edit mode is on.',
+                        type: 'info',
+                        duration: 3000
+                    });
+                } else {
+                    notify({
+                        message: 'Edit mode is off.',
+                        type: 'info',
+                        duration: 3000
+                    });
+                }
             }
         };
 
@@ -343,7 +362,11 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hidemeColor,
         setHidemeColor,
         resetEditState,
-        getColorForModel
+        getColorForModel,
+        selectedHighlightId,
+        setSelectedHighlightId,
+        selectedHighlightIds,
+        setSelectedHighlightIds
     }), [
         isEditingMode,
         setIsEditingMode,
@@ -389,7 +412,11 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hidemeColor,
         setHidemeColor,
         resetEditState,
-        getColorForModel
+        getColorForModel,
+        selectedHighlightId,
+        setSelectedHighlightId,
+        selectedHighlightIds,
+        setSelectedHighlightIds
     ]);
 
     return (

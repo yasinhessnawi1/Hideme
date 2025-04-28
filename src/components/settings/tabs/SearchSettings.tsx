@@ -5,6 +5,7 @@ import useSearchPatterns from "../../../hooks/settings/useSearchPatterns";
 import useAuth from "../../../hooks/auth/useAuth"; // Adjust path
 import { useLoading } from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
+import { useNotification } from "../../../contexts/NotificationContext";
 export default function SearchSettings() {
     const {
         searchPatterns, // This comes from useUser hook
@@ -22,17 +23,15 @@ export default function SearchSettings() {
     const [newSearchTerm, setNewSearchTerm] = useState("");
     const [isCaseSensitive, setIsCaseSensitive] = useState(false); // Keep for potential future backend support
     const [isAiSearch, setIsAiSearch] = useState(false);
-    const [localError, setLocalError] = useState("");
     const initialFetchDoneRef = useRef(false); // Ref to track if initial fetch has happened
     const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
+    const { notify, confirm } = useNotification();
+    const [searchTermBeingRemoved, setSearchTermBeingRemoved] = useState('');
     // Add a ref to track if initial fetch has happened
 
-    // Load patterns when hook provides them or fetch if needed - WITH FIXES
-    // Fixing the useEffect in SearchSettings.tsx to handle empty search patterns
     useEffect(() => {
         // Only fetch patterns once when component mounts
         if (!initialFetchDoneRef.current && !isUserLoading) {
-            console.log("[SearchSettings] Initial fetch of search patterns");
             getSearchPatterns();
             initialFetchDoneRef.current = true;
             return;
@@ -40,11 +39,9 @@ export default function SearchSettings() {
 
         // Safely update local state when searchPatterns change
         if (Array.isArray(searchPatterns)) {
-            console.log("[SearchSettings] Setting localPatterns from searchPatterns (array). Count:", searchPatterns.length);
             setLocalPatterns(searchPatterns);
         } else if (searchPatterns === null || searchPatterns === undefined) {
             // Only set empty array on first load or when explicitly null/undefined
-            console.log("[SearchSettings] searchPatterns is null/undefined, setting empty array");
             setLocalPatterns([]);
         }
     }, [searchPatterns, isUserLoading]); // Added isUserLoading to dependencies
@@ -52,21 +49,26 @@ export default function SearchSettings() {
     // Sync local error with hook error
     useEffect(() => {
         if (userError) {
-            setLocalError(userError);
-        } else if (localError === userError) { // Clear local error only if it matches the hook's cleared error
-            setLocalError("");
+            notify({
+                message: userError,
+                type: "error",
+                duration: 3000
+            });
         }
-    }, [userError, localError]); // Add localError dependency
+    }, [userError]);
 
     // --- Action Handlers ---
 
     const handleAddSearchTerm = async () => {
         if (!newSearchTerm.trim()) {
-            setLocalError("Search term cannot be empty");
+            notify({
+                message: "Search term cannot be empty",
+                type: "error",
+                duration: 3000
+            });
             return;
         }
         clearUserError(); // Clear hook errors first
-        setLocalError(""); // Clear local errors
         startLoading('setting.search');
 
         const newPatternData: SearchPatternCreate = {
@@ -78,11 +80,15 @@ export default function SearchSettings() {
         // Ensure localPatterns is an array before calling .some
         const currentLocalPatterns = Array.isArray(localPatterns) ? localPatterns : [];
         const termExists = currentLocalPatterns.some(
-            (p) => p.pattern_text === newPatternData.pattern_text && p.pattern_type === newPatternData.pattern_type
+            (p) => p.pattern_text === newPatternData.pattern_text
         );
 
         if (termExists) {
-            setLocalError("This search term/type combination already exists.");
+            notify({
+                message: "This search term/type combination already exists.",
+                type: "error",
+                duration: 3000
+            });
             stopLoading('setting.search');
             return;
         }
@@ -93,9 +99,12 @@ export default function SearchSettings() {
             setNewSearchTerm("");
             setIsCaseSensitive(false); // Reset options after adding
             setIsAiSearch(false);
-            setLocalError(""); // Clear error on success
         } catch (err: any) {
-            setLocalError(err.userMessage || err.message || "Failed to add search term.");
+            notify({
+                message: err.userMessage || err.message || "Failed to add search term.",
+                type: "error",
+                duration: 3000
+            });
             console.error("Error adding search term:", err);
         } finally {
             stopLoading('setting.search');
@@ -104,15 +113,23 @@ export default function SearchSettings() {
 
     const handleRemoveSearchTerm = async (id: number) => {
         clearUserError();
-        setLocalError("");
         startLoading('setting.search');
 
         try {
             await deleteSearchPattern(id);
-            setLocalError(""); // Clear error on success
-            // State updates via useEffect watching `searchPatterns`
+            notify({
+                message: "Search term removed.",
+                type: "success",
+                duration: 3000
+            });
+            // State updates via useEffect watching `searchPatternss`
+            setSearchTermBeingRemoved(searchPatterns.find(p => p.id === id)?.pattern_text || '');
         } catch (err: any) {
-            setLocalError(err.userMessage || err.message || "Failed to remove search term.");
+            notify({
+                message: err.userMessage || err.message || "Failed to remove search term.",
+                type: "error",
+                duration: 3000
+            });
             console.error("Error removing search term:", err);
         } finally {
             stopLoading('setting.search');
@@ -124,18 +141,35 @@ export default function SearchSettings() {
         const currentLocalPatterns = Array.isArray(localPatterns) ? localPatterns : [];
         if (currentLocalPatterns.length === 0) return; // Nothing to clear
 
-        if (window.confirm(`Are you sure you want to remove all ${currentLocalPatterns.length} saved search terms?`)) {
-            clearUserError();
-            setLocalError("");
+        if (await confirm({
+            title: "Clear All Search Terms",
+            message: `Are you sure you want to remove all ${currentLocalPatterns.length} saved search terms?`,
+            confirmButton: {
+                label: "Clear"
+            },
+            cancelButton: {
+                label: "Cancel"
+            },
+            type: "delete"
+        })) {
+
             startLoading('setting.search');
             try {
                 // Create a list of promises for deletion
                 const deletePromises = currentLocalPatterns.map(p => deleteSearchPattern(p.id));
                 await Promise.all(deletePromises);
-                setLocalError(""); // Clear error on success
+                notify({
+                    message: "All search terms cleared.",
+                    type: "success",
+                    duration: 3000
+                });
                 // State updates via useEffect watching `searchPatterns`
             } catch (err: any) {
-                setLocalError(err.userMessage || err.message || "Failed to clear all search terms.");
+                notify({
+                    message: err.userMessage || err.message || "Failed to clear all search terms.",
+                    type: "error",
+                    duration: 3000
+                });
                 console.error("Error clearing all search terms:", err);
             } finally {
                 stopLoading('setting.search');
@@ -151,26 +185,17 @@ export default function SearchSettings() {
 
     return (
         <div className="space-y-6">
-            {localError && (
-                <div className="alert alert-destructive">
-                    <AlertTriangle className="alert-icon" size={16}/>
-                    <div>
-                        <div className="alert-title">Save Error</div>
-                        <div className="alert-description">{localError}</div>
-                    </div>
-                </div>
-            )}
             <div className="card">
                 <div className="card-header">
                     <h2 className="card-title">Saved Search Terms</h2>
-                    <p className="card-description">Manage terms used for highlighting content in documents</p>
+                    <p className="card-description">Manage terms used for automatic highlightining of content in documents</p>
                 </div>
                 <div className="card-content space-y-4">
                     <div className="space-y-4">
                         {/* Add New Term Form */}
                         <div className="form-group">
                             <label className="form-label" htmlFor="search-term">
-                                Add New Search Term
+                                Save New Search Term
                             </label>
                             <div className="flex flex-col sm:flex-row sm:space-x-2"> {/* Stack on small screens */}
                                 <div className="flex-1 mb-2 sm:mb-0"> {/* Add bottom margin on small screens */}
@@ -179,7 +204,7 @@ export default function SearchSettings() {
                                         id="search-term"
                                         value={newSearchTerm}
                                         onChange={(e) => setNewSearchTerm(e.target.value)}
-                                        placeholder="Enter search term or regex..."
+                                        placeholder="Enter search term..."
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -284,12 +309,10 @@ export default function SearchSettings() {
                                             <button
                                                 className="button button-ghost button-sm p-1 text-muted-foreground hover:text-destructive" // Subtle styling
                                                 onClick={() => handleRemoveSearchTerm(pattern.id)}
-                                                disabled={isLoading}
+                                                disabled={isLoading || searchTermBeingRemoved === pattern.pattern_text}
                                                 title="Remove term"
                                             >
-                                                <LoadingWrapper isLoading={isLoading} fallback="Removing...">
-                                                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <X size={16} />}
-                                                </LoadingWrapper>
+                                                <X size={16} />
                                             </button>
                                         </div>
                                     ))}

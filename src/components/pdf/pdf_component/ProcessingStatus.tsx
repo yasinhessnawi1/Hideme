@@ -3,7 +3,7 @@ import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import processingStateService, { ProcessingInfo } from '../../../services/ProcessingStateService';
 import '../../../styles/modules/pdf/AutoProcessingStatus.css';
-import { XCircle, Loader, CheckCircle, AlertTriangle } from 'lucide-react';
+import { XCircle, Loader, CheckCircle, AlertTriangle, Icon } from 'lucide-react';
 
 /**
  * ProcessingStatus component
@@ -12,17 +12,17 @@ import { XCircle, Loader, CheckCircle, AlertTriangle } from 'lucide-react';
  * auto-processing or manual detection. Subscribes to the centralized
  * ProcessingStateService to receive real-time updates.
  */
+
+
 const ProcessingStatus: React.FC = () => {
     const { files } = useFileContext();
     const [processingFiles, setProcessingFiles] = useState<Record<string, ProcessingInfo>>({});
 
     // Load initial state and subscribe to updates
     useEffect(() => {
-        console.log('[ProcessingStatus] Component mounted, setting up subscription');
 
         // Subscribe to processing state updates
         const subscription = processingStateService.subscribe((fileKey, info) => {
-            console.log(`[ProcessingStatus] Received update for ${fileKey}:`, info);
 
             setProcessingFiles(prevState => {
                 const newState = { ...prevState };
@@ -30,22 +30,18 @@ const ProcessingStatus: React.FC = () => {
                 if (info === null) {
                     // File was removed, delete from state
                     delete newState[fileKey];
-                    console.log(`[ProcessingStatus] Removed file ${fileKey} from display`);
                 } else if (info.status === 'processing' || info.status === 'queued') {
                     // Add or update processing file
                     newState[fileKey] = info;
-                    console.log(`[ProcessingStatus] Added/updated processing file ${fileKey}`);
                 } else if (newState[fileKey]) {
                     // For completed/failed statuses, keep them for a while
                     newState[fileKey] = info;
-                    console.log(`[ProcessingStatus] Updated file ${fileKey} status to ${info.status}`);
 
                     // Schedule removal after delay
                     setTimeout(() => {
                         setProcessingFiles(currentState => {
                             const updatedState = { ...currentState };
                             delete updatedState[fileKey];
-                            console.log(`[ProcessingStatus] Auto-removing completed/failed file ${fileKey}`);
                             return updatedState;
                         });
                     }, 5000); // Keep completed/failed statuses visible for 5 seconds
@@ -55,21 +51,16 @@ const ProcessingStatus: React.FC = () => {
             });
         });
 
-        // Debug log current state
-        const interval = setInterval(() => {
-            const processingCount = processingStateService.getProcessingFilesCount();
-            if (processingCount > 0) {
-                console.log(`[ProcessingStatus] Currently processing ${processingCount} files`);
-            }
-        }, 2000);
 
         // Cleanup subscription on unmount
         return () => {
             subscription.unsubscribe();
-            clearInterval(interval);
-            console.log('[ProcessingStatus] Component unmounted, subscription cleaned up');
         };
     }, []);
+
+     const clearProcessingStatus = ()  => {
+        setProcessingFiles({});
+    };
 
     // Find file object by key
     const getFileByKey = useCallback((fileKey: string) => {
@@ -83,6 +74,7 @@ const ProcessingStatus: React.FC = () => {
             delete newState[fileKey];
             return newState;
         });
+
     }, []);
 
     // Return null if no files are being processed
@@ -92,7 +84,9 @@ const ProcessingStatus: React.FC = () => {
 
     // Render the processing status overlay
     return (
-        <div className="processing-status-container entering">
+        <div className="processing-status-container-wrapper">
+            <XCircle size={16} onClick={() => clearProcessingStatus()} />
+        <div className="processing-status-containesr entering">
             {Object.entries(processingFiles).map(([fileKey, info]) => {
                 const file = getFileByKey(fileKey);
                 const fileName = file?.name || fileKey;
@@ -119,7 +113,6 @@ const ProcessingStatus: React.FC = () => {
                                 />
                                 {fileName}
                             </div>
-                            {(info.status === 'completed' || info.status === 'failed') && (
                                 <button
                                     className="dismiss-status-button"
                                     onClick={() => handleDismiss(fileKey)}
@@ -127,7 +120,6 @@ const ProcessingStatus: React.FC = () => {
                                 >
                                     <XCircle size={16} />
                                 </button>
-                            )}
                         </div>
 
                         {/* Progress bar */}
@@ -168,6 +160,7 @@ const ProcessingStatus: React.FC = () => {
                     </div>
                 );
             })}
+        </div>
         </div>
     );
 };

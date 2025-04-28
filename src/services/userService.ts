@@ -7,6 +7,7 @@
  * - Account deletion
  * - Session management
  */
+import authStateManager from '../managers/authStateManager';
 import apiClient from './apiClient';
 import authService from './authService';
 import { User } from './authService';
@@ -194,7 +195,7 @@ const userService = {
         const startTime = performance.now();
 
         try {
-            const response = await apiClient.delete('/users/me', { data });
+            const response = await apiClient.delete('/users/me', { ...data });
             const duration = performance.now() - startTime;
 
             console.log(`✅ [USER] Account deleted successfully`, {
@@ -204,7 +205,11 @@ const userService = {
 
             // Clear token after successful deletion
             authService.clearToken();
-
+            apiClient.clearCache();
+            authService.clearToken();
+            authStateManager.clearState();
+            localStorage.clear();
+            window.location.reload();
             return response.data;
         } catch (error: any) {
             const duration = performance.now() - startTime;

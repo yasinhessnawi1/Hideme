@@ -7,6 +7,7 @@ import { useThemeContext } from "../../../contexts/ThemeContext";
 import useSettings from "../../../hooks/settings/useSettings"; // Adjust path if needed
 import { useLoading } from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
+import { useNotification } from "../../../contexts/NotificationContext";
 
 export default function GeneralSettings() {
     const { settings, updateSettings, isLoading: isUserLoading, error: userError, clearError: clearUserError } = useSettings();
@@ -18,7 +19,7 @@ export default function GeneralSettings() {
     } = useFileContext();
     const { setAutoProcessingEnabled: setAutoProcessHookEnabled, getConfig } = useAutoProcess();
     const { preference: currentThemePreference, setPreference: setThemePreference } = useThemeContext();
-
+    const { notify, confirm } = useNotification();
     // --- Local State ---
     const [isAutoProcessing, setIsAutoProcessing] = useState(() => {
         if (settings?.auto_processing !== undefined) return settings.auto_processing;
@@ -40,33 +41,26 @@ export default function GeneralSettings() {
     });
     const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
     const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
-    const [showConfirmation, setShowConfirmation] = useState(false);
-    const [saveError, setSaveError] = useState<string | null>(null);
-    const [saveSuccess, setSaveSuccess] = useState(false);
 
     // Effect to sync local state when EXTERNAL settings data changes
     useEffect(() => {
         console.log("[GeneralSettings] Settings from hook updated:", settings);
         if (settings) {
             if (settings.auto_processing !== undefined && settings.auto_processing !== isAutoProcessing) {
-                console.log("[GeneralSettings] Syncing isAutoProcessing from settings:", settings.auto_processing);
                 setIsAutoProcessing(settings.auto_processing);
             }
 
             // Sync detection threshold from settings
             if (settings.detection_threshold !== undefined && settings.detection_threshold !== detectionThreshold) {
-                console.log("[GeneralSettings] Syncing detectionThreshold from settings:", settings.detection_threshold);
                 setDetectionThreshold(settings.detection_threshold);
             }
 
             // Sync ban list usage setting from settings
             if (settings.use_banlist_for_detection !== undefined && settings.use_banlist_for_detection !== useBanlist) {
-                console.log("[GeneralSettings] Syncing useBanlist from settings:", settings.use_banlist_for_detection);
                 setUseBanlist(settings.use_banlist_for_detection);
             }
         }
         if (isStoragePersistenceEnabled !== isStorageEnabled) {
-            console.log("[GeneralSettings] Syncing isStorageEnabled from context:", isStoragePersistenceEnabled);
             setIsStorageEnabled(isStoragePersistenceEnabled);
         }
     }, [settings, isStoragePersistenceEnabled]); // Keep dependencies minimal
@@ -81,33 +75,22 @@ export default function GeneralSettings() {
     // --- Handlers ---
     const handleThemeChange = (newTheme: ThemePreference) => {
         setThemePreference(newTheme);
-        setSaveSuccess(false);
-        setSaveError(null);
     };
 
     const handleAutoProcessToggle = (enabled: boolean) => {
         console.log("[GeneralSettings] handleAutoProcessToggle called, setting local state to:", enabled);
         setIsAutoProcessing(enabled);
-        setSaveSuccess(false);
-        setSaveError(null);
     };
 
     const handleStorageToggle = (enabled: boolean) => {
         console.log("[GeneralSettings] handleStorageToggle called, setting local state to:", enabled);
         setIsStorageEnabled(enabled);
-        setSaveSuccess(false);
-        setSaveError(null);
     };
 
     const handleSaveChanges = async () => {
         startLoading('setting.general.save');
-        setSaveError(null);
-        setSaveSuccess(false);
         clearUserError();
-        console.log("[GeneralSettings] Saving changes. Theme:", currentThemePreference,
-            "AutoProcess:", isAutoProcessing,
-            "DetectionThreshold:", detectionThreshold,
-            "UseBanlist:", useBanlist);
+
         try {
             await updateSettings({
                 theme: currentThemePreference,
@@ -130,13 +113,18 @@ export default function GeneralSettings() {
                 }
             }));
 
-            setSaveSuccess(true);
-            console.log("[GeneralSettings] Save successful.");
-            setTimeout(() => setSaveSuccess(false), 3000);
+            notify({
+                message: "Settings saved successfully.",
+                type: "success",
+                duration: 3000
+            });
         } catch (err: any) {
             const message = err.userMessage || err.message || "Failed to save settings.";
-            setSaveError(message);
-            console.error("[GeneralSettings] Error saving general settings:", err);
+            notify({
+                message: message,
+                type: "error",
+                duration: 3000
+            });
         } finally {
             stopLoading('setting.general.save');
         }
@@ -147,10 +135,13 @@ export default function GeneralSettings() {
         startLoading('setting.general.clear');
         try {
             await clearStoredFiles();
-            setShowConfirmation(false);
         } catch (error) {
             console.error('Error clearing stored files:', error);
-            setSaveError("Failed to clear stored files.");
+            notify({
+                message: "Failed to clear stored files.",
+                type: "error",
+                duration: 3000
+            });
         } finally {
             stopLoading('setting.general.clear');
         }
@@ -162,25 +153,6 @@ export default function GeneralSettings() {
     // --- JSX ---
     return (
         <div className="space-y-6">
-            {/* Error/Success Messages */}
-            {saveError && (
-                <div className="alert alert-destructive">
-                    <AlertTriangle className="alert-icon" size={16} />
-                    <div>
-                        <div className="alert-title">Save Error</div>
-                        <div className="alert-description">{saveError}</div>
-                    </div>
-                </div>
-            )}
-            {saveSuccess && (
-                <div className="alert alert-success">
-                    <div>
-                        <div className="alert-title">Success</div>
-                        <div className="alert-description">Settings saved successfully!</div>
-                    </div>
-                </div>
-            )}
-
             {/* Appearance Card */}
             <div className="card">
                 <div className="card-header">
@@ -327,7 +299,18 @@ export default function GeneralSettings() {
                                 </div>
                                 <button
                                     className="button button-outline button-sm w-full text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                    onClick={() => setShowConfirmation(true)}
+                                    onClick={() => confirm({
+                                        title: "Clear Stored PDFs",
+                                        message: "This will permanently delete all PDFs stored in your browser. This action cannot be undone.",
+                                        confirmButton: {
+                                            label: "Clear All PDFs",
+                                            onClick: handleClearStoredFilesClick,
+                                        },
+                                        cancelButton: {
+                                            label: "Cancel",
+                                        },
+                                        type: "info"
+                                    })}
                                     disabled={effectiveStorageStats.fileCount === 0 || isLoading}
                                 >
                                     <Trash2 size={14} className="mr-2" />
@@ -362,27 +345,6 @@ export default function GeneralSettings() {
                     </LoadingWrapper>
                 </button>
             </div>
-
-            {/* Confirmation Dialog */}
-            {showConfirmation && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <h3 className="text-xl font-semibold">Clear Stored PDFs?</h3>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            This will permanently delete all PDFs stored in your browser. This action cannot be undone.
-                        </p>
-                        <div className="mt-6 flex justify-end gap-3">
-                            <button className="button button-outline" onClick={() => setShowConfirmation(false)} disabled={isLoading}>Cancel</button>
-                            <button className="button button-destructive" onClick={handleClearStoredFilesClick} disabled={isLoading}>
-                                <LoadingWrapper isLoading={globalLoading('setting.general.clear')} fallback="Clearing...">
-                                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                                    {isLoading ? "Clearing..." : "Clear All PDFs"}
-                                </LoadingWrapper>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

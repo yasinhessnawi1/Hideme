@@ -2,7 +2,7 @@ import {HighlightRect} from "../types";
 
 export function getCorrectedBoundingBox(highlight: HighlightRect) {
     // Get the bounding box from the current highlight
-    if (highlight.type === 'SEARCH' || highlight.type === 'ENTITY') {
+    if (highlight.type === 'SEARCH' || highlight.type === 'ENTITY' || highlight.type === 'MANUAL') {
         return {
             x0: highlight.x + 5,
             y0: highlight.y + 5,

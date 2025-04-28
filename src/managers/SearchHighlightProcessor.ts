@@ -30,7 +30,7 @@ export class SearchHighlightProcessor {
 
         // First remove any existing search highlights for this term to avoid duplicates
         const existingHighlights = highlightStore.getHighlightsByText(fileKey, searchTerm)
-            .filter(h => h.type === HighlightType.SEARCH);
+            .filter(h => h.type === HighlightType.SEARCH && h.text && h.text[0] === searchTerm[0]);
 
         if (existingHighlights.length > 0) {
             console.log(`[SearchHighlightProcessor] Removing ${existingHighlights.length} existing highlights for term "${searchTerm}"`);

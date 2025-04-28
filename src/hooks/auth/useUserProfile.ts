@@ -20,6 +20,8 @@ import userService, {
 } from '../../services/userService';
 import apiClient from '../../services/apiClient';
 import { User } from '../../types';
+import authStateManager from '../../managers/authStateManager';
+import authService from '../../services/authService';
 
 export interface UseUserProfileReturn {
     // User state (from auth hook)
@@ -48,12 +50,14 @@ export interface UseUserProfileReturn {
  * Hook for managing user profile operations
  */
 export const useUserProfile = (): UseUserProfileReturn => {
-    // Get authentication state from core hook
+    // Get authentication state from core hook and cached state
     const {
         user,
         isAuthenticated,
         clearError: clearAuthError
     } = useAuth();
+    const cachedState = authStateManager.getCachedState();
+    const isAuthenticatedOrCached = isAuthenticated || Boolean(cachedState?.isAuthenticated);
 
     // Local loading and error states
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -71,7 +75,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
      * Get the current user's profile
      */
     const getUserProfile = useCallback(async (): Promise<User | null> => {
-        if (!isAuthenticated) {
+        if (!isAuthenticatedOrCached) {
             console.warn('[UserProfile] getUserProfile called but user is not authenticated');
             return null;
         }
@@ -89,13 +93,13 @@ export const useUserProfile = (): UseUserProfileReturn => {
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, clearError]);
+    }, [isAuthenticatedOrCached, clearError]);
 
     /**
      * Update user profile information
      */
     const updateUserProfile = useCallback(async (data: UserUpdate): Promise<User | null> => {
-        if (!isAuthenticated) {
+        if (!isAuthenticatedOrCached) {
             console.warn('[UserProfile] updateUserProfile called but user is not authenticated');
             return null;
         }
@@ -116,13 +120,13 @@ export const useUserProfile = (): UseUserProfileReturn => {
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, clearError]);
+    }, [isAuthenticatedOrCached, clearError]);
 
     /**
      * Change user password
      */
     const changePassword = useCallback(async (data: PasswordChange): Promise<void> => {
-        if (!isAuthenticated) {
+        if (!isAuthenticatedOrCached) {
             console.warn('[UserProfile] changePassword called but user is not authenticated');
             return;
         }
@@ -138,13 +142,13 @@ export const useUserProfile = (): UseUserProfileReturn => {
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, clearError]);
+    }, [isAuthenticatedOrCached, clearError]);
 
     /**
      * Delete user account
      */
     const deleteAccount = useCallback(async (data: AccountDeletion): Promise<void> => {
-        if (!isAuthenticated) {
+        if (!isAuthenticatedOrCached) {
             console.warn('[UserProfile] deleteAccount called but user is not authenticated');
             return;
         }
@@ -157,19 +161,23 @@ export const useUserProfile = (): UseUserProfileReturn => {
 
             // Clear all cached data
             apiClient.clearCache();
+            authService.clearToken();
+            authStateManager.clearState();
+            localStorage.clear();
+            window.location.reload();
         } catch (error: any) {
             setError(error.userMessage ?? 'Failed to delete account');
             throw error;
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, clearError]);
+    }, [isAuthenticatedOrCached, clearError, userService, authService, authStateManager, window.location.reload]);
 
     /**
      * Get active user sessions
      */
     const getActiveSessions = useCallback(async (): Promise<ActiveSession[]> => {
-        if (!isAuthenticated) {
+        if (!isAuthenticatedOrCached) {
             console.warn('[UserProfile] getActiveSessions called but user is not authenticated');
             return [];
         }
@@ -186,13 +194,13 @@ export const useUserProfile = (): UseUserProfileReturn => {
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, clearError]);
+    }, [isAuthenticatedOrCached, clearError]);
 
     /**
      * Invalidate a specific session
      */
     const invalidateSession = useCallback(async (sessionId: string): Promise<void> => {
-        if (!isAuthenticated) {
+        if (!isAuthenticatedOrCached) {
             console.warn('[UserProfile] invalidateSession called but user is not authenticated');
             return;
         }
@@ -211,12 +219,12 @@ export const useUserProfile = (): UseUserProfileReturn => {
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, clearError]);
+    }, [isAuthenticatedOrCached, clearError]);
 
     return {
         // User state from auth hook
         user,
-        isAuthenticated,
+        isAuthenticated: isAuthenticatedOrCached,
 
         // Loading and error states
         isLoading,

@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUserContext } from '../../contexts/UserContext';
 import { useLoading } from '../../contexts/LoadingContext';
 import LoadingWrapper from "../common/LoadingWrapper";
+import { useNotification } from '../../contexts/NotificationContext';
 
 /**
  * Props interface for the LoginForm component.
@@ -67,7 +68,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
   // Get authentication methods and state from UserContext
   const { login, register, error, isLoading, clearError } = useUserContext();
-
+  const {notify} = useNotification();
   // Local form error state separate from the global auth context errors
   // This allows for form-specific validation errors
   const [formError, setFormError] = useState<string | null>(null);
@@ -94,63 +95,89 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
         // Check if passwords match
         if (password !== confirmPassword) {
-          setFormError('Passwords do not match!');
+          notify({
+            type: 'error',
+            message: 'Passwords do not match!',
+            position: 'top-right'
+          });
           return;
         }
 
         // Validate required fields
         if (!fullName.trim()) {
-          setFormError('Full name is required');
+            notify({
+              type: 'error',
+              message: 'Full name is required',
+              position: 'top-right'
+            });
           return;
         }
 
         if (!email.trim()) {
-          setFormError('Email is required');
+          notify({
+            type: 'error',
+            message: 'Email is required',
+            position: 'top-right'
+          });
           return;
         }
 
         // Validate password strength
         if (password.length < 6) {
-          setFormError('Password must be at least 6 characters long');
+          notify({
+            type: 'error',
+            message: 'Password must be at least 6 characters long',
+            position: 'top-right'
+          });
           return;
         }
-
-        console.log('Attempting registration with:', { fullName, email });
 
         // Register the new user with the provided details
         // The register function will automatically log the user in on success
         await register(fullName, email, password, confirmPassword);
         stopLoading('login.submit');
-        console.log('Registration and auto-login successful!');
       } else {
         // ---------- LOGIN VALIDATION ----------
 
         // Validate required fields
         if (!email.trim().isWellFormed()) {
-          setFormError('Email is required');
+          notify({
+            type: 'error',
+            message: 'Email is required',
+            position: 'top-right'
+          });
           return;
         }
 
         if (!password.trim()) {
-          setFormError('Password is required');
+          notify({
+            type: 'error',
+            message: 'Password is required',
+            position: 'top-right'
+          });
           return;
         }
 
         // Attempt to log in the user with credentials
         await login(email, password);
         stopLoading('login.submit');
-        console.log('Login successful!');
       }
 
       // If we reach this point, authentication was successful
       // Redirect to playground after successful submission
       navigate('/playground');
+      notify({
+        type: 'success',
+        message: 'Login successful!',
+        position: 'top-right'
+      });
     } catch (err: any) {
-      // Error is already handled by context through the error state
-      // We just need to log it here for debugging purposes
       stopLoading('login.submit');
-      console.error('Authentication error:', err);
-
+      notify({
+        type: 'error',
+        message: 'Login failed! ' + err.message,
+        position: 'top-right'
+      });
     }
   };
 
@@ -163,7 +190,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
   const handleToggleSignUp = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
     e.preventDefault();
     clearError(); // Clear any errors when switching modes
-    setFormError(null);
     setIsSignUp(!isSignUp);
   };
 
@@ -173,13 +199,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
   return (
       <>
-        {/* Error message display */}
-        {displayError && (
-            <div className="error-message">
-              {displayError}
-            </div>
-        )}
-
         <form className="login-form" onSubmit={handleSubmit}>
           {/* Full Name field (only displayed for Sign-Up) */}
           {isSignUp && (
@@ -198,19 +217,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
 
           )}
-          {isSignUp && (
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-                type="email"
-                id="email"
-                placeholder="Enter Your Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-            />
-          </div>
-            )}
+            
 
             {/* Email field (always displayed) */}
             {isSignUp && (

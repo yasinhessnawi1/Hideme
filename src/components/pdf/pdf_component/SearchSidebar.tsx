@@ -1,4 +1,6 @@
 import LoadingWrapper from "../../common/LoadingWrapper";
+import { useHighlightStore } from '../../../hooks/useHighlightStore';
+import summaryPersistenceStore, { SearchFileSummary } from '../../../store/SummaryPersistenceStore';
 
 declare global {
     interface Window {
@@ -16,9 +18,9 @@ import '../../../styles/modules/pdf/SearchSidebar.css';
 import {AlertTriangle, CheckCircle, ChevronDown, ChevronRight, ChevronUp, Save, Search, XCircle} from 'lucide-react';
 import {usePDFNavigation} from '../../../hooks/usePDFNavigation';
 import useSearchPatterns from "../../../hooks/settings/useSearchPatterns";
-import {useHighlightStore} from "../../../hooks/useHighlightStore";
-import summaryPersistenceStore, {SearchFileSummary} from '../../../store/SummaryPersistenceStore';
-import {HighlightType} from "../../../types";
+import {HighlightRect, HighlightType} from "../../../types";
+import { useNotification } from '../../../contexts/NotificationContext';
+import { useEditContext } from "../../../contexts/EditContext";
 
 /**
  * SearchSidebar component
@@ -27,16 +29,15 @@ import {HighlightType} from "../../../types";
  * with improved navigation to search results
  */
 const SearchSidebar: React.FC = () => {
-    const {currentFile, selectedFiles, files} = useFileContext();
-
+    const {currentFile, selectedFiles, files, openFile} = useFileContext();
+    const {notify} = useNotification();
+    const { getHighlightsForPage, removeHighlightsByText, getHighlightsByType } = useHighlightStore();
     // Use our improved navigation hook
     const pdfNavigation = usePDFNavigation('search-sidebar');
 
     const {
         searchPatterns, isLoading: userDataLoading, createSearchPattern, getSearchPatterns
     } = useSearchPatterns();
-
-    const {removeHighlightsByText} = useHighlightStore();
 
     const {
         isSearching: isContextSearching,
@@ -47,6 +48,7 @@ const SearchSidebar: React.FC = () => {
         clearAllSearches,
         getSearchResultsStats
     } = useBatchSearch();
+    const { setSelectedHighlightIds, setSelectedHighlightId} = useEditContext();
 
 
     // Component state
@@ -108,7 +110,10 @@ const SearchSidebar: React.FC = () => {
                 setExpandedFileSummaries(newExpandedSet);
             }
         } catch (error) {
-            console.error('[SearchSidebar] Error loading persisted search data:', error);
+            notify({
+                message: 'Error loading saved search data',
+                type: 'error'
+            });
         }
     }, [files]);
 
@@ -122,8 +127,6 @@ const SearchSidebar: React.FC = () => {
             if (type && type !== HighlightType.SEARCH && !allTypes) return;
 
             if (fileKey) {
-                console.log(`[SearchSidebar] Search highlights cleared for file: ${fileKey}`);
-
                 // Update file summaries to reflect cleared highlights
                 setFileSummaries(prev => {
                     // Find the file summary for this file
@@ -188,7 +191,6 @@ const SearchSidebar: React.FC = () => {
             const {fileKey} = customEvent.detail ?? {};
 
             if (fileKey) {
-                console.log(`[SearchSidebar] File removed: ${fileKey}`);
 
                 // Update our tracked files set
                 if (searchedFilesRef.current.has(fileKey)) {
@@ -277,7 +279,6 @@ const SearchSidebar: React.FC = () => {
             const {fileKey, fileName, summary} = customEvent.detail ?? {};
 
             if (fileKey && summary) {
-                console.log(`[SearchSidebar] Received search summary update for file: ${fileName}`);
 
                 // Add to our tracked files set if not already there
                 if (!searchedFilesRef.current.has(fileKey)) {
@@ -303,14 +304,14 @@ const SearchSidebar: React.FC = () => {
             window.removeEventListener('search-summary-updated', handleSearchSummaryUpdated);
         };
     }, [updateFileSummary]);
-    // Handle search term removal
+
+    // Handle auto-processing completion
     useEffect(() => {
         const handleAutoProcessingComplete = (event: Event) => {
             const customEvent = event as CustomEvent;
             const {fileKey, hasSearchResults} = customEvent.detail ?? {};
 
             if (fileKey && hasSearchResults) {
-                console.log(`[SearchSidebar] Auto-processing with search completed for file: ${fileKey}`);
 
                 // Short delay to ensure all search results are properly processed
                 setTimeout(() => {
@@ -360,6 +361,9 @@ const SearchSidebar: React.FC = () => {
             window.removeEventListener('auto-processing-complete', handleAutoProcessingComplete);
         };
     }, [files, getSearchResultsStats, updateFileSummary]);
+
+
+    // Add a search term
     const addSearchTerm = useCallback(async () => {
         if (!tempSearchTerm.trim()) return;
 
@@ -510,7 +514,6 @@ const SearchSidebar: React.FC = () => {
     // Add a special method to load and apply all default search terms
     const applyAllDefaultSearchTerms = useCallback(async () => {
         if (searchPatterns && searchPatterns.length > 0) {
-            console.log('[SearchSidebar] Applying all default search patterns');
 
             // Get currently active terms
             const activeTerms = new Set(activeQueries.map(q => q.term));
@@ -519,8 +522,10 @@ const SearchSidebar: React.FC = () => {
             const patternsToAdd = searchPatterns.filter(pattern => !activeTerms.has(pattern.pattern_text));
 
             if (patternsToAdd.length === 0) {
-                console.log('[SearchSidebar] All default terms are already active');
-                setLocalSearchError('All default search terms are already active');
+                notify({
+                    message: 'All default search terms are already active',
+                    type: 'info'
+                });
                 return;
             }
 
@@ -538,7 +543,6 @@ const SearchSidebar: React.FC = () => {
                     }
 
                     // Search with the current pattern using appropriate settings
-                    console.log(`[SearchSidebar] Adding default search term: "${pattern.pattern_text}"`);
                     await batchSearch(filesToSearch, pattern.pattern_text, {
                         isCaseSensitive: pattern.pattern_type === 'case_sensitive',
                         isAiSearch: pattern.pattern_type === 'ai_search'
@@ -551,8 +555,10 @@ const SearchSidebar: React.FC = () => {
             }
 
             if (addedCount > 0) {
-                setSuccessMessage(`Added ${addedCount} default search ${addedCount === 1 ? 'term' : 'terms'}`);
-                setTimeout(() => setSuccessMessage(null), 3000);
+                notify({
+                    message: `Added ${addedCount} default search terms`,
+                    type: 'success'
+                });
 
                 // Update search summaries after a delay to allow search to complete
                 setTimeout(() => {
@@ -586,7 +592,10 @@ const SearchSidebar: React.FC = () => {
                 }, 300);
             }
         } else {
-            setLocalSearchError('No default search terms available');
+            notify({
+                message: 'No default search terms found, add some to your settings',
+                type: 'warning'
+            });
         }
     }, [searchPatterns, activeQueries, batchSearch, getFilesToProcess, getSearchResultsStats, files, updateFileSummary]);
 
@@ -618,7 +627,6 @@ const SearchSidebar: React.FC = () => {
             const customEvent = event as CustomEvent;
             const {source} = customEvent.detail || {};
 
-            console.log(`[SearchSidebar] Received focus request from ${source}`);
             focusSearchInput();
         };
 
@@ -627,15 +635,12 @@ const SearchSidebar: React.FC = () => {
             const customEvent = event as CustomEvent;
             const {source, applyDefaultTerms} = customEvent.detail || {};
 
-            console.log(`[SearchSidebar] Received search request from ${source}`);
 
             if (applyDefaultTerms) {
                 // Apply all default search terms
-                console.log('[SearchSidebar] Applying all default search terms on request');
                 applyAllDefaultSearchTerms();
             } else if (tempSearchTerm.trim()) {
                 // Execute the current search term if one is available
-                console.log(`[SearchSidebar] Executing current search with term: "${tempSearchTerm}"`);
                 addSearchTerm();
             } else {
                 console.log('[SearchSidebar] No search term to execute');
@@ -677,7 +682,6 @@ const SearchSidebar: React.FC = () => {
     useEffect(() => {
         // Only run this effect once when the component mounts
         if (!userDataLoading && !initialPatternFetchAttemptedRef.current) {
-            console.log('[SearchSidebar] Initial fetch of search patterns');
             initialPatternFetchAttemptedRef.current = true;
             getSearchPatterns();
         }
@@ -696,11 +700,8 @@ const SearchSidebar: React.FC = () => {
     // Handle save to settings from context menu
     const handleSaveToSettings = async () => {
         try {
-            // Clear any existing messages
-            setLocalSearchError(null);
-            setSuccessMessage(null);
 
-            console.log(`[SearchSidebar] Saving search term "${contextMenuSearchTerm}" to patterns`);
+
 
             // Also save current search options (AI search, case sensitivity)
             const currentQuery = activeQueries.find(q => q.term === contextMenuSearchTerm);
@@ -722,11 +723,17 @@ const SearchSidebar: React.FC = () => {
 
                 // Show success message
                 setSuccessMessage(`"${contextMenuSearchTerm}" saved as a search pattern`);
-                console.log(`[SearchSidebar] Search term saved to patterns successfully with type: ${patternType}`);
+                notify({
+                    message: `Search term saved to patterns successfully with type: ${patternType}`,
+                    type: 'success'
+                });
             } else {
                 // Pattern already exists
                 setSuccessMessage(`"${contextMenuSearchTerm}" is already a saved pattern`);
-                console.log(`[SearchSidebar] Search term already exists in patterns`);
+                notify({
+                    message: `Search term already exists in patterns`,
+                    type: 'info'
+                });
             }
 
             // Auto-hide success message after 3 seconds
@@ -734,13 +741,11 @@ const SearchSidebar: React.FC = () => {
                 setSuccessMessage(null);
             }, 3000);
         } catch (error) {
-            console.error(`[SearchSidebar] Error saving search term to patterns:`, error);
-            setLocalSearchError("Failed to save search pattern.");
+            notify({
+                message: "Failed to save search pattern.",
+                type: 'error'
+            });
 
-            // Auto-hide error message after 5 seconds
-            setTimeout(() => {
-                setLocalSearchError(null);
-            }, 5000);
         } finally {
             setContextMenuVisible(false);
             // Return focus to search input after closing context menu
@@ -880,7 +885,15 @@ const SearchSidebar: React.FC = () => {
 
         // Use our improved navigation mechanism
         navigateToPage(target.fileKey, target.page);
-    }, [resultNavigation, navigateToPage]);
+        const highlights = getHighlightsForPage(target.fileKey, target.page);
+        // Filter to only get search highlights and set both selection states
+        const searchHighlights = highlights.filter(h => h.type === 'SEARCH');
+        if (searchHighlights.length > 0) {
+            setSelectedHighlightIds(searchHighlights.map(h => h.id));
+            // Set the first highlight as the selected one
+            setSelectedHighlightId(searchHighlights[0].id);
+        }
+    }, [resultNavigation, navigateToPage, setSelectedHighlightIds, setSelectedHighlightId]);
 
 
     const calculateOverallResultIndex = useCallback(() => {
@@ -962,6 +975,56 @@ const SearchSidebar: React.FC = () => {
             searchInputRef.current?.focus();
         }, 0);
     };
+
+    // Listen for page navigation and select highlights
+    useEffect(() => {
+        const handlePageNavigation = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey, page } = customEvent.detail ?? {};
+
+            if (fileKey && page !== undefined) {
+                // Get search highlights for this page
+                const searchHighlights = getHighlightsByType(fileKey, HighlightType.SEARCH)
+                    .filter(h => h.page === page);
+                
+                if (searchHighlights.length > 0) {
+                    setSelectedHighlightIds(searchHighlights.map(h => h.id));
+                    setSelectedHighlightId(searchHighlights[0].id);
+                }
+            }
+        };
+
+        window.addEventListener('page-navigated', handlePageNavigation);
+
+        return () => {
+            window.removeEventListener('page-navigated', handlePageNavigation);
+        };
+    }, [getHighlightsByType, setSelectedHighlightId, setSelectedHighlightIds]);
+
+    useEffect(() => {
+        const handlePageNavigated = (event: CustomEvent) => {
+            const { page } = event.detail;
+            // Get highlights for the current page
+            const pageHighlights = getHighlightsByType('search', page);
+            if (pageHighlights && pageHighlights.length > 0) {
+                // Select the first highlight on the page
+                const firstHighlight = pageHighlights[0];
+                if (firstHighlight) {
+                    window.dispatchEvent(new CustomEvent('highlight-selected', {
+                        detail: {
+                            highlightId: firstHighlight.id,
+                            source: 'search-sidebar'
+                        }
+                    }));
+                }
+            }
+        };
+
+        window.addEventListener('page-navigated', handlePageNavigated as EventListener);
+        return () => {
+            window.removeEventListener('page-navigated', handlePageNavigated as EventListener);
+        };
+    }, [getHighlightsByType]);
 
     return (<div className="search-sidebar">
             <div className="sidebar-header search-header">
@@ -1187,7 +1250,19 @@ const SearchSidebar: React.FC = () => {
                                                                         className="nav-button"
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
-                                                                            navigateToPage(fileKey, pageNum);
+                                                                            const file = files.find(f => f.name === fileKey);
+                                                                            let searchHighlights: HighlightRect[] = [];
+                                                                            if (file) {
+                                                                                openFile(file);
+                                                                                navigateToPage(fileKey, pageNum);
+                                                                                // Get search highlights using the dedicated method
+                                                                                 searchHighlights = getHighlightsByType(fileKey, HighlightType.SEARCH)
+                                                                                .filter(h => h.page === pageNum);
+                                                                            }
+                                                                            if (searchHighlights.length > 0) {
+                                                                                setSelectedHighlightIds(searchHighlights.map(h => h.id));
+                                                                                setSelectedHighlightId(searchHighlights[0].id);
+                                                                            }
                                                                         }}
                                                                         title="Navigate to page"
                                                                     >

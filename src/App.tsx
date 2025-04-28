@@ -10,12 +10,15 @@ import ErrorBoundary from "./contexts/ErrorBoundary";
 import {BatchSearchProvider} from "./contexts/SearchContext";
 import AutoProcessProvider from "./contexts/AutoProcessProvider";
 import { LoadingProvider } from './contexts/LoadingContext';
+import {NotificationProvider} from "./contexts/NotificationContext";
+import {NotificationRenderer} from "./components/common/NotificationRenderer";
 
 const App: React.FC = () => {
 
     return (
         <ErrorBoundary>
             <LoadingProvider>
+                <NotificationProvider>
             <UserContextProvider>
                 <ThemeProvider >
                     <FileProvider>
@@ -25,6 +28,7 @@ const App: React.FC = () => {
                                     <BatchSearchProvider>
                                         <AutoProcessProvider>
                                             <AppRouter/>
+                                            <NotificationRenderer />
                                         </AutoProcessProvider>
                                     </BatchSearchProvider>
                                 </EditProvider>
@@ -33,6 +37,7 @@ const App: React.FC = () => {
                     </FileProvider>
                 </ThemeProvider>
             </UserContextProvider>
+                </NotificationProvider>
             </LoadingProvider>
         </ErrorBoundary>
 

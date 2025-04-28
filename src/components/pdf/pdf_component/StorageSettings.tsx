@@ -4,6 +4,7 @@ import '../../../styles/modules/pdf/StorageSettings.css';
 import { Database, Trash2, HardDrive, AlertTriangle } from 'lucide-react';
 import {useLoading} from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
+import { useNotification } from '../../../contexts/NotificationContext';
 
 /**
  * Component for managing PDF storage persistence settings
@@ -17,18 +18,26 @@ const StorageSettings: React.FC = () => {
         clearStoredFiles,
         files
     } = useFileContext();
+    const {notify , confirm} = useNotification();
 
-    const [showConfirmation, setShowConfirmation] = useState(false);
     const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
 
-    const handleTogglePersistence = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleTogglePersistence = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const enabled = e.target.checked;
 
         // If enabling and we have files, show a message about current files
         if (enabled && files.length > 0) {
-            const confirmed = window.confirm(
-                'Enable PDF storage in your browser? Current PDFs will be stored and automatically loaded when you return to this page.'
-            );
+            const confirmed = await confirm({
+                title: 'Enable PDF storage in your browser?',
+                message: 'Current PDFs will be stored and automatically loaded when you return to this page.',
+                type: 'info',
+                confirmButton: {
+                    label: 'Enable',
+                },
+                cancelButton: {
+                    label: 'Cancel',
+                }
+            });
             if (confirmed) {
                 setStoragePersistenceEnabled(enabled);
             }
@@ -41,7 +50,11 @@ const StorageSettings: React.FC = () => {
         startLoading('file_storage.clean')
         try {
             await clearStoredFiles();
-            setShowConfirmation(false);
+            notify({
+                type: 'success',
+                message: 'All PDFs have been cleared from your browser.',
+                position: 'top-right'
+            });
         } catch (error) {
             console.error('Error clearing stored files:', error);
         } finally {
@@ -86,19 +99,19 @@ const StorageSettings: React.FC = () => {
                         <div className="progress-bar-container">
                             <div
                                 className="progress-bar"
-                                style={{ width: `${Math.min(storageStats.percentUsed, 100)}%` }}
+                                style={{ width: `${Math.min(files.length / 100, 100)}%` }}
                             />
                         </div>
                         <div className="usage-text">
                             {storageStats.totalSizeFormatted} used
-                            ({storageStats.fileCount} file{storageStats.fileCount !== 1 ? 's' : ''})
+                            ({files.length} file{files.length !== 1 ? 's' : ''})
                         </div>
                     </div>
 
                     <button
                         className="clear-storage-button"
-                        onClick={() => setShowConfirmation(true)}
-                        disabled={storageStats.fileCount === 0 || globalLoading('file_storage.clean')}
+                        onClick={handleClearStoredFiles}
+                        disabled={files.length === 0 || globalLoading('file_storage.clean')}
                     >
 
                         <LoadingWrapper isLoading={globalLoading('file_storage.clean')} overlay={true} fallback={'Clearing....'}
@@ -116,35 +129,6 @@ const StorageSettings: React.FC = () => {
                 <p>PDFs are stored only in your browser and are not sent to any server.</p>
             </div>
 
-            {/* Confirmation dialog */}
-            {showConfirmation && (
-                <div className="confirmation-dialog">
-                    <div className="confirmation-content">
-                        <h5>Clear Stored PDFs?</h5>
-                        <p>This will permanently delete all PDFs stored in your browser. This action cannot be undone.</p>
-
-                        <div className="confirmation-actions">
-                            <button
-                                className="cancel-button"
-                                onClick={() => setShowConfirmation(false)}
-                                disabled={globalLoading('file_storage.clean')}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="delete-button"
-                                onClick={handleClearStoredFiles}
-                                disabled={globalLoading('file_storage.clean')}
-                            >
-                                <LoadingWrapper isLoading={globalLoading('file_storage.clean')} overlay={true} fallback={'Clearing....'}
-                                              >
-                                    {globalLoading('file_storage.clean') ? '' : 'Clear All PDFs'}
-                                </LoadingWrapper>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

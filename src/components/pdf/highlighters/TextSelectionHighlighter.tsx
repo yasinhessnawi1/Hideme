@@ -20,7 +20,7 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
                                                                                fileKey,
                                                                                isActive
                                                                            }) => {
-    const { highlightColor } = useEditContext();
+    const { manualColor } = useEditContext();
 
     // State to track if we're currently processing a selection
     const [isProcessingSelection, setIsProcessingSelection] = useState(false);
@@ -186,8 +186,8 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
             highlight.style.top = `${relativeY}px`;
             highlight.style.width = `${rect.width}px`;
             highlight.style.height = `${rect.height}px`;
-            highlight.style.backgroundColor = `${highlightColor}4D`; // 30% opacity
-            highlight.style.border = `1px solid ${highlightColor}99`; // 60% opacity
+            highlight.style.backgroundColor = `${manualColor}4D`; // 30% opacity
+            highlight.style.border = `1px solid ${manualColor}99`; // 60% opacity
             highlight.style.pointerEvents = 'none';
             highlight.style.borderRadius = '1px';
             highlight.style.transition = 'all 0.05s ease';
@@ -195,7 +195,7 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
 
             highlightContainerRef.current.appendChild(highlight);
         }
-    }, [highlightColor]);
+    }, [manualColor]);
 
     // Track selection changes to show highlight spans
     useEffect(() => {
@@ -507,7 +507,7 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
                     unzoomedMinY,
                     unzoomedMaxX,
                     unzoomedMaxY,
-                    highlightColor,
+                    manualColor,
                     lineText,
                     HighlightCreationMode.TEXT_SELECTION
                 );
@@ -545,7 +545,7 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
             });
 
             // Apply coordinate correction
-            const correctionX = -9;
+            const correctionX = -2;
             const correctionY = -6;
 
             minX += correctionX;
@@ -555,11 +555,11 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
 
             // Apply padding
             const horizontalPadding = 1;
-            const verticalPadding = 1;
+            const verticalPadding = 2;
 
             minX = Math.max(0, minX - horizontalPadding);
             minY = Math.max(0, minY - verticalPadding);
-            maxX = Math.min(pageSize.cssWidth, maxX + horizontalPadding);
+            maxX = Math.min(pageSize.cssWidth, maxX + horizontalPadding );
             maxY = Math.min(pageSize.cssHeight, maxY + verticalPadding);
 
             // Account for current zoom level
@@ -579,7 +579,7 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
                 unzoomedMinY,
                 unzoomedMaxX,
                 unzoomedMaxY,
-                highlightColor,
+                manualColor,
                 selectedText.trim(), // Make sure to trim the text
                 HighlightCreationMode.TEXT_SELECTION
             ).then(highlight => {
@@ -595,7 +595,7 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
             });
         }
 
-    }, [isActive, isEditingMode, pageNumber, fileKey, viewport, pageSize, highlightColor]);
+    }, [isActive, isEditingMode, pageNumber, fileKey, viewport, pageSize, manualColor]);
 
     // Set up listeners for text selection with anti-flickering protection
     useEffect(() => {

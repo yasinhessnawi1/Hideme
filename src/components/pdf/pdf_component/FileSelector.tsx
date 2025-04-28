@@ -13,10 +13,11 @@ import {
     X
 } from 'lucide-react';
 import '../../../styles/modules/pdf/FileSelector.css';
-import AutoProcessControls from "./AutoProcessControls";
 import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 import { getFileKey } from "../../../contexts/PDFViewerContext";
 import scrollManager from '../../../services/ScrollManagerService';
+import StorageSettings from './StorageSettings';
+import { useNotification } from '../../../contexts/NotificationContext';
 
 interface FileSelectorProps {
     className?: string;
@@ -40,13 +41,15 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
         deselectAllFiles,
         addFiles,
         toggleActiveFile,
-        isFileActive
+        isFileActive,
+        openFile,
+        closeFile,
+        isFileOpen
     } = useFileContext();
 
     const [showActions, setShowActions] = useState<number | null>(null);
     const [showTooltip, setShowTooltip] = useState<number | null>(null);
-    const [showNotification, setShowNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
-
+    const {notify, confirm} = useNotification();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const pdfNavigation = usePDFNavigation('file-selector');
 
@@ -97,8 +100,12 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
             }));
         }
 
-        setShowNotification({message: 'File removed successfully', type: 'success'});
-        setTimeout(() => setShowNotification(null), 3000);
+        notify({
+            message: 'File removed successfully'
+            , type: 'success'
+            , position: 'top-right'
+            ,duration: 3000
+        });
     };
 
     // Toggle file selection
@@ -110,7 +117,11 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
     // Toggle file visibility
     const handleToggleActive = (file: File, e: React.MouseEvent) => {
         e.stopPropagation();
-        toggleActiveFile(file);
+        if (isFileOpen(file)) {
+            closeFile(file);
+        } else {
+            openFile(file);
+        }
     };
 
     // For adding new files
@@ -126,8 +137,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
             // Add files to the top of the list instead of the bottom
             addFiles(newFiles, false);
 
-            setShowNotification({message: `${newFiles.length} file(s) added successfully`, type: 'success'});
-            setTimeout(() => setShowNotification(null), 3000);
+            notify({message: `${newFiles.length} file(s) added successfully`, type: 'success', position: 'top-right', duration: 3000});
 
             // Refresh observers to detect the new content
             setTimeout(() => {
@@ -146,16 +156,23 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
     };
 
     // Delete all selected files
-    const handleDeleteSelected = () => {
+    const handleDeleteSelected = async () => {
         if (selectedFiles.length === 0) {
-            setShowNotification({message: 'No files selected for deletion', type: 'error'});
-            setTimeout(() => setShowNotification(null), 3000);
+            notify({message: 'No files selected for deletion', type: 'error' ,position: 'top-right', duration: 3000});
             return;
         }
 
-        const confirmDelete = window.confirm(`Are you sure you want to delete ${selectedFiles.length} selected file(s)?`);
+        const confirmDelete = await confirm({
+            title: 'Delete Files',
+            message: `Are you sure you want to delete ${selectedFiles.length} selected file(s)?`,
+            type: 'delete',
+            confirmButton: {
+                label: 'Delete',
+            }
+        });
+
         if (confirmDelete) {
-            // Delete files in reverse order to avoid index issues
+                    // Delete files in reverse order to avoid index issues
             const selectedIndexes = selectedFiles.map(selectedFile =>
                 files.findIndex(file => getFileKey(file) === getFileKey(selectedFile))
             ).sort((a, b) => b - a); // Sort in descending order
@@ -166,21 +183,21 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                 }
             });
 
-            setShowNotification({message: `${selectedFiles.length} file(s) deleted successfully`, type: 'success'});
-            setTimeout(() => setShowNotification(null), 3000);
+
+            notify({message: `${selectedFiles.length} file(s) deleted successfully`, type: 'success', position: 'top-right', duration: 3000});
+
         }
     };
 
     // Function to print specific files - handles both single and multiple files
     const printFiles = async (filesToPrint: File[]) => {
         if (filesToPrint.length === 0) {
-            setShowNotification({message: 'No files to print', type: 'error'});
-            setTimeout(() => setShowNotification(null), 3000);
+            notify({message: 'No files to print', type: 'error', position: 'top-right', duration: 3000});
             return;
         }
 
         try {
-            setShowNotification({message: 'Preparing print...', type: 'success'});
+            notify({message: 'Preparing print...', type: 'success', position: 'top-right', duration: 3000});
 
             // If only one file, use simple approach
             if (filesToPrint.length === 1) {
@@ -195,7 +212,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                     };
                 } else {
                     // If popup blocked, show instructions
-                    setShowNotification({message: 'Please allow popups to print files', type: 'error'});
+                    notify({message: 'Please allow popups to print files', type: 'error', position: 'top-right', duration: 3000});
                 }
             }
             // If multiple files, merge them before printing
@@ -240,18 +257,16 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                         };
                     } else {
                         // If popup blocked, show instructions
-                        setShowNotification({message: 'Please allow popups to print files', type: 'error'});
+                        notify({message: 'Please allow popups to print files', type: 'error', position: 'top-right', duration: 3000});
                     }
                 } catch (error) {
                     console.error('Error merging PDFs:', error);
-                    setShowNotification({message: 'Error merging PDFs for printing. Make sure pdf-lib is installed.', type: 'error'});
+                    notify({message: 'Error merging PDFs for printing.', type: 'error', position: 'top-right', duration: 3000});
                 }
             }
         } catch (error) {
             console.error('Error printing files:', error);
-            setShowNotification({message: 'Error printing files', type: 'error'});
-        } finally {
-            setTimeout(() => setShowNotification(null), 3000);
+            notify({message: 'Error printing files', type: 'error', position: 'top-right', duration: 3000});
         }
     };
 
@@ -266,13 +281,12 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
         const filesToDownload = selectedFiles.length > 0 ? selectedFiles : currentFile ? [currentFile] : [];
 
         if (filesToDownload.length === 0) {
-            setShowNotification({message: 'No files selected for download', type: 'error'});
-            setTimeout(() => setShowNotification(null), 3000);
+            notify({message: 'No files selected for download', type: 'error', position: 'top-right', duration: 3000});
             return;
         }
 
         try {
-            setShowNotification({message: 'Preparing download...', type: 'success'});
+            notify({message: 'Preparing download...', type: 'success', position: 'top-right', duration: 3000});
 
             // If only one file, download it directly
             if (filesToDownload.length === 1) {
@@ -311,18 +325,16 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                         document.body.removeChild(a);
                         URL.revokeObjectURL(url);
 
-                        setShowNotification({message: 'Files downloaded successfully', type: 'success'});
+                        notify({message: 'Files downloaded successfully', type: 'success', position: 'top-right', duration: 3000});
                     } catch (error) {
-                        setShowNotification({message: 'Error creating ZIP file. JSZip library may not be available.', type: 'error'});
+                        notify({message: 'Error creating ZIP file. JSZip library may not be available.', type: 'error', position: 'top-right', duration: 3000});
                     }
                 };
 
                 await loadJSZip();
             }
         } catch (error) {
-            setShowNotification({message: 'Error downloading files', type: 'error'});
-        } finally {
-            setTimeout(() => setShowNotification(null), 3000);
+            notify({message: 'Error downloading files', type: 'error', position: 'top-right', duration: 3000});
         }
     };
 
@@ -333,10 +345,9 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
 
     return (
         <div className={`file-selector-container ${className ?? ''}`}>
-            <div className={`main-content ${className ?? ''}`}>
-                <AutoProcessControls />
-            </div>
-
+            <div className="advanced-settings">
+                    <StorageSettings />
+                </div>
             <div className={`file-selector ${className ?? ''}`}>
                 <div className="file-selector-header">
                     <div className="file-selector-title-area">
@@ -461,9 +472,9 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                             className={`file-visibility-button ${isActive ? 'visible' : 'hidden'}`}
                                             onClick={(e) => handleToggleActive(file, e)}
                                             title={isActive ? "Hide file" : "Show file"}
-                                            aria-label={isActive ? "Hide file" : "Show file"}
+                                            aria-label={isFileOpen(file) ? "Hide file" : "Show file"}
                                         >
-                                            {isActive ? (
+                                            {isFileOpen(file) ? (
                                                 <Eye size={16} className="visibility-icon"/>
                                             ) : (
                                                 <EyeOff size={16} className="visibility-icon"/>
@@ -506,20 +517,6 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                 </div>
                             );
                         })}
-                    </div>
-                )}
-
-                {/* Notification toast */}
-                {showNotification && (
-                    <div className={`notification-toast ${showNotification.type}`}>
-                        <span>{showNotification.message}</span>
-                        <button
-                            className="notification-close"
-                            onClick={() => setShowNotification(null)}
-                            aria-label="Close notification"
-                        >
-                            <X size={14} />
-                        </button>
                     </div>
                 )}
             </div>

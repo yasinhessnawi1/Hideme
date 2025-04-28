@@ -23,7 +23,6 @@ export const usePDFNavigation = (sourceName: string = 'navigation-hook') => {
     /**
      * Navigate to a specific page in a file
      */
-        // In usePDFNavigation.ts, enhance the navigateToPage method
     const navigateToPage = useCallback((
             pageNumber: number,
             fileKey?: string,
@@ -46,6 +45,15 @@ export const usePDFNavigation = (sourceName: string = 'navigation-hook') => {
             // This is critical: update state first to ensure components are in sync
             setFileCurrentPage(targetFileKey, validPageNumber, 'navigation-hook');
             setFileActiveScrollPage(targetFileKey, validPageNumber);
+
+            // Dispatch navigation event
+            window.dispatchEvent(new CustomEvent('page-navigated', {
+                detail: {
+                    fileKey: targetFileKey,
+                    page: validPageNumber,
+                    source: sourceName
+                }
+            }));
 
             // Wait for state updates to apply before scrolling
             setTimeout(() => {

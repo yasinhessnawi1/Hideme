@@ -14,6 +14,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import useAuth from '../auth/useAuth';
 import apiClient from '../../services/apiClient';
 import { UserSettings, UserSettingsUpdate } from '../../types';
+import authStateManager from '../../managers/authStateManager';
 
 export interface UseSettingsReturn {
     // User settings state
@@ -38,8 +39,10 @@ export interface UseSettingsReturn {
  * Hook for managing user settings
  */
 export const useSettings = (): UseSettingsReturn => {
-    // Get authentication state from auth hook
+    // Get authentication state from auth hook and cached state
     const { isAuthenticated } = useAuth();
+    const cachedState = authStateManager.getCachedState();
+    const isAuthenticatedOrCached = isAuthenticated || Boolean(cachedState?.isAuthenticated);
 
     // Settings state
     const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -61,15 +64,6 @@ export const useSettings = (): UseSettingsReturn => {
      * Get user settings
      */
     const getSettings = useCallback(async (): Promise<UserSettings | null> => {
-        if (!isAuthenticated) {
-            return null;
-        }
-
-        // Return cached data if available
-        if (settings !== null) {
-            return settings;
-        }
-
         // Skip if already in progress
         if (fetchInProgressRef.current) {
             return null;
@@ -101,13 +95,13 @@ export const useSettings = (): UseSettingsReturn => {
             setIsLoading(false);
             fetchInProgressRef.current = false;
         }
-    }, [isAuthenticated, settings, clearError, isInitialized]);
+    }, [settings, clearError, isInitialized]);
 
     /**
      * Update user settings
      */
     const updateSettings = useCallback(async (data: UserSettingsUpdate): Promise<UserSettings | null> => {
-        if (!isAuthenticated) {
+        if (!isAuthenticatedOrCached) {
             return null;
         }
 
@@ -135,13 +129,13 @@ export const useSettings = (): UseSettingsReturn => {
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, clearError]);
+    }, [isAuthenticatedOrCached, clearError]);
 
     /**
      * Initialize settings when authenticated
      */
     useEffect(() => {
-        if (isAuthenticated && !isInitialized && !fetchInProgressRef.current) {
+        if (isAuthenticatedOrCached && !isInitialized && !fetchInProgressRef.current) {
             // Add a small delay to allow auth state to fully resolve
             const timeoutId = setTimeout(() => {
                 getSettings().then(()=>{});
@@ -149,7 +143,7 @@ export const useSettings = (): UseSettingsReturn => {
 
             return () => clearTimeout(timeoutId);
         }
-    }, [isAuthenticated, isInitialized, getSettings]);
+    }, [isAuthenticatedOrCached, isInitialized, getSettings]);
 
     return {
         // Settings state

@@ -5,6 +5,7 @@ import PDFDocumentWrapper from './PDFDocumentWrapper';
 import FullScreenOverlay from './FullScreenOverlay';
 import MultiFileUploader from "./pdf_component/MultiFileUploader";
 import { ChevronDown, ChevronUp, Maximize, Check, X } from 'lucide-react';
+import { useNotification } from '../../contexts/NotificationContext';
 
 /**
  * Component that renders a list of PDF files with open/close functionality
@@ -23,7 +24,7 @@ const MultiPDFRenderer: React.FC = () => {
     } = useFileContext();
     // State for fullscreen mode
     const [fullscreenFile, setFullscreenFile] = useState<File | null>(null);
-
+    const { notify } = useNotification();
     // Find file index by key
     const getFileIndex = useCallback((file: File) => {
         return files.findIndex(f =>
@@ -37,8 +38,6 @@ const MultiPDFRenderer: React.FC = () => {
     const handleFileSelection = useCallback((file: File) => {
         // Don't reselect the same file
         if (currentFile === file) return;
-
-        console.log(`[MultiPDFRenderer] Switching to file: ${file.name} (${getFileKey(file)})`);
 
         // Set new current file
         setCurrentFile(file);
@@ -71,8 +70,17 @@ const MultiPDFRenderer: React.FC = () => {
                     }
                 }));
             }
+            notify({
+                message: `File "${file.name}" and its highlights removed permanently`,
+                type: 'success',
+                duration: 3000
+            });
         } catch (error) {
-            console.error("[MultiPDFRenderer] Error removing file:", error);
+            notify({
+                message: `Error removing file: ${error}`,
+                type: 'error',
+                duration: 3000
+            });
         }
     }, [getFileIndex, removeFile]);
 
@@ -86,6 +94,11 @@ const MultiPDFRenderer: React.FC = () => {
 
         // Set the file for fullscreen display
         setFullscreenFile(file);
+        notify({
+            message: `Exit full screen mode by pressing ESC or clicking the X button`,
+            type: 'info',
+            duration: 3000
+        });
     }, [setCurrentFile, openFile]);
 
     // Handle exiting fullscreen mode

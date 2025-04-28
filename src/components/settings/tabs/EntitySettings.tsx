@@ -15,6 +15,7 @@ import useEntityDefinitions from "../../../hooks/settings/useEntityDefinitions";
 import useAuth from "../../../hooks/auth/useAuth";
 import { useLoading } from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
+import { useNotification } from "../../../contexts/NotificationContext";
 
 
 export default function EntitySettings() {
@@ -38,8 +39,8 @@ export default function EntitySettings() {
     const [selectedGemini, setSelectedGemini] = useState<string[]>([]);
     const [selectedHideme, setSelectedHideme] = useState<string[]>([]);
     const [openAccordions, setOpenAccordions] = useState<string[]>(["presidio", "gliner", "gemini", "hideme"]);
-    const [localSaveSuccess, setLocalSaveSuccess] = useState(false);
     const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
+    const { notify, confirm } = useNotification();
     // Refs to track which entity types we've already tried to load
     const loadedEntityTypesRef = useRef<Set<string>>(new Set());
 
@@ -47,7 +48,6 @@ export default function EntitySettings() {
     useEffect(() => {
         const loadEntities = async () => {
             if (!isAuthenticated || isUserLoading) {
-                console.warn('[EntitySettings] User not authenticated or loading, skipping entity load');
                 return;
             }
             try {
@@ -62,19 +62,26 @@ export default function EntitySettings() {
                 // Load each method only if not already loaded
                 for (const method of methodsToLoad) {
                     if (!loadedEntityTypesRef.current.has(method.name)) {
-                        console.log(`[EntitySettings] Loading ${method.name} entities (method ID: ${method.id})`);
                         loadedEntityTypesRef.current.add(method.name);
                         try {
                             await getModelEntities(method.id);
                         } catch (error) {
-                            // Log but continue with other methods
-                            console.error(`[EntitySettings] Error loading ${method.name} entities:`, error);
+                            notify({
+                                message: `Error loading ${method.name} entities:`,
+                                type: 'error',
+                                duration: 3000
+                            });
                         }
                     }
                 }
 
             } catch (error) {
                 console.error('[EntitySettings] Error loading entity data:', error);
+                notify({
+                    message: 'Error loading entity data:',
+                    type: 'error',
+                    duration: 3000
+                });
             }
         };
 
@@ -84,7 +91,6 @@ export default function EntitySettings() {
     // Sync local selections with fetched/updated entities from useUser hook
     useEffect(() => {
         if (modelEntities && Object.keys(modelEntities).length > 0) {
-            console.log("[EntitySettings] Syncing local state with modelEntities");
 
             const syncSelection = (methodKey: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
                 const methodId = METHOD_ID_MAP[methodKey];
@@ -92,7 +98,6 @@ export default function EntitySettings() {
 
                 // Check if entitiesForMethod is actually an array before mapping
                 if (Array.isArray(entitiesForMethod)) {
-                    console.log(`[EntitySettings] Syncing ${methodKey}: Found ${entitiesForMethod.length} entities.`);
                     setter(entitiesForMethod.map(e => e.entity_text));
                 } else {
                     // If it's not an array (e.g., undefined or null), keep current selection
@@ -139,7 +144,6 @@ export default function EntitySettings() {
             }
             return newSelection;
         });
-        setLocalSaveSuccess(false);
     };
 
     const togglePresidio = createToggleHandler(setSelectedPresidio, presidioOptions);
@@ -152,15 +156,25 @@ export default function EntitySettings() {
         options: OptionType[],
         setter: React.Dispatch<React.SetStateAction<string[]>>
     ) => () => {
-        setter(options.filter(opt => !opt.value.startsWith('ALL_')).map(opt => opt.value));
-        setLocalSaveSuccess(false);
+        setter(
+            options.filter(opt => !opt.value.startsWith('ALL_')).map(opt => opt.value)
+        );
+        notify({
+            message: 'All entities selected.',
+            type: 'success',
+            duration: 3000
+        });
     };
 
     const createClearAllHandler = (
         setter: React.Dispatch<React.SetStateAction<string[]>>
     ) => () => {
         setter([]);
-        setLocalSaveSuccess(false);
+        notify({
+            message: 'All entities cleared.',
+            type: 'success',
+            duration: 3000
+        });
     };
 
     const selectAllPresidio = createSelectAllHandler(presidioOptions, setSelectedPresidio);
@@ -175,42 +189,65 @@ export default function EntitySettings() {
     // --- Save Changes ---
     const handleSaveChanges = useCallback(async () => {
             startLoading('setting.entity');
-        setLocalSaveSuccess(false);
+        notify({
+            message: 'Saving entity settings...',
+            type: 'info',
+            duration: 3000
+        });
         clearError();
 
         try {
             // Convert string arrays to OptionType arrays for each model
+            const presidioEntitiesToSave = entitiesToOptions(selectedPresidio, presidioOptions);
+            const glinerEntitiesToSave = entitiesToOptions(selectedGliner, glinerOptions);
+            const geminiEntitiesToSave = entitiesToOptions(selectedGemini, geminiOptions);
+            const hidemeEntitiesToSave = entitiesToOptions(selectedHideme, hidemeOptions);
 
             // Use the shared hook to save entity settings
-            await replaceModelEntities(METHOD_ID_MAP.presidio,
-                entitiesToOptions(selectedPresidio, presidioOptions)
-            );
-            await replaceModelEntities(METHOD_ID_MAP.gliner,
-                entitiesToOptions(selectedGliner, glinerOptions)
-            );
-            await replaceModelEntities(METHOD_ID_MAP.gemini,
-                entitiesToOptions(selectedGemini, geminiOptions)
-            );
-            await replaceModelEntities(METHOD_ID_MAP.hideme,
-                entitiesToOptions(selectedHideme, hidemeOptions)
-            );
+            await replaceModelEntities(METHOD_ID_MAP.presidio, presidioEntitiesToSave);
+            await replaceModelEntities(METHOD_ID_MAP.gliner, glinerEntitiesToSave);
+            await replaceModelEntities(METHOD_ID_MAP.gemini, geminiEntitiesToSave);
+            await replaceModelEntities(METHOD_ID_MAP.hideme, hidemeEntitiesToSave);
 
-            setLocalSaveSuccess(true);
-            setTimeout(() => setLocalSaveSuccess(false), 3000);
+            // --- Add this event dispatch ---
+            window.dispatchEvent(new CustomEvent('settings-changed', {
+                detail: {
+                    type: 'entity', // Specify the type
+                    settings: {
+                        // Send the updated entity selections in the payload
+                        presidio: presidioEntitiesToSave,
+                        gliner: glinerEntitiesToSave,
+                        gemini: geminiEntitiesToSave,
+                        hideme: hidemeEntitiesToSave,
+                    }
+                }
+            }));
+
+            notify({
+                message: 'Entity settings saved successfully!',
+                type: 'success',
+                duration: 3000
+            });
         } catch (err: any) {
+            notify({
+                message: 'Error saving entity settings:',
+                type: 'error',
+                duration: 3000
+            });
             console.error("Error saving entity settings:", err);
         } finally {
             stopLoading('setting.entity');
         }
     }, [
-        entitiesToOptions,
-        createClearAllHandler,
         replaceModelEntities,
         selectedPresidio,
         selectedGliner,
         selectedGemini,
         selectedHideme,
-        clearError
+        clearError,
+        startLoading,
+        stopLoading,
+        entitiesToOptions
     ]);
 
     // UI components
@@ -225,26 +262,6 @@ export default function EntitySettings() {
 
     return (
         <div className="space-y-6">
-            {(saveError) && (
-                <div className="alert alert-destructive">
-                    <AlertTriangle className="alert-icon" size={16}/>
-                    <div>
-                        <div className="alert-title">Save Error</div>
-                        <div className="alert-description">{saveError}</div>
-                    </div>
-                </div>
-            )}
-
-            {(localSaveSuccess) && (
-                <div className="alert alert-success">
-                    <div>
-                        <CheckCircle className="alert-icon" size={16}/>
-                        <div className="alert-title">Success</div>
-                        <div className="alert-description">Entity settings saved successfully!</div>
-                    </div>
-                </div>
-            )}
-
             <div className="card">
                 <div className="card-header">
                     <h2 className="card-title">Entity Detection Settings</h2>

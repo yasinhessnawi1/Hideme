@@ -1,16 +1,15 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Select from 'react-select';
-import {useFileContext} from '../../../contexts/FileContext';
-import {useEditContext} from '../../../contexts/EditContext';
-import {useHighlightStore} from '../../../contexts/HighlightStoreContext';
-import {getFileKey} from '../../../contexts/PDFViewerContext';
-import {usePDFApi} from '../../../hooks/usePDFApi';
-import {EntityFileSummary, HighlightType, OptionType} from '../../../types';
+import { useFileContext } from '../../../contexts/FileContext';
+import { useEditContext } from '../../../contexts/EditContext';
+import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
+import { getFileKey } from '../../../contexts/PDFViewerContext';
+import { usePDFApi } from '../../../hooks/usePDFApi';
+import { EntityFileSummary, HighlightType, ModelEntity, OptionType } from '../../../types';
 import '../../../styles/modules/pdf/SettingsSidebar.css';
 import '../../../styles/modules/pdf/EntityDetectionSidebar.css';
-import {AlertTriangle, CheckCircle, ChevronDown, ChevronRight, ChevronUp, Save, Sliders} from 'lucide-react';
-import {usePDFNavigation} from '../../../hooks/usePDFNavigation';
-import useBanList from '../../../hooks/settings/useBanList';
+import { ChevronDown, ChevronRight, ChevronUp, Save, Sliders } from 'lucide-react';
+import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 import {
     geminiOptions,
     getColorDotStyle,
@@ -20,17 +19,16 @@ import {
     METHOD_ID_MAP,
     MODEL_COLORS,
     prepareEntitiesForApi,
-    presidioOptions
+    presidioOptions, entitiesToOptions
 } from '../../../utils/EntityUtils';
-import useSettings from "../../../hooks/settings/useSettings";
-import useEntityDefinitions from "../../../hooks/settings/useEntityDefinitions";
-import useAuth from "../../../hooks/auth/useAuth";
-import {EntityHighlightProcessor} from "../../../managers/EntityHighlightProcessor";
+import { EntityHighlightProcessor } from "../../../managers/EntityHighlightProcessor";
 import processingStateService from '../../../services/ProcessingStateService';
 import summaryPersistenceStore from '../../../store/SummaryPersistenceStore';
-import {useUserContext} from "../../../contexts/UserContext";
-import {useLoading} from "../../../contexts/LoadingContext";
-import LoadingOverlay, {LoadingWrapper} from '../../common/LoadingWrapper';
+import { useUserContext } from "../../../contexts/UserContext";
+import { useLoading } from "../../../contexts/LoadingContext";
+import { LoadingWrapper } from '../../common/LoadingWrapper';
+import { useNotification } from '../../../contexts/NotificationContext';
+import { useAuth } from '../../../hooks/auth/useAuth';
 
 /**
  * EntityDetectionSidebar component
@@ -42,16 +40,14 @@ const EntityDetectionSidebar: React.FC = () => {
     const {
         currentFile,
         selectedFiles,
-        files
+        files,
+        openFile
     } = useFileContext();
 
     // Use our improved navigation hook
     const pdfNavigation = usePDFNavigation('entity-sidebar');
 
-    const {
-
-        isLoading: isUserLoading,
-        isAuthenticated,
+    const { isLoading: isUserLoading,
         error: userError,
         clearError: clearUserError,
         modelEntities,
@@ -59,12 +55,14 @@ const EntityDetectionSidebar: React.FC = () => {
         replaceModelEntities,
         modelLoading: entitiesLoading,
         settings, updateSettings,
+        getSettings,
         settingsLoading: isSettingsLoading,
-        banList,
+        banList, getBanList,
         banListLoading: isBanListLoading
     } = useUserContext();
+    const { isAuthenticated } = useAuth();
 
-    const {        selectedMlEntities,
+    const { selectedMlEntities,
         setSelectedMlEntities,
         selectedAiEntities,
         setSelectedAiEntities,
@@ -73,19 +71,22 @@ const EntityDetectionSidebar: React.FC = () => {
         selectedHideMeEntities,
         setSelectedHideMeEntities,
         setDetectionMapping,
-        setFileDetectionMapping,} = useEditContext();
+        setFileDetectionMapping,
+        setSelectedHighlightId,
+        setSelectedHighlightIds
+    } = useEditContext();
 
 
     const {
         removeHighlightsByType,
+        getHighlightsForPage,
+        getHighlightsByType
     } = useHighlightStore();
 
     // Component state
     const { startLoading, stopLoading, isLoading: isGlobalLoading } = useLoading();
-
+    const { notify, confirm } = useNotification();
     const [detectionScope, setDetectionScope] = useState<'current' | 'selected' | 'all'>('all');
-    const [detectionError, setDetectionError] = useState<string | null>(null);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [fileSummaries, setFileSummaries] = useState<EntityFileSummary[]>([]);
     const [expandedFileSummaries, setExpandedFileSummaries] = useState<Set<string>>(new Set());
     const [detectionThreshold, setDetectionThreshold] = useState(() =>
@@ -94,7 +95,6 @@ const EntityDetectionSidebar: React.FC = () => {
     const [useBanlist, setUseBanlist] = useState(() =>
         settings?.use_banlist_for_detection ?? false
     );
-
     // Add state for tracking processed files
     const [analyzedFilesCount, setAnalyzedFilesCount] = useState<number>(0);
 
@@ -183,16 +183,19 @@ const EntityDetectionSidebar: React.FC = () => {
     // Simple navigation to a page using our improved navigation system
     const navigateToPage = useCallback((fileKey: string, pageNumber: number) => {
         // Use our improved navigation hook to navigate to the page
-        pdfNavigation.navigateToPage(pageNumber, fileKey, {
-            // Use smooth scrolling for better user experience
-            behavior: 'smooth',
-            // Align to top for better visibility
-            alignToTop: true,
-            // Always highlight the thumbnail
-            highlightThumbnail: true
-        });
-
-    }, [pdfNavigation]);
+        const file = files.find(f => getFileKey(f) === fileKey);
+        if (file) {
+            openFile(file);
+            pdfNavigation.navigateToPage(pageNumber, fileKey, {
+                // Use smooth scrolling for better user experience
+                behavior: 'smooth',
+                // Align to top for better visibility
+                alignToTop: true,
+                // Always highlight the thumbnail
+                highlightThumbnail: true
+            });
+        }
+    }, [pdfNavigation, openFile, files]);
 
 
     // Load saved file data from summaryPersistenceStore on component mount
@@ -209,11 +212,14 @@ const EntityDetectionSidebar: React.FC = () => {
             const savedSummaries = summaryPersistenceStore.getFileSummaries<EntityFileSummary>('entity');
 
             if (savedSummaries.length > 0) {
-                console.log(`[EntityDetectionSidebar] Loaded ${savedSummaries.length} file summaries from persistence store`);
                 setFileSummaries(savedSummaries);
             }
         } catch (error) {
-            console.error('[EntityDetectionSidebar] Error loading persisted detection data:', error);
+            notify({
+                type: 'error',
+                message: 'Error loading saved detection data: ' + error.message,
+                position: 'top-right'
+            });
         }
     }, []);
 
@@ -232,6 +238,7 @@ const EntityDetectionSidebar: React.FC = () => {
             return updatedSummaries;
         });
     }, []);
+
     useEffect(() => {
         // Skip if no files or no summaries
         if (files.length === 0) {
@@ -264,7 +271,6 @@ const EntityDetectionSidebar: React.FC = () => {
             const { fileKey, hasEntityResults, detectionResult } = customEvent.detail || {};
 
             if (fileKey && hasEntityResults) {
-                console.log(`[EntityDetectionSidebar] Auto-processing completed for file: ${fileKey}`);
 
                 // Add to our tracked files through the persistence store
                 summaryPersistenceStore.addAnalyzedFile('entity', fileKey);
@@ -308,7 +314,6 @@ const EntityDetectionSidebar: React.FC = () => {
             const { fileKey } = customEvent.detail || {};
 
             if (fileKey) {
-                console.log(`[EntityDetectionSidebar] File removed: ${fileKey}`);
 
                 // Update our tracked files set
                 if (analyzedFilesRef.current.has(fileKey)) {
@@ -356,18 +361,21 @@ const EntityDetectionSidebar: React.FC = () => {
 
 
     // Handle batch entity detection across multiple files
-    const handleDetect = useCallback(async (filesToProcess : File[] = []) => {
-        if(filesToProcess?.length === 0){
-             filesToProcess = getFilesToProcess();
+    const handleDetect = useCallback(async (filesToProcess: File[] = []) => {
+        if (filesToProcess?.length === 0) {
+            filesToProcess = getFilesToProcess();
         }
 
         if (filesToProcess.length === 0) {
-            setDetectionError("No files selected for detection.");
+            notify({
+                type: 'info',
+                message: 'No files selected for detection. Upload or select files to detect entities.',
+                position: 'top-right'
+            });
             return;
         }
 
         startLoading('detection_sidebar.detect')
-        setDetectionError(null);
         resetErrors();
 
         try {
@@ -400,7 +408,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 selectedHideMeEntities,
                 'ALL_HIDEME'
             );
-
+            const banListWords = await getBanList();
             // Prepare detection options
             const detectionOptions = {
                 presidio: presidioEntities.length > 0 ? presidioEntities : null,
@@ -408,13 +416,12 @@ const EntityDetectionSidebar: React.FC = () => {
                 gemini: geminiEntities.length > 0 ? geminiEntities : null,
                 hideme: hidemeEntities.length > 0 ? hidemeEntities : null,
                 threshold: detectionThreshold,
-                banlist: useBanlist && banList?.words ? banList.words : null
+                banlist: useBanlist && banListWords ? banListWords.words : null
             };
 
             // Use the consolidated batch hybrid detection from the hook
             const results = await runBatchHybridDetect(filesToProcess, detectionOptions);
 
-            // Update results state
 
             // Process detection for each file using the EntityHighlightProcessor
             for (const [fileKey, result] of Object.entries(results)) {
@@ -456,7 +463,11 @@ const EntityDetectionSidebar: React.FC = () => {
                     // Update local ref
                     analyzedFilesRef.current = summaryPersistenceStore.getAnalyzedFiles('entity');
                 } catch (error) {
-                    console.error(`[EntityDetectionSidebar] Error processing highlights for file ${fileKey}:`, error);
+                    notify({
+                        type: 'error',
+                        message: 'Error processing highlights for file ' + fileKey + ': ' + error.message,
+                        position: 'bottom-left'
+                    });
                     processingStateService.completeProcessing(fileKey, false);
                 }
             }
@@ -467,10 +478,17 @@ const EntityDetectionSidebar: React.FC = () => {
             // Update analyzed files count
             setAnalyzedFilesCount(analyzedFilesRef.current.size);
 
-            setSuccessMessage("Entity detection completed successfully");
-            setTimeout(() => setSuccessMessage(null), 3000);
+            notify({
+                type: 'success',
+                message: 'Entity detection completed successfully',
+                position: 'top-right'
+            });
         } catch (err: any) {
-            setDetectionError(err.message || 'An error occurred during entity detection');
+            notify({
+                type: 'error',
+                message: 'An error occurred during entity detection: ' + err.message,
+                position: 'top-right'
+            });
 
             // Mark all files as failed
             filesToProcess.forEach(file => {
@@ -502,9 +520,7 @@ const EntityDetectionSidebar: React.FC = () => {
     useEffect(() => {
         const handleExternalDetectionTrigger = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const {source, filesToProcess} = customEvent.detail || {};
-
-            console.log(`[EntityDetectionSidebar] Received external detection trigger from ${source}`);
+            const { source, filesToProcess } = customEvent.detail || {};
 
             // Run detection process
             handleDetect(filesToProcess);
@@ -552,8 +568,6 @@ const EntityDetectionSidebar: React.FC = () => {
             if (type && type !== HighlightType.ENTITY && !allTypes) return;
 
             if (fileKey) {
-                console.log(`[EntityDetectionSidebar] Entity highlights cleared for file: ${fileKey}`);
-
                 // Update file summaries to reflect cleared highlights
                 setFileSummaries(prev => {
                     // Remove summary for this file
@@ -604,26 +618,19 @@ const EntityDetectionSidebar: React.FC = () => {
     // Improved entity loading with better error handling and retry mechanism
     useEffect(() => {
         // Skip if not authenticated or still loading authentication
-        if (!isAuthenticated || isUserLoading) {
-            return;
-        }
-
-        // Skip if already initialized
-        if (entitiesInitialized) {
+        if (!isAuthenticated || entitiesLoading || isSettingsLoading) {
             return;
         }
 
         // Load entities for all methods in parallel
         const loadAllEntities = async () => {
             try {
-                console.log("[EntityDetectionSidebar] Loading all entity types");
-
                 // Define methods to load
                 const methodsToLoad = [
-                    {id: METHOD_ID_MAP.presidio, name: 'presidio'},
-                    {id: METHOD_ID_MAP.gliner, name: 'gliner'},
-                    {id: METHOD_ID_MAP.gemini, name: 'gemini'},
-                    {id: METHOD_ID_MAP.hideme, name: 'hideme'}
+                    { id: METHOD_ID_MAP.presidio, name: 'presidio' },
+                    { id: METHOD_ID_MAP.gliner, name: 'gliner' },
+                    { id: METHOD_ID_MAP.gemini, name: 'gemini' },
+                    { id: METHOD_ID_MAP.hideme, name: 'hideme' }
                 ];
 
                 // Create parallel load promises
@@ -637,33 +644,67 @@ const EntityDetectionSidebar: React.FC = () => {
                         // Mark as attempted
                         loadAttemptedRef.current.add(method.id);
 
-                        console.log(`[EntityDetectionSidebar] Loading ${method.name} entities (Method ID: ${method.id})`);
                         return await getModelEntities(method.id);
                     } catch (err) {
-                        console.error(`[EntityDetectionSidebar] Error loading ${method.name} entities:`, err);
+                        console.warn(`[EntityDetectionSidebar] Failed to load entities for ${method.name}:`, err);
                         return null;
                     }
                 });
 
-                // Wait for all loads to complete
-                await Promise.all(loadPromises);
+                const [presidio, gliner, gemini, hideme] = await Promise.all(loadPromises);
 
-                // Mark initialization as complete
-                setEntitiesInitialized(true);
-                console.log("[EntityDetectionSidebar] All entity types loaded successfully");
+                // Handle the results
+                if (presidio) {
+                    handlePresidioChange(handleAllOptions(entitiesToOptions(presidio.map(e => e.entity_text), presidioOptions), presidioOptions, 'ALL_PRESIDIO_P'));
+                }
+                if (gliner) {
+                    handleGlinerChange(handleAllOptions(entitiesToOptions(gliner.map(e => e.entity_text), glinerOptions), glinerOptions, 'ALL_GLINER'));
+                }
+                if (gemini) {
+                    handleGeminiChange(handleAllOptions(entitiesToOptions(gemini.map(e => e.entity_text), geminiOptions), geminiOptions, 'ALL_GEMINI'));
+                }
+                if (hideme) {
+                    handleHidemeChange(handleAllOptions(entitiesToOptions(hideme.map(e => e.entity_text), hidemeOptions), hidemeOptions, 'ALL_HIDEME'));
+                }
+
+
             } catch (err) {
-                console.error("[EntityDetectionSidebar] Error loading entities:", err);
+                notify({
+                    type: 'error',
+                    message: 'Error loading entities: ' + err.message,
+                    position: 'top-right'
+                });
+            }
+        };
+        if (isUserLoading) {
+            return;
+        }
+
+        const loadOptions = async () => {
+            try {
+                const settings = await getSettings();
+                if (settings) {
+                    setDetectionThreshold(settings.detection_threshold ?? 0.5);
+                    setUseBanlist(settings.use_banlist_for_detection ?? false);
+                }
+            } catch (error) {
+                notify({
+                    type: 'error',
+                    message: 'Error loading settings: ' + error.message,
+                    position: 'top-right'
+                });
             }
         };
 
-        loadAllEntities();
-    }, [isAuthenticated, isUserLoading, getModelEntities, entitiesInitialized]);
+        // Load both in parallel
+        Promise.all([loadOptions(), loadAllEntities()]);
+
+    }, [isAuthenticated, isUserLoading, getModelEntities, setDetectionThreshold, setUseBanlist, getSettings, entitiesLoading, isSettingsLoading]);
 
     useEffect(() => {
         if (!entitiesInitialized) return;
 
         const applyModelEntities = () => {
-            console.log("[EntityDetectionSidebar] Applying model entities to selections");
 
             // Helper to safely map entities to option types and handle ALL options
             const getEntityOptions = (methodId: number, allOptions: OptionType[], allOptionValue: string) => {
@@ -695,25 +736,21 @@ const EntityDetectionSidebar: React.FC = () => {
             // Apply entities for each method
             const presOptions = getEntityOptions(METHOD_ID_MAP.presidio, presidioOptions, 'ALL_PRESIDIO_P');
             if (presOptions.length > 0) {
-                console.log(`[EntityDetectionSidebar] Setting ${presOptions.length} Presidio entities`);
                 setSelectedMlEntities(presOptions);
             }
 
             const glinerOpts = getEntityOptions(METHOD_ID_MAP.gliner, glinerOptions, 'ALL_GLINER');
             if (glinerOpts.length > 0) {
-                console.log(`[EntityDetectionSidebar] Setting ${glinerOpts.length} Gliner entities`);
                 setSelectedGlinerEntities(glinerOpts);
             }
 
             const geminiOpts = getEntityOptions(METHOD_ID_MAP.gemini, geminiOptions, 'ALL_GEMINI');
             if (geminiOpts.length > 0) {
-                console.log(`[EntityDetectionSidebar] Setting ${geminiOpts.length} Gemini entities`);
                 setSelectedAiEntities(geminiOpts);
             }
 
             const hidemeOpts = getEntityOptions(METHOD_ID_MAP.hideme, hidemeOptions, 'ALL_HIDEME');
             if (hidemeOpts.length > 0) {
-                console.log(`[EntityDetectionSidebar] Setting ${hidemeOpts.length} Hideme entities`);
                 setSelectedHideMeEntities(hidemeOpts);
             }
         };
@@ -747,11 +784,10 @@ const EntityDetectionSidebar: React.FC = () => {
     useEffect(() => {
         const handleSettingsChange = (event: Event) => {
             const customEvent = event as CustomEvent;
-            const {type, settings} = customEvent.detail || {};
+            const { type, settings } = customEvent.detail || {};
 
             // Only apply entity settings
             if (type === 'entity' && settings) {
-                console.log('[EntityDetectionSidebar] Received entity settings change event');
 
                 // Apply appropriate entity settings if provided
                 if (settings.presidio) {
@@ -793,6 +829,7 @@ const EntityDetectionSidebar: React.FC = () => {
         setSelectedAiEntities,
         setSelectedHideMeEntities
     ]);
+
     // Format for entity type display (shortens if too long)
     const formatEntityDisplay = (entityType: string): string => {
         const formatted = formatEntityName(entityType);
@@ -837,43 +874,60 @@ const EntityDetectionSidebar: React.FC = () => {
     };
 
     // Reset selected entities and clear detection results
-    const handleReset = useCallback(() => {
-        setSelectedAiEntities([]);
-        setSelectedMlEntities([]);
-        setSelectedGlinerEntities([]);
-        setSelectedHideMeEntities([]);
+    const handleReset = useCallback(async () => {
 
-        // Get files to reset based on current scope
-        const filesToReset = getFilesToProcess();
+        const confirmReset = await confirm({
+            title: 'Reset Entity Detection',
+            message: 'Are you sure you want to reset the entity detection settings?',
+            type: 'warning',
+            confirmButton: {
+                label: 'Reset',
+            }
+        });
 
-        if (filesToReset.length > 0) {
-            // Clear entity highlights for all files in current scope
-            filesToReset.forEach(file => {
-                const fileKey = getFileKey(file);
-                removeHighlightsByType(fileKey, HighlightType.ENTITY);
+        if (confirmReset) {
+            setSelectedAiEntities([]);
+            setSelectedMlEntities([]);
+            setSelectedGlinerEntities([]);
+            setSelectedHideMeEntities([]);
 
-                // Remove from processing state tracking
-                processingStateService.removeFile(fileKey);
 
-                // Remove from persistence store
-                summaryPersistenceStore.removeFileFromSummaries('entity', fileKey);
+            // Get files to reset based on current scope
+            const filesToReset = getFilesToProcess();
 
-                // If this is the current file, also update the current detection mapping
-                if (currentFile && getFileKey(currentFile) === fileKey) {
-                    setDetectionMapping(null);
-                }
+            if (filesToReset.length > 0) {
+                // Clear entity highlights for all files in current scope
+                filesToReset.forEach(file => {
+                    const fileKey = getFileKey(file);
+                    removeHighlightsByType(fileKey, HighlightType.ENTITY);
+
+                    // Remove from processing state tracking
+                    processingStateService.removeFile(fileKey);
+
+                    // Remove from persistence store
+                    summaryPersistenceStore.removeFileFromSummaries('entity', fileKey);
+
+                    // If this is the current file, also update the current detection mapping
+                    if (currentFile && getFileKey(currentFile) === fileKey) {
+                        setDetectionMapping(null);
+                    }
+                });
+            } else {
+                // If no files to process, just reset the current detection mapping
+                setDetectionMapping(null);
+            }
+
+            setExpandedFileSummaries(new Set());
+
+            // Update the analyzed files count
+            analyzedFilesRef.current = summaryPersistenceStore.getAnalyzedFiles('entity');
+            setAnalyzedFilesCount(analyzedFilesRef.current.size);
+            notify({
+                type: 'info',
+                message: 'Entity Settings reset successfully',
+                position: 'top-right'
             });
-        } else {
-            // If no files to process, just reset the current detection mapping
-            setDetectionMapping(null);
         }
-
-        setExpandedFileSummaries(new Set());
-        setDetectionError(null);
-
-        // Update the analyzed files count
-        analyzedFilesRef.current = summaryPersistenceStore.getAnalyzedFiles('entity');
-        setAnalyzedFilesCount(analyzedFilesRef.current.size);
     }, [
         setSelectedAiEntities,
         setSelectedMlEntities,
@@ -887,10 +941,18 @@ const EntityDetectionSidebar: React.FC = () => {
 
     // Save detection settings to user preferences
     const handleSaveSettings = useCallback(async () => {
+        if (!isAuthenticated || isUserLoading || entitiesLoading || isSettingsLoading) {
+            notify({
+                type: 'error',
+                message: 'Please wait for authentication to complete',
+                position: 'top-right'
+            });
+            return;
+        }
+
         try {
             startLoading('detection_sidebar.save');
             clearUserError();
-            setDetectionError(null);
 
             // Helper function to convert ALL options to individual entities for saving
             const expandAllOptions = (
@@ -916,21 +978,44 @@ const EntityDetectionSidebar: React.FC = () => {
             const expandedGemini = expandAllOptions(selectedAiEntities, geminiOptions, 'ALL_GEMINI');
             const expandedHideme = expandAllOptions(selectedHideMeEntities, hidemeOptions, 'ALL_HIDEME');
 
-            // Add entities for each method
-            await replaceModelEntities(METHOD_ID_MAP.presidio, expandedPresidio);
-            await replaceModelEntities(METHOD_ID_MAP.gliner, expandedGliner);
-            await replaceModelEntities(METHOD_ID_MAP.gemini, expandedGemini);
-            await replaceModelEntities(METHOD_ID_MAP.hideme, expandedHideme);
+            // Add a small delay to ensure auth state is fully ready
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Double check authentication before proceeding
+            if (!isAuthenticated) {
+                throw new Error('Authentication lost before save operation');
+            }
+
+            // Save entities for each method sequentially to avoid race conditions
+            for (const [methodId, entities] of [
+                [METHOD_ID_MAP.presidio, expandedPresidio] as [number, OptionType[]],
+                [METHOD_ID_MAP.gliner, expandedGliner] as [number, OptionType[]],
+                [METHOD_ID_MAP.gemini, expandedGemini] as [number, OptionType[]],
+                [METHOD_ID_MAP.hideme, expandedHideme] as [number, OptionType[]]
+            ]) {
+                if (!isAuthenticated) {
+                    throw new Error('Authentication lost during save operation');
+                }
+                await replaceModelEntities(methodId, entities);
+                // Add a small delay between operations
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
 
             // Update app settings
+            if (!isAuthenticated) {
+                throw new Error('Authentication lost during save operation');
+            }
             await updateSettings({
                 detection_threshold: detectionThreshold,
                 use_banlist_for_detection: useBanlist
             });
 
             // Show success message
-            setSuccessMessage("Settings saved successfully");
-            setTimeout(() => setSuccessMessage(null), 3000);
+            notify({
+                type: 'success',
+                message: 'Entity Settings saved successfully',
+                position: 'top-right'
+            });
 
             // Notify other components
             window.dispatchEvent(new CustomEvent('settings-changed', {
@@ -948,12 +1033,17 @@ const EntityDetectionSidebar: React.FC = () => {
             }));
 
         } catch (error) {
-            console.error("[EntityDetectionSidebar] Error saving settings:", error);
-            setDetectionError("Failed to save settings");
+            notify({
+                type: 'error',
+                message: 'Error saving settings: ' + error.message,
+                position: 'top-right'
+            });
         } finally {
             stopLoading('detection_sidebar.save');
         }
     }, [
+        isAuthenticated,
+        isUserLoading,
         replaceModelEntities,
         updateSettings,
         selectedMlEntities,
@@ -967,7 +1057,7 @@ const EntityDetectionSidebar: React.FC = () => {
         stopLoading,
     ]);
 
-    const ColorDot: React.FC<{ color: string }> = ({color}) => (
+    const ColorDot: React.FC<{ color: string }> = ({ color }) => (
         <span
             className="color-dot"
             style={getColorDotStyle(color)}
@@ -975,7 +1065,7 @@ const EntityDetectionSidebar: React.FC = () => {
     );
 
     // Combined loading state
-    const isLoading = isUserLoading || isGlobalLoading('detection_sidebar.save') || loading || isSettingsLoading || isBanListLoading || entitiesLoading ;
+    const isLoading = isUserLoading || isGlobalLoading('detection_sidebar.save') || loading || isSettingsLoading || isBanListLoading || entitiesLoading;
 
     return (
         <div className="entity-detection-sidebar">
@@ -1020,7 +1110,7 @@ const EntityDetectionSidebar: React.FC = () => {
 
                 <div className="sidebar-section entity-select-section">
                     <div className="entity-select-header">
-                        <ColorDot color={MODEL_COLORS.presidio}/>
+                        <ColorDot color={MODEL_COLORS.presidio} />
                         <h4>Presidio Machine Learning</h4>
                     </div>
                     <Select
@@ -1042,7 +1132,7 @@ const EntityDetectionSidebar: React.FC = () => {
 
                 <div className="sidebar-section entity-select-section">
                     <div className="entity-select-header">
-                        <ColorDot color={MODEL_COLORS.gliner}/>
+                        <ColorDot color={MODEL_COLORS.gliner} />
                         <h4>Gliner Machine Learning</h4>
                     </div>
                     <Select
@@ -1064,7 +1154,7 @@ const EntityDetectionSidebar: React.FC = () => {
 
                 <div className="sidebar-section entity-select-section">
                     <div className="entity-select-header">
-                        <ColorDot color={MODEL_COLORS.gemini}/>
+                        <ColorDot color={MODEL_COLORS.gemini} />
                         <h4>Gemini AI</h4>
                     </div>
                     <Select
@@ -1085,7 +1175,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 </div>
                 <div className="sidebar-section entity-select-section">
                     <div className="entity-select-header">
-                        <ColorDot color={MODEL_COLORS.hideme}/>
+                        <ColorDot color={MODEL_COLORS.hideme} />
                         <h4>Hide me AI</h4>
                     </div>
                     <Select
@@ -1107,7 +1197,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 {/* Detection Threshold Slider */}
                 <div className="sidebar-section entity-select-section">
                     <div className="entity-select-header">
-                        <Sliders size={18}/>
+                        <Sliders size={18} />
                         <h4>Detection Settings</h4>
                     </div>
                     <div className="form-group mt-2">
@@ -1154,30 +1244,13 @@ const EntityDetectionSidebar: React.FC = () => {
                     </div>
                 </div>
 
-                {detectionError && (
-                    <div className="sidebar-section error-section">
-                        <div className="error-message">
-                            <AlertTriangle size={18} className="error-icon"/>
-                            {detectionError}
-                        </div>
-                    </div>
-                )}
-
-                {successMessage && (
-                    <div className="sidebar-section success-section">
-                        <div className="success-message">
-                            <CheckCircle size={18} className="success-icon"/>
-                            {successMessage}
-                        </div>
-                    </div>
-                )}
                 <div className="sidebar-section action-buttons">
 
-                        <button
+                    <button
                         className="sidebar-button action-button detect-button"
                         onClick={() => handleDetect()}
                         disabled={
-                            isLoading||
+                            isLoading ||
                             getFilesToProcess().length === 0 ||
                             (selectedMlEntities.length === 0 &&
                                 selectedAiEntities.length === 0 &&
@@ -1185,10 +1258,10 @@ const EntityDetectionSidebar: React.FC = () => {
                                 selectedHideMeEntities.length === 0)
                         }
                     >
-                            <LoadingWrapper
-                                isLoading={isLoading}
-                                overlay={true}
-                            >
+                        <LoadingWrapper
+                            isLoading={isLoading}
+                            overlay={true}
+                        >
                             <span > {'Detect Sensitive information'}</span>
                         </LoadingWrapper>
                     </button>
@@ -1206,9 +1279,9 @@ const EntityDetectionSidebar: React.FC = () => {
                         <button
                             className="sidebar-button save-button"
                             onClick={handleSaveSettings}
-                            disabled={isLoading || !isAuthenticated}
+                            disabled={isLoading || !isAuthenticated || isUserLoading}
                         >
-                            <Save size={16}/>
+                            <Save size={16} />
                             <span>{'Save to Settings'}</span>
                         </button>
                     </div>
@@ -1238,7 +1311,7 @@ const EntityDetectionSidebar: React.FC = () => {
                                             </span>
                                         </div>
                                         <div className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>
-                                            {isExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+                                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                         </div>
                                     </div>
 
@@ -1271,29 +1344,49 @@ const EntityDetectionSidebar: React.FC = () => {
                                                         const model = getEntityModel(entityType);
                                                         return (
                                                             <div className="entity-list-item" key={entityType}>
-                                                                <div className="entity-item-left">
-                                                                    <ColorDot color={MODEL_COLORS[model]}/>
+                                                                <div className="entity-item-left" >
+                                                                    <ColorDot color={MODEL_COLORS[model]} />
                                                                     <span className="entity-name">
                                                                         {formatEntityDisplay(entityType)}
                                                                     </span>
                                                                 </div>
                                                                 <div className="entity-item-right">
                                                                     <span className="entity-count">{count}</span>
-                                                                    <div className="navigation-buttons">
+                                                                    <div className="navigation-buttons" >
                                                                         <button
                                                                             className="nav-button"
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
+                                                                                const file = files.find(f => f.name === fileSummary.fileKey);
+                                                                                if (file) {
+                                                                                    openFile(file);
+                                                                                }
                                                                                 // Find the first page with this entity type
                                                                                 const pages = Object.keys(entitiesDetected.by_page);
+                                                                                setSelectedHighlightIds([]);
+                                                                                setSelectedHighlightId(null);
                                                                                 if (pages.length > 0) {
                                                                                     const pageNumber = parseInt(pages[0].split('_')[1], 10);
-                                                                                    navigateToPage(fileSummary.fileKey, pageNumber);
+                                                                                    const highlights = getHighlightsForPage(fileSummary.fileKey, pageNumber);
+                                                                                    // Filter to only get entity highlights and set both selection states
+                                                                                    let entityHighlights = highlights.filter(h => h.type === 'ENTITY');
+                                                                                    if (entityType) {
+                                                                                        entityHighlights = entityHighlights.filter(h => h.text === entityType);
+                                                                                    }
+                                                                                    if (entityHighlights.length > 0) {
+                                                                                        setSelectedHighlightIds(entityHighlights.map(h => h.id));
+                                                                                        // Set the first highlight as the selected one
+                                                                                        setSelectedHighlightId(entityHighlights[0].id);
+                                                                                    }
+                                                                                    else {
+                                                                                        setSelectedHighlightIds([]);
+                                                                                        setSelectedHighlightId(null);
+                                                                                    }
                                                                                 }
                                                                             }}
                                                                             title="Navigate to entity"
                                                                         >
-                                                                            <ChevronRight size={14}/>
+                                                                            <ChevronRight size={14} />
                                                                         </button>
                                                                     </div>
                                                                 </div>
@@ -1332,11 +1425,25 @@ const EntityDetectionSidebar: React.FC = () => {
                                                                                 className="nav-button"
                                                                                 onClick={(e) => {
                                                                                     e.stopPropagation();
+                                                                                    const file = files.find(f => f.name === fileSummary.fileKey);
+                                                                                    if (file) {
+                                                                                        openFile(file);
+                                                                                    }
+                                                                                    setSelectedHighlightIds([]);
+                                                                                    setSelectedHighlightId(null);
                                                                                     navigateToPage(fileSummary.fileKey, pageNumber);
+                                                                                    const highlights = getHighlightsForPage(fileSummary.fileKey, pageNumber);
+                                                                                    // Filter to only get entity highlights and set both selection states
+                                                                                    let entityHighlights = highlights.filter(h => h.type === 'ENTITY');
+                                                                                    if (entityHighlights.length > 0) {
+                                                                                        setSelectedHighlightIds(entityHighlights.map(h => h.id));
+                                                                                        // Set the first highlight as the selected one
+                                                                                        setSelectedHighlightId(entityHighlights[0].id);
+                                                                                    }
                                                                                 }}
                                                                                 title="Navigate to page"
                                                                             >
-                                                                                <ChevronRight size={14}/>
+                                                                                <ChevronRight size={14} />
                                                                             </button>
                                                                         </div>
                                                                     </div>

@@ -1,10 +1,10 @@
-import { HighlightType, OptionType } from '../types';
+import { BanListWithWords, HighlightType, OptionType } from '../types';
 import { getFileKey } from '../contexts/PDFViewerContext';
 import processingStateService from '../services/ProcessingStateService';
 import { EntityHighlightProcessor } from "./EntityHighlightProcessor";
 import { highlightStore } from "../store/HighlightStore";
 import summaryPersistenceStore from "../store/SummaryPersistenceStore";
-
+import { useBanList } from '../hooks/settings/useBanList';
 /**
  * Configuration for automatic file processing
  */
@@ -42,7 +42,7 @@ export class AutoProcessManager {
     private readonly processingQueue: Map<string, boolean> = new Map();
     private _detectEntitiesCallback: ((files: File[], options: any) => Promise<Record<string, any>>) | null = null;
     private _searchCallback: ((files: File[], searchTerm: string, options: any) => Promise<void>) | null = null;
-
+    private banList: BanListWithWords | null = null;
     private constructor() {
         this.config = {
             presidioEntities: [],
@@ -514,7 +514,9 @@ export class AutoProcessManager {
         if (!this._detectEntitiesCallback) return false;
 
         console.log('[AutoProcessManager] Running entity detection for file:', file.name);
-
+        const { getBanList } = useBanList();
+        const banList = await getBanList();
+        const banlistWords = this.config?.banlistWords?.length !== banList?.words.length ?  banList?.words : this.config.banlistWords;
         // Extract entity values from the option objects
         const options = {
             presidio: this.config.presidioEntities.map(e => typeof e === 'object' ? (e.value || '') : e)
@@ -526,7 +528,7 @@ export class AutoProcessManager {
             hideme: this.config.hidemeEntities.map(e => typeof e === 'object' ? (e.value || '') : e)
                 .filter(Boolean),
             threshold: this.config.detectionThreshold,
-            banlist: this.config.useBanlist && this.config.banlistWords ? this.config.banlistWords : undefined
+            banlist: banlistWords
         };
 
         try {

@@ -14,6 +14,7 @@ import { useState, useCallback, useRef } from 'react';
 import useAuth from '../auth/useAuth';
 import apiClient from '../../services/apiClient';
 import { ModelEntity, ModelEntityBatch, OptionType } from '../../types';
+import authStateManager from '../../managers/authStateManager';
 
 export interface UseEntityDefinitionsReturn {
     // Entity definitions state
@@ -24,10 +25,10 @@ export interface UseEntityDefinitionsReturn {
     error: string | null;
 
     // Entity operations
-    getModelEntities: (methodId: number) => Promise<ModelEntity[]>;
+    getModelEntities: (methodId: number) => Promise<ModelEntity[] | null>;
     addModelEntities: (data: ModelEntityBatch) => Promise<ModelEntity[]>;
     deleteModelEntity: (entityId: number) => Promise<void>;
-    replaceModelEntities: (methodId: number, entities: OptionType[]) => Promise<ModelEntity[]>;
+    replaceModelEntities: (methodId: number, entities: OptionType[]) => Promise<ModelEntity[] | null>;
     deleteAllEntitiesForMethod: (methodId: number) => Promise<void>;
     updateAllEntitySelections: (
         presidioEntities: OptionType[],
@@ -47,8 +48,10 @@ export interface UseEntityDefinitionsReturn {
  * Hook for managing entity definitions
  */
 export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
-    // Get authentication state from auth hook
-    const { isAuthenticated } = useAuth();
+    // Get authentication state from auth hook and cached state
+    const { isAuthenticated, isLoading: userLoading } = useAuth();
+    const cachedState = authStateManager.getCachedState();
+    const isAuthenticatedOrCached = isAuthenticated || cachedState?.isAuthenticated;
 
     // Entity definitions state
     const [modelEntities, setModelEntities] = useState<Record<number, ModelEntity[]>>({});
@@ -74,10 +77,10 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
     /**
      * Get entity definitions for a specific method
      */
-    const getModelEntities = useCallback(async (methodId: number): Promise<ModelEntity[]> => {
-        if (!isAuthenticated) {
+    const getModelEntities = useCallback(async (methodId: number): Promise<ModelEntity[] | null> => {
+        if (!isAuthenticatedOrCached) {
             console.warn('[EntityDefinitions] getModelEntities called but user is not authenticated');
-            return [];
+            return null;
         }
 
         // Return cached data if available
@@ -117,13 +120,13 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
             setIsLoading(false);
             loadingMethodsRef.current[methodId] = false;
         }
-    }, [isAuthenticated, isMethodLoaded, modelEntities, clearError]);
+    }, [isAuthenticatedOrCached, isMethodLoaded, modelEntities, clearError]);
 
     /**
      * Add new entity definitions
      */
     const addModelEntities = useCallback(async (data: ModelEntityBatch): Promise<ModelEntity[]> => {
-        if (!isAuthenticated) {
+        if (!isAuthenticatedOrCached) {
             console.warn('[EntityDefinitions] addModelEntities called but user is not authenticated');
             return [];
         }
@@ -165,13 +168,13 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, clearError]);
+    }, [isAuthenticatedOrCached, clearError]);
 
     /**
      * Delete an entity definition
      */
     const deleteModelEntity = useCallback(async (entityId: number): Promise<void> => {
-        if (!isAuthenticated) {
+        if (!isAuthenticatedOrCached) {
             console.warn('[EntityDefinitions] deleteModelEntity called but user is not authenticated');
             return;
         }
@@ -212,107 +215,107 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, clearError]);
+    }, [isAuthenticatedOrCached, clearError]);
 
     /**
      * Delete all entities for a specific method
      * This is useful when replacing all entities
      */
     const deleteAllEntitiesForMethod = useCallback(async (methodId: number): Promise<void> => {
-            if (!isAuthenticated) {
-                console.warn('[EntityDefinitions] deleteAllEntitiesForMethod called but user is not authenticated');
-                return;
-            }
+        if (!isAuthenticatedOrCached) {
+            console.warn('[EntityDefinitions] deleteAllEntitiesForMethod called but user is not authenticated');
+            return;
+        }
 
-            setIsLoading(true);
-            clearError();
+        setIsLoading(true);
+        clearError();
+
+        try {
+            console.log(`[EntityDefinitions] Deleting all entities for method ${methodId}`);
 
             try {
-                console.log(`[EntityDefinitions] Deleting all entities for method ${methodId}`);
-
-                try {
-                    await apiClient.delete(`/settings/entities/delete_entities_by_method_id/${methodId}`);
-                } catch (error: any) {
-                    // If the error is 404 (not found), this is acceptable for new users
-                    // It means there were no entities to delete
-                    if (error.response?.status === 404) {
-                        console.log(`[EntityDefinitions] No entities found for method ${methodId} - this is normal for new users`);
-                    } else {
-                        // For other errors, rethrow
-                        throw error;
-                    }
-                }
-
-                // Update state to remove these entities regardless
-                setModelEntities(prev => ({
-                    ...prev,
-                    [methodId]: []
-                }));
-
-                // Dispatch event to notify other components
-                window.dispatchEvent(new CustomEvent('entity-definitions-updated', {
-                    detail: {
-                        type: 'delete-all',
-                        methodId
-                    }
-                }));
+                await apiClient.delete(`/settings/entities/delete_entities_by_method_id/${methodId}`);
             } catch (error: any) {
-                setError(error.userMessage ?? `Failed to delete entities for method ${methodId}`);
-                throw error;
-            } finally {
-                setIsLoading(false);
+                // If the error is 404 (not found), this is acceptable for new users
+                // It means there were no entities to delete
+                if (error.response?.status === 404) {
+                    console.log(`[EntityDefinitions] No entities found for method ${methodId} - this is normal for new users`);
+                } else {
+                    // For other errors, rethrow
+                    throw error;
+                }
             }
-        }, [isAuthenticated, clearError]);
+
+            // Update state to remove these entities regardless
+            setModelEntities(prev => ({
+                ...prev,
+                [methodId]: []
+            }));
+
+            // Dispatch event to notify other components
+            window.dispatchEvent(new CustomEvent('entity-definitions-updated', {
+                detail: {
+                    type: 'delete-all',
+                    methodId
+                }
+            }));
+        } catch (error: any) {
+            setError(error.userMessage ?? `Failed to delete entities for method ${methodId}`);
+            throw error;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [isAuthenticatedOrCached, clearError]);
 
     /**
      * Replace all entities for a method with new ones
      * This performs a delete-then-add operation to ensure clean state
      */
-        // Improved replaceModelEntities function that's safer for new users
     const replaceModelEntities = useCallback(async (
-            methodId: number,
-            entities: OptionType[]
-        ): Promise<ModelEntity[]> => {
-            if (!isAuthenticated) {
-                console.warn('[EntityDefinitions] replaceModelEntities called but user is not authenticated');
+        methodId: number,
+        entities: OptionType[]
+    ): Promise<ModelEntity[] | null> => {
+        if (!isAuthenticatedOrCached) {
+            console.warn('[EntityDefinitions] replaceModelEntities called but user is not authenticated');
+            return null;
+        }
+
+        setIsLoading(true);
+        clearError();
+
+        try {
+            // 1. Delete all existing entities for this method
+            // This now handles 404 errors internally
+            await deleteAllEntitiesForMethod(methodId);
+
+            // 2. Filter out "ALL_" options that shouldn't be stored
+            const entitiesToAdd = entities.filter(entity =>
+                !entity.value.startsWith('ALL_')
+            );
+
+            if (entitiesToAdd.length === 0) {
+                console.log(`[EntityDefinitions] No entities to add for method ${methodId} after filtering`);
                 return [];
             }
 
-            setIsLoading(true);
-            clearError();
+            // 3. Create entity batch
+            const entityBatch: ModelEntityBatch = {
+                method_id: methodId,
+                entity_texts: entitiesToAdd.map(entity => entity.value)
+            };
 
-            try {
-                // 1. Delete all existing entities for this method
-                // This now handles 404 errors internally
-                await deleteAllEntitiesForMethod(methodId);
+            // 4. Add new entities
+            console.log(`[EntityDefinitions] Adding ${entitiesToAdd.length} new entities for method ${methodId}`);
+            return await addModelEntities(entityBatch);
 
-                // 2. Filter out "ALL_" options that shouldn't be stored
-                const entitiesToAdd = entities.filter(entity =>
-                    !entity.value.startsWith('ALL_')
-                );
+        } catch (error: any) {
+            setError(error.userMessage ?? `Failed to replace entities for method ${methodId}`);
+            throw error;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [isAuthenticatedOrCached, deleteAllEntitiesForMethod, addModelEntities, clearError]);
 
-                if (entitiesToAdd.length === 0) {
-                    console.log(`[EntityDefinitions] No entities to add for method ${methodId} after filtering`);
-                    return [];
-                }
-
-                // 3. Create entity batch
-                const entityBatch: ModelEntityBatch = {
-                    method_id: methodId,
-                    entity_texts: entitiesToAdd.map(entity => entity.value)
-                };
-
-                // 4. Add new entities
-                console.log(`[EntityDefinitions] Adding ${entitiesToAdd.length} new entities for method ${methodId}`);
-                return await addModelEntities(entityBatch);
-
-            } catch (error: any) {
-                setError(error.userMessage ?? `Failed to replace entities for method ${methodId}`);
-                throw error;
-            } finally {
-                setIsLoading(false);
-            }
-        }, [isAuthenticated, deleteAllEntitiesForMethod, addModelEntities, clearError]);
     /**
      * Update all entity selections for all methods at once
      */
@@ -322,7 +325,7 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
         geminiEntities: OptionType[],
         hidemeEntities: OptionType[]
     ): Promise<void> => {
-        if (!isAuthenticated) {
+        if (!isAuthenticatedOrCached) {
             console.warn('[EntityDefinitions] updateAllEntitySelections called but user is not authenticated');
             return;
         }
@@ -385,7 +388,7 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, replaceModelEntities, deleteAllEntitiesForMethod, clearError]);
+    }, [isAuthenticatedOrCached, replaceModelEntities, deleteAllEntitiesForMethod, clearError]);
 
     return {
         // Entity definitions state

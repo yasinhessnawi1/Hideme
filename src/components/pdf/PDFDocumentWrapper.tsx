@@ -6,6 +6,7 @@ import PageRenderer from './PageRenderer';
 import '../../styles/modules/pdf/PdfViewer.css';
 import scrollManager from '../../services/ScrollManagerService';
 import { useInView } from 'react-intersection-observer';
+import { useNotification } from '../../contexts/NotificationContext';
 
 interface PDFDocumentWrapperProps {
     file?: File; // New prop to accept a specific file
@@ -28,7 +29,7 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
         setFileRenderedPages,
         mainContainerRef
     } = usePDFViewerContext();
-
+    const { notify } = useNotification();
     const [loadError, setLoadError] = useState<Error | null>(null);
 
     // Track document initialization
@@ -60,10 +61,6 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
     // Clean up state on file change
     useEffect(() => {
         setLoadError(null);
-
-        if (pdfFile && pdfFileKey) {
-            console.log(`[PDFDocumentWrapper] Rendering file: ${pdfFile.name} with key: ${pdfFileKey}`);
-        }
 
         return () => {
             hasInitializedRef.current = false;
@@ -138,8 +135,11 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
             }, 300);
 
         } catch (error) {
-            console.error(`[PDFDocumentWrapper] Error in onDocumentLoadSuccess:`, error);
-            setLoadError(error instanceof Error ? error : new Error('Unknown error loading PDF'));
+            notify({
+                message: `Error loading PDF: ${error}`,
+                type: 'error',
+                duration: 3000
+            });
         }
     }, [
         pdfFile,
@@ -151,11 +151,6 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
         setFileRenderedPages
     ]);
 
-    // Handle document load error
-    const onDocumentLoadError = useCallback((error: Error) => {
-        console.error(`[PDFDocumentWrapper] Error loading document:`, error);
-        setLoadError(error);
-    }, []);
 
     // Handle document requests from other components
     useEffect(() => {
@@ -206,7 +201,6 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
         ? getFileNumPages(pdfFileKey) || numPages
         : numPages;
 
-    console.log(`[PDFDocumentWrapper] Rendering document - file: ${pdfFile.name}, pages: ${displayNumPages}, forceOpen: ${forceOpen}`);
 
     return (
         <div
@@ -226,7 +220,11 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
             <Document
                 file={pdfFile}
                 onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={onDocumentLoadError}
+                onLoadError={() => notify({
+                    message: `Error loading PDF, refresh the page and try again`,
+                    type: 'error',
+                    duration: 3000
+                })}
                 loading={<div className="pdf-loading-placeholder"></div>}
                 error={<div className="pdf-error-placeholder"></div>}
                 options={documentOptions}

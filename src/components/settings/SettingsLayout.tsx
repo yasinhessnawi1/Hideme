@@ -102,15 +102,6 @@ export default function SettingsLayout() {
                     </div>
                 )}
 
-                {userError && !isUserLoading && globalLoading(['setting.general']) && (
-                    <div className="alert alert-destructive mb-6">
-                        <div>
-                            <div className="alert-title">Error Loading Settings</div>
-                            <div className="alert-description">{userError}</div>
-                        </div>
-                    </div>
-                )}
-
                 {!globalLoading(['setting.general']) && (
                     <div className="tabs">
                         <div className="tabs-list">
@@ -134,21 +125,21 @@ export default function SettingsLayout() {
                                 data-state={activeTab === "entity" ? "active" : "inactive"}
                                 onClick={() => setActiveTab("entity")}
                             >
-                                Entity
+                                Entities List
                             </button>
                             <button
                                 className="tab-trigger"
                                 data-state={activeTab === "search" ? "active" : "inactive"}
                                 onClick={() => setActiveTab("search")}
                             >
-                                Search
+                                Search List
                             </button>
                             <button
                                 className="tab-trigger"
                                 data-state={activeTab === "banlist" ? "active" : "inactive"}
                                 onClick={() => setActiveTab("banlist")}
                             >
-                                Ban List
+                                Ignore List
                             </button>
                         </div>
 

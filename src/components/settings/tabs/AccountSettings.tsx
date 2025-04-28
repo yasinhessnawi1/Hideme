@@ -3,7 +3,8 @@ import {AlertCircle, Loader2, Save} from "lucide-react";
 import useUserProfile from "../../../hooks/auth/useUserProfile";
 import {useLoading} from "../../../contexts/LoadingContext"; // Adjust path if needed
 import LoadingWrapper from "../../common/LoadingWrapper";
-
+import { useNotification } from "../../../contexts/NotificationContext";
+import { useNavigate } from "react-router-dom";
 export default function AccountSettings() {
     const {
         user,
@@ -14,6 +15,8 @@ export default function AccountSettings() {
         error: userError,
         clearError: clearUserError
     } = useUserProfile();
+
+    const navigate = useNavigate();
 
 
     // Profile Info State
@@ -32,13 +35,10 @@ export default function AccountSettings() {
     const [deleteConfirmText, setDeleteConfirmText] = useState("");
     const [deletePassword, setDeletePassword] = useState("");
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [deleteError, setDeleteError] = useState("");
 
     // General Loading/Saving State
     const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
-    const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
-    const [generalError, setGeneralError] = useState<string | null>(null);
-
+    const {notify} = useNotification();
     // Load user data when available
     useEffect(() => {
         if (user?.username && user?.email) {
@@ -47,7 +47,7 @@ export default function AccountSettings() {
             if (nameParts.length < 2) {
                 setName(user.username);
             } else {
-                setName(nameParts[0] || user. username);
+                setName(nameParts[0] || user.username);
                 setSurname(nameParts.slice(1).join(' ') || '');
             }
 
@@ -60,8 +60,6 @@ export default function AccountSettings() {
         return () => {
             clearUserError();
             setPasswordError("");
-            setDeleteError("");
-            setGeneralError(null);
         };
     }, [user, clearUserError]);
 
@@ -69,8 +67,6 @@ export default function AccountSettings() {
 
     const handleProfileSave = async () => {
         startLoading('setting.save');
-        setProfileSaveSuccess(false);
-        setGeneralError(null);
         clearUserError();
 
         // Construct name/username as needed by your backend
@@ -80,10 +76,17 @@ export default function AccountSettings() {
                 username: combinedName || user?.username,
                 email: email,
             });
-            setProfileSaveSuccess(true);
-            setTimeout(() => setProfileSaveSuccess(false), 3000);
+            notify({
+                message: "Profile updated successfully!",
+                type: 'success',
+                duration: 3000
+            });
         } catch (err: any) {
-            setGeneralError((err.userMessage ?? err.message) ?? "Failed to update profile.");
+            notify({
+                message: (err.userMessage ?? err.message) ?? "Failed to update profile.",
+                type: 'error',
+                duration: 3000
+            });
         } finally {
             stopLoading('setting.save');
         }
@@ -92,19 +95,30 @@ export default function AccountSettings() {
     const handlePasswordChange = async () => {
         setPasswordError("");
         setPasswordSuccess(false);
-        setGeneralError(null);
         clearUserError();
 
         if (!currentPassword) {
-            setPasswordError("Current password is required");
+            notify({
+                message: "Current password is required",
+                type: 'error',
+                duration: 3000
+            });
             return;
         }
         if (newPassword !== confirmPassword) {
-            setPasswordError("New passwords don't match");
+            notify({
+                message: "New passwords don't match",
+                type: 'error',
+                duration: 3000
+            });
             return;
         }
         if (newPassword.length < 8) {
-            setPasswordError("Password must be at least 8 characters");
+            notify({
+                message: "Password must be at least 8 characters",
+                type: 'error',
+                duration: 3000
+            });
             return;
         }
 
@@ -121,28 +135,34 @@ export default function AccountSettings() {
             setConfirmPassword("");
             setTimeout(() => setPasswordSuccess(false), 3000);
         } catch (err: any) {
-            setPasswordError((err.userMessage ?? err.message) ?? "Failed to change password.");
+            notify({
+                message: (err.userMessage ?? err.message) ?? "Failed to change password.",
+                type: 'error',
+                duration: 3000
+            });
         } finally {
             stopLoading('setting.password');
         }
     };
 
-    const handleDeleteAccountClick = () => {
-        setDeleteError("");
-        setShowDeleteConfirm(true);
-    };
 
     const handleConfirmDeleteAccount = async () => {
-        setDeleteError("");
-        setGeneralError(null);
         clearUserError();
 
         if (deleteConfirmText !== "DELETE") {
-            setDeleteError("Please type 'DELETE' to confirm.");
+            notify({
+                message: "Please type 'DELETE' to confirm.",
+                type: 'error',
+                duration: 3000
+            });
             return;
         }
         if (!deletePassword) {
-            setDeleteError("Password is required to delete your account.");
+            notify({
+                message: "Password is required to delete your account.",
+                type: 'error',
+                duration: 3000
+            });
             return;
         }
 
@@ -151,12 +171,21 @@ export default function AccountSettings() {
             await deleteAccount({
                 password: deletePassword,
                 confirm: deleteConfirmText,
+            }).then(() => {
+                navigate('/login');
             });
             // Logout should be handled by useUser/AuthService after successful deletion
-            alert("Account deletion initiated. You will be logged out.");
+            notify({
+                message: "Account deletion initiated. You will be logged out.",
+                type: 'success',
+                duration: 3000
+            });
         } catch (err: any) {
-            setDeleteError(err.userMessage ?? err.message ?? "Failed to delete account. Check your password.");
-             // Keep modal open on error
+            notify({
+                message: (err.userMessage ?? err.message) ?? "Failed to delete account. Check your password.",
+                type: 'error',
+                duration: 3000
+            });
         } finally {
             stopLoading('setting.delete');
         }
@@ -167,24 +196,6 @@ export default function AccountSettings() {
 
     return (
         <div className="space-y-6">
-            {generalError && (
-                <div className="alert alert-destructive">
-                    <AlertCircle className="alert-icon" size={16} />
-                    <div>
-                        <div className="alert-title">Error</div>
-                        <div className="alert-description">{generalError}</div>
-                    </div>
-                </div>
-            )}
-            {profileSaveSuccess && (
-                <div className="alert alert-success">
-                    <div>
-                        <div className="alert-title">Success</div>
-                        <div className="alert-description">Profile updated successfully!</div>
-                    </div>
-                </div>
-            )}
-
             {/* Profile Information Card */}
             <div className="card">
                 <div className="card-header">
@@ -241,7 +252,7 @@ export default function AccountSettings() {
                                 <button
                                     className="button button-primary"
                                     onClick={handleProfileSave}
-                                    disabled={isLoading || !user || !name || !surname || !email}
+                                    disabled={isLoading}
                                 >
                                     <LoadingWrapper isLoading={isLoading} fallback="Saving...">
                                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Save size={16} className="button-icon" />}
@@ -350,17 +361,6 @@ export default function AccountSettings() {
                         <p className="mt-1 text-sm text-muted-foreground">
                             Permanently delete your account and all associated data. This cannot be undone.
                         </p>
-                        {deleteError && (
-                            <div className="alert alert-destructive mt-3">
-                                <AlertCircle className="alert-icon" size={16} />
-                                <div>{deleteError}</div>
-                            </div>
-                        )}
-                        {!showDeleteConfirm ? (
-                            <button className="button button-destructive mt-4" onClick={handleDeleteAccountClick} disabled={isLoading}>
-                                Delete My Account
-                            </button>
-                        ) : (
                             <div className="mt-4 space-y-3">
                                 <p className="text-sm font-medium">Type "DELETE" and enter your password to confirm:</p>
                                 <input
@@ -397,7 +397,7 @@ export default function AccountSettings() {
                                     </button>
                                 </div>
                             </div>
-                        )}
+                        
                     </div>
                 </div>
             </div>

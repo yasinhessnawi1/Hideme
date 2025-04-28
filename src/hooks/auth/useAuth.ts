@@ -15,7 +15,8 @@ import apiClient from '../../services/apiClient';
 import {User} from "../../types";
 import authService from '../../services/authService';
 import authStateManager from '../../managers/authStateManager';
-
+import { useNavigate } from 'react-router-dom';
+import { useNotification } from '../../contexts/NotificationContext';
 export interface UseAuthReturn {
     // Authentication state
     user: User | null;
@@ -46,12 +47,13 @@ export const useAuth = (): UseAuthReturn => {
     // Check for cached auth state when initializing
     const cachedState = authStateManager.getCachedState();
     const hasToken = !!authService.getToken();
-
+    const navigate = useNavigate();
     // Authentication state - initialize from cache when available
     const [user, setUser] = useState<User | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
         cachedState?.isAuthenticated || false
     );
+    const { notify } = useNotification();
     const [isLoading, setIsLoading] = useState<boolean>(hasToken); // Start loading if we have a token
     const [error, setError] = useState<string | null>(null);
 
@@ -143,6 +145,7 @@ export const useAuth = (): UseAuthReturn => {
                 verificationRef.current.completed = true;
                 verificationRef.current.lastVerified = now;
                 setIsLoading(false);
+
                 return true;
             } else {
                 console.warn("[useAuth] Token verification failed");
@@ -158,6 +161,12 @@ export const useAuth = (): UseAuthReturn => {
 
                 verificationRef.current.completed = true;
                 verificationRef.current.lastVerified = now;
+                navigate('/login');
+                notify({
+                    message: "Your session has expired and you have been logged out",
+                    type: 'error',
+                    duration: 3000
+                });
                 setIsLoading(false);
                 return false;
             }
@@ -188,10 +197,20 @@ export const useAuth = (): UseAuthReturn => {
                         setIsLoading(false);
                         return true;
                     } catch {
-                        setError("Unable to verify your session due to connection issues");
+                        notify({
+                            message: "Unable to verify your session due to connection issues",
+                            type: 'error',
+                            duration: 3000
+                        });
+                        navigate('/login');
                     }
                 } else {
-                    setError("Connection issue detected");
+                    notify({
+                        message: "Unable to verify your session due to connection issues",
+                        type: 'error',
+                        duration: 3000
+                    });
+                    navigate('/login');
                 }
             } else {
                 // For other errors, clear token and log out
@@ -204,7 +223,11 @@ export const useAuth = (): UseAuthReturn => {
 
                 setUser(null);
                 setIsAuthenticated(false);
-                setError("Your session has expired");
+                notify({
+                    message: "Your session has expired and you have been logged out",
+                    type: 'error',
+                    duration: 3000
+                });
             }
 
             verificationRef.current.completed = true;
@@ -283,8 +306,12 @@ export const useAuth = (): UseAuthReturn => {
                     // Check if this is a network/connection error
                     if (!err.response) {
                         // For connection errors, show a warning but keep the session
-                        console.warn("[useAuth] Connection issue during token refresh - maintaining session");
-                        setError("Connection issue detected. Some features may be limited until connection is restored.");
+                            console.warn("[useAuth] Connection issue during token refresh - maintaining session");
+                            notify({
+                                message: "Connection issue detected. Some features may be limited until connection is restored.",
+                                type: 'error',
+                                duration: 3000
+                            });
                     } else {
                         // For other errors, log the user out
                         setUser(null);
@@ -295,7 +322,11 @@ export const useAuth = (): UseAuthReturn => {
                         // Clear auth state
                         authStateManager.clearState();
 
-                        setError("Your session expired while you were inactive. Please sign in again to continue.");
+                        notify({
+                            message: "Your session expired while you were inactive. Please sign in again to continue.",
+                            type: 'error',
+                            duration: 3000
+                        });
                     }
                 }
             }, 14 * 60 * 1000); // 14 minutes
@@ -391,7 +422,11 @@ export const useAuth = (): UseAuthReturn => {
         } catch (err: any) {
             console.error("[useAuth] Registration error:", err);
             const errorMessage = err.userMessage ?? "Registration failed";
-            setError(errorMessage);
+            notify({
+                message: errorMessage,
+                type: 'error',
+                duration: 3000
+            });
             throw err;
         } finally {
             setIsLoading(false);

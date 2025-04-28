@@ -13,6 +13,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import useAuth from '../auth/useAuth';
 import apiClient from '../../services/apiClient';
 import { BanListWithWords } from '../../types';
+import authStateManager from '../../managers/authStateManager';
 
 export interface UseBanListReturn {
     // Ban list state
@@ -38,8 +39,10 @@ export interface UseBanListReturn {
  * Hook for managing the user's ban list
  */
 export const useBanList = (): UseBanListReturn => {
-    // Get authentication state from auth hook
+    // Get authentication state from auth hook and cached state
     const { isAuthenticated } = useAuth();
+    const cachedState = authStateManager.getCachedState();
+    const isAuthenticatedOrCached = isAuthenticated || Boolean(cachedState?.isAuthenticated);
 
     // Ban list state
     const [banList, setBanList] = useState<BanListWithWords | null>(null);
@@ -61,16 +64,6 @@ export const useBanList = (): UseBanListReturn => {
      * Get the user's ban list
      */
     const getBanList = useCallback(async (): Promise<BanListWithWords | null> => {
-        if (!isAuthenticated) {
-            console.warn('[BanList] getBanList called but user is not authenticated');
-            return null;
-        }
-
-        // Return cached data if available
-        if (banList !== null) {
-            return banList;
-        }
-
         // Prevent duplicate fetch
         if (fetchInProgressRef.current) {
             console.log('[BanList] Ban list fetch already in progress');
@@ -106,13 +99,13 @@ export const useBanList = (): UseBanListReturn => {
             setIsLoading(false);
             fetchInProgressRef.current = false;
         }
-    }, [isAuthenticated, banList, clearError]);
+    }, [clearError]);
 
     /**
      * Add words to the ban list
      */
     const addBanListWords = useCallback(async (words: string[]): Promise<BanListWithWords | null> => {
-        if (!isAuthenticated) {
+        if (!isAuthenticatedOrCached) {
             console.warn('[BanList] addBanListWords called but user is not authenticated');
             return null;
         }
@@ -150,13 +143,13 @@ export const useBanList = (): UseBanListReturn => {
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, banList, clearError]);
+    }, [isAuthenticatedOrCached, banList, clearError]);
 
     /**
      * Remove words from the ban list
      */
     const removeBanListWords = useCallback(async (words: string[]): Promise<BanListWithWords | null> => {
-        if (!isAuthenticated) {
+        if (!isAuthenticatedOrCached) {
             console.warn('[BanList] removeBanListWords called but user is not authenticated');
             return null;
         }
@@ -194,13 +187,13 @@ export const useBanList = (): UseBanListReturn => {
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated, banList, clearError]);
+    }, [isAuthenticatedOrCached, banList, clearError]);
 
     /**
      * Initialize ban list when authenticated
      */
     useEffect(() => {
-        if (isAuthenticated && !isInitialized && !fetchInProgressRef.current) {
+        if (isAuthenticatedOrCached && !isInitialized && !fetchInProgressRef.current) {
             console.log('[BanList] User authenticated, loading initial ban list');
             getBanList().then(result => {
                 if (result) {
@@ -208,7 +201,7 @@ export const useBanList = (): UseBanListReturn => {
                 }
             });
         }
-    }, [isAuthenticated, isInitialized, getBanList]);
+    }, [isAuthenticatedOrCached, isInitialized, getBanList]);
 
     return {
         // Ban list state

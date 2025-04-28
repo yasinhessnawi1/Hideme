@@ -8,13 +8,13 @@ import { Button } from "../common"
 
 import TrueFocus from './TrueFocus';
 import {useUserContext} from "../../contexts/UserContext";
-
+import { useNotification } from "../../contexts/NotificationContext";
 
 
 export default function Navbar() {
     const navigate = useNavigate()
     const { isAuthenticated, logout , user , isLoading } = useUserContext()
-
+    const { notify } = useNotification();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -36,7 +36,17 @@ export default function Navbar() {
         try {
             await logout()
             navigate('/')
+            notify({
+                message: 'Logged out successfully!',
+                type: 'success',
+                duration: 3000
+            });
         } catch (error) {
+            notify({
+                message: 'Logout failed:',
+                type: 'error',
+                duration: 3000
+            });
             console.error('Logout failed:', error)
         }
     }

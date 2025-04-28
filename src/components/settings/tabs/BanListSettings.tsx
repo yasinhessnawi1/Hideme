@@ -3,6 +3,7 @@ import { Save, Plus, X, AlertTriangle, Trash2, Loader2 } from "lucide-react";
 import useBanList from "../../../hooks/settings/useBanList"; // Adjust path if needed
 import { useLoading } from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
+import { useNotification } from "../../../contexts/NotificationContext";
 
 export default function BanListSettings() {
     const {
@@ -17,10 +18,9 @@ export default function BanListSettings() {
 
     const [localBannedWords, setLocalBannedWords] = useState<string[]>([]);
     const [newBannedWord, setNewBannedWord] = useState("");
-    const [localError, setLocalError] = useState("");
-    const [deletingWord, setDeletingWord] = useState<string | null>(null); // Store word being deleted
     const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
-
+    const {notify, confirm} = useNotification();
+    const [termBeingRemoved, setTermBeingRemoved] = useState<string | null>(null);
     // Add a ref to track initial loading
     const initialLoadAttemptedRef = useRef(false);
 
@@ -44,27 +44,36 @@ export default function BanListSettings() {
     // Clear local error when hook error changes or is cleared
     useEffect(() => {
         if (userError) {
-            setLocalError(userError);
-        } else if (localError === userError) { // Clear local error only if it matches the hook's cleared error
-            setLocalError("");
+            notify({
+                message: userError,
+                type: 'error',
+                duration: 3000
+            });
         }
-    }, [userError, localError]);
+    }, [userError]);
 
     const handleAddBannedWord = async () => {
         const wordToAdd = newBannedWord.trim().toLowerCase(); // Normalize word
 
         if (!wordToAdd) {
-            setLocalError("Word cannot be empty");
+            notify({
+                message: "Word cannot be empty",
+                type: 'error',
+                duration: 3000
+            });
             return;
         }
 
         if (localBannedWords.includes(wordToAdd)) {
-            setLocalError("This word is already in the ban list");
+            notify({
+                message: "This word is already in the ban list",
+                type: 'error',
+                duration: 3000
+            });
             return;
         }
 
         clearUserError();
-        setLocalError("");
         startLoading('setting.banlist.add');
 
         try {
@@ -72,7 +81,11 @@ export default function BanListSettings() {
             // `localBannedWords` will update via useEffect watching `banList`
             setNewBannedWord("");
         } catch (err: any) {
-            setLocalError((err.userMessage ?? err.message) ?? "Failed to add banned word.");
+            notify({
+                message: (err.userMessage ?? err.message) ?? "Failed to add banned word.",
+                type: 'error',
+                duration: 3000
+            });
             console.error("Error adding banned word:", err);
         } finally {
             stopLoading('setting.banlist.add');
@@ -81,37 +94,54 @@ export default function BanListSettings() {
 
     const handleRemoveBannedWord = async (wordToRemove: string) => {
         clearUserError();
-        setLocalError("");
-        setDeletingWord(wordToRemove);
 
         try {
             await removeBanListWords([wordToRemove]);
             // `localBannedWords` will update via useEffect
+            setTermBeingRemoved(wordToRemove);
         } catch (err: any) {
-            setLocalError((err.userMessage ?? err.message) ?? "Failed to remove banned word.");
+            notify({
+                message: (err.userMessage ?? err.message) ?? "Failed to remove ignored word.",
+                type: 'error',
+                duration: 3000
+            });
             console.error("Error removing banned word:", err);
         } finally {
-            setDeletingWord(null);
+            setTermBeingRemoved(null);
         }
     };
 
     const handleClearAllBannedWords = async () => {
-        if (window.confirm("Are you sure you want to remove all banned words?")) {
-            clearUserError();
-            setLocalError("");
-            startLoading('setting.banlist.clear');
-            try {
-                if (localBannedWords.length > 0) {
-                    await removeBanListWords(localBannedWords);
-                    // `localBannedWords` will update via useEffect
-                }
-            } catch (err: any) {
-                setLocalError((err.userMessage ?? err.message) ?? "Failed to clear ban list.");
-                console.error("Error clearing ban list:", err);
-            } finally {
-                stopLoading('setting.banlist.clear');
-            }
+       const confirmed = await confirm({
+        type: "warning",
+        title: "Clear All Ignored Words",
+        message: "Are you sure you want to remove all ignored words?",
+        confirmButton: {
+            label: "Clear All",
+            
+        },
+        cancelButton: {
+            label: "Cancel",
         }
+       });
+       if (confirmed) {
+        clearUserError();
+        startLoading('setting.banlist.clear');
+        try {
+            if (localBannedWords.length > 0) {
+                await removeBanListWords(localBannedWords);
+                // `localBannedWords` will update via useEffect
+            }
+        } catch (err: any) {
+            notify({
+                message: (err.userMessage ?? err.message) ?? "Failed to clear ignored words list.",
+                type: 'error',
+                duration: 3000
+            });
+        } finally {
+            stopLoading('setting.banlist.clear');
+        }
+       }
     };
 
     const isLoading = isUserLoading || globalLoading(['setting.banlist.add', 'setting.banlist.clear']);
@@ -123,15 +153,15 @@ export default function BanListSettings() {
         <div className="space-y-6">
             <div className="card">
                 <div className="card-header">
-                    <h2 className="card-title">Banned Words List</h2>
-                    <p className="card-description">Manage words to be automatically flagged or redacted</p>
+                    <h2 className="card-title">Ignored Words List</h2>
+                    <p className="card-description">Manage words to be automatically ignored</p>
                 </div>
                 <div className="card-content space-y-4">
                     <div className="space-y-4">
                         {/* Add New Word Form */}
                         <div className="form-group">
-                            <label className="form-label" htmlFor="banned-word">
-                                Add New Banned Word
+                            <label className="form-label" htmlFor="ignored-word">
+                                Add New Ignored Word
                             </label>
                             <div className="flex space-x-2">
                                 <div className="flex-1">
@@ -140,7 +170,7 @@ export default function BanListSettings() {
                                         id="banned-word"
                                         value={newBannedWord}
                                         onChange={(e) => setNewBannedWord(e.target.value)}
-                                        placeholder="Enter word to ban..."
+                                        placeholder="Enter word to ignore..."
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -162,7 +192,7 @@ export default function BanListSettings() {
                         {/* Banned Words List */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-medium">Your Banned Words ({localBannedWords.length})</h3>
+                                <h3 className="text-sm font-medium">Your Ignored Words ({localBannedWords.length})</h3>
                                 {localBannedWords.length > 0 && (
                                     <button
                                         className="button button-outline button-sm"
@@ -180,13 +210,13 @@ export default function BanListSettings() {
                             {isUserLoading && localBannedWords.length === 0 && !initialLoadAttemptedRef.current && (
                                 <div className="flex justify-center items-center py-6">
                                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                    <span className="ml-2 text-muted-foreground">Loading ban list...</span>
+                                    <span className="ml-2 text-muted-foreground">Loading ignored words list...</span>
                                 </div>
                             )}
 
                             {!isUserLoading && localBannedWords.length === 0 ? (
                                 <div className="border border-dashed rounded-md p-6 text-center">
-                                    <p className="text-sm text-muted-foreground">No banned words yet. Add some above.</p>
+                                    <p className="text-sm text-muted-foreground">No ignored words yet. Add some above.</p>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -196,10 +226,13 @@ export default function BanListSettings() {
                                             <button
                                                 className="button button-ghost button-sm p-1" // Smaller padding
                                                 onClick={() => handleRemoveBannedWord(word)}
-                                                disabled={isLoading || deletingWord === word}
+                                                disabled={isLoading}
                                                 title="Remove word"
                                             >
-                                                {deletingWord === word ? <Loader2 className="h-4 w-4 animate-spin" /> : <X size={16} />}
+                                                <LoadingWrapper isLoading={termBeingRemoved === word} fallback="Removing...">
+                                                    {(termBeingRemoved === word) ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <X size={14} className="button-icon" />}
+                                                    {(termBeingRemoved === word) ? 'Removing...' : ''}
+                                                </LoadingWrapper>
                                             </button>
                                         </div>
                                     ))}

@@ -6,6 +6,7 @@ import ToolbarSettingsMenu from './ToolbarSettingsMenu';
 import '../../styles/modules/pdf/Toolbar.css';
 import {ZoomControls} from "./Toolbar";
 import {useEditContext} from "../../contexts/EditContext";
+import { useNotification } from '../../contexts/NotificationContext';
 
 interface MinimalToolbarProps {
     zoomLevel: number;
@@ -33,7 +34,7 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
     const editMenuRef = useRef<HTMLDivElement | null>(null);
     const [isVisibilityMenuOpen, setIsVisibilityMenuOpen] = useState(false);
     const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
-
+    const {notify} = useNotification();
     const {
         isEditingMode,
         highlightingMode,
@@ -66,11 +67,12 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
     const handleEditModeToggle = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        setIsEditingMode(!isEditingMode);
         setIsEditMenuOpen(prev => !prev);
         setIsVisibilityMenuOpen(false);
         setIsSettingsMenuOpen(false);
     }, [isEditingMode, setIsEditingMode]);
+
+
     const getHighlightIcon = () => {
         if (!isEditingMode) return <FaRegEye/>;
         switch (highlightingMode) {
@@ -86,12 +88,22 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
         setHighlightingMode(HighlightCreationMode.RECTANGULAR);
         setIsEditingMode(true);
         setIsEditMenuOpen(false);
+        notify({
+            type: 'success',
+            message: 'Highlighting mode set to rectangular',
+            position: 'top-right'
+        });
     }, [setHighlightingMode, setIsEditingMode]);
 
     const onSetTextSelectionHighlightingMode = useCallback(() => {
         setHighlightingMode(HighlightCreationMode.TEXT_SELECTION);
         setIsEditingMode(true);
         setIsEditMenuOpen(false);
+        notify({
+            type: 'success',
+            message: 'Highlighting mode set to text selection',
+            position: 'top-right'
+        });
     }, [setHighlightingMode, setIsEditingMode]);
     const getHighlightLabel = () => {
         if (!isEditingMode) return 'View';
@@ -115,6 +127,7 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
             }
             if (isEditMenuOpen && editMenuRef.current && !editMenuRef.current.contains(event.target as Node) && !editButtonRef.current?.contains(event.target as Node)) {
                 setIsEditMenuOpen(false);
+                setIsEditingMode(true);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -130,8 +143,9 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
                     <button
                         ref={editButtonRef}
                         onClick={handleEditModeToggle} // Use the passed toggle handler
+                        onDoubleClick={() => setIsEditingMode(!isEditingMode)}
                         className={`toolbar-button ${isEditingMode ? 'active' : ''}`}
-                        title={isEditingMode ? `Highlight Mode: ${getHighlightLabel()}` : "Enable Editing Mode"}
+                        title={isEditingMode ? `Highlight Mode: ${getHighlightLabel()} (Double Click to Disable)` : "Enable Editing Mode"}
                     >
                         {getHighlightIcon()}
                         <span className="button-label">{getHighlightLabel()}</span>

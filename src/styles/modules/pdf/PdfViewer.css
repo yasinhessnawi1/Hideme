@@ -63,9 +63,9 @@ and related components including processing indicators
 
 /* Add file button for top-left corner */
 .pdf-add-file-button {
-    position: absolute;
+    position: sticky;
     top: var(--spacing-md);
-    left: var(--spacing-md);
+    left: 100%;
     width: 40px;
     height: 40px;
     border-radius: 50%;

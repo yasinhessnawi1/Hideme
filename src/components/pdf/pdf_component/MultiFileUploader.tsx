@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Upload, Plus } from 'lucide-react';
 import { useFileContext } from '../../../contexts/FileContext';
 import '../../../styles/modules/pdf/PDFViewerPage.css';
+import { useNotification } from '../../../contexts/NotificationContext';
 
 interface MultiFileUploaderProps {
     mode?: 'replace' | 'add';
@@ -15,12 +16,13 @@ const MultiFileUploader: React.FC<MultiFileUploaderProps> = ({
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const { addFiles , files} = useFileContext();
     const [dragActive, setDragActive] = useState<boolean>(false);
-
+    const {notify} = useNotification();
     // Handle file selection
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0 ) {
             const newFiles = Array.from(e.target.files);
             addFiles(newFiles, mode === 'replace');
+            notify({message: `${newFiles.length} file(s) added successfully`, type: 'success', position: 'top-right', duration: 3000});
         }
     };
 
@@ -45,6 +47,7 @@ const MultiFileUploader: React.FC<MultiFileUploaderProps> = ({
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             const newFiles = Array.from(e.dataTransfer.files);
             addFiles(newFiles, mode === 'replace');
+            notify({message: `${newFiles.length} file(s) added by droping successfully`, type: 'success', position: 'top-right', duration: 3000});
         }
     };
 

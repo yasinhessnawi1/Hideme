@@ -28,11 +28,9 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                                                                    viewport
                                                                }) => {
     const { removeHighlight } = useHighlightStore();
-    const { isEditingMode, getColorForModel, getSearchColor } = useEditContext();
+    const { isEditingMode, getColorForModel, getSearchColor, selectedHighlightId, setSelectedHighlightId, selectedHighlightIds, setSelectedHighlightIds } = useEditContext();
     const { zoomLevel } = usePDFViewerContext();
-
     // State for selections and context menu
-    const [selectedHighlightId, setSelectedHighlightId] = useState<string | null>(null);
     const [hoveredAnnotation, setHoveredAnnotation] = useState<{
         annotation: HighlightRect;
         position: { x: number; y: number };
@@ -55,15 +53,28 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
     // Handle click on highlight
     const handleHighlightClick = useCallback((e: React.MouseEvent, highlight: HighlightRect) => {
         e.stopPropagation();
-        if (!isEditingMode) return;
+        e.preventDefault();
+        
+        // Always allow selection, even if not in editing mode
+        // This ensures search results can be selected
+        setSelectedHighlightId(highlight.id);
+        setSelectedHighlightIds([highlight.id]);
 
-        setSelectedHighlightId(prev => prev === highlight.id ? null : highlight.id);
-    }, [isEditingMode]);
+        // Dispatch a custom event to notify other components
+        window.dispatchEvent(new CustomEvent('highlight-selected', {
+            detail: {
+                id: highlight.id,
+                type: highlight.type,
+                fileKey: highlight.fileKey,
+                page: highlight.page
+            }
+        }));
+    }, [setSelectedHighlightId, setSelectedHighlightIds]);
 
     // Handle double-click to delete
     const handleHighlightDoubleClick = useCallback((e: React.MouseEvent, highlight: HighlightRect) => {
         e.stopPropagation();
-         removeHighlight(highlight.id);
+        removeHighlight(highlight.id);
     }, [isEditingMode, removeHighlight]);
 
     useEffect(() => {
@@ -86,6 +97,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
             window.removeEventListener('highlight-removed', handleHighlightRemoved);
         };
     }, []);
+    
     // Handle mouse enter for hover tooltip
     const handleHighlightMouseEnter = useCallback((e: React.MouseEvent, highlight: HighlightRect) => {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -152,7 +164,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                 <div
                     key={`highlight-${highlight.id}`}
                     className={`highlight-rect ${layerClass}-highlight ${
-                        selectedHighlightId === highlight.id ? 'selected' : ''
+                        selectedHighlightId === highlight.id || selectedHighlightIds?.includes(highlight.id) ? 'selected' : ''
                     }`}
                     style={{
                         position: 'absolute',
@@ -163,7 +175,6 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                         backgroundColor: getHighlightColor(highlight),
                         opacity: highlight.opacity ?? 0.4,
                         cursor: isEditingMode ? 'pointer' : 'default',
-                        border: selectedHighlightId === highlight.id ? '2px dashed #000' : '1px solid rgba(0,0,0,0.2)',
                         pointerEvents: 'auto',
                         boxSizing: 'border-box',
                         borderRadius: '3px',
@@ -192,7 +203,8 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
         handleHighlightMouseEnter,
         handleHighlightMouseLeave,
         handleContextMenu,
-        pageNumber
+        pageNumber,
+        selectedHighlightIds
     ]);
 
     return (

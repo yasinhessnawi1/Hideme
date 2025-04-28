@@ -27,6 +27,12 @@ including animations, hover effects, and resizing functionality.
     gap: var(--spacing-sm);
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+}
+.thumbnails-title-area {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
 }
 
 .thumbnails-header h3 {

@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useEditContext } from '../../contexts/EditContext';
 import { ManualHighlightProcessor } from '../../managers/ManualHighlightProcessor';
 import { PDFPageViewport, HighlightCreationMode } from '../../types';
+import { useNotification } from '../../contexts/NotificationContext';
 
 interface PageOverlayProps {
     pageNumber: number;
@@ -37,7 +38,7 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
     const [selectionStart, setSelectionStart] = useState<{x: number; y: number} | null>(null);
     const [selectionEnd, setSelectionEnd] = useState<{x: number; y: number} | null>(null);
     const [isSelecting, setIsSelecting] = useState(false);
-
+    const { notify } = useNotification();
     // Only handle rectangular selection in this component
     const isRectangularMode = highlightingMode === HighlightCreationMode.RECTANGULAR;
 
@@ -46,10 +47,6 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
         if (!isEditingMode || !isRectangularMode) return;
 
         // Avoid capturing text selections
-        const selection = window.getSelection();
-        if (selection && selection.toString().trim().length > 0) {
-            return;
-        }
 
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -117,16 +114,20 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
                     manualColor,
                     undefined,
                     HighlightCreationMode.RECTANGULAR,
-                ).then(highlight => {
-                    if (highlight) {
-                        console.log(`[PageOverlay] Successfully created highlight with ID ${highlight.id}`);
-                    }
-                });
+                );
             } else {
-                console.log('[PageOverlay] Selection too small, ignoring');
+                notify({
+                    message: 'Selection too small, ignoring',
+                    type: 'info',
+                    duration: 3000
+                });
             }
         } catch (error) {
-            console.error('[PageOverlay] Error creating highlight:', error);
+            notify({
+                message: `Error creating highlight: ${error}`,
+                type: 'error',
+                duration: 3000
+            });
         } finally {
             // Reset state
             setIsSelecting(false);

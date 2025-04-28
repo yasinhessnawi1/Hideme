@@ -49,10 +49,10 @@ interface UserContextProps {
     banListError: string | null;
     clearBanListError: () => void;
     modelEntities: Record<number, ModelEntity[]>;
-    getModelEntities: (methodId: number) => Promise<ModelEntity[]>;
+    getModelEntities: (methodId: number) => Promise<ModelEntity[] | null>;
     addModelEntities: (data: ModelEntityBatch) => Promise<ModelEntity[]>;
     deleteModelEntity: (entityId: number) => Promise<void>;
-    replaceModelEntities: (methodId: number, entities: OptionType[]) => Promise<ModelEntity[]>;
+    replaceModelEntities: (methodId: number, entities: OptionType[]) => Promise<ModelEntity[] | null>;
     deleteAllEntitiesForMethod: (methodId: number) => Promise<void>;
     updateAllEntitySelections: (
         presidioEntities: OptionType[],

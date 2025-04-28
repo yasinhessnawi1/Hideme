@@ -10,6 +10,8 @@ import '../../../styles/modules/pdf/RedactionSidebar.css';
 import { AlertCircle, Check, Loader2 } from 'lucide-react';
 import {useLoading} from "../../../contexts/LoadingContext";
 import LoadingWrapper from '../../common/LoadingWrapper';
+import { useNotification } from '../../../contexts/NotificationContext';
+import { ConfirmationType } from '../../../contexts/NotificationContext';
 
 const RedactionSidebar: React.FC = () => {
     const {
@@ -29,20 +31,17 @@ const RedactionSidebar: React.FC = () => {
         getHighlightsForFile,
         refreshTrigger
     } = useHighlightStore();
-
+    const {notify, confirm} = useNotification();
+    
     // Use the refactored PDF API hook
     const {
         loading: isApiLoading,
         error: apiError,
-        progress: apiProgress,
         runRedactPdf,
         runBatchRedactPdfs
     } = usePDFApi();
 
     const [redactionScope, setRedactionScope] = useState<'current' | 'selected' | 'all'>('all');
-    const [redactionError, setRedactionError] = useState<string | null>(null);
-    const [redactionSuccess, setRedactionSuccess] = useState<string | null>(null);
-    const [fileErrors, setFileErrors] = useState<Map<string, string>>(new Map());
     const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
 
     const [redactionOptions, setRedactionOptions] = useState({
@@ -55,22 +54,7 @@ const RedactionSidebar: React.FC = () => {
     // Map of fileKey -> redaction mapping
     const [redactionMappings, setRedactionMappings] = useState<Map<string, any>>(new Map());
 
-    // Set error from API if available
-    useEffect(() => {
-        if (apiError) {
-            setRedactionError(apiError);
-        }
-    }, [apiError]);
 
-    // Auto-hide success message after a few seconds
-    useEffect(() => {
-        if (redactionSuccess) {
-            const timer = setTimeout(() => {
-                setRedactionSuccess(null);
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [redactionSuccess]);
 
     // Get files to process based on selected scope
     const getFilesToProcess = useCallback((): File[] => {
@@ -202,8 +186,10 @@ const RedactionSidebar: React.FC = () => {
 
         if (filesToRedact.length === 0 || redactionMappings.size === 0) {
             const errorMessage = 'No files selected for redaction or no content to redact.';
-            setRedactionError(errorMessage);
-
+            notify({
+                message: errorMessage,
+                type: 'error'
+            });
             // Notify callback of failure
             if (callbackFn) {
                 callbackFn({
@@ -233,7 +219,10 @@ const RedactionSidebar: React.FC = () => {
 
         if (filesToProcess.length === 0) {
             const errorMessage = 'No redaction content found in selected files.';
-            setRedactionError(errorMessage);
+            notify({
+                message: errorMessage,
+                type: 'error'
+            });
 
             // Notify callback of failure
             if (callbackFn) {
@@ -265,15 +254,27 @@ const RedactionSidebar: React.FC = () => {
                 ? `Are you sure you want to redact the highlighted content in ${filesToProcess[0].name}? This will create a new PDF document.`
                 : `Are you sure you want to redact the highlighted content in ${filesToProcess.length} files? This will create new PDF documents.`;
 
-            if (!window.confirm(confirmMessage)) {
+           const confirmed = await confirm({
+                message: confirmMessage,
+                title: 'Confirm Redaction',
+                type: 'confirm',
+                confirmButton: {
+                    label: 'Confirm',
+                    variant: 'primary',
+
+                },
+                cancelButton: {
+                    label: 'Cancel',
+                    variant: 'secondary',
+                }
+            });
+
+            if (!confirmed) {
                 return;
             }
         }
 
         startLoading('redaction.redact');
-        setRedactionError(null);
-        setFileErrors(new Map());
-        setRedactionSuccess(null);
 
         try {
             // Create a mapping of fileKey -> redaction mapping for the API
@@ -315,8 +316,10 @@ const RedactionSidebar: React.FC = () => {
                     ? `Redaction complete. ${Object.keys(redactedPdfs).length} file has been processed.`
                     : `Redaction complete. ${Object.keys(redactedPdfs).length} files have been processed.`;
 
-                setRedactionSuccess(successMessage);
-
+                notify({
+                    message: successMessage,
+                    type: 'success'
+                });
 
                 // Notify callback of success with the processed files
                 if (callbackFn) {
@@ -336,8 +339,10 @@ const RedactionSidebar: React.FC = () => {
 
             } catch (processingError: any) {
                 const errorMessage = `Error processing redacted files: ${processingError.message}`;
-                setRedactionError(errorMessage);
-
+                notify({
+                    message: errorMessage,
+                    type: 'error'
+                });
                 // Notify callback of failure
                 if (callbackFn) {
                     callbackFn({
@@ -358,9 +363,11 @@ const RedactionSidebar: React.FC = () => {
             }
 
         } catch (error: any) {
-            console.error('Error during redaction:', error);
             const errorMessage = error.message || 'An error occurred during redaction';
-            setRedactionError(errorMessage);
+            notify({
+                message: errorMessage,
+                type: 'error'
+            });
 
             // Notify callback of failure
             if (callbackFn) {
@@ -408,9 +415,10 @@ const RedactionSidebar: React.FC = () => {
             removeImages: true
         });
         setRedactionScope('all');
-        setRedactionError(null);
-        setRedactionSuccess(null);
-        setFileErrors(new Map());
+        notify({
+            message: 'Redaction settings reset',
+            type: 'info'
+        });
     }, []);
 
     // Get overall stats - memoize for better performance
@@ -425,7 +433,6 @@ const RedactionSidebar: React.FC = () => {
             const customEvent = event as CustomEvent;
             const { applyToAllFiles, triggerRedaction, source , filesToProcess} = customEvent.detail || {};
 
-            console.log(`[RedactionSidebar] Received redaction settings from ${source}`);
 
             // If applyToAllFiles flag is true, set the scope to 'all'
             if (applyToAllFiles) {
@@ -440,12 +447,10 @@ const RedactionSidebar: React.FC = () => {
 
                 }));
 
-                console.log('[RedactionSidebar] Set redaction scope to all files');
             }
 
             // If triggerRedaction flag is true, auto-trigger the redaction process
             if (triggerRedaction) {
-                console.log('[RedactionSidebar] Auto-triggering redaction process from external source');
                 // Delay slightly to ensure state updates have propagated
                 setTimeout(() => {
                     handleRedact(filesToProcess);
@@ -457,8 +462,6 @@ const RedactionSidebar: React.FC = () => {
         const handleTriggerRedaction = (event: Event) => {
             const customEvent = event as CustomEvent;
             const { source, callback , filesToProcess} = customEvent.detail || {};
-
-            console.log(`[RedactionSidebar] Received direct redaction trigger from ${source}`);
 
             if (typeof callback === 'function') {
                 // Pass the callback to handleRedact
@@ -575,15 +578,6 @@ const RedactionSidebar: React.FC = () => {
                     </div>
                 </div>
 
-                {redactionSuccess && (
-                    <div className="sidebar-section success-section">
-                        <div className="success-message">
-                            <Check size={18} className="success-icon"/>
-                            {redactionSuccess}
-                        </div>
-                    </div>
-                )}
-
                 {redactionMappings.size > 0 && stats.totalItems > 0 ? (
                     <div className="sidebar-section">
                         <h4>Redaction Preview</h4>
@@ -630,13 +624,6 @@ const RedactionSidebar: React.FC = () => {
                                     ))}
                                 </div>
                             </>
-                        )}
-
-                        {redactionError && (
-                            <div className="error-message">
-                                <AlertCircle size={18} className="error-icon" />
-                                {redactionError}
-                            </div>
                         )}
 
                         <div className="sidebar-section button-group">

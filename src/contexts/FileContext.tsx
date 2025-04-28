@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useState, useCallback, useEffect, useRef, useMemo} from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { getFileKey } from './PDFViewerContext';
 import { autoProcessManager } from '../managers/AutoProcessManager';
 import pdfStorageService from '../services/PDFStorageService';
@@ -8,6 +8,8 @@ import { useHighlightStore } from "./HighlightStoreContext";
 import processingStateService from "../services/ProcessingStateService";
 import summaryPersistenceStore from "../store/SummaryPersistenceStore";
 import { useLoading } from './LoadingContext';
+import { useSettings } from '../hooks/settings/useSettings';
+import { useNotification } from './NotificationContext';
 
 const loadPdfWorker = () => {
     return new Promise<void>((resolve) => {
@@ -20,14 +22,11 @@ const loadPdfWorker = () => {
 
         // Set worker source if not already set
         if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-            console.log('Setting PDF.js worker source');
             pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
         }
 
         // Wait for the worker to be ready
-        console.log('Waiting for PDF.js worker to initialize...');
         setTimeout(() => {
-            console.log('PDF.js worker initialization timeout completed');
             resolve();
         }, 5);
     });
@@ -95,9 +94,9 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isStoragePersistenceEnabled, setIsStoragePersistenceEnabled] = useState<boolean>(false);
     const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
     const { removeHighlightsFromFile } = useHighlightStore();
-
+    const { settings } = useSettings();
     const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
-
+    const { notify } = useNotification();
     // Keep a queue of newly added files that need processing
     const processingQueue = useRef<File[]>([]);
     const [queueTrigger, setQueueTrigger] = useState(0);
@@ -114,7 +113,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const initializeWorker = async () => {
             try {
                 await loadPdfWorker();
-                console.log('✅ [FileContext] PDF.js worker initialized successfully');
             } catch (error) {
                 console.error('❌ [FileContext] Failed to initialize PDF.js worker:', error);
             }
@@ -152,18 +150,15 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         // Skip if either PDF worker or storage initialization is not complete
         if (!globalLoading(['file.worker'])) {
-            console.log('⏳ [FileContext] Waiting for PDF.js worker to initialize before loading files');
             return;
         }
 
         if (!isStoragePersistenceEnabled) {
-            console.log('ℹ️ [FileContext] Storage persistence is disabled, not loading files');
             return;
         }
 
         // Prevent multiple load attempts
         if (storageLoadAttempted.current) {
-            console.log('ℹ️ [FileContext] Storage load already attempted, skipping');
             return;
         }
 
@@ -212,11 +207,8 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         };
 
-        // Start loading files with a slight delay
-        console.log('⏳ [FileContext] Scheduling file loading with delay...');
         setTimeout(() => {
-            console.log('🔄 [FileContext] Starting file loading from storage');
-            loadFilesFromStorage().then(() => {});
+            loadFilesFromStorage().then(() => { });
         }, 80);
 
     }, [isStoragePersistenceEnabled]);
@@ -238,7 +230,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         };
 
-        updateStorageStats().then(() => {});
+        updateStorageStats().then(() => { });
     }, [files, isStoragePersistenceEnabled]);
 
     // Toggle storage persistence setting
@@ -339,10 +331,9 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const filesToProcess = processingQueue.current.splice(0, 3);
 
                 if (filesToProcess.length > 0) {
-                    console.log(`[FileContext] Processing ${filesToProcess.length} queued files`);
 
                     // Process files with current settings
-                     await autoProcessManager.processNewFiles(filesToProcess);
+                    await autoProcessManager.processNewFiles(filesToProcess);
                 }
             } catch (error) {
                 console.error('[FileContext] Error processing file queue:', error);
@@ -396,8 +387,11 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const addFile = useCallback((file: File) => {
         setFiles((prevFiles) => {
             if (prevFiles.length >= 20) {
-                console.warn(`[FileContext] Maximum file limit reached. Cannot add more files.`);
-                return prevFiles;
+                notify({
+                    message: `Maximum file limit reached. Only the first 20 files will be added.`,
+                    type: 'error',
+                    duration: 3000
+                }); return prevFiles;
             }
 
             // Check if file already exists in array (by name and size)
@@ -409,6 +403,11 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (fileExists) {
                 setCurrentFile(file);
+                notify({
+                    message: `File "${file.name}" already exists`,
+                    type: 'info',
+                    duration: 3000
+                });
                 // Open the file if it's not already open
                 openFile(file);
                 return prevFiles;
@@ -422,13 +421,14 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setCurrentFile(file);
             }
 
-            // Automatically open the new file
-            openFile(file);
+
 
             // Always queue file for auto-processing
             // The AutoProcessManager will handle the decision about whether to process it
-            processingQueue.current.push(file);
-            setQueueTrigger(prev => prev + 1);
+            if (settings?.auto_processing) {
+                processingQueue.current.push(file);
+                setQueueTrigger(prev => prev + 1);
+            }
 
             // Store file in persistent storage if enabled
             if (isStoragePersistenceEnabled) {
@@ -436,6 +436,11 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     .catch(error => {
                         console.error(`[FileContext] Error storing file "${file.name}":`, error);
                     });
+            }
+            // Automatically open the new file
+            if (!isFileOpen(file)) {
+                addToActiveFiles(file);
+                openFile(file);
             }
 
             return newFiles;
@@ -447,6 +452,12 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setFiles((prevFiles) => {
             // Start with either the existing files or an empty array if replace=true
             const baseFiles = replace ? [] : [...prevFiles];
+
+            if (!isFileOpen(newFiles[0])) {
+                openFile(newFiles[0]);
+                setTimeout(() => {
+                }, 1000);
+            }
 
             // Filter out files that already exist
             const uniqueNewFiles = newFiles.filter(newFile =>
@@ -463,7 +474,11 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Limit the number of files to 20
             const totalFiles = baseFiles.length + uniqueNewFiles.length - redactedFiles.length;
             if (totalFiles > 20) {
-                console.warn(`[FileContext] Maximum file limit reached. Only the first 20 files will be added.`);
+                notify({
+                    message: `Maximum file limit reached. Only the first 20 files will be added.`,
+                    type: 'error',
+                    duration: 3000
+                });
                 uniqueNewFiles.splice(20 - baseFiles.length);
             }
 
@@ -492,7 +507,11 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (isStoragePersistenceEnabled) {
                     pdfStorageService.storeFile(file)
                         .catch(error => {
-                            console.error(`[FileContext] Error storing file "${file.name}":`, error);
+                            notify({
+                                message: `Error storing file "${file.name}" in storage: ${error}`,
+                                type: 'error',
+                                duration: 3000
+                            });
                         });
                 }
             });
@@ -502,6 +521,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // Avoid duplicates in the queue
                 const existingFileKeys = new Set(processingQueue.current.map(file => getFileKey(file)));
                 const filesToQueue = uniqueNewFiles.filter(file => {
+
                     const fileKey = getFileKey(file);
                     return !existingFileKeys.has(fileKey);
                 });
@@ -511,6 +531,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setQueueTrigger(prev => prev + 1);
                 }
             }
+
 
             return updatedFiles;
         });
