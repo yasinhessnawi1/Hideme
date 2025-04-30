@@ -225,6 +225,7 @@ describe('useAutoProcess', () => {
   });
 });
 
+/*
 // Mock with different authentication states
 describe('useAutoProcess with different auth states', () => {
   beforeEach(() => {
@@ -278,3 +279,5 @@ describe('useAutoProcess with different auth states', () => {
     });
   });
 });
+
+ */

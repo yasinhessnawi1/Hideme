@@ -38,7 +38,7 @@ export default defineConfig({
             include: ['src/**/*.{js,jsx,ts,tsx}'],
             exclude: ['src/**/*.d.ts', '**/node_modules/**'],
             reporter: ['text', 'html', 'json'],
-            reportsDirectory: './src'
+            reportsDirectory: './coverage',
         },
     }
 });

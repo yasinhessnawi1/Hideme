@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useSettings } from './useSettings';
 import useAuth from '../auth/useAuth';
 import apiClient from '../../services/apiClient';
@@ -15,7 +15,8 @@ vi.mock('../auth/useAuth', () => ({
 vi.mock('../../services/apiClient', () => ({
   default: {
     get: vi.fn(),
-    put: vi.fn()
+    put: vi.fn(),
+    clearCacheEntry: vi.fn()
   }
 }));
 
@@ -27,10 +28,7 @@ vi.mock('../../managers/authStateManager', () => ({
 
 // Mock window.dispatchEvent
 const dispatchEventMock = vi.fn();
-window.dispatchEvent = dispatchEventMock;
-
-// Mock setTimeout
-vi.useFakeTimers();
+const originalDispatchEvent = window.dispatchEvent;
 
 describe('useSettings', () => {
   // Mock settings data
@@ -49,6 +47,12 @@ describe('useSettings', () => {
   beforeEach(() => {
     // Reset mocks
     vi.clearAllMocks();
+
+    // Setup fake timers for all tests
+    vi.useFakeTimers();
+
+    // Replace window.dispatchEvent with mock
+    window.dispatchEvent = dispatchEventMock;
 
     // Setup default mock returns
     (useAuth as Mock).mockReturnValue({
@@ -72,6 +76,14 @@ describe('useSettings', () => {
       userId: '123',
       username: 'testuser'
     });
+  });
+
+  afterEach(() => {
+    // Restore real timers
+    vi.useRealTimers();
+
+    // Restore original window.dispatchEvent
+    window.dispatchEvent = originalDispatchEvent;
   });
 
   describe('Initial state', () => {
@@ -199,7 +211,7 @@ describe('useSettings', () => {
         const promise2 = result.current.getSettings();
 
         // Fast-forward time to resolve the first request
-        vi.advanceTimersByTime(100);
+        vi.advanceTimersByTime(200);
 
         settings1 = await promise1;
         settings2 = await promise2;
@@ -344,16 +356,22 @@ describe('useSettings', () => {
   });
 
   describe('clearError', () => {
-    test('should clear error', () => {
+    test('should clear error', async () => {
+      // Mock API error to set an error state
+      const mockError = new Error('Failed to fetch settings') as Error & { userMessage?: string };
+      mockError.userMessage = 'Could not load your settings';
+      (apiClient.get as Mock).mockRejectedValue(mockError);
+
       const { result } = renderHook(() => useSettings());
 
-      // Set error
-      act(() => {
-        // @ts-ignore - Accessing private state for testing
-        result.current.setError('Test error');
+      // First cause an error
+      await act(async () => {
+        await result.current.getSettings();
       });
 
-      // Clear error
+      expect(result.current.error).toBe('Could not load your settings');
+
+      // Then clear error
       act(() => {
         result.current.clearError();
       });

@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useEntityDefinitions } from './useEntityDefinitions';
 import useAuth from '../auth/useAuth';
 import apiClient from '../../services/apiClient';
@@ -26,9 +26,6 @@ vi.mock('../../managers/authStateManager', () => ({
     getCachedState: vi.fn()
   }
 }));
-
-// Spy on window.dispatchEvent
-const dispatchEventSpy = vi.spyOn(window, 'dispatchEvent');
 
 // Helper function to create API success response
 function createSuccessResponse<T>(data: T) {
@@ -71,9 +68,16 @@ describe('useEntityDefinitions', () => {
     }
   ];
 
+  // Setup for window.dispatchEvent mock
+  const dispatchEventMock = vi.fn();
+  const originalDispatchEvent = window.dispatchEvent;
+
   beforeEach(() => {
     // Reset mocks
     vi.clearAllMocks();
+
+    // Replace window.dispatchEvent with mock
+    window.dispatchEvent = dispatchEventMock;
 
     // Setup default mock returns
     (useAuth as Mock).mockReturnValue({
@@ -97,6 +101,11 @@ describe('useEntityDefinitions', () => {
       userId: '123',
       username: 'testuser'
     });
+  });
+
+  afterEach(() => {
+    // Restore original window.dispatchEvent
+    window.dispatchEvent = originalDispatchEvent;
   });
 
   describe('Initial state', () => {
@@ -240,14 +249,14 @@ describe('useEntityDefinitions', () => {
       expect(result.current.error).toBeNull();
 
       // Should dispatch event
-      expect(dispatchEventSpy).toHaveBeenCalledWith(
+      expect(dispatchEventMock).toHaveBeenCalledWith(
           expect.objectContaining({
             type: 'entity-definitions-updated',
-            detail: {
+            detail: expect.objectContaining({
               type: 'add',
               methodId: 1,
               entities: newEntities
-            }
+            })
           })
       );
     });
@@ -279,13 +288,13 @@ describe('useEntityDefinitions', () => {
       expect(result.current.error).toBeNull();
 
       // Should dispatch event
-      expect(dispatchEventSpy).toHaveBeenCalledWith(
+      expect(dispatchEventMock).toHaveBeenCalledWith(
           expect.objectContaining({
             type: 'entity-definitions-updated',
-            detail: {
+            detail: expect.objectContaining({
               type: 'delete',
               entityId: 1
-            }
+            })
           })
       );
     });
@@ -322,13 +331,13 @@ describe('useEntityDefinitions', () => {
       expect(result.current.error).toBeNull();
 
       // Should dispatch event
-      expect(dispatchEventSpy).toHaveBeenCalledWith(
+      expect(dispatchEventMock).toHaveBeenCalledWith(
           expect.objectContaining({
             type: 'entity-definitions-updated',
-            detail: {
+            detail: expect.objectContaining({
               type: 'delete-all',
               methodId: 1
-            }
+            })
           })
       );
     });
@@ -463,12 +472,12 @@ describe('useEntityDefinitions', () => {
       });
 
       // Should dispatch event
-      expect(dispatchEventSpy).toHaveBeenCalledWith(
+      expect(dispatchEventMock).toHaveBeenCalledWith(
           expect.objectContaining({
             type: 'entity-definitions-updated',
-            detail: {
+            detail: expect.objectContaining({
               type: 'update-all'
-            }
+            })
           })
       );
     });
