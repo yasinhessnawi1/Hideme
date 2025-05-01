@@ -265,4 +265,39 @@ export function entitiesToOptions(entities: string[], availableOptions: OptionTy
 }
 
 
+/**
+ * Gets the corrected bounding box coordinates accounting for page rotation and scaling
+ *
+ * @param bbox The original bounding box
+ * @param pageRotation The page rotation in degrees
+ * @param pageWidth The width of the page
+ * @param pageHeight The height of the page
+ * @returns Corrected bounding box coordinates
+ */
+export function getCorrectedBoundingBox(
+    bbox: [number, number, number, number],
+    pageRotation: number = 0,
+    pageWidth: number = 0,
+    pageHeight: number = 0
+): [number, number, number, number] {
+    // No rotation, return the original bbox
+    if (pageRotation === 0 || !pageWidth || !pageHeight) {
+        return bbox;
+    }
+
+    const [x1, y1, x2, y2] = bbox;
+
+    // Handle different rotation angles
+    switch (pageRotation) {
+        case 90:
+            return [y1, pageWidth - x2, y2, pageWidth - x1];
+        case 180:
+            return [pageWidth - x2, pageHeight - y2, pageWidth - x1, pageHeight - y1];
+        case 270:
+            return [pageHeight - y2, x1, pageHeight - y1, x2];
+        default:
+            return bbox;
+    }
+}
+
 
