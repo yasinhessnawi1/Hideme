@@ -79,9 +79,6 @@ describe('ScrollManagerService', () => {
         });
     });
 
-    describe('isFileChangeInProgress', () => {
-    });
-
     describe('setFileChanging', () => {
         test('should set the file changing state', () => {
             // Set to true

@@ -463,7 +463,6 @@ describe('userService', () => {
     });
 
     // Test console logging functionality
-    describe('console logging', () => {
         /*
         test('should log initialization message', () => {
             const spy = vi.spyOn(console, 'log');
@@ -510,5 +509,4 @@ describe('userService', () => {
             errorSpy.mockRestore();
         });
         */
-    });
 });
