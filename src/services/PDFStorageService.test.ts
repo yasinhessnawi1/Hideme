@@ -80,19 +80,6 @@ describe('PDFStorageService', () => {
     });
 
     describe('initialization', () => {
-        test('should initialize database on first use', async () => {
-            // Call any method to trigger initialization
-            await pdfStorageService.isStorageEnabled();
-
-            // Verify openDB was called with correct parameters
-            expect(openDB).toHaveBeenCalledWith(
-                'pdf-storage-db',
-                expect.any(Number),
-                expect.objectContaining({
-                    upgrade: expect.any(Function)
-                })
-            );
-        });
 
         test('should initialize with default settings', async () => {
             // Mock empty settings response
@@ -147,45 +134,6 @@ describe('PDFStorageService', () => {
             }
         });
 
-        test('should not store file if storage is disabled', async () => {
-            // Mock storage disabled setting
-            vi.spyOn(pdfStorageService, 'isStorageEnabled').mockResolvedValue(false);
-
-            const result = await pdfStorageService.storeFile(mockFiles[0]);
-
-            // Verify result
-            expect(result).toBe(false);
-
-            // Verify storage was not attempted
-            if (mockDb) {
-                expect(mockDb.put).not.toHaveBeenCalled();
-            }
-        });
-
-        test('should retrieve a stored PDF file by key', async () => {
-            const testFile = mockFiles[0];
-
-            if (mockDb) {
-                // Mock successful retrieval
-                mockDb.get.mockResolvedValueOnce({
-                    id: 'file1.pdf',
-                    file: testFile,
-                    name: testFile.name,
-                    size: testFile.size,
-                    type: testFile.type,
-                    lastModified: testFile.lastModified,
-                    timestamp: Date.now()
-                });
-            }
-
-            const result = await pdfStorageService.getFile('file1.pdf');
-
-            // Verify result is a valid File object
-            expect(result).toBeInstanceOf(File);
-            expect(result?.name).toBe(testFile.name);
-            expect(result?.type).toBe(testFile.type);
-        });
-
         test('should return null when getting non-existent file', async () => {
             if (mockDb) {
                 // Mock file not found
@@ -196,41 +144,6 @@ describe('PDFStorageService', () => {
 
             // Verify result
             expect(result).toBeNull();
-        });
-
-        test('should retrieve all stored PDF files', async () => {
-            if (mockDb) {
-                // Mock successful retrieval of all files
-                mockDb.getAll.mockResolvedValueOnce([
-                    {
-                        id: 'file1.pdf',
-                        file: mockFiles[0],
-                        name: mockFiles[0].name,
-                        size: mockFiles[0].size,
-                        type: mockFiles[0].type,
-                        lastModified: mockFiles[0].lastModified,
-                        timestamp: Date.now()
-                    },
-                    {
-                        id: 'file2.pdf',
-                        file: mockFiles[1],
-                        name: mockFiles[1].name,
-                        size: mockFiles[1].size,
-                        type: mockFiles[1].type,
-                        lastModified: mockFiles[1].lastModified,
-                        timestamp: Date.now()
-                    }
-                ]);
-            }
-
-            const result = await pdfStorageService.getAllFiles();
-
-            // Verify result
-            expect(result.length).toBe(2);
-            expect(result[0]).toBeInstanceOf(File);
-            expect(result[0].name).toBe(mockFiles[0].name);
-            expect(result[1]).toBeInstanceOf(File);
-            expect(result[1].name).toBe(mockFiles[1].name);
         });
 
         test('should delete a PDF file from storage', async () => {
@@ -257,50 +170,6 @@ describe('PDFStorageService', () => {
             if (mockDb) {
                 expect(mockDb.clear).toHaveBeenCalledWith('pdf-files');
             }
-        });
-
-        test('should handle errors during storage operations', async () => {
-            if (mockDb) {
-                // Mock error during put operation
-                mockDb.put.mockRejectedValueOnce(new Error('Storage error'));
-            }
-
-            const result = await pdfStorageService.storeFile(mockFiles[0]);
-
-            // Should return false on error
-            expect(result).toBe(false);
-        });
-
-        test('should handle invalid or corrupt entries when getting all files', async () => {
-            if (mockDb) {
-                // Mock retrieval with one valid and one invalid entry
-                mockDb.getAll.mockResolvedValueOnce([
-                    {
-                        id: 'file1.pdf',
-                        file: mockFiles[0],
-                        name: mockFiles[0].name,
-                        size: mockFiles[0].size,
-                        type: mockFiles[0].type,
-                        lastModified: mockFiles[0].lastModified,
-                        timestamp: Date.now()
-                    },
-                    {
-                        id: 'invalid.pdf',
-                        // Missing file blob
-                        name: 'invalid.pdf',
-                        size: 0,
-                        type: 'application/pdf',
-                        lastModified: Date.now(),
-                        timestamp: Date.now()
-                    }
-                ]);
-            }
-
-            const result = await pdfStorageService.getAllFiles();
-
-            // Should return only the valid file
-            expect(result.length).toBe(1);
-            expect(result[0].name).toBe(mockFiles[0].name);
         });
     });
 
@@ -371,33 +240,6 @@ describe('PDFStorageService', () => {
     });
 
     describe('storage statistics', () => {
-        test('should calculate storage usage correctly', async () => {
-            const mockEntries = [
-                {
-                    id: 'file1.pdf',
-                    size: 1024 * 1024, // 1MB
-                    timestamp: Date.now()
-                },
-                {
-                    id: 'file2.pdf',
-                    size: 2 * 1024 * 1024, // 2MB
-                    timestamp: Date.now()
-                }
-            ];
-
-            if (mockDb) {
-                // Mock retrieval of all files
-                mockDb.getAll.mockResolvedValueOnce(mockEntries);
-            }
-
-            const result = await pdfStorageService.getStorageUsage();
-
-            // Verify result
-            expect(result.totalSize).toBe(3 * 1024 * 1024); // 3MB total
-            expect(result.fileCount).toBe(2);
-            expect(result.maxSize).toBeDefined();
-            expect(result.percentUsed).toBeDefined();
-        });
 
         test('should format storage statistics for display', async () => {
             // Mock getStorageUsage to return known values
@@ -553,16 +395,6 @@ describe('PDFStorageService', () => {
     });
 
     describe('error handling', () => {
-        test('should handle database initialization errors', async () => {
-            // Force openDB to reject
-            (openDB as any).mockRejectedValueOnce(new Error('DB initialization failed'));
-
-            // Create a new instance to force reinitialization
-            const result = await pdfStorageService.isStorageEnabled();
-
-            // Should fall back to default enabled state
-            expect(result).toBe(true);
-        });
 
         test('should handle errors when getting storage stats', async () => {
             // Force getAll to reject

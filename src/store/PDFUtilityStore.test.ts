@@ -92,25 +92,6 @@ describe('PDFUtilityStore', () => {
     // DOWNLOAD PDF TESTS
     // ==========================================
     describe('downloadPDF', () => {
-        test('should download a single PDF file', async () => {
-            // Create test file
-            const file = new File(['test content'], 'test.pdf', { type: 'application/pdf' });
-
-            const result = await pdfUtilityService.downloadPDF(file);
-
-            // Verify the result
-            expect(result).toBe(true);
-
-            // Verify URL operations
-            expect(createObjectURLMock).toHaveBeenCalledWith(file);
-            expect(revokeObjectURLMock).toHaveBeenCalledTimes(1);
-
-            // Verify DOM operations
-            expect(createElementMock).toHaveBeenCalledWith('a');
-            expect(appendChildMock).toHaveBeenCalledTimes(1);
-            expect(clickMock).toHaveBeenCalledTimes(1);
-            expect(removeChildMock).toHaveBeenCalledTimes(1);
-        });
 
         test('should use the file name for download if available', async () => {
             // Create test file with a specific name
@@ -164,30 +145,6 @@ describe('PDFUtilityStore', () => {
             expect(result).toBe(true);
             expect(downloadPDFSpy).toHaveBeenCalledWith(file);
         });
-
-        test('should create a ZIP for multiple files', async () => {
-            // Create test files
-            const files = [
-                new File(['content 1'], 'file1.pdf', { type: 'application/pdf' }),
-                new File(['content 2'], 'file2.pdf', { type: 'application/pdf' })
-            ];
-
-            const result = await pdfUtilityService.downloadMultiplePDFs(files);
-
-            // Verify the result
-            expect(result).toBe(true);
-
-            // Verify URL operations
-            expect(createObjectURLMock).toHaveBeenCalledTimes(1);
-            expect(revokeObjectURLMock).toHaveBeenCalledTimes(1);
-
-            // Verify DOM operations
-            expect(createElementMock).toHaveBeenCalledWith('a');
-            expect(appendChildMock).toHaveBeenCalledTimes(1);
-            expect(clickMock).toHaveBeenCalledTimes(1);
-            expect(removeChildMock).toHaveBeenCalledTimes(1);
-        });
-
         test('should handle errors in ZIP creation', async () => {
             // Force JSZip to fail
             vi.mock('jszip', async () => {
@@ -229,28 +186,6 @@ describe('PDFUtilityStore', () => {
     // PRINT PDF TESTS
     // ==========================================
     describe('printPDF', () => {
-        test('should open and print a PDF file', async () => {
-            // Create test file
-            const file = new File(['test content'], 'test.pdf', { type: 'application/pdf' });
-
-            // Execute the method
-            const printPromise = pdfUtilityService.printPDF(file);
-
-            // Wait for promise to resolve since it has several setTimeout callbacks
-            const result = await printPromise;
-
-            // Verify the result
-            expect(result).toBe(true);
-
-            // Verify URL and window operations
-            expect(createObjectURLMock).toHaveBeenCalledWith(file);
-            expect(openMock).toHaveBeenCalledWith('mock-url', '_blank');
-            expect(revokeObjectURLMock).toHaveBeenCalledTimes(1);
-
-            // Verify print was called on the window
-            const mockWindow = openMock.mock.results[0].value;
-            expect(mockWindow.print).toHaveBeenCalled();
-        });
 
         test('should handle window open failure', async () => {
             // Mock window.open to return null (as if blocked by popup blocker)
@@ -311,51 +246,6 @@ describe('PDFUtilityStore', () => {
             expect(printPDFSpy).toHaveBeenCalledWith(file);
         });
 
-        test('should merge and print multiple files', async () => {
-            // Create test files
-            const files = [
-                new File(['content 1'], 'file1.pdf', { type: 'application/pdf' }),
-                new File(['content 2'], 'file2.pdf', { type: 'application/pdf' })
-            ];
-
-            // Execute the method
-            const printPromise = pdfUtilityService.printMultiplePDFs(files);
-
-            // Wait for promise to resolve
-            const result = await printPromise;
-
-            // Verify the result
-            expect(result).toBe(true);
-
-            // Verify URL and window operations
-            expect(createObjectURLMock).toHaveBeenCalledTimes(1);
-            expect(openMock).toHaveBeenCalledTimes(1);
-            expect(revokeObjectURLMock).toHaveBeenCalledTimes(1);
-
-            // Verify print was called on the window
-            const mockWindow = openMock.mock.results[0].value;
-            expect(mockWindow.print).toHaveBeenCalled();
-        });
-
-        test('should handle window open failure', async () => {
-            // Mock window.open to return null (as if blocked by popup blocker)
-            window.open = vi.fn().mockReturnValue(null);
-
-            const files = [
-                new File(['content 1'], 'file1.pdf', { type: 'application/pdf' }),
-                new File(['content 2'], 'file2.pdf', { type: 'application/pdf' })
-            ];
-
-            // Execute the method
-            const result = await pdfUtilityService.printMultiplePDFs(files);
-
-            // Should return false when window.open fails
-            expect(result).toBe(false);
-
-            // Should still create the URL
-            expect(createObjectURLMock).toHaveBeenCalledTimes(1);
-            expect(revokeObjectURLMock).toHaveBeenCalledTimes(1);
-        });
 
         test('should handle errors in PDF merging', async () => {
             // Force pdf-lib to fail

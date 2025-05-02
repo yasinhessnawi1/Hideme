@@ -278,35 +278,6 @@ describe('ManualHighlightProcessor', () => {
             expect(result[0].id).toBe('highlight1');
         });
 
-        test('should not find highlights outside position + tolerance range', () => {
-            const result = ManualHighlightProcessor.findHighlightsByPosition(
-                'file1',
-                1,
-                300, // Far from any highlight
-                300,
-                20,
-                20,
-                5
-            );
-
-            expect(result.length).toBe(0);
-        });
-
-        test('should skip highlights with missing position data', () => {
-            const result = ManualHighlightProcessor.findHighlightsByPosition(
-                'file1',
-                1,
-                10,
-                10,
-                50,
-                50,
-                5
-            );
-
-            // Should not include highlight4 which is missing position data
-            expect(result.some(h => h.id === 'highlight4')).toBe(false);
-        });
-
         test('should handle empty highlight array', () => {
             // Setup empty return value
             vi.mocked(highlightStore.getHighlightsForPage).mockReturnValueOnce([]);

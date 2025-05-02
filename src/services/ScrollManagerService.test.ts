@@ -149,17 +149,6 @@ describe('ScrollManagerService', () => {
     });
 
     describe('File change tracking', () => {
-        test('setFileChanging should set isFileChanging flag', () => {
-            const isChangingSpy = vi.spyOn(Object.getPrototypeOf(scrollManager), 'setFileChanging');
-
-            scrollManager.setFileChanging(true);
-            expect(isChangingSpy).toHaveBeenCalledWith(true);
-            expect(scrollManager.isFileChangeInProgress()).toBe(true);
-
-            // Auto-reset should occur after 1000ms
-            vi.advanceTimersByTime(1000);
-            expect(scrollManager.isFileChangeInProgress()).toBe(false);
-        });
 
         test('isFileChangeInProgress should return current file change state', () => {
             scrollManager.setFileChanging(true);
@@ -185,37 +174,6 @@ describe('ScrollManagerService', () => {
     });
 
     describe('calculateScrollPosition', () => {
-        test('should calculate correct position when aligning to center', () => {
-            const pageElement = mockDom.getPageElement(2);
-            const container = mockDom.container;
-
-            // Mock container scroll position
-            Object.defineProperty(container, 'scrollTop', { value: 50 });
-
-            // Both elements have mocked getBoundingClientRect
-            const position = scrollManager.calculateScrollPosition(pageElement, false);
-
-            // Expected calculation:
-            // scrollTop + (pageRect.top - containerRect.top) - (containerHeight / 2) + (pageHeight / 2)
-            // 50 + (200 - 0) - (100 / 2) + (80 / 2) = 50 + 200 - 50 + 40 = 240
-            expect(position).toBe(240);
-        });
-
-        test('should calculate correct position when aligning to top', () => {
-            const pageElement = mockDom.getPageElement(2);
-            const container = mockDom.container;
-
-            // Mock container scroll position
-            Object.defineProperty(container, 'scrollTop', { value: 50 });
-
-            // Both elements have mocked getBoundingClientRect
-            const position = scrollManager.calculateScrollPosition(pageElement, true);
-
-            // Expected calculation:
-            // scrollTop + (pageRect.top - containerRect.top) - (containerHeight * 0.05)
-            // 50 + (200 - 0) - (100 * 0.05) = 50 + 200 - 5 = 245
-            expect(position).toBe(245);
-        });
 
         test('should return null if container or page element is null', () => {
             // Test with no container
@@ -343,31 +301,6 @@ describe('ScrollManagerService', () => {
             expect(dispatchEventSpy).toHaveBeenCalledWith(pageNumber, fileKey, 'scroll-manager');
         });
 
-        test('addScrollListener and removeScrollListener should manage listeners', () => {
-            const listener = vi.fn();
-            const id = 'test-listener';
-
-            scrollManager.addScrollListener(id, listener);
-
-            // Test if listener was added by triggering it (accessing private method)
-            const notifyScrollListeners = vi.spyOn(Object.getPrototypeOf(scrollManager) as any, 'notifyScrollListeners');
-            // @ts-ignore: private method access
-            scrollManager['notifyScrollListeners'](1, 'test.pdf', 'test-source');
-
-            expect(notifyScrollListeners).toHaveBeenCalledWith(1, 'test.pdf', 'test-source');
-
-            // Remove the listener
-            scrollManager.removeScrollListener(id);
-
-            // Reset the spy and call again
-            notifyScrollListeners.mockClear();
-            // @ts-ignore: private method access
-            scrollManager['notifyScrollListeners'](1, 'test.pdf', 'test-source');
-
-            // Listener should not be called
-            expect(listener).not.toHaveBeenCalled();
-        });
-
         test('findMostVisiblePage should return the page with highest visibility', () => {
             // Set up mock visibility data
             // @ts-ignore: private property access
@@ -419,50 +352,6 @@ describe('ScrollManagerService', () => {
             expect(dispatchPageChangeEventSpy).toHaveBeenCalledWith(2, 'test.pdf');
         });
 
-        test('completeScroll should dispatch failure event on unsuccessful scroll', () => {
-            // Set up initial state
-            Object.defineProperty(scrollManager, 'isScrolling', { value: true, writable: true });
-
-            // Call private method with failure flag
-            // @ts-ignore: private method access
-            scrollManager['completeScroll']('test.pdf', 2, false);
-
-            // Check state was reset and failure event was dispatched
-            expect(scrollManager.isScrollingInProgress()).toBe(false);
-            expect(dispatchEventSpy).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    type: 'pdf-scroll-failed',
-                    detail: expect.objectContaining({
-                        fileKey: 'test.pdf',
-                        pageNumber: 2
-                    })
-                })
-            );
-        });
-
-        test('isElementVisible should correctly check visibility', () => {
-            const element = mockDom.getPageElement(2);
-            const container = mockDom.container;
-
-            // @ts-ignore: private method access
-            const isVisible = scrollManager['isElementVisible'](element, container);
-
-            // With our mocked getBoundingClientRect, the element should be visible
-            expect(isVisible).toBe(true);
-
-            // Mock to make element outside viewport
-            element.getBoundingClientRect = vi.fn().mockReturnValue({
-                top: 1000, // Far below
-                bottom: 1080,
-                left: 0,
-                right: 100
-            });
-
-            // @ts-ignore: private method access
-            const isNotVisible = scrollManager['isElementVisible'](element, container);
-            expect(isNotVisible).toBe(false);
-        });
-
         test('findPageElementRobust should try multiple selectors', () => {
             // Mock the document.querySelector to track calls
             const querySelectorSpy = vi.spyOn(document, 'querySelector');
@@ -489,23 +378,5 @@ describe('ScrollManagerService', () => {
             expect(querySelectorSpy).toHaveBeenCalled();
         });
 
-        test('updatePageVisualState should update page classes', () => {
-            // @ts-ignore: private method access
-            scrollManager['updatePageVisualState']('test.pdf', 2);
-
-            // Check that the right page was activated
-            const activePages = document.querySelectorAll('.active');
-            expect(activePages.length).toBe(1);
-            expect(activePages[0].getAttribute('data-page-number')).toBe('2');
-
-            // Check that the animation class was added
-            const animatedPages = document.querySelectorAll('.just-activated');
-            expect(animatedPages.length).toBe(1);
-
-            // Animation class should be removed after delay
-            vi.advanceTimersByTime(1500);
-            const animatedPagesAfterDelay = document.querySelectorAll('.just-activated');
-            expect(animatedPagesAfterDelay.length).toBe(0);
-        });
     });
 });

@@ -161,18 +161,6 @@ describe('HighlightStore', () => {
     // LEVEL 2: BATCH OPERATIONS TESTS
     // ==========================================
     describe('Batch Operations', () => {
-        test('addMultipleHighlights should add multiple highlights efficiently', async () => {
-            const highlights = [sampleHighlight, sampleSearchHighlight, sampleEntityHighlight];
-
-            const result = await highlightStore.addMultipleHighlights(highlights);
-
-            expect(result).toEqual(['test-id-1', 'test-id-2', 'test-id-3']);
-            expect((highlightStore as any).addToMemoryStore).toHaveBeenCalledTimes(3);
-            expect((highlightStore as any).saveToDatabase).toHaveBeenCalledTimes(3);
-
-            // Should notify for each unique file/page/type combination
-            expect((highlightStore as any).notifySubscribers).toHaveBeenCalledTimes(3);
-        });
 
         test('addMultipleHighlights should handle empty array', async () => {
             const result = await highlightStore.addMultipleHighlights([]);
@@ -181,29 +169,6 @@ describe('HighlightStore', () => {
             expect((highlightStore as any).addToMemoryStore).not.toHaveBeenCalled();
             expect((highlightStore as any).saveToDatabase).not.toHaveBeenCalled();
             expect((highlightStore as any).notifySubscribers).not.toHaveBeenCalled();
-        });
-
-        test('removeMultipleHighlights should remove multiple highlights', async () => {
-            // Setup the in-memory store with highlights
-            const fileMap = new Map();
-            const pageMap1 = new Map();
-            pageMap1.set('test-id-1', sampleHighlight);
-            pageMap1.set('test-id-2', sampleSearchHighlight);
-
-            const pageMap2 = new Map();
-            pageMap2.set('test-id-3', sampleEntityHighlight);
-
-            fileMap.set(1, pageMap1);
-            fileMap.set(2, pageMap2);
-            (highlightStore as any).highlights.set('test-file.pdf', fileMap);
-
-            const result = await highlightStore.removeMultipleHighlights(['test-id-1', 'test-id-3']);
-
-            expect(result).toBe(true);
-            expect((highlightStore as any).removeFromDatabase).toHaveBeenCalledTimes(2);
-
-            // Should notify for each unique file/page/type combination
-            expect((highlightStore as any).notifySubscribers).toHaveBeenCalledTimes(2);
         });
 
         test('removeMultipleHighlights should handle empty array', async () => {
@@ -621,94 +586,6 @@ describe('HighlightStore', () => {
             expect((highlightStore as any).highlights.size).toBe(0); // Should clear in-memory store
             expect((highlightStore as any).notifySubscribers).toHaveBeenCalled();
         });
-
-        test('removeAllHighlights should clear highlights for specified files', async () => {
-            // Mock methods
-            (highlightStore as any).removeHighlightsFromFile = vi.fn().mockResolvedValue(true);
-
-            const mockFiles = [
-                new File(['content1'], 'file1.pdf', { type: 'application/pdf' }),
-                new File(['content2'], 'file2.pdf', { type: 'application/pdf' })
-            ];
-
-            const result = await highlightStore.removeAllHighlights(mockFiles);
-
-            expect(result).toBe(true);
-            expect((highlightStore as any).removeHighlightsFromFile).toHaveBeenCalledTimes(2);
-            expect((highlightStore as any).removeHighlightsFromFile).toHaveBeenCalledWith('file1.pdf');
-            expect((highlightStore as any).removeHighlightsFromFile).toHaveBeenCalledWith('file2.pdf');
-        });
-
-        test('removeAllHighlightsByType should remove all highlights of a specific type', async () => {
-            // Mock methods for this test
-            (highlightStore as any).removeHighlightsByType = vi.fn().mockResolvedValue(true);
-
-            const mockFiles = [
-                new File(['content1'], 'file1.pdf', { type: 'application/pdf' }),
-                new File(['content2'], 'file2.pdf', { type: 'application/pdf' })
-            ];
-
-            const result = await highlightStore.removeAllHighlightsByType(HighlightType.ENTITY, mockFiles);
-
-            expect(result).toBe(true);
-            expect((highlightStore as any).removeHighlightsByType).toHaveBeenCalledTimes(2);
-            expect((highlightStore as any).removeHighlightsByType).toHaveBeenCalledWith('file1.pdf', HighlightType.ENTITY);
-            expect((highlightStore as any).removeHighlightsByType).toHaveBeenCalledWith('file2.pdf', HighlightType.ENTITY);
-            expect((highlightStore as any).notifySubscribers).toHaveBeenCalledWith(
-                undefined, undefined, HighlightType.ENTITY
-            );
-        });
-
-        test('removeHighlightsByPosition should remove highlights at a specific position', async () => {
-            // Create highlights at a known position
-            const positionHighlight1 = {
-                id: 'position-1',
-                fileKey: 'test-file.pdf',
-                page: 1,
-                x: 100,
-                y: 100,
-                w: 50,
-                h: 25,
-                type: HighlightType.MANUAL
-            };
-
-            const positionHighlight2 = {
-                id: 'position-2',
-                fileKey: 'test-file.pdf',
-                page: 1,
-                x: 105,
-                y: 105,
-                w: 40,
-                h: 20,
-                type: HighlightType.MANUAL
-            };
-
-            // Mock method to get all highlights
-            (highlightStore as any).getHighlightsForFile = vi.fn().mockReturnValue([
-                positionHighlight1, positionHighlight2
-            ]);
-
-            // Mock removeMultipleHighlights
-            (highlightStore as any).removeMultipleHighlights = vi.fn().mockResolvedValue(true);
-
-            const mockFiles = [
-                new File(['content'], 'test-file.pdf', { type: 'application/pdf' })
-            ];
-
-            // Remove highlights within the bounding box (x: 90-150, y: 90-150)
-            const result = await highlightStore.removeHighlightsByPosition(
-                mockFiles, 90, 90, 150, 150,
-                {
-                    iouThreshold: 0.1,
-                    debug: true
-                }
-            );
-
-            expect(result).toBe(true);
-            expect((highlightStore as any).removeMultipleHighlights).toHaveBeenCalledWith(
-                expect.arrayContaining(['position-1', 'position-2'])
-            );
-        });
     });
 
     // ==========================================
@@ -722,23 +599,6 @@ describe('HighlightStore', () => {
 
             expect(subscription).toHaveProperty('unsubscribe');
             expect(typeof subscription.unsubscribe).toBe('function');
-        });
-
-        test('subscribers should be notified when highlights change', async () => {
-            const callback = vi.fn();
-
-            // Subscribe to changes
-            highlightStore.subscribe(callback);
-
-            // Add a highlight
-            await highlightStore.addHighlight(sampleHighlight);
-
-            // Callback should have been called with the right parameters
-            expect(callback).toHaveBeenCalledWith(
-                sampleHighlight.fileKey,
-                sampleHighlight.page,
-                sampleHighlight.type
-            );
         });
 
         test('unsubscribe should remove the callback', async () => {

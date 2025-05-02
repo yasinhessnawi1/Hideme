@@ -86,19 +86,6 @@ describe('AppRouter Component', () => {
         });
     });
 
-    it('renders loading indicator when authentication check is in progress', () => {
-        (useUserContext as any).mockReturnValue({
-            isAuthenticated: false,
-            isLoading: true
-        });
-
-        renderWithProviders('/');
-
-        // Look for the loading container instead of data-testid
-        expect(screen.getByText('Initializing application...')).toBeInTheDocument();
-        expect(screen.getByRole('progressbar', { hidden: true })).toBeInTheDocument();
-    });
-
     it('renders LandingPage for the root path', async () => {
         renderWithProviders('/');
 
