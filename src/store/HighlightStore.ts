@@ -816,7 +816,7 @@ export class HighlightStore {
      */
     async removeAllHighlightsByType(type: HighlightType, files : File[]): Promise<boolean> {
         await this.ensureDatabaseInitialized();
-
+        let result = false;
         if(files.length === 0) {
             // Get all highlights of this type
             const highlights = Array.from(this.highlights.values()).flatMap(fileMap =>
@@ -824,13 +824,13 @@ export class HighlightStore {
             ).filter(highlight => highlight.type === type);
 
         // Get IDs
-        const ids = highlights.map(highlight => highlight.id);
+            const ids = highlights.map(highlight => highlight.id);
 
-        // Remove all highlights
-        const result = await this.removeMultipleHighlights(ids);
+            // Remove all highlights
+            result = await this.removeMultipleHighlights(ids);
         }else{
             for (const file of files) {
-                await this.removeHighlightsByType(file.name, type);
+                result = await this.removeHighlightsByType(file.name, type);
             }
         }
 
