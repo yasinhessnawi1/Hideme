@@ -1,4 +1,9 @@
 # Hideme 
+[![Build Status](https://img.shields.io/badge/Status-In%20Testing-blue)]()
+[![Build Status](https://img.shields.io/badge/Status-%20Refactoring-yellow)]()
+[![Test Coverage](https://img.shields.io/badge/Coverage--%25-brightgreen)]()
+[![React Version](https://img.shields.io/badge/React-19%2B-blue)]()
+[![Vite Version](https://img.shields.io/badge/Vite-6.1.1%2B-blue)]()
 
 **Welcome to the Hideme project!** This document aims to provide a deep dive into the project's architecture, logic, and the thought processes behind its construction. Whether you're looking to contribute, understand the system, or simply curious, this guide should offer valuable insights.
 
