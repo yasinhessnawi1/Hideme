@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from "react"
+import React, {useEffect, useRef, useState} from "react"
 import PDFViewer from "../components/pdf/PDFViewer"
 import TabbedSidebar from "../components/pdf/pdf_component/TabbedSidebar"
 import Toolbar from "../components/pdf/pdf_component/Toolbar"
@@ -7,9 +7,7 @@ import EntityDetectionSidebar from "../components/pdf/pdf_component/EntityDetect
 import RedactionSidebar from "../components/pdf/pdf_component/RadactionSidebar"
 import Navbar from "../components/static/Navbar"
 import '../styles/modules/pdf/PDFViewerPage.css'
-import { Plus } from "lucide-react"
-import scrollManager from "../services/ScrollManagerService"
-import { useFileContext } from "../contexts/FileContext"
+import AutoProcessProvider from "../contexts/AutoProcessProvider";
 
 const PDFViewerPageContent: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'detection' | 'search' | 'redact'>('detection')
@@ -22,7 +20,7 @@ const PDFViewerPageContent: React.FC = () => {
 
     // Right sidebar state - static, no hover functionality
     const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(true) // Default closed
-  
+
     // Toggle left sidebar visibility through button click
     const toggleLeftSidebar = () => {
         // Clear any hover-related timeouts
@@ -118,10 +116,10 @@ const PDFViewerPageContent: React.FC = () => {
 
                 {/* Main PDF viewer */}
                 <main className="main-content">
-                
+
                     <PDFViewer/>
-                     {/* File upload button - only shown when there's at least one file */}
-            
+                    {/* File upload button - only shown when there's at least one file */}
+
                 </main>
 
                 {/* Right sidebar - Static, no hover sensor */}
@@ -170,10 +168,13 @@ const PDFViewerPageContent: React.FC = () => {
 
 const PDFViewerPage = () => {
     return (
-        <div className={`pdf-viewer-page `}>
-            <Navbar/>
-            <PDFViewerPageContent/>
-        </div>
+
+        <AutoProcessProvider>
+            <div className={`pdf-viewer-page `}>
+                <Navbar/>
+                <PDFViewerPageContent/>
+            </div>
+        </AutoProcessProvider>
     );
 };
 

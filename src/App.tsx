@@ -26,10 +26,8 @@ const App: React.FC = () => {
                             <HighlightStoreProvider>
                                 <EditProvider>
                                     <BatchSearchProvider>
-                                        <AutoProcessProvider>
                                             <AppRouter/>
                                             <NotificationRenderer />
-                                        </AutoProcessProvider>
                                     </BatchSearchProvider>
                                 </EditProvider>
                             </HighlightStoreProvider>

@@ -284,7 +284,7 @@ export const usePDFApi = () => {
             console.log(`[APIDebug] Searching for "${searchTerm}" in ${files.length} files`);
 
             setProgress(10);
-
+            
             // Call the batch search API
             const results = await BatchSearchService.batchSearch(
                 files,

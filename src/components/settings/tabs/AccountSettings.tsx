@@ -20,10 +20,8 @@ export default function AccountSettings() {
 
 
     // Profile Info State
-    const [name, setName] = useState("");
-    const [surname, setSurname] = useState("");
     const [email, setEmail] = useState("");
-
+    const [username, setUsername] = useState("");
     // Password Change State
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
@@ -43,14 +41,7 @@ export default function AccountSettings() {
     useEffect(() => {
         if (user?.username && user?.email) {
             // Extract name parts from username if needed
-            const nameParts = user.username.split(' ');
-            if (nameParts.length < 2) {
-                setName(user.username);
-            } else {
-                setName(nameParts[0] || user.username);
-                setSurname(nameParts.slice(1).join(' ') || '');
-            }
-
+            setUsername(user.username);
             setEmail(user.email);
         }
     }, [user]);
@@ -70,10 +61,9 @@ export default function AccountSettings() {
         clearUserError();
 
         // Construct name/username as needed by your backend
-        const combinedName = `${name} ${surname}`.trim();
         try {
             await updateUserProfile({
-                username: combinedName || user?.username,
+                username: username || user?.username,
                 email: email,
             });
             notify({
@@ -207,34 +197,19 @@ export default function AccountSettings() {
                         <div className="flex-1 space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="form-group">
-                                    <label className="form-label" htmlFor="firstName">
-                                        First Name
+                                    <label className="form-label" htmlFor="username">
+                                       Username
                                     </label>
                                     <input
                                         className="form-input"
-                                        id="firstName"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        placeholder="Enter your first name"
+                                        id="username"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        placeholder="Enter your username"
                                         disabled={isLoading}
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label" htmlFor="lastName">
-                                        Last Name
-                                    </label>
-                                    <input
-                                        className="form-input"
-                                        id="lastName"
-                                        value={surname}
-                                        onChange={(e) => setSurname(e.target.value)}
-                                        placeholder="Enter your last name"
-                                        disabled={isLoading}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="form-group">
                                 <label className="form-label" htmlFor="email">
                                     Email Address
                                 </label>
@@ -248,6 +223,8 @@ export default function AccountSettings() {
                                     disabled={isLoading}
                                 />
                             </div>
+                            </div>
+                           
                             <div className="flex justify-end">
                                 <button
                                     className="button button-primary"
@@ -298,8 +275,8 @@ export default function AccountSettings() {
                         <input
                             className="form-input"
                             id="currentPassword"
-                            autoComplete={"off"}
-                            aria-autocomplete={"none"}
+                            autoComplete="new-password"
+                            aria-autocomplete="none"
                             type="password"
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}

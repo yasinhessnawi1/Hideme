@@ -12,6 +12,7 @@ interface HighlightLayerFactoryProps {
     textContent: TextContent;
     pageSize: ViewportSize;
     fileKey?: string; // Optional file key for multi-file support
+    containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -23,7 +24,8 @@ const HighlightLayerFactory: React.FC<HighlightLayerFactoryProps> = ({
                                                                          viewport,
                                                                          textContent,
                                                                          pageSize,
-                                                                         fileKey
+                                                                         fileKey,
+                                                                         containerRef
                                                                      }) => {
     const {
         showSearchHighlights,
@@ -88,6 +90,7 @@ const HighlightLayerFactory: React.FC<HighlightLayerFactoryProps> = ({
             data-search-count={searchHighlights.length}
             data-entity-count={entityHighlights.length}
             data-manual-count={manualHighlights.length}
+            ref={containerRef}
         >
             {/* Only show layer if there are highlights and visibility is enabled */}
             {renderSearchLayer && (
@@ -95,6 +98,7 @@ const HighlightLayerFactory: React.FC<HighlightLayerFactoryProps> = ({
                     pageNumber={pageNumber}
                     highlights={searchHighlights}
                     fileKey={safeFileKey}
+                    containerRef={containerRef}
                 />
             )}
 
@@ -103,6 +107,7 @@ const HighlightLayerFactory: React.FC<HighlightLayerFactoryProps> = ({
                     pageNumber={pageNumber}
                     highlights={entityHighlights}
                     fileKey={safeFileKey}
+                    containerRef={containerRef}
                 />
             )}
 
@@ -111,6 +116,7 @@ const HighlightLayerFactory: React.FC<HighlightLayerFactoryProps> = ({
                     pageNumber={pageNumber}
                     highlights={manualHighlights}
                     fileKey={safeFileKey}
+                    containerRef={containerRef}
                 />
             )}
         </div>
