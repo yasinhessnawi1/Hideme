@@ -248,7 +248,7 @@ and related components including processing indicators
 .selection-overlay {
     position: absolute;
     pointer-events: none;
-    z-index: 50;
+    z-index: 1000;
     border: 1px dashed var(--primary);
     background-color: rgba(39, 171, 111, 0.2);
     border-radius: var(--border-radius-sm);
@@ -657,7 +657,7 @@ OPEN/CLOSE FILE FUNCTIONALITY
 
 /* Hover effects */
 .pdf-file-container:hover {
-    transform: translateY(-2px);
+    transform: none;
 }
 
 .pdf-file-container.closed:hover {

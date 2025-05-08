@@ -6,12 +6,14 @@ interface ManualHighlightLayerProps {
     pageNumber: number;
     highlights: HighlightRect[];
     fileKey?: string; // Optional file key for multi-file support
+    containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const ManualHighlightLayer: React.FC<ManualHighlightLayerProps> = ({
                                                                        pageNumber,
                                                                        highlights,
-                                                                       fileKey
+                                                                       fileKey,
+                                                                       containerRef
                                                                    }) => {
     return (
         <BaseHighlightLayer
@@ -19,6 +21,7 @@ const ManualHighlightLayer: React.FC<ManualHighlightLayerProps> = ({
             highlights={highlights}
             layerClass="manual"
             fileKey={fileKey}
+            containerRef={containerRef}
         />
     );
 };

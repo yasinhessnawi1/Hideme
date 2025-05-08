@@ -11,7 +11,7 @@ import { OptionType } from '../types';
 
 // Presidio ML entity options
 export const presidioOptions: OptionType[] = [
-    { value: 'ALL_PRESIDIO_P', label: 'All Presidio Entities' },
+    { value: 'ALL_PRESIDIO', label: 'All Presidio Entities' },
     { value: 'PERSON_P', label: 'Person' },
     { value: 'DATE_TIME_P', label: 'Date/Time' },
     { value: 'EMAIL_ADDRESS_P', label: 'Email Address' },

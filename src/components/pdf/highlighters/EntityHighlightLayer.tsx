@@ -6,12 +6,14 @@ interface EntityHighlightLayerProps {
     pageNumber: number;
     highlights: HighlightRect[];
     fileKey?: string; // Optional file key for multi-file support
+    containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const EntityHighlightLayer: React.FC<EntityHighlightLayerProps> = ({
                                                                        pageNumber,
                                                                        highlights,
-                                                                       fileKey
+                                                                       fileKey,
+                                                                       containerRef
                                                                    }) => {
     return (
         <BaseHighlightLayer
@@ -19,6 +21,7 @@ const EntityHighlightLayer: React.FC<EntityHighlightLayerProps> = ({
             highlights={highlights}
             layerClass="entity"
             fileKey={fileKey}
+            containerRef={containerRef}
         />
     );
 };

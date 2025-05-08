@@ -102,11 +102,6 @@ export class BatchSearchService {
             // Add search parameters
             formData.append('search_terms', searchTerm);
 
-            // Execute the API call
-
-
-            // Add search parameters
-            formData.append('search_terms', searchTerm);
 
             if (options.case_sensitive || options.isCaseSensitive) {
                 formData.append('case_sensitive', 'true');

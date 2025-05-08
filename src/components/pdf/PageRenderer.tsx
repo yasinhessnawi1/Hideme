@@ -254,6 +254,7 @@ const PageRenderer: React.FC<PageRendererProps> = ({
                         textContent={textContent}
                         pageSize={viewportSize}
                         fileKey={fileKey}
+                        containerRef={wrapperRef}
                     />
                 </>
             )}

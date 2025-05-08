@@ -15,6 +15,7 @@ interface BaseHighlightLayerProps {
     layerClass: string;
     fileKey?: string;
     viewport?: any;
+    containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -25,7 +26,8 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                                                                    highlights,
                                                                    layerClass,
                                                                    fileKey,
-                                                                   viewport
+                                                                   viewport,
+                                                                   containerRef
                                                                }) => {
     const { removeHighlight } = useHighlightStore();
     const { isEditingMode, getColorForModel, getSearchColor, selectedHighlightId, setSelectedHighlightId, selectedHighlightIds, setSelectedHighlightIds } = useEditContext();
@@ -219,6 +221,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                 pointerEvents: 'none',
                 backgroundColor: 'transparent',
                 border: 'none',
+                zIndex: 1000,
             }}
             data-highlight-layer={layerClass}
             data-page={pageNumber}
@@ -254,6 +257,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                     onClose={closeContextMenu}
                     viewport={viewport}
                     zoomLevel={zoomLevel}
+                    containerRef={containerRef}
                 />
             )}
         </div>
