@@ -120,7 +120,7 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 progress: 0,
                 error: null
             }));
-
+            console.warn('[BatchSearchContext] serch term:', searchTerm);
             try {
                 // Execute the search using the PDF API hook
                 const response = await runBatchSearch(files, searchTerm, {

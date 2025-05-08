@@ -106,7 +106,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // Prevent default behavior and stop propagation
                 e.preventDefault();
                 e.stopPropagation();
-                if (isEditingMode) {
+                if (!isEditingMode) { //logically this should be true but it actually shows off.
                     notify({
                         message: 'Edit mode is on.',
                         type: 'info',
@@ -129,7 +129,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => {
             document.removeEventListener('dblclick', handleDoubleClick);
         };
-    }, []);
+    }, [isEditingMode]);
 
     // Store detection mappings for each file
     const [fileDetectionMappings, setFileDetectionMappings] = useState<Map<string, RedactionMapping>>(new Map());

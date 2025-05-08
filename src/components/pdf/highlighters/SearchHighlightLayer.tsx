@@ -7,12 +7,14 @@ interface SearchHighlightLayerProps {
     pageNumber: number;
     highlights: HighlightRect[];
     fileKey?: string;
+    containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const SearchHighlightLayer: React.FC<SearchHighlightLayerProps> = ({
                                                                        pageNumber,
                                                                        highlights,
-                                                                       fileKey
+                                                                       fileKey,
+                                                                       containerRef
                                                                    }) => {
     return (
         <BaseHighlightLayer
@@ -20,6 +22,7 @@ const SearchHighlightLayer: React.FC<SearchHighlightLayerProps> = ({
             highlights={highlights}
             layerClass="search"
             fileKey={fileKey}
+            containerRef={containerRef}
         />
     );
 };

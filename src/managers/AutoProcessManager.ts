@@ -270,7 +270,7 @@ export class AutoProcessManager {
             }
 
             return file;
-        })).then(results => results.filter(file => file !== null) as File[]);
+        })).then(results => results.filter(file => file !== null));
 
         const searchFilesToProcess = initialFilesToProcess.filter(file => {
             const fileKey = getFileKey(file);

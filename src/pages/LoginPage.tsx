@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import '../styles/modules/login/LoginPage.css';
 import LoginForm from '../components/forms/LoginForm';
 // @ts-ignore
-import login_video from '../assets/login-video.mp4';
+import personalSettingsSVG from '../assets/undraw_personal-settings_8xv3.svg';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import Navbar from "../components/static/Navbar";
 
@@ -17,7 +17,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ initialSignUp = false }) => {
 
   // State to toggle between login and sign-up modes
   const [isSignUp, setIsSignUp] = useState<boolean>(initialSignUp);
-  const [fullName, setFullName] = useState<string>('');
+  const [username, setUsername] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
@@ -53,8 +53,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ initialSignUp = false }) => {
             <LoginForm
                 isSignUp={isSignUp}
                 setIsSignUp={setIsSignUp}
-                fullName={fullName}
-                setFullName={setFullName}
+                username={username}
+                setUsername={setUsername}
                 email={email}
                 setEmail={setEmail}
                 password={password}
@@ -65,15 +65,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ initialSignUp = false }) => {
           </div>
         </div>
 
-        {/* Right section: video */}
+        {/* Right section: image */}
         <div className="login-right">
-          <video
-              src={login_video}
-              className="login-image"
-              autoPlay={true}
-              loop={true}
-              muted={true}
-              playsInline={true}
+          <img
+            src={personalSettingsSVG}
+            alt="Personal settings illustration"
+            className="login-image"
+            draggable={false}
           />
         </div>
       </div>

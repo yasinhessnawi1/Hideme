@@ -11,12 +11,14 @@ import {SearchResult} from "../../../services/BatchSearchService";
 import {getCorrectedBoundingBox} from "../../../utils/utilities";
 import { useNotification } from '../../../contexts/NotificationContext';
 import useBanList from '../../../hooks/settings/useBanList';
+import { createPortal } from 'react-dom';
 
 interface HighlightContextMenuProps {
     highlight: HighlightRect;
     onClose: () => void;
     viewport?: any;
     zoomLevel?: number;
+    containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 
@@ -24,7 +26,8 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                                                                        highlight,
                                                                        onClose,
                                                                        viewport = null,
-                                                                       zoomLevel = 1.0
+                                                                       zoomLevel = 1.0,
+                                                                       containerRef
                                                                    }) => {
     const menuRef = useRef<HTMLDivElement>(null);
     const {
@@ -323,30 +326,31 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
     }, [onClose]);
 
     // Adjust position if menu would render outside viewport
-    const [adjustedPosition, setAdjustedPosition] = useState({x: highlight.x, y: highlight.y});
+    const [adjustedPosition, setAdjustedPosition] = useState({ x: 0, y: 0 });
 
+    // Calculate position relative to the viewport using the container's bounding rect
     useEffect(() => {
-        if (menuRef.current) {
-            const rect = menuRef.current.getBoundingClientRect();
+        if (!containerRef.current) return;
+        const rect = menuRef.current?.getBoundingClientRect();
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const highlightX = (highlight.originalX ?? highlight.x) * zoomLevel;
+        const highlightY = (highlight.originalY ?? highlight.y) * zoomLevel;
+        let newX = containerRect.left + highlightX;
+        let newY = containerRect.top + highlightY;
+
+        // Adjust for menu size if needed
+        if (rect) {
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
-
-            let newX = highlight.x;
-            let newY = highlight.y;
-
-            // Adjust horizontal position if needed
-            if (highlight.x + rect.width > viewportWidth) {
+            if (newX + rect.width > viewportWidth) {
                 newX = Math.max(viewportWidth - rect.width - 10, 10);
             }
-
-            // Adjust vertical position if needed
-            if (highlight.y + rect.height > viewportHeight) {
+            if (newY + rect.height > viewportHeight) {
                 newY = Math.max(viewportHeight - rect.height - 10, 10);
             }
-
-            setAdjustedPosition({x: newX, y: newY});
         }
-    }, [highlight]);
+        setAdjustedPosition({ x: newX, y: newY });
+    }, [highlight, zoomLevel, containerRef]);
 
     // Only show text-specific options if highlight has text
     const showTextOptions = true;
@@ -354,17 +358,14 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
     const isEntityHighlight = highlight.type === 'ENTITY';
 
     return (
-        <div
-            className="highlight-context-menu-container"
-            style={{position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 9998}}
-        >
+        createPortal(
             <div
                 ref={menuRef}
                 className="highlight-context-menu"
                 style={{
                     position: 'fixed',
                     left: adjustedPosition.x,
-                    top: adjustedPosition.y + 15,
+                    top: adjustedPosition.y + 20 * (zoomLevel ?? 1),
                     zIndex: 9999,
                     pointerEvents: 'auto',
                     backgroundColor: 'var(--background)',
@@ -444,8 +445,9 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                         {highlight.model && `Model: ${highlight.model}`}
                     </div>
                 )}
-            </div>
-        </div>
+            </div>,
+            document.body
+        )
     );
 };
 

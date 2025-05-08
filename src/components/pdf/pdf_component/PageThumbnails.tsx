@@ -337,12 +337,6 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
     const handleThumbnailClick = useCallback((file: File, pageNumber: number) => {
         const fileKey = getFileKey(file);
 
-        // Open the file if it's not already open
-        if (!isFileOpen(file)) {
-            openFile(file);
-        } else {
-            closeFile(file);
-        }
 
         // Use our navigation hook for consistent behavior
         pdfNavigation.navigateToPage(pageNumber, fileKey, {
