@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {FaCog, FaDrawPolygon, FaFont, FaHighlighter, FaRegEye, FaRegEyeSlash} from 'react-icons/fa';
+import {CiEdit} from 'react-icons/ci';
 import {HighlightCreationMode} from '../../types';
 import ToolbarVisibilityMenu from './ToolbarVisibilityMenu';
 import ToolbarSettingsMenu from './ToolbarSettingsMenu';
@@ -74,7 +75,7 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
 
 
     const getHighlightIcon = () => {
-        if (!isEditingMode) return <FaRegEye/>;
+        if (!isEditingMode) return <CiEdit/>;
         switch (highlightingMode) {
             case HighlightCreationMode.RECTANGULAR:
                 return <FaDrawPolygon/>;
@@ -106,7 +107,7 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
         });
     }, [setHighlightingMode, setIsEditingMode]);
     const getHighlightLabel = () => {
-        if (!isEditingMode) return 'View';
+        if (!isEditingMode) return 'Edit';
         switch (highlightingMode) {
             case HighlightCreationMode.RECTANGULAR:
                 return 'Area';

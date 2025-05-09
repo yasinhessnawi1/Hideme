@@ -41,6 +41,7 @@ export enum HighlightType {
     MANUAL = 'MANUAL',
     SEARCH = 'SEARCH',
     ENTITY = 'ENTITY',
+    SELECTION = 'SELECTION',
 }
 
 /**

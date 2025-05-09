@@ -111,6 +111,22 @@ export const ConfirmationDialog: React.FC = () => {
 
                 <div className="confirmation-content">
                     <p>{confirmation.message}</p>
+                    {confirmation.inputLabel && (
+                        <div className="confirmation-input-group">
+                            <label className="confirmation-input-label">
+                                {confirmation.inputLabel}
+                            </label>
+                            <input
+                                className="confirmation-input"
+                                type={confirmation.inputType || "text"}
+                                placeholder={confirmation.inputPlaceholder}
+                                defaultValue={confirmation.inputDefaultValue}
+                                autoFocus
+                                onChange={e => confirmation.onInputChange?.(e.target.value)}
+                                onClick={e => e.stopPropagation()}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="confirmation-actions">
