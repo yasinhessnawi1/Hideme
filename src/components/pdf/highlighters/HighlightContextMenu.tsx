@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Ban, Highlighter, Trash2, X } from 'lucide-react';
 import { useHighlightStore } from '../../../hooks/useHighlightStore';
-import {HighlightRect, HighlightType} from '../../../types';
+import {HighlightCreationMode, HighlightRect, HighlightType} from '../../../types';
 import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
@@ -37,7 +37,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
     } = useHighlightStore();
     const { files, selectedFiles } = useFileContext();
     const { runFindWords } = usePDFApi();
-    const {notify} = useNotification();
+    const {notify, confirmWithText} = useNotification();
     const {addBanListWords} = useBanList();
 
     // Handle delete current highlight
@@ -53,30 +53,42 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
         }
     };
 
-    const handleAddToBanList = () => {
-        if (!highlight.text) {
+    const handleAddToBanList = async () => {
+        if (highlight.text && highlight.creationMode === HighlightCreationMode.TEXT_SELECTION) {
+            addBanListWords([highlight.text]);
             notify({
-                type: 'error',
-                message: 'No text to add to ignore list (This type of highlight does not have text)',
+                type: 'success',
+                message: 'Added to ignore list',
                 position: 'top-right'
             });
+            onClose();
             return;
-        }
-        if(highlight.type === 'ENTITY') {
-            notify({
+        }else {
+           const text = await confirmWithText({
                 type: 'error',
-                message: 'Entities are not supported for the ignore list',
-                position: 'top-right'
-            });
+                title: 'No text to add to ignore list',
+                message: 'This type of highlight does not have text, please enter the text you want to add to the ignore list',
+                confirmButton: {
+                    label: 'Add to ignore list',
+                },
+                    inputLabel: 'Text to add to ignore list',
+                    inputPlaceholder: 'Enter text to add to ignore list',
+                    inputType: 'text',
+            }
+            );
+            if(text) {
+                addBanListWords([text]);
+                notify({
+                    type: 'success',
+                    message: 'Added to ignore list',
+                    position: 'top-right'
+                });
+                onClose();
+            }
             return;
         }
-        addBanListWords([highlight.text]);
-        notify({
-            type: 'success',
-            message: 'Added to ignore list',
-            position: 'top-right'
-        });
-        onClose();
+    
+        
     };
 
     // Delete all occurrences of the same entity type
@@ -305,6 +317,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
 
         onClose();
     };
+
 
     // Close menu when clicking outside
     useEffect(() => {

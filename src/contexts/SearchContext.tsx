@@ -4,6 +4,7 @@ import { usePDFApi } from "../hooks/usePDFApi";
 import {useHighlightStore} from './HighlightStoreContext';
 import {SearchHighlightProcessor} from "../managers/SearchHighlightProcessor";
 import summaryPersistenceStore from "../store/SummaryPersistenceStore";
+import { HighlightType } from '../types';
 
 interface SearchQuery {
     term: string;
@@ -219,13 +220,13 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
      * Clear all search results and highlights
      */
     const clearAllSearches = useCallback(() => {
+            // Clear all search highlights
             setSearchState(prev => ({
                 ...prev,
                 searchResults: new Map(),
                 activeQueries: []
             }));
-
-            // Clear all search highlights
+            removeAllHighlightsByType(HighlightType.SEARCH, []);
             // Clear saved queries
             summaryPersistenceStore.saveActiveSearchQueries([]);
         }, [removeAllHighlightsByType]);
@@ -254,6 +255,7 @@ export const BatchSearchProvider: React.FC<{ children: React.ReactNode }> = ({ c
                                 fileMap.delete(pageNumber);
                             }
                         });
+                        removeHighlightsByText(fileKey, searchTerm);
 
                         // If no pages left for this file, remove the file entry
                         if (fileMap.size === 0) {

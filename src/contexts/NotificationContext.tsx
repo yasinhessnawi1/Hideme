@@ -34,6 +34,12 @@ export interface Confirmation {
     cancelButton?: ConfirmationButton;
     additionalButtons?: ConfirmationButton[];
     onClose?: () => void;
+    // For confirmWithText
+    inputLabel?: string;
+    inputPlaceholder?: string;
+    inputDefaultValue?: string;
+    inputType?: string;
+    onInputChange?: (value: string) => void;
 }
 
 interface NotificationContextType {
@@ -58,6 +64,18 @@ interface NotificationContextType {
         cancelButton?: Partial<ConfirmationButton>;
         additionalButtons?: ConfirmationButton[];
     }) => Promise<boolean>;
+    confirmWithText: (options: {
+        type: ConfirmationType;
+        title: string;
+        message: string;
+        confirmButton?: Partial<ConfirmationButton>;
+        cancelButton?: Partial<ConfirmationButton>;
+        additionalButtons?: ConfirmationButton[];
+        inputLabel?: string;
+        inputPlaceholder?: string;
+        inputDefaultValue?: string;
+        inputType?: string;
+    }) => Promise<string>;
     closeConfirmation: () => void;
 }
 
@@ -67,7 +85,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const [toasts, setToasts] = useState<ToastNotification[]>([]);
     const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
     const toastTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
-    const confirmResolvers = useRef<Map<string, { resolve: (value: boolean) => void }>>(new Map());
+    const confirmResolvers = useRef<Map<string, { resolve: (value: any) => void }>>(new Map());
 
     // Toast methods
     const removeToast = useCallback((id: string) => {
@@ -212,6 +230,96 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
     }, []);
 
+    const confirmWithText = useCallback(({
+        type,
+        title,
+        message,
+        confirmButton,
+        cancelButton,
+        additionalButtons = [],
+        inputLabel = "Input",
+        inputPlaceholder = "",
+        inputDefaultValue = "",
+        inputType = "text"
+    }: {
+        type: ConfirmationType;
+        title: string;
+        message: string;
+        confirmButton?: Partial<ConfirmationButton>;
+        cancelButton?: Partial<ConfirmationButton>;
+        additionalButtons?: ConfirmationButton[];
+        inputLabel?: string;
+        inputPlaceholder?: string;
+        inputDefaultValue?: string;
+        inputType?: string;
+    }) => {
+        return new Promise<string>((resolve) => {
+            const id = `confirmation-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            let inputValue = inputDefaultValue;
+
+            // Store the resolver so we can call it when a button is clicked
+            confirmResolvers.current.set(id, { resolve });
+
+            // Default confirm button
+            const defaultConfirmButton: ConfirmationButton = {
+                label: 'Confirm',
+                variant: 'primary',
+                onClick: () => {
+                    if (confirmResolvers.current.has(id)) {
+                        confirmResolvers.current.get(id)?.resolve(inputValue);
+                        confirmResolvers.current.delete(id);
+                    }
+                    setConfirmation(null);
+                }
+            };
+
+            // Default cancel button
+            const defaultCancelButton: ConfirmationButton = {
+                label: 'Cancel',
+                variant: 'secondary',
+                onClick: () => {
+                    if (confirmResolvers.current.has(id)) {
+                        confirmResolvers.current.get(id)?.resolve("");
+                        confirmResolvers.current.delete(id);
+                    }
+                    setConfirmation(null);
+                }
+            };
+
+            // Create the confirmation with merged defaults and user options
+            const newConfirmation: Confirmation = {
+                id,
+                type,
+                title,
+                message,
+                confirmButton: confirmButton
+                    ? { ...defaultConfirmButton, ...confirmButton }
+                    : defaultConfirmButton,
+                cancelButton: cancelButton === undefined
+                    ? defaultCancelButton
+                    : cancelButton === null
+                        ? undefined
+                        : { ...defaultCancelButton, ...cancelButton },
+                additionalButtons,
+                inputLabel,
+                inputPlaceholder,
+                inputDefaultValue,
+                inputType,
+                onInputChange: (val: string) => {
+                    inputValue = val;
+                },
+                onClose: () => {
+                    if (confirmResolvers.current.has(id)) {
+                        confirmResolvers.current.get(id)?.resolve("");
+                        confirmResolvers.current.delete(id);
+                    }
+                }
+            };
+
+            setConfirmation(newConfirmation);
+        });
+    }, []);
+
     const value = {
         toasts,
         notify,
@@ -220,6 +328,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         confirmation,
         confirm,
+        confirmWithText,
         closeConfirmation
     };
 

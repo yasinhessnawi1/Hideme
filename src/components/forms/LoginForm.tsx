@@ -8,7 +8,7 @@
  *
  */
 
-import React, {JSX, useState} from 'react';
+import React, {JSX} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserContext } from '../../contexts/UserContext';
 import { useLoading } from '../../contexts/LoadingContext';
@@ -67,7 +67,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
   const navigate = useNavigate();
 
   // Get authentication methods and state from UserContext
-  const { login, register, error, isLoading, clearError } = useUserContext();
+  const { login, register, isLoading, clearError } = useUserContext();
   const {notify} = useNotification();
   // Local form error state separate from the global auth context errors
   const { startLoading, stopLoading, isLoading: isGlobalLoading } = useLoading();
@@ -284,9 +284,9 @@ const LoginForm: React.FC<LoginFormProps> = ({
               className="login-button"
               disabled={isLoading}
           >
-            <LoadingWrapper isLoading={isLoading || isGlobalLoading('login.submit')} overlay={true} fallback={'Logging in...'}
+            <LoadingWrapper isLoading={isLoading || isGlobalLoading('login.submit')} overlay={true} fallback={''}
                             >
-              {isLoading || isGlobalLoading('login.submit') ? '' : (isSignUp ? 'Sign Up' : 'Login')}
+              {isLoading || isGlobalLoading('login.submit') ? 'Logging in...' : (isSignUp ? 'Sign Up' : 'Login')}
             </LoadingWrapper>
           </button>
         </form>

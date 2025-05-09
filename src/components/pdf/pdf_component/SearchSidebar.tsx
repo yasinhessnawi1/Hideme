@@ -660,7 +660,9 @@ const SearchSidebar: React.FC = () => {
 
     // Clear all search terms and results
     const handleClearAllSearches = () => {
-        clearAllSearches();
+        activeQueries.forEach(term => {
+            clearSearch(term.term);
+        });
         setTempSearchTerm('');
 
         // Clear search summaries and counters
