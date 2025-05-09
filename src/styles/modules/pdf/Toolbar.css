@@ -10,6 +10,7 @@
     gap: var(--spacing-md);
     position: sticky;
     top: 0;
+    height: 3.5rem;
     transition: all var(--transition-speed) var(--transition-function);
     z-index: 50;
 }
@@ -18,6 +19,7 @@
     flex: 0;
     display: flex;
     align-items: center;
+    flex-wrap: nowrap;
     justify-content: space-between;
     gap: var(--spacing-sm);
 }
