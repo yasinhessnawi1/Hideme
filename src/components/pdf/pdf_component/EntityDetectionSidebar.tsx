@@ -391,7 +391,7 @@ const EntityDetectionSidebar: React.FC = () => {
             // Prepare detection options
             const presidioEntities = prepareEntitiesForApi(
                 selectedMlEntities,
-                'ALL_PRESIDIO_P'
+                'ALL_PRESIDIO'
             );
 
             const glinerEntities = prepareEntitiesForApi(
@@ -655,7 +655,7 @@ const EntityDetectionSidebar: React.FC = () => {
 
                 // Handle the results
                 if (presidio) {
-                    handlePresidioChange(handleAllOptions(entitiesToOptions(presidio.map(e => e.entity_text), presidioOptions), presidioOptions, 'ALL_PRESIDIO_P'));
+                    handlePresidioChange(handleAllOptions(entitiesToOptions(presidio.map(e => e.entity_text), presidioOptions), presidioOptions, 'ALL_PRESIDIO'));
                 }
                 if (gliner) {
                     handleGlinerChange(handleAllOptions(entitiesToOptions(gliner.map(e => e.entity_text), glinerOptions), glinerOptions, 'ALL_GLINER'));
@@ -734,7 +734,7 @@ const EntityDetectionSidebar: React.FC = () => {
             };
 
             // Apply entities for each method
-            const presOptions = getEntityOptions(METHOD_ID_MAP.presidio, presidioOptions, 'ALL_PRESIDIO_P');
+            const presOptions = getEntityOptions(METHOD_ID_MAP.presidio, presidioOptions, 'ALL_PRESIDIO');
             if (presOptions.length > 0) {
                 setSelectedMlEntities(presOptions);
             }
@@ -855,7 +855,7 @@ const EntityDetectionSidebar: React.FC = () => {
     // Handle dropdown change with "ALL" logic
     const handlePresidioChange = (options: readonly OptionType[]) => {
         const selectedOptions = [...options];
-        setSelectedMlEntities(handleAllOptions(selectedOptions, presidioOptions, 'ALL_PRESIDIO_P'));
+        setSelectedMlEntities(handleAllOptions(selectedOptions, presidioOptions, 'ALL_PRESIDIO'));
     };
 
     const handleGlinerChange = (options: readonly OptionType[]) => {
@@ -973,7 +973,7 @@ const EntityDetectionSidebar: React.FC = () => {
             };
 
             // Expand ALL options for each model before saving
-            const expandedPresidio = expandAllOptions(selectedMlEntities, presidioOptions, 'ALL_PRESIDIO_P');
+            const expandedPresidio = expandAllOptions(selectedMlEntities, presidioOptions, 'ALL_PRESIDIO');
             const expandedGliner = expandAllOptions(selectedGlinerEntities, glinerOptions, 'ALL_GLINER');
             const expandedGemini = expandAllOptions(selectedAiEntities, geminiOptions, 'ALL_GEMINI');
             const expandedHideme = expandAllOptions(selectedHideMeEntities, hidemeOptions, 'ALL_HIDEME');
