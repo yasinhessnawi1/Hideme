@@ -177,11 +177,10 @@ const authService = {
      * @param newPassword The new password
      * @param confirmPassword Password confirmation (must match newPassword)
      */
-    resetPassword: async (token: string, newPassword: string, confirmPassword: string): Promise<void> => {
+    resetPassword: async (token: string, newPassword: string): Promise<void> => {
         await apiClient.post('/auth/reset-password', {
             token,
             new_password: newPassword,
-            confirm_password: confirmPassword
         });
         console.log('[authService] Password successfully reset');
     }
