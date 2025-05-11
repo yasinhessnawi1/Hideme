@@ -24,7 +24,7 @@ export interface UseBanListReturn {
     error: string | null;
 
     // Ban list operations
-    getBanList: () => Promise<BanListWithWords | null>;
+    getBanList: (forceRefresh?: boolean) => Promise<BanListWithWords | null>;
     addBanListWords: (words: string[]) => Promise<BanListWithWords | null>;
     removeBanListWords: (words: string[]) => Promise<BanListWithWords | null>;
 
@@ -63,43 +63,29 @@ export const useBanList = (): UseBanListReturn => {
     /**
      * Get the user's ban list
      */
-    const getBanList = useCallback(async (): Promise<BanListWithWords | null> => {
-        // Prevent duplicate fetch
-        if (fetchInProgressRef.current) {
-            console.log('[BanList] Ban list fetch already in progress');
+    const getBanList = useCallback(async (forceRefresh = false): Promise<BanListWithWords | null> => {
+        if (!isAuthenticatedOrCached) {
             return null;
         }
-
-        fetchInProgressRef.current = true;
+        
         setIsLoading(true);
         clearError();
-
+        
         try {
-            const response = await apiClient.get<{ data: BanListWithWords }>('/settings/ban-list');
-            const list = response.data.data;
-
-            // Ensure words array exists even if API returns null
-            const updatedList = {
-                ...list,
-                words: list.words || []
-            };
-
-            setBanList(updatedList);
-            setIsInitialized(true);
-            return updatedList;
+            const response = await apiClient.get<{ data: BanListWithWords }>('/settings/ban-list', null, forceRefresh);
+            const banListData = response.data.data;
+            
+            // Update ban list state
+            setBanList(banListData);
+            
+            return banListData;
         } catch (error: any) {
-            // Don't set error for 404 (empty ban list is not an error)
-            if (error.response?.status !== 404) {
-                setError(error.userMessage ?? 'Failed to load ban list');
-            }
-
-            // Return empty ban list on error
-            return { id: 0, words: [] };
+            setError(error.userMessage ?? 'Failed to load ban list');
+            return null;
         } finally {
             setIsLoading(false);
-            fetchInProgressRef.current = false;
         }
-    }, [clearError]);
+    }, [isAuthenticatedOrCached, clearError]);
 
     /**
      * Add words to the ban list

@@ -25,7 +25,7 @@ export interface UseEntityDefinitionsReturn {
     error: string | null;
 
     // Entity operations
-    getModelEntities: (methodId: number) => Promise<ModelEntity[] | null>;
+    getModelEntities: (methodId: number, forceRefresh?: boolean) => Promise<ModelEntity[] | null>;
     addModelEntities: (data: ModelEntityBatch) => Promise<ModelEntity[]>;
     deleteModelEntity: (entityId: number) => Promise<void>;
     replaceModelEntities: (methodId: number, entities: OptionType[]) => Promise<ModelEntity[] | null>;
@@ -75,52 +75,49 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
     }, [modelEntities]);
 
     /**
-     * Get entity definitions for a specific method
+     * Get all model entities for a specific detection method
+     * 
+     * @param methodId The detection method ID (1-4)
+     * @param forceRefresh Whether to bypass cache and force a fresh request
      */
-    const getModelEntities = useCallback(async (methodId: number): Promise<ModelEntity[] | null> => {
+    const getModelEntities = useCallback(async (methodId: number, forceRefresh = false): Promise<ModelEntity[] | null> => {
         if (!isAuthenticatedOrCached) {
-            console.warn('[EntityDefinitions] getModelEntities called but user is not authenticated');
             return null;
         }
-
-        // Return cached data if available
-        if (isMethodLoaded(methodId)) {
-            return modelEntities[methodId];
+        
+        // Validate method ID
+        if (methodId < 1 || methodId > 4) {
+            console.error(`[EntityDefinitions] Invalid method ID: ${methodId}`);
+            setError(`Invalid method ID: ${methodId}`);
+            return null;
         }
-
-        // Prevent duplicate loading for the same method
-        if (loadingMethodsRef.current[methodId]) {
-            console.log(`[EntityDefinitions] Already loading entities for method ${methodId}`);
-            return [];
-        }
-
-        loadingMethodsRef.current[methodId] = true;
+        
         setIsLoading(true);
         clearError();
-
+        
         try {
-            const response = await apiClient.get<{ data: ModelEntity[] }>(`/settings/entities/${methodId}`);
+            const response = await apiClient.get<{ data: ModelEntity[] }>(
+                `/settings/entities/${methodId}`,
+                null,
+                forceRefresh
+            );
+            
             const entities = response.data.data || [];
-
-            // Update entity definitions for this method
-            setModelEntities(prev => ({
-                ...prev,
+            
+            // Update state with the new entities
+            setModelEntities(prevEntities => ({
+                ...prevEntities,
                 [methodId]: entities
             }));
-
+            
             return entities;
         } catch (error: any) {
-            // Don't set error for 404 (empty entities is not an error)
-            if (error.response?.status !== 404) {
-                setError(error.userMessage ?? `Failed to load entities for method ${methodId}`);
-            }
-
-            return [];
+            setError(error.userMessage ?? `Failed to load entities for method ${methodId}`);
+            return null;
         } finally {
             setIsLoading(false);
-            loadingMethodsRef.current[methodId] = false;
         }
-    }, [isAuthenticatedOrCached, isMethodLoaded, modelEntities, clearError]);
+    }, [isAuthenticatedOrCached, clearError]);
 
     /**
      * Add new entity definitions
