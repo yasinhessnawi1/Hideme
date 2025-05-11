@@ -6,8 +6,8 @@
     border-bottom: 1px solid var(--toolbar-border);
     padding: 0 var(--spacing-md) 0 var(--spacing-md);
     box-shadow: 0 2px 8px var(--toolbar-shadow);
-    flex-wrap: wrap;
-    gap: var(--spacing-md);
+    flex-wrap: nowrap;
+    gap: var(--spacing-sm);
     position: sticky;
     top: 0;
     transition: all var(--transition-speed) var(--transition-function);
@@ -19,7 +19,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
 }
 
 /* Sidebar toggle button - enhanced with animations */
@@ -27,10 +27,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: var(--spacing-md);
     position: relative;
     transition: all 0.3s var(--transition-function);
-    padding: var(--spacing-sm) var(--spacing-md);
     color: var(--foreground);
     background: transparent;
     border: none;
@@ -39,10 +37,10 @@
 }
 
 .sidebar-toggle svg {
-    width: 32px;
-    height: 32px;
     transition: transform 0.3s var(--transition-function);
     color: var(--primary);
+    height: 39px;
+    width: 39px;
 }
 
 .sidebar-toggle:hover {
@@ -89,7 +87,7 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 120%;
+    width: 100%;
     height: 120%;
     background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%);
     transform: translate(-50%, -50%) scale(0);
@@ -112,13 +110,14 @@
     box-shadow: var(--shadow-sm);
 }
 .toolbar-button.sidebar-toggle {
-    width: 32px;
-    height: 32px;
+    width: 2rem;
+    height: 2rem;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
 }
+
 .toolbar-button.sidebar-toggle.left {
     margin-right: var(--spacing-md);
 }
@@ -346,9 +345,6 @@
     color: var(--primary-hover);
 }
 
-.dropdown-item button[onClick*="ResetEntityColors"] {
-}
-
 .dropdown-item:has(button[onClick*="ResetEntityColors"]) {
     margin-top: var(--spacing-xs);
 }
@@ -368,7 +364,7 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 992px) {
+@media (max-width: 1200px) {
     .enhanced-toolbar {
         padding: var(--spacing-sm);
     }

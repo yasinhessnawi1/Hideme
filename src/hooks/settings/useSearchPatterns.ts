@@ -13,6 +13,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import useAuth from '../auth/useAuth';
 import apiClient from '../../services/apiClient';
+import authStateManager from '../../managers/authStateManager';
 import {
     SearchPattern,
     SearchPatternCreate,
@@ -28,7 +29,7 @@ export interface UseSearchPatternsReturn {
     error: string | null;
 
     // Search patterns operations
-    getSearchPatterns: () => Promise<SearchPattern[]>;
+    getSearchPatterns: (forceRefresh?: boolean) => Promise<SearchPattern[]>;
     createSearchPattern: (data: SearchPatternCreate) => Promise<SearchPattern | null>;
     updateSearchPattern: (patternId: number, data: SearchPatternUpdate) => Promise<SearchPattern | null>;
     deleteSearchPattern: (patternId: number) => Promise<void>;
@@ -46,6 +47,8 @@ export interface UseSearchPatternsReturn {
 export const useSearchPatterns = (): UseSearchPatternsReturn => {
     // Get authentication state from auth hook
     const { isAuthenticated } = useAuth();
+    const cachedState = authStateManager.getCachedState();
+    const isAuthenticatedOrCached = isAuthenticated || Boolean(cachedState?.isAuthenticated);
 
     // Search patterns state
     const [searchPatterns, setSearchPatterns] = useState<SearchPattern[]>([]);
@@ -66,28 +69,44 @@ export const useSearchPatterns = (): UseSearchPatternsReturn => {
     /**
      * Get user's search patterns
      */
-    const getSearchPatterns = useCallback(async (): Promise<SearchPattern[]> => {
-        // Prevent duplicate fetch
-        if (fetchInProgressRef.current) {
+    const getSearchPatterns = useCallback(async (forceRefresh = false): Promise<SearchPattern[]> => {
+        if (!isAuthenticatedOrCached) {
+            console.warn('[SearchPatterns] getSearchPatterns called but user is not authenticated');
             return [];
         }
-
-        fetchInProgressRef.current = true;
+        
+        console.log(`[SearchPatterns] Fetching search patterns, forceRefresh=${forceRefresh}`);
         setIsLoading(true);
         clearError();
-
+        
         try {
-            const response = await apiClient.get<{ data: SearchPattern[] }>('/settings/patterns');
+            // Clear the cache for this endpoint if forcing refresh
+            if (forceRefresh) {
+                console.log('[SearchPatterns] Force refreshing - clearing cache');
+                apiClient.clearCacheEntry('/settings/patterns');
+            }
+            
+            const response = await apiClient.get<{ data: SearchPattern[] }>(
+                '/settings/patterns', 
+                null, 
+                forceRefresh
+            );
+            
             const patterns = response.data.data || [];
-
+            console.log(`[SearchPatterns] Fetched ${patterns.length} patterns successfully`);
+            
+            // Always update patterns in state, even if empty
             setSearchPatterns(patterns);
             setIsInitialized(true);
             return patterns;
         } catch (error: any) {
+            console.error('[SearchPatterns] Error fetching patterns:', error);
+            
             // Don't set error for 404 (empty patterns is not an error)
             if (error.response?.status !== 404) {
                 setError(error.userMessage ?? 'Failed to load search patterns');
             } else {
+                console.log('[SearchPatterns] No patterns found (404) - setting empty array');
                 // For 404, set empty array explicitly to mark as initialized
                 setSearchPatterns([]);
                 setIsInitialized(true);
@@ -96,9 +115,8 @@ export const useSearchPatterns = (): UseSearchPatternsReturn => {
             return [];
         } finally {
             setIsLoading(false);
-            fetchInProgressRef.current = false;
         }
-    }, [clearError]);
+    }, [isAuthenticatedOrCached, clearError]);
 
     /**
      * Create a new search pattern

@@ -201,6 +201,9 @@ const apiClient = {
         apiCache.clearCacheEntry('/settings', 'GET');
         apiCache.clearCacheEntry('/settings/patterns', 'GET');
         apiCache.clearCacheEntry('/settings/ban-list', 'GET');
+        for (let i = 1; i <= 4; i++) {
+            apiCache.clearCacheEntry(`/settings/entities/${i}`, 'GET');
+        }
     },
 
     /**

@@ -1,16 +1,25 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Save, ChevronDown, ChevronUp, AlertTriangle, Database, HardDrive, Trash2, Loader2, Sliders } from "lucide-react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Save, ChevronDown, ChevronUp, AlertTriangle, Database, HardDrive, Trash2, Loader2, Sliders, Upload, Download, FileWarning } from "lucide-react";
 import { useFileContext } from "../../../contexts/FileContext"; // Adjust path if needed
 import { useAutoProcess } from "../../../hooks/useAutoProcess"; // Adjust path if needed
 import { ThemePreference } from "../../../hooks/useTheme";
 import { useThemeContext } from "../../../contexts/ThemeContext";
-import useSettings from "../../../hooks/settings/useSettings"; // Adjust path if needed
-import { useLoading } from "../../../contexts/LoadingContext";
+import { useUserContext } from "../../../contexts/UserContext";
+import useDocument from "../../../hooks/settings/useDocument";
 import LoadingWrapper from "../../common/LoadingWrapper";
 import { useNotification } from "../../../contexts/NotificationContext";
+import { useLoading } from "../../../contexts/LoadingContext";
 
 export default function GeneralSettings() {
-    const { settings, updateSettings, isLoading: isUserLoading, error: userError, clearError: clearUserError } = useSettings();
+    const { 
+        settings, 
+        updateSettings, 
+        exportSettings, 
+        importSettings,
+        settingsLoading: isUserLoading, 
+        settingsError: userError, 
+        clearSettingsError: clearUserError 
+    } = useUserContext();
     const {
         isStoragePersistenceEnabled,
         setStoragePersistenceEnabled,
@@ -20,6 +29,26 @@ export default function GeneralSettings() {
     const { setAutoProcessingEnabled: setAutoProcessHookEnabled, getConfig } = useAutoProcess();
     const { preference: currentThemePreference, setPreference: setThemePreference } = useThemeContext();
     const { notify, confirm } = useNotification();
+    const { 
+        validateSettingsFile, 
+        sanitizeSettingsFile, 
+        downloadJsonFile, 
+        parseJsonFile,
+        error: documentError,
+        isLoading: documentLoading,
+        clearError: clearDocumentError
+    } = useDocument();
+    
+    // Initialize the loading context hook
+    const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
+    
+    // Reference to the file input element
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    
+    // Import/Export state
+    const [importError, setImportError] = useState<string | null>(null);
+    const [importSuccess, setImportSuccess] = useState<boolean>(false);
+
     // --- Local State ---
     const [isAutoProcessing, setIsAutoProcessing] = useState(() => {
         if (settings?.auto_processing !== undefined) return settings.auto_processing;
@@ -39,8 +68,18 @@ export default function GeneralSettings() {
         if (settings?.use_banlist_for_detection !== undefined) return settings.use_banlist_for_detection;
         return false; // Default to not using ban list
     });
-    const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
     const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+
+    // Clear import status messages after a delay
+    useEffect(() => {
+        if (importError || importSuccess) {
+            const timer = setTimeout(() => {
+                setImportError(null);
+                setImportSuccess(false);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [importError, importSuccess]);
 
     // Effect to sync local state when EXTERNAL settings data changes
     useEffect(() => {
@@ -64,6 +103,26 @@ export default function GeneralSettings() {
             setIsStorageEnabled(isStoragePersistenceEnabled);
         }
     }, [settings, isStoragePersistenceEnabled]); // Keep dependencies minimal
+    
+    // Add an effect to listen for settings import completion
+    useEffect(() => {
+        const handleSettingsImportCompleted = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { success } = customEvent.detail || {};
+            
+            if (success) {
+                // Update UI after the settings have been refreshed
+                // This will happen automatically when the settings state updates
+                console.log("[GeneralSettings] Settings import completed");
+            }
+        };
+        
+        window.addEventListener('settings-import-completed', handleSettingsImportCompleted);
+        
+        return () => {
+            window.removeEventListener('settings-import-completed', handleSettingsImportCompleted);
+        };
+    }, []);
 
     // Update storage context when local toggle changes it
     useEffect(() => {
@@ -71,6 +130,14 @@ export default function GeneralSettings() {
             setStoragePersistenceEnabled(isStorageEnabled);
         }
     }, [isStorageEnabled, isStoragePersistenceEnabled, setStoragePersistenceEnabled]);
+
+    // Handle document errors
+    useEffect(() => {
+        if (documentError) {
+            setImportError(documentError);
+            clearDocumentError();
+        }
+    }, [documentError, clearDocumentError]);
 
     // --- Handlers ---
     const handleThemeChange = (newTheme: ThemePreference) => {
@@ -146,7 +213,84 @@ export default function GeneralSettings() {
             stopLoading('setting.general.clear');
         }
     };
-    const isLoading = isUserLoading;
+    
+    // --- Import/Export Handlers ---
+    const handleExportSettings = async () => {
+        startLoading('settings.export');
+        try {
+            // The exportSettings function now handles the file download directly
+            await exportSettings();
+            
+            notify({
+                message: "Settings exported successfully.",
+                type: "success",
+                duration: 3000
+            });
+        } catch (error: any) {
+            console.error('Error exporting settings:', error);
+            notify({
+                message: error.message || "Failed to export settings.",
+                type: "error",
+                duration: 3000
+            });
+        } finally {
+            stopLoading('settings.export');
+        }
+    };
+    
+    const handleImportClick = () => {
+        // Clear previous status
+        setImportError(null);
+        setImportSuccess(false);
+        
+        // Trigger file input click
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+    
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        
+        startLoading('settings.import');
+        setImportError(null);
+        setImportSuccess(false);
+        
+        try {
+            // Import the file directly without parsing
+            const result = await importSettings(file);
+            
+            if (result) {
+                setImportSuccess(true);
+                notify({
+                    message: "Settings imported successfully. Refreshing settings...",
+                    type: "success",
+                    duration: 3000
+                });
+                
+                // Note: Settings states will be refreshed automatically by UserContext
+                // via the settings-import-completed event
+            } else {
+                setImportError("Failed to import settings.");
+            }
+        } catch (error: any) {
+            console.error('Error importing settings:', error);
+            setImportError(error.message || "Error importing settings file.");
+        } finally {
+            // Reset the file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+            
+            // Keep loading state active for a short period while settings refresh
+            setTimeout(() => {
+                stopLoading('settings.import');
+            }, 1000);
+        }
+    };
+    
+    const isLoading = isUserLoading || documentLoading;
 
     const effectiveStorageStats = storageStats || { percentUsed: 0, totalSize: "0 MB", fileCount: 0 };
 
@@ -327,6 +471,69 @@ export default function GeneralSettings() {
                     {showAdvancedSettings && !isStorageEnabled && (
                         <div className="mt-4 rounded-md border p-4 text-center text-muted-foreground">
                             Enable storage persistence to see usage details.
+                        </div>
+                    )}
+                </div>
+            </div>
+            
+            {/* Settings Import/Export Card */}
+            <div className="card">
+                <div className="card-header">
+                    <h2 className="card-title">Settings Management</h2>
+                    <p className="card-description">Import or export your application settings</p>
+                </div>
+                <div className="card-content space-y-4">
+                    <p className="text-sm text-muted-foreground mb-4">
+                        Export your current settings to a file or import settings from a previously exported file.
+                        This includes theme preferences, detection settings, and processing configurations.
+                    </p>
+                    
+                    {/* Import/Export Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                            className="button button-outline flex items-center justify-center"
+                            onClick={handleImportClick}
+                            disabled={isLoading}
+                        >
+                            <LoadingWrapper isLoading={globalLoading('settings.import')} fallback={<Loader2 size={16} className="mr-2 animate-spin" />}>
+                                <Upload size={16} className="mr-2" />
+                            </LoadingWrapper>
+                            <span>Import Settings</span>
+                        </button>
+                        
+                        <button
+                            className="button button-outline flex items-center justify-center"
+                            onClick={handleExportSettings}
+                            disabled={isLoading}
+                        >
+                            <LoadingWrapper isLoading={globalLoading('settings.export')} fallback={<Loader2 size={16} className="mr-2 animate-spin" />}>
+                                <Download size={16} className="mr-2" />
+                            </LoadingWrapper>
+                            <span>Export Settings</span>
+                        </button>
+                        
+                        {/* Hidden file input for importing */}
+                        <input
+                            type="file"
+                            accept=".json"
+                            style={{ display: 'none' }}
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                        />
+                    </div>
+                    
+                    {/* Import Status Messages */}
+                    {importError && (
+                        <div className="flex items-start gap-2 rounded-md bg-red-50 p-3 text-red-800 dark:bg-red-950 dark:text-red-300 mt-3">
+                            <FileWarning size={16} className="mt-0.5 flex-shrink-0" />
+                            <p className="text-xs">{importError}</p>
+                        </div>
+                    )}
+                    
+                    {importSuccess && (
+                        <div className="flex items-start gap-2 rounded-md bg-green-50 p-3 text-green-800 dark:bg-green-950 dark:text-green-300 mt-3">
+                            <Database size={16} className="mt-0.5 flex-shrink-0" />
+                            <p className="text-xs">Settings imported successfully.</p>
                         </div>
                     )}
                 </div>
