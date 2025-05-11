@@ -160,6 +160,30 @@ const authService = {
      */
     deleteAPIKey: async (keyId: string): Promise<void> => {
         await apiClient.delete(`/auth/api-keys/${keyId}`);
+    },
+    
+    /**
+     * Request a password reset link
+     * @param email The user's email address
+     */
+    forgotPassword: async (email: string): Promise<void> => {
+        await apiClient.post('/auth/forgot-password', { email });
+        console.log('[authService] Password reset request sent for email:', email);
+    },
+
+    /**
+     * Reset password using token received via email
+     * @param token The password reset token
+     * @param newPassword The new password
+     * @param confirmPassword Password confirmation (must match newPassword)
+     */
+    resetPassword: async (token: string, newPassword: string, confirmPassword: string): Promise<void> => {
+        await apiClient.post('/auth/reset-password', {
+            token,
+            new_password: newPassword,
+            confirm_password: confirmPassword
+        });
+        console.log('[authService] Password successfully reset');
     }
 };
 

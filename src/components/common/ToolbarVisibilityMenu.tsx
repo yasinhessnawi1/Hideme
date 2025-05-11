@@ -5,6 +5,8 @@ import { HighlightType } from '../../types';
 import '../../styles/modules/pdf/Toolbar.css'; // Assuming shared styles
 import { useFileContext } from '../../contexts/FileContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useBatchSearch } from '../../contexts/SearchContext';
+import { useFileSummary } from '../../contexts/FileSummaryContext';
 
 const ToolbarVisibilityMenu: React.FC = () => {
     const {
@@ -13,11 +15,17 @@ const ToolbarVisibilityMenu: React.FC = () => {
         showEntityHighlights,
         setShowEntityHighlights,
         showManualHighlights,
-        setShowManualHighlights
+        setShowManualHighlights,
+        setDetectionMapping
     } = useEditContext();
-    const {files , selectedFiles} = useFileContext();
+    const {files, selectedFiles, currentFile} = useFileContext();
     const filesToClear = selectedFiles.length > 0 ? selectedFiles : files;
     const {notify} = useNotification();
+    const { clearAllSearches } = useBatchSearch();
+    const { 
+        clearAllEntityData, 
+        clearAllSearchData 
+    } = useFileSummary();
 
     const {
         removeAllHighlights,
@@ -56,7 +64,29 @@ const ToolbarVisibilityMenu: React.FC = () => {
 
     const handleClearAllHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
+        
+        // Clear all highlights using the highlight store
         removeAllHighlights(filesToClear);
+        
+        // Clear search state
+        clearAllSearches();
+        
+        // Clear all data using the FileSummary context
+        clearAllEntityData();
+        clearAllSearchData();
+        
+        // Reset current detection mapping if there's a current file
+        if (currentFile) {
+            setDetectionMapping(null);
+        }
+        
+        // Dispatch event to clear all highlights and summaries
+        window.dispatchEvent(new CustomEvent('highlights-cleared', {
+            detail: {
+                allTypes: true
+            }
+        }));
+        
         notify({
             type: 'success',
             message: 'All Highlights Cleared!',
@@ -66,7 +96,17 @@ const ToolbarVisibilityMenu: React.FC = () => {
 
     const handleClearManualHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
+        
+        // Clear manual highlights
         removeAllHighlightsByType(HighlightType.MANUAL, filesToClear);
+        
+        // Dispatch event for manual highlights cleared
+        window.dispatchEvent(new CustomEvent('highlights-cleared', {
+            detail: {
+                type: HighlightType.MANUAL
+            }
+        }));
+        
         notify({
             type: 'success',
             message: 'Manual Highlights Cleared!',
@@ -76,7 +116,23 @@ const ToolbarVisibilityMenu: React.FC = () => {
 
     const handleClearSearchHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
+        
+        // Clear search highlights
         removeAllHighlightsByType(HighlightType.SEARCH, filesToClear);
+        
+        // Use search context to clear state
+        clearAllSearches();
+        
+        // Clear all search data using FileSummary context
+        clearAllSearchData();
+        
+        // Dispatch event for search highlights cleared
+        window.dispatchEvent(new CustomEvent('search-highlights-cleared', {
+            detail: {
+                type: HighlightType.SEARCH
+            }
+        }));
+        
         notify({
             type: 'success',
             message: 'Search Highlights Cleared!',
@@ -86,14 +142,31 @@ const ToolbarVisibilityMenu: React.FC = () => {
 
     const handleClearEntityHighlights = (e: React.MouseEvent) => {
         e.stopPropagation();
-        removeAllHighlightsByType(HighlightType.ENTITY,  filesToClear);
+        
+        // Clear entity highlights
+        removeAllHighlightsByType(HighlightType.ENTITY, filesToClear);
+        
+        // Clear all entity data using FileSummary context
+        clearAllEntityData();
+        
+        // Reset detection mapping if there's a current file
+        if (currentFile) {
+            setDetectionMapping(null);
+        }
+        
+        // Dispatch event for entity highlights cleared
+        window.dispatchEvent(new CustomEvent('entity-highlights-cleared', {
+            detail: {
+                type: HighlightType.ENTITY
+            }
+        }));
+        
         notify({
             type: 'success',
             message: 'Entity Highlights Cleared!',
             position: 'top-right'
         });
     };
-
 
     return (
         <>
