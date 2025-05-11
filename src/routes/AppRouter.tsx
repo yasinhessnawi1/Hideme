@@ -9,6 +9,8 @@ import React, { JSX, useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import LandingPage from '../pages/LandingPage'
 import LoginPage from '../pages/LoginPage'
+import ForgotPasswordPage from '../pages/ForgotPasswordPage'
+import ResetPasswordPage from '../pages/ResetPasswordPage'
 import PDFViewerPage from "../pages/PDFViewerPage";
 import HowToPage from "../pages/HowToPage";
 import FeaturesPage from "../pages/FeaturesPage";
@@ -68,6 +70,23 @@ const AppRouter = (): JSX.Element => {
                     isAuthenticated ?
                         <Navigate to="/playground" replace /> :
                         <LoginPage initialSignUp={true} />
+                }
+            />
+            {/* Password reset routes */}
+            <Route
+                path="/forgot-password"
+                element={
+                    isAuthenticated ?
+                        <Navigate to="/playground" replace /> :
+                        <ForgotPasswordPage />
+                }
+            />
+            <Route
+                path="/reset-password"
+                element={
+                    isAuthenticated ?
+                        <Navigate to="/playground" replace /> :
+                        <ResetPasswordPage />
                 }
             />
 

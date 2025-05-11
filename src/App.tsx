@@ -12,6 +12,7 @@ import AutoProcessProvider from "./contexts/AutoProcessProvider";
 import { LoadingProvider } from './contexts/LoadingContext';
 import {NotificationProvider} from "./contexts/NotificationContext";
 import {NotificationRenderer} from "./components/common/NotificationRenderer";
+import { FileSummaryProvider } from './contexts/FileSummaryContext';
 
 const App: React.FC = () => {
 
@@ -26,8 +27,10 @@ const App: React.FC = () => {
                             <HighlightStoreProvider>
                                 <EditProvider>
                                     <BatchSearchProvider>
+                                        <FileSummaryProvider>
                                             <AppRouter/>
                                             <NotificationRenderer />
+                                        </FileSummaryProvider>
                                     </BatchSearchProvider>
                                 </EditProvider>
                             </HighlightStoreProvider>

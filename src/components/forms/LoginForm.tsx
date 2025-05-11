@@ -9,7 +9,7 @@
  */
 
 import React, {JSX} from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useUserContext } from '../../contexts/UserContext';
 import { useLoading } from '../../contexts/LoadingContext';
 import LoadingWrapper from "../common/LoadingWrapper";
@@ -244,13 +244,12 @@ const LoginForm: React.FC<LoginFormProps> = ({
               <label htmlFor="password">Password</label>
               {/* "Forgot password" link is only shown in login mode */}
               {!isSignUp && (
-                  <a
-                      href="#"
+                  <Link
+                      to="/forgot-password"
                       className="forgot-password"
-                      onClick={(e) => e.preventDefault()}
                   >
                     Forgot your password?
-                  </a>
+                  </Link>
               )}
             </div>
             <input

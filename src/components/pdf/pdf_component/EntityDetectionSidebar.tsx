@@ -23,12 +23,12 @@ import {
 } from '../../../utils/EntityUtils';
 import { EntityHighlightProcessor } from "../../../managers/EntityHighlightProcessor";
 import processingStateService from '../../../services/ProcessingStateService';
-import summaryPersistenceStore from '../../../store/SummaryPersistenceStore';
 import { useUserContext } from "../../../contexts/UserContext";
 import { useLoading } from "../../../contexts/LoadingContext";
 import { LoadingWrapper } from '../../common/LoadingWrapper';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { useAuth } from '../../../hooks/auth/useAuth';
+import { useFileSummary } from '../../../contexts/FileSummaryContext';
 
 /**
  * EntityDetectionSidebar component
@@ -76,33 +76,38 @@ const EntityDetectionSidebar: React.FC = () => {
         setSelectedHighlightIds
     } = useEditContext();
 
-
     const {
         removeHighlightsByType,
         getHighlightsForPage,
         getHighlightsByType
     } = useHighlightStore();
 
+    // Use file summary context instead of local state
+    const {
+        entityFileSummaries: fileSummaries,
+        entityAnalyzedFilesCount: analyzedFilesCount,
+        expandedEntitySummaries: expandedFileSummaries,
+        updateEntityFileSummary,
+        removeEntityFileSummary,
+        clearAllEntityData,
+        toggleEntitySummaryExpansion: toggleFileSummary
+    } = useFileSummary();
+
     // Component state
     const { startLoading, stopLoading, isLoading: isGlobalLoading } = useLoading();
     const { notify, confirm } = useNotification();
     const [detectionScope, setDetectionScope] = useState<'current' | 'selected' | 'all'>('all');
-    const [fileSummaries, setFileSummaries] = useState<EntityFileSummary[]>([]);
-    const [expandedFileSummaries, setExpandedFileSummaries] = useState<Set<string>>(new Set());
     const [detectionThreshold, setDetectionThreshold] = useState(() =>
         settings?.detection_threshold ?? 0.5
     );
     const [useBanlist, setUseBanlist] = useState(() =>
         settings?.use_banlist_for_detection ?? false
     );
-    // Add state for tracking processed files
-    const [analyzedFilesCount, setAnalyzedFilesCount] = useState<number>(0);
-
+    
     // Add initialization status tracking
     const [entitiesInitialized, setEntitiesInitialized] = useState(false);
     // Track which method IDs we've attempted to load
     const loadAttemptedRef = useRef<Set<number>>(new Set());
-    const analyzedFilesRef = useRef<Set<string>>(new Set());
 
     const {
         loading,
@@ -197,169 +202,6 @@ const EntityDetectionSidebar: React.FC = () => {
         }
     }, [pdfNavigation, openFile, files]);
 
-
-    // Load saved file data from summaryPersistenceStore on component mount
-    useEffect(() => {
-        try {
-            // Load analyzed files from persistence service
-            const savedAnalyzedFiles = summaryPersistenceStore.getAnalyzedFiles('entity');
-
-            // Update our local state
-            analyzedFilesRef.current = savedAnalyzedFiles;
-            setAnalyzedFilesCount(savedAnalyzedFiles.size);
-
-            // Load file summaries from persistence service
-            const savedSummaries = summaryPersistenceStore.getFileSummaries<EntityFileSummary>('entity');
-
-            if (savedSummaries.length > 0) {
-                setFileSummaries(savedSummaries);
-            }
-        } catch (error) {
-            notify({
-                type: 'error',
-                message: 'Error loading saved detection data: ' + error.message,
-                position: 'top-right'
-            });
-        }
-    }, []);
-
-    // Helper function to update file summaries
-    const updateFileSummary = useCallback((newSummary: EntityFileSummary) => {
-        setFileSummaries(prev => {
-            // Remove any existing summary for this file
-            const filteredSummaries = prev.filter(summary => summary.fileKey !== newSummary.fileKey);
-
-            // Add the new summary
-            const updatedSummaries = [...filteredSummaries, newSummary];
-
-            // Save to persistence store
-            summaryPersistenceStore.saveFileSummaries('entity', updatedSummaries);
-
-            return updatedSummaries;
-        });
-    }, []);
-
-    useEffect(() => {
-        // Skip if no files or no summaries
-        if (files.length === 0) {
-            return;
-        }
-
-        // Reconcile our data with the SummaryPersistenceStore
-        const validFiles = files.map(getFileKey);
-        const validSearchedFiles = summaryPersistenceStore.reconcileAnalyzedFiles('entity', validFiles);
-
-        // Update local state if needed
-        if (analyzedFilesRef.current.size !== validSearchedFiles.size) {
-            analyzedFilesRef.current = validSearchedFiles;
-            setAnalyzedFilesCount(validSearchedFiles.size);
-        }
-
-        // Reconcile file summaries
-        const validSummaries = summaryPersistenceStore.reconcileFileSummaries<EntityFileSummary>('entity', files);
-
-        // Update local state if needed
-        if (validSummaries.length !== fileSummaries.length) {
-            setFileSummaries(validSummaries);
-        }
-    }, [files, fileSummaries.length]);
-
-    //  Listen for auto-processing completion events
-    useEffect(() => {
-        const handleAutoProcessingComplete = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { fileKey, hasEntityResults, detectionResult } = customEvent.detail || {};
-
-            if (fileKey && hasEntityResults) {
-
-                // Add to our tracked files through the persistence store
-                summaryPersistenceStore.addAnalyzedFile('entity', fileKey);
-
-                // Update local reference
-                analyzedFilesRef.current = summaryPersistenceStore.getAnalyzedFiles('entity');
-                setAnalyzedFilesCount(analyzedFilesRef.current.size);
-
-                // Add file summary if detection result is provided
-                if (detectionResult) {
-                    const file = files.find(f => getFileKey(f) === fileKey);
-                    if (file) {
-                        const newSummary: EntityFileSummary = {
-                            fileKey,
-                            fileName: file.name,
-                            entities_detected: detectionResult.entities_detected,
-                            performance: detectionResult.performance
-                        };
-
-                        // Use the persistence store to update file summaries
-                        summaryPersistenceStore.updateFileSummary('entity', newSummary);
-
-                        // Update our local state
-                        updateFileSummary(newSummary);
-                    }
-                }
-            }
-        };
-
-        window.addEventListener('auto-processing-complete', handleAutoProcessingComplete);
-
-        return () => {
-            window.removeEventListener('auto-processing-complete', handleAutoProcessingComplete);
-        };
-    }, [files, updateFileSummary]);
-
-    // Listen for file removal events
-    useEffect(() => {
-        const handleFileRemoved = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { fileKey } = customEvent.detail || {};
-
-            if (fileKey) {
-
-                // Update our tracked files set
-                if (analyzedFilesRef.current.has(fileKey)) {
-                    analyzedFilesRef.current.delete(fileKey);
-                    setAnalyzedFilesCount(analyzedFilesRef.current.size);
-
-                    // Save the updated set to persistence store
-                    summaryPersistenceStore.saveAnalyzedFiles('entity', analyzedFilesRef.current);
-                }
-
-                // Update file summaries
-                setFileSummaries(prev => {
-                    const updatedSummaries = prev.filter(summary => summary.fileKey !== fileKey);
-
-                    // Save the updated summaries if they changed
-                    if (updatedSummaries.length !== prev.length) {
-                        summaryPersistenceStore.saveFileSummaries('entity', updatedSummaries);
-                    }
-
-                    return updatedSummaries;
-                });
-
-                // Remove from expanded summaries if present
-                if (expandedFileSummaries.has(fileKey)) {
-                    setExpandedFileSummaries(prev => {
-                        const newSet = new Set(prev);
-                        newSet.delete(fileKey);
-                        return newSet;
-                    });
-                }
-
-                // If this was the current file, update detection mapping
-                if (currentFile && getFileKey(currentFile) === fileKey) {
-                    setDetectionMapping(null);
-                }
-            }
-        };
-
-        window.addEventListener('file-removed', handleFileRemoved);
-
-        return () => {
-            window.removeEventListener('file-removed', handleFileRemoved);
-        };
-    }, [currentFile, setDetectionMapping, expandedFileSummaries]);
-
-
     // Handle batch entity detection across multiple files
     const handleDetect = useCallback(async (filesToProcess: File[] = []) => {
         if (filesToProcess?.length === 0) {
@@ -422,13 +264,12 @@ const EntityDetectionSidebar: React.FC = () => {
             // Use the consolidated batch hybrid detection from the hook
             const results = await runBatchHybridDetect(filesToProcess, detectionOptions);
 
-
             // Process detection for each file using the EntityHighlightProcessor
             for (const [fileKey, result] of Object.entries(results)) {
                 try {
                     // Process the detection results into highlights
                     await EntityHighlightProcessor.processDetectionResults(fileKey, result);
-
+                    
                     // Store the mapping for this file
                     setFileDetectionMapping(fileKey, result.redaction_mapping || result);
 
@@ -451,18 +292,10 @@ const EntityDetectionSidebar: React.FC = () => {
                         performance: result.performance
                     };
 
-                    // Add to persistence store
-                    summaryPersistenceStore.updateFileSummary('entity', fileSummary);
-
-                    // Update local state
-                    updateFileSummary(fileSummary);
-
-                    // Add to analyzed files in persistence store
-                    summaryPersistenceStore.addAnalyzedFile('entity', fileKey);
-
-                    // Update local ref
-                    analyzedFilesRef.current = summaryPersistenceStore.getAnalyzedFiles('entity');
-                } catch (error) {
+                    // Update using context
+                    updateEntityFileSummary(fileSummary);
+                    
+                } catch (error: any) {
                     notify({
                         type: 'error',
                         message: 'Error processing highlights for file ' + fileKey + ': ' + error.message,
@@ -471,12 +304,6 @@ const EntityDetectionSidebar: React.FC = () => {
                     processingStateService.completeProcessing(fileKey, false);
                 }
             }
-
-            // Update expanded summaries set
-            setExpandedFileSummaries(new Set(Object.keys(results)));
-
-            // Update analyzed files count
-            setAnalyzedFilesCount(analyzedFilesRef.current.size);
 
             notify({
                 type: 'success',
@@ -499,54 +326,75 @@ const EntityDetectionSidebar: React.FC = () => {
             stopLoading('detection_sidebar.detect');
         }
     }, [
+        currentFile,
         getFilesToProcess,
-        resetErrors,
         selectedMlEntities,
-        selectedGlinerEntities,
         selectedAiEntities,
+        selectedGlinerEntities,
         selectedHideMeEntities,
         detectionThreshold,
         useBanlist,
-        banList,
         runBatchHybridDetect,
+        getBanList,
         setFileDetectionMapping,
         setDetectionMapping,
-        currentFile,
-        updateFileSummary,
+        updateEntityFileSummary,
+        resetErrors,
+        notify,
         startLoading,
         stopLoading,
     ]);
-    // Listen for external detection triggers (e.g., from toolbar button)
-    useEffect(() => {
-        const handleExternalDetectionTrigger = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            const { source, filesToProcess } = customEvent.detail || {};
 
-            // Run detection process
-            handleDetect(filesToProcess);
-        };
-
-        // Add event listener
-        window.addEventListener('trigger-entity-detection-process', handleExternalDetectionTrigger);
-
-        // Clean up
-        return () => {
-            window.removeEventListener('trigger-entity-detection-process', handleExternalDetectionTrigger);
-        };
-    }, [handleDetect]);
-
-    // Toggle file summary expansion
-    const toggleFileSummary = useCallback((fileKey: string) => {
-        setExpandedFileSummaries(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(fileKey)) {
-                newSet.delete(fileKey);
-            } else {
-                newSet.add(fileKey);
+    // Handle reset with context functions
+    const handleReset = useCallback(async () => {
+        const confirmed = await confirm({
+            title: "Reset Detection Settings",
+            message: "Are you sure you want to reset all detection settings and results? This will clear all detected entities.",
+            type: "warning",
+            confirmButton: {
+                label: "Reset"
+            },
+            cancelButton: {
+                label: "Cancel"
             }
-            return newSet;
         });
-    }, []);
+
+        if (confirmed) {
+            // Reset all entity selections
+            setSelectedMlEntities([]);
+            setSelectedAiEntities([]);
+            setSelectedGlinerEntities([]);
+            setSelectedHideMeEntities([]);
+            setDetectionMapping(null);
+            
+            // Use context function to clear all entity data
+            clearAllEntityData();
+            
+            // Also clear highlights from the store for all files
+            const filesToProcess = getFilesToProcess();
+            filesToProcess.forEach(file => {
+                const fileKey = getFileKey(file);
+                removeHighlightsByType(fileKey, HighlightType.ENTITY);
+            });
+
+            notify({
+                type: 'success',
+                message: 'Entity detection settings reset successfully',
+                position: 'top-right'
+            });
+        }
+    }, [
+        setSelectedMlEntities, 
+        setSelectedAiEntities, 
+        setSelectedGlinerEntities, 
+        setSelectedHideMeEntities, 
+        setDetectionMapping, 
+        clearAllEntityData, 
+        removeHighlightsByType,
+        getFilesToProcess,
+        confirm,
+        notify
+    ]);
 
     // Format entity name for display
     const formatEntityName = useCallback((entityType: string): string => {
@@ -568,40 +416,13 @@ const EntityDetectionSidebar: React.FC = () => {
             if (type && type !== HighlightType.ENTITY && !allTypes) return;
 
             if (fileKey) {
-                // Update file summaries to reflect cleared highlights
-                setFileSummaries(prev => {
-                    // Remove summary for this file
-                    const updatedSummaries = prev.filter(summary => summary.fileKey !== fileKey);
-
-                    // Save the updated summaries
-                    summaryPersistenceStore.saveFileSummaries('entity', updatedSummaries);
-
-                    return updatedSummaries;
-                });
-
-                // Update the analyzed files count
-                if (analyzedFilesRef.current.has(fileKey)) {
-                    analyzedFilesRef.current.delete(fileKey);
-                    setAnalyzedFilesCount(analyzedFilesRef.current.size);
-
-                    // Update the persistence store
-                    summaryPersistenceStore.removeAnalyzedFile('entity', fileKey);
-                }
-
-                // Remove from expanded summaries if present
-                if (expandedFileSummaries.has(fileKey)) {
-                    setExpandedFileSummaries(prev => {
-                        const newSet = new Set(prev);
-                        newSet.delete(fileKey);
-                        return newSet;
-                    });
-                }
+                // Use context to remove the entity file summary
+                removeEntityFileSummary(fileKey);
 
                 // If this is the current file, also update the current detection mapping
                 if (currentFile && getFileKey(currentFile) === fileKey) {
                     setDetectionMapping(null);
                 }
-
             }
         };
 
@@ -613,7 +434,7 @@ const EntityDetectionSidebar: React.FC = () => {
             window.removeEventListener('highlights-cleared', handleHighlightsCleared);
             window.removeEventListener('entity-highlights-cleared', handleHighlightsCleared);
         };
-    }, [currentFile, setDetectionMapping]);
+    }, [currentFile, setDetectionMapping, removeEntityFileSummary]);
 
     // Improved entity loading with better error handling and retry mechanism
     useEffect(() => {
@@ -830,6 +651,55 @@ const EntityDetectionSidebar: React.FC = () => {
         setSelectedHideMeEntities
     ]);
 
+    // Listen for external detection triggers (e.g., from toolbar button)
+    useEffect(() => {
+        const handleExternalDetectionTrigger = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { source, filesToProcess } = customEvent.detail || {};
+
+            // Run detection process
+            handleDetect(filesToProcess);
+        };
+
+        // Add event listener
+        window.addEventListener('trigger-entity-detection-process', handleExternalDetectionTrigger);
+
+        // Clean up
+        return () => {
+            window.removeEventListener('trigger-entity-detection-process', handleExternalDetectionTrigger);
+        };
+    }, [handleDetect]);
+
+    // Listen for auto-processing completion events
+    useEffect(() => {
+        const handleAutoProcessingComplete = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey, hasEntityResults, detectionResult } = customEvent.detail || {};
+
+            if (fileKey && hasEntityResults && detectionResult) {
+                const file = files.find(f => getFileKey(f) === fileKey);
+                if (file) {
+                    // Create a file summary object
+                    const newSummary: EntityFileSummary = {
+                        fileKey,
+                        fileName: file.name,
+                        entities_detected: detectionResult.entities_detected,
+                        performance: detectionResult.performance
+                    };
+
+                    // Use context function to update summary
+                    updateEntityFileSummary(newSummary);
+                }
+            }
+        };
+
+        window.addEventListener('auto-processing-complete', handleAutoProcessingComplete);
+
+        return () => {
+            window.removeEventListener('auto-processing-complete', handleAutoProcessingComplete);
+        };
+    }, [files, updateEntityFileSummary]);
+
     // Format for entity type display (shortens if too long)
     const formatEntityDisplay = (entityType: string): string => {
         const formatted = formatEntityName(entityType);
@@ -872,72 +742,6 @@ const EntityDetectionSidebar: React.FC = () => {
         const selectedOptions = [...options];
         setSelectedHideMeEntities(handleAllOptions(selectedOptions, hidemeOptions, 'ALL_HIDEME'));
     };
-
-    // Reset selected entities and clear detection results
-    const handleReset = useCallback(async () => {
-
-        const confirmReset = await confirm({
-            title: 'Reset Entity Detection',
-            message: 'Are you sure you want to reset the entity detection settings?',
-            type: 'warning',
-            confirmButton: {
-                label: 'Reset',
-            }
-        });
-
-        if (confirmReset) {
-            setSelectedAiEntities([]);
-            setSelectedMlEntities([]);
-            setSelectedGlinerEntities([]);
-            setSelectedHideMeEntities([]);
-
-
-            // Get files to reset based on current scope
-            const filesToReset = getFilesToProcess();
-
-            if (filesToReset.length > 0) {
-                // Clear entity highlights for all files in current scope
-                filesToReset.forEach(file => {
-                    const fileKey = getFileKey(file);
-                    removeHighlightsByType(fileKey, HighlightType.ENTITY);
-
-                    // Remove from processing state tracking
-                    processingStateService.removeFile(fileKey);
-
-                    // Remove from persistence store
-                    summaryPersistenceStore.removeFileFromSummaries('entity', fileKey);
-
-                    // If this is the current file, also update the current detection mapping
-                    if (currentFile && getFileKey(currentFile) === fileKey) {
-                        setDetectionMapping(null);
-                    }
-                });
-            } else {
-                // If no files to process, just reset the current detection mapping
-                setDetectionMapping(null);
-            }
-
-            setExpandedFileSummaries(new Set());
-
-            // Update the analyzed files count
-            analyzedFilesRef.current = summaryPersistenceStore.getAnalyzedFiles('entity');
-            setAnalyzedFilesCount(analyzedFilesRef.current.size);
-            notify({
-                type: 'info',
-                message: 'Entity Settings reset successfully',
-                position: 'top-right'
-            });
-        }
-    }, [
-        setSelectedAiEntities,
-        setSelectedMlEntities,
-        setSelectedGlinerEntities,
-        setSelectedHideMeEntities,
-        setDetectionMapping,
-        removeHighlightsByType,
-        getFilesToProcess,
-        currentFile
-    ]);
 
     // Save detection settings to user preferences
     const handleSaveSettings = useCallback(async () => {
@@ -1351,7 +1155,7 @@ const EntityDetectionSidebar: React.FC = () => {
                                                                     </span>
                                                                 </div>
                                                                 <div className="entity-item-right">
-                                                                    <span className="entity-count">{count}</span>
+                                                                    <span className="entity-count">{String(count)}</span>
                                                                     <div className="navigation-buttons" >
                                                                         <button
                                                                             className="nav-button"
@@ -1419,7 +1223,7 @@ const EntityDetectionSidebar: React.FC = () => {
                                                                     </div>
                                                                     <div className="page-item-right">
                                                                         <span
-                                                                            className="entity-count">{count} entities</span>
+                                                                            className="entity-count">{String(count)} entities</span>
                                                                         <div className="navigation-buttons">
                                                                             <button
                                                                                 className="nav-button"
