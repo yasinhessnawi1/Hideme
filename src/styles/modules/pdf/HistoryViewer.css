@@ -1,0 +1,278 @@
+.history-viewer {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--sidebar-bg);
+}
+
+.history-viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 1px solid var(--sidebar-border);
+    background-color: var(--sidebar-bg);
+    height: auto;
+}
+
+.history-viewer-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--foreground);
+    margin: 0;
+}
+
+.refresh-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted-foreground);
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-xs);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all var(--transition-speed) var(--transition-function);
+}
+
+.refresh-button:hover {
+    color: var(--foreground);
+    background-color: var(--btn-hover);
+}
+
+.refresh-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.spinning {
+    animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.history-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-sm);
+}
+
+/* Simplified document list styles */
+.document-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.document-item {
+    display: flex;
+    padding: 12px;
+    border-radius: var(--border-radius-md);
+    background-color: var(--bg-secondary);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border: 1px solid var(--border);
+    align-items: center;
+    position: relative;
+}
+
+.document-item:hover {
+    background-color: var(--dropdown-hover);
+}
+
+.document-item.available {
+    border-left: 4px solid var(--primary);
+}
+
+.document-item.unavailable {
+    border-left: 4px solid var(--error);
+}
+
+.document-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-foreground);
+    margin-right: 10px;
+    flex-shrink: 0;
+    width: 24px;
+}
+
+.document-details {
+    flex: 1;
+    overflow: hidden;
+    margin-right: 10px;
+}
+
+.document-name {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--foreground);
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.unavailable-badge {
+    font-size: 11px;
+    color: var(--error);
+    background-color: rgba(var(--error-rgb), 0.1);
+    padding: 1px 6px;
+    border-radius: 8px;
+    white-space: nowrap;
+    font-weight: var(--font-weight-medium);
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+.document-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--muted-foreground);
+}
+
+.document-date {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.entity-count {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background-color: rgba(var(--primary-rgb), 0.1);
+    color: var(--primary);
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: var(--font-weight-medium);
+}
+
+.document-delete {
+    color: var(--muted-foreground);
+    background: none;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    flex-shrink: 0;
+}
+
+.document-delete:hover {
+    color: var(--destructive);
+    background-color: rgba(var(--destructive-rgb), 0.1);
+    opacity: 1;
+}
+
+.empty-history {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--muted-foreground);
+    text-align: center;
+    padding: var(--spacing-md);
+}
+
+.empty-icon {
+    opacity: 0.5;
+    margin-bottom: var(--spacing-md);
+}
+
+.empty-subtitle {
+    font-size: var(--font-size-xs);
+    margin-top: var(--spacing-xs);
+    opacity: 0.7;
+}
+
+.history-loading,
+.history-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--muted-foreground);
+    text-align: center;
+    padding: var(--spacing-md);
+}
+
+.retry-button {
+    margin-top: var(--spacing-md);
+    background-color: var(--primary);
+    color: var(--background);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-xs) var(--spacing-md);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-speed) var(--transition-function);
+}
+
+.retry-button:hover {
+    background-color: var(--primary-dark);
+}
+
+.doc-name-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Custom tooltip styles */
+.document-item .tooltip {
+    visibility: hidden;
+    position: absolute;
+    bottom: -36px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--tooltip-bg, rgba(0, 0, 0, 0.85));
+    color: var(--tooltip-text, white);
+    text-align: center;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    z-index: 1000;
+    width: max-content;
+    max-width: 300px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.document-item .tooltip::after {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent var(--tooltip-bg, rgba(0, 0, 0, 0.85)) transparent;
+}
+
+.document-item:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+} 

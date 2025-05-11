@@ -17,8 +17,11 @@ interface PDFDocumentWrapperProps {
 /**
  * Component to render a PDF document with pages
  */
-const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, forceOpen = false // Default to false
-                                                               }) => {
+const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ 
+    file, 
+    fileKey, 
+    forceOpen = false // Default to false
+}) => {
     const { currentFile, isFileOpen } = useFileContext();
     const {
         numPages,
@@ -27,10 +30,18 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
         getFileNumPages,
         setFileNumPages,
         setFileRenderedPages,
-        mainContainerRef
+        mainContainerRef,
+        zoomLevel
     } = usePDFViewerContext();
     const { notify } = useNotification();
     const [loadError, setLoadError] = useState<Error | null>(null);
+
+    // Document dragging state
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const dragStartPos = useRef({ x: 0, y: 0 });
+    const currentTransform = useRef({ x: 0, y: 0 });
+    const documentContainerRef = useRef<HTMLDivElement | null>(null);
 
     // Track document initialization
     const hasInitializedRef = useRef<boolean>(false);
@@ -57,6 +68,79 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
     // Check if the file is open - we only need to render if it's open
     const isOpen = forceOpen || (pdfFile ? isFileOpen(pdfFile) : false);
 
+    // Add class based on zoom level for draggable behavior
+    const documentClassName = `pdf-document-container ${zoomLevel > 1 ? 'zoomed' : ''} ${isDragging ? 'dragging' : ''}`;
+
+    // Implement document dragging functionality
+    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+        // Only enable dragging when zoomed in and not on text content
+        if (zoomLevel > 1.0 && e.target && 
+            !(e.target as Element).closest('.react-pdf__Page__textContent') &&
+            !(e.target as Element).closest('.page-overlay')) {
+            setIsDragging(true);
+            dragStartPos.current = { x: e.clientX, y: e.clientY };
+            
+            // Add dragging cursor style
+            if (documentContainerRef.current) {
+                documentContainerRef.current.style.cursor = 'grabbing';
+            }
+            
+            e.preventDefault();
+        }
+    }, [zoomLevel]);
+
+    const handleMouseMove = useCallback((e: MouseEvent) => {
+        if (isDragging && documentContainerRef.current) {
+            const deltaX = e.clientX - dragStartPos.current.x;
+            const deltaY = e.clientY - dragStartPos.current.y;
+            
+            // Calculate new position
+            const newX = currentTransform.current.x + deltaX;
+            const newY = currentTransform.current.y + deltaY;
+            
+            // Update position
+            setDragOffset({ x: newX, y: newY });
+            
+            // Update reference for next move
+            dragStartPos.current = { x: e.clientX, y: e.clientY };
+            currentTransform.current = { x: newX, y: newY };
+        }
+    }, [isDragging]);
+
+    const handleMouseUp = useCallback(() => {
+        if (isDragging) {
+            setIsDragging(false);
+            
+            // Reset cursor
+            if (documentContainerRef.current) {
+                documentContainerRef.current.style.cursor = zoomLevel > 1 ? 'grab' : 'auto';
+            }
+        }
+    }, [isDragging, zoomLevel]);
+
+    // Add and remove event listeners for dragging
+    useEffect(() => {
+        if (isDragging) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+        }
+        
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging, handleMouseMove, handleMouseUp]);
+
+    // Reset drag offset when zoom level changes
+    useEffect(() => {
+        setDragOffset({ x: 0, y: 0 });
+        currentTransform.current = { x: 0, y: 0 };
+        
+        // Update cursor based on zoom level
+        if (documentContainerRef.current) {
+            documentContainerRef.current.style.cursor = zoomLevel > 1 ? 'grab' : 'auto';
+        }
+    }, [zoomLevel]);
 
     // Clean up state on file change
     useEffect(() => {
@@ -201,13 +285,24 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
         ? getFileNumPages(pdfFileKey) || numPages
         : numPages;
 
+    // Calculate draggable container style with transform for dragging
+    const draggableContainerStyle = {
+        transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`,
+    };
 
     return (
         <div
-            className="pdf-document-container"
+            className={documentClassName}
             data-file-name={pdfFile.name}
             data-file-key={pdfFileKey}
-            ref={documentRef}
+            data-zoom-level={zoomLevel.toFixed(1)}
+            ref={(el) => {
+                if (el) {
+                    documentRef(el);  // For IntersectionObserver
+                    documentContainerRef.current = el;  // For dragging
+                }
+            }}
+            onMouseDown={handleMouseDown}
         >
             {loadError && (
                 <div className="pdf-error">
@@ -217,33 +312,35 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({ file, fileKey, 
                 </div>
             )}
 
-            <Document
-                file={pdfFile}
-                onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={() => notify({
-                    message: `Error loading PDF, refresh the page and try again`,
-                    type: 'error',
-                    duration: 3000
-                })}
-                loading={<div className="pdf-loading-placeholder"></div>}
-                error={<div className="pdf-error-placeholder"></div>}
-                options={documentOptions}
-                className="pdf-document"
-                key={pdfFileKey} // Add key to force re-render when file changes
-            >
-                {!loadError && inView && Array.from({ length: displayNumPages }, (_, i) => {
-                    const pageNum = i + 1;
+            <div className="pdf-document-draggable-container" style={draggableContainerStyle}>
+                <Document
+                    file={pdfFile}
+                    onLoadSuccess={onDocumentLoadSuccess}
+                    onLoadError={() => notify({
+                        message: `Error loading PDF, refresh the page and try again`,
+                        type: 'error',
+                        duration: 3000
+                    })}
+                    loading={<div className="pdf-loading-placeholder"></div>}
+                    error={<div className="pdf-error-placeholder"></div>}
+                    options={documentOptions}
+                    className="pdf-document"
+                    key={pdfFileKey} // Add key to force re-render when file changes
+                >
+                    {!loadError && inView && Array.from({ length: displayNumPages }, (_, i) => {
+                        const pageNum = i + 1;
 
-                    return (
-                        <PageRenderer
-                            key={`page-${pdfFileKey}-${pageNum}`}
-                            pageNumber={pageNum}
-                            fileKey={pdfFileKey}
-                            isVisible={true} // Always visible since we don't need virtualization anymore
-                        />
-                    );
-                })}
-            </Document>
+                        return (
+                            <PageRenderer
+                                key={`page-${pdfFileKey}-${pageNum}`}
+                                pageNumber={pageNum}
+                                fileKey={pdfFileKey}
+                                isVisible={true} // Always visible since we don't need virtualization anymore
+                            />
+                        );
+                    })}
+                </Document>
+            </div>
         </div>
     );
 };

@@ -48,7 +48,6 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
     } = useFileContext();
 
     const [showActions, setShowActions] = useState<number | null>(null);
-    const [showTooltip, setShowTooltip] = useState<number | null>(null);
     const {notify, confirm} = useNotification();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const pdfNavigation = usePDFNavigation('file-selector');
@@ -439,19 +438,19 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                             const isSelected = isFileSelected(file);
                             const isActive = isFileActive(file);
                             const fileKey = getFileKey(file);
+                            const isLastFile = index === files.length - 1;
 
                             return (
                                 <div
                                     key={fileKey}
-                                    className={`file-item ${currentFile === file ? 'current' : ''} ${isSelected ? 'selected' : ''} ${isActive ? 'active' : 'inactive'}`}
+                                    className={`file-item ${currentFile === file ? 'current' : ''} ${isSelected ? 'selected' : ''} ${isActive ? 'active' : 'inactive'} ${isLastFile ? 'last-file' : ''}`}
                                     onClick={() => handleFileSelect(file)}
+                                    onContextMenu={(e) => handleContextMenu(e, fileKey)}
                                     onMouseEnter={() => {
-                                        setShowActions(index);
-                                        setShowTooltip(index);
+                                        setShowActions(fileKey);
                                     }}
                                     onMouseLeave={() => {
                                         setShowActions(null);
-                                        setShowTooltip(null);
                                     }}
                                 >
                                     <div className="file-controls">
@@ -472,9 +471,9 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                             className={`file-visibility-button ${isActive ? 'visible' : 'hidden'}`}
                                             onClick={(e) => handleToggleActive(file, e)}
                                             title={isActive ? "Hide file" : "Show file"}
-                                            aria-label={isFileOpen(file) ? "Hide file" : "Show file"}
+                                            aria-label={isActive ? "Hide file" : "Show file"}
                                         >
-                                            {isFileOpen(file) ? (
+                                            {isActive ? (
                                                 <Eye size={16} className="visibility-icon"/>
                                             ) : (
                                                 <EyeOff size={16} className="visibility-icon"/>
@@ -487,20 +486,15 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                         <div className="file-details">
                                             <div className="file-name-container">
                                                 <span className="file-name">
-                                                    {file.name}
+                                                    {file.name.length > 10 ? file.name.substring(0, 10) + '...' : file.name}
                                                 </span>
-                                                {showTooltip === index && (
-                                                    <div className="file-name-tooltip">
-                                                        {file.name}
-                                                    </div>
-                                                )}
                                             </div>
                                             <span className="file-size">{(file.size / 1024).toFixed(1)} KB</span>
                                         </div>
                                     </div>
 
                                     <div className="file-actions">
-                                        {(showActions === index || window.innerWidth > 768) && (
+                                        {(showActions === fileKey || window.innerWidth > 768) && (
                                             <>
                                                 <button
                                                     className="file-action-button delete-button"
@@ -513,7 +507,7 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                             </>
                                         )}
                                     </div>
-
+                                    <div className="tooltip">{file.name}</div>
                                 </div>
                             );
                         })}

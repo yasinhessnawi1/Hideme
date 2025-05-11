@@ -21,6 +21,7 @@ TABBED SIDEBAR STYLES
     border-bottom: 1px solid var(--sidebar-border);
     background-color: var(--sidebar-bg);
     z-index: 5;
+    flex-shrink: 0;
 }
 
 .sidebar-tab {
@@ -64,15 +65,33 @@ TABBED SIDEBAR STYLES
     font-weight: var(--font-weight-medium);
 }
 
+.sidebar-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
 
 .tab-panel {
     opacity: 0;
     transition: opacity 0.3s ease;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    display: none;
+    flex-direction: column;
 }
 
 .tab-panel.active {
     opacity: 1;
+    display: flex;
+    position: relative;
 }
+
 /* Animation for active tab indicator */
 @keyframes slideIn {
     from {
@@ -87,8 +106,9 @@ TABBED SIDEBAR STYLES
     }
 }
 
-/* Make sure PageThumbnails and FileSelector components take up the full height */
+/* Make sure components take up the full height */
 .sidebar-content > * {
     flex: 1;
     overflow-y: auto;
+    min-height: 0;
 }

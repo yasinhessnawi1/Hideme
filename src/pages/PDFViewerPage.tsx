@@ -65,6 +65,27 @@ const PDFViewerPageContent: React.FC = () => {
         }
     };
 
+    // Listen for right panel tab navigation events
+    useEffect(() => {
+        const handleActivateRightPanel = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { navigateToTab } = customEvent.detail || {};
+            
+            if (navigateToTab === 'detection' || navigateToTab === 'search' || navigateToTab === 'redact') {
+                setActiveTab(navigateToTab);
+                
+                // Also ensure the right sidebar is open
+                setIsRightSidebarCollapsed(false);
+            }
+        };
+        
+        window.addEventListener('activate-right-panel', handleActivateRightPanel);
+        
+        return () => {
+            window.removeEventListener('activate-right-panel', handleActivateRightPanel);
+        };
+    }, []);
+
     // Clear timeouts on component unmount
     useEffect(() => {
         return () => {
