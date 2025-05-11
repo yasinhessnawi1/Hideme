@@ -52,7 +52,7 @@ export class SearchHighlightProcessor {
                 const highlight: HighlightRect = {
                     id: `search-${fileKey}-${result.page}-${searchTerm}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
                     page: result.page,
-                    x: result.x - 5,
+                    x: result.x - 3,
                     y: result.y - 5,
                     w: result.w + 3, // Slight padding for visibility
                     h: result.h + 5,

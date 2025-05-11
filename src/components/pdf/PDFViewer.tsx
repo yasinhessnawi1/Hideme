@@ -7,6 +7,7 @@ import ProcessingStatus from "./pdf_component/ProcessingStatus";
 import ScrollSync from './ScrollSync';
 import ViewportNavigationIntegrator from './ViewportNavigationIntegrator';
 import scrollManager from '../../services/ScrollManagerService';
+import { usePDFViewerContext } from '../../contexts/PDFViewerContext';
 
 /**
  * PDFViewer component
@@ -17,8 +18,10 @@ import scrollManager from '../../services/ScrollManagerService';
  * - Scroll synchronization between PDF pages
  * - Navigation through viewport integration
  * - Virtualized PDF rendering for performance
+ * - Support for dragging pages when zoomed
  */
 const PDFViewer: React.FC = () => {
+    const { zoomLevel } = usePDFViewerContext();
  
     // Initialize scroll manager when component mounts
     useEffect(() => {
@@ -30,7 +33,16 @@ const PDFViewer: React.FC = () => {
         return () => clearTimeout(timeoutId);
     }, []);
 
-   
+    // Reset drag offsets when zoom level changes
+    useEffect(() => {
+        // Dispatch event to notify all components about zoom change
+        window.dispatchEvent(new CustomEvent('pdf-zoom-changed', {
+            detail: {
+                zoomLevel,
+                timestamp: Date.now()
+            }
+        }));
+    }, [zoomLevel]);
 
     return (
         <div className="pdf-viewer-wrapper">

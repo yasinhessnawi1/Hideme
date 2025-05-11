@@ -3,6 +3,7 @@ import { useFileContext } from '../../../contexts/FileContext';
 import { useEditContext } from '../../../contexts/EditContext';
 import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
 import { usePDFApi } from '../../../hooks/usePDFApi';
+import { useDocumentHistory } from '../../../hooks/useDocumentHistory';
 import { createFullRedactionMapping, getRedactionStatistics, processRedactedFiles } from '../../../utils/redactionUtils';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import '../../../styles/modules/pdf/SettingsSidebar.css';
@@ -12,6 +13,8 @@ import {useLoading} from "../../../contexts/LoadingContext";
 import LoadingWrapper from '../../common/LoadingWrapper';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { ConfirmationType } from '../../../contexts/NotificationContext';
+import { HighlightType } from '../../../types';
+import { highlightStore } from '../../../store/HighlightStore';
 
 const RedactionSidebar: React.FC = () => {
     const {
@@ -23,8 +26,11 @@ const RedactionSidebar: React.FC = () => {
     } = useFileContext();
 
     const {
-        setDetectionMapping,
-        getFileDetectionMapping
+        detectionMapping,
+        fileDetectionMappings,
+        getFileDetectionMapping,
+        setFileDetectionMapping,
+        setDetectionMapping
     } = useEditContext();
 
     const {
@@ -41,6 +47,9 @@ const RedactionSidebar: React.FC = () => {
         runBatchRedactPdfs
     } = usePDFApi();
 
+    // Use document history hook for saving redaction mappings
+    const { saveDocument } = useDocumentHistory();
+
     const [redactionScope, setRedactionScope] = useState<'current' | 'selected' | 'all'>('all');
     const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
 
@@ -52,9 +61,7 @@ const RedactionSidebar: React.FC = () => {
     });
 
     // Map of fileKey -> redaction mapping
-    const [redactionMappings, setRedactionMappings] = useState<Map<string, any>>(new Map());
-
-
+    const [localRedactionMappings, setLocalRedactionMappings] = useState<Map<string, any>>(new Map());
 
     // Get files to process based on selected scope
     const getFilesToProcess = useCallback((): File[] => {
@@ -91,6 +98,108 @@ const RedactionSidebar: React.FC = () => {
         return fileAnnotations;
     }, [getHighlightsForFile]);
 
+    /**
+     * Updates global detection mapping for a file based on current highlights
+     */
+    const updateDetectionMappingFromHighlights = useCallback((file: File) => {
+        const fileKey = getFileKey(file);
+        
+        // Get annotations for the file
+        const fileAnnotations = collectFileAnnotations(file);
+        
+        // Create full redaction mapping using current options
+        const { includeSearchHighlights, includeEntityHighlights, includeManualHighlights } = redactionOptions;
+        const updatedMapping = createFullRedactionMapping(
+            fileAnnotations,
+            includeSearchHighlights,
+            includeEntityHighlights,
+            includeManualHighlights
+        );
+        
+        // Update the global detection mapping
+        if (updatedMapping.pages && updatedMapping.pages.length > 0) {
+            console.log(`[RedactionSidebar] Updating global detection mapping for ${fileKey} after highlight change`);
+            setFileDetectionMapping(fileKey, updatedMapping);
+            
+            // If this is the current file, also update the current detection mapping
+            if (currentFile && getFileKey(currentFile) === fileKey) {
+                setDetectionMapping(updatedMapping);
+            }
+        } else {
+            // If no highlights left, set empty mapping
+            const emptyMapping = { pages: [] };
+            setFileDetectionMapping(fileKey, emptyMapping);
+            
+            if (currentFile && getFileKey(currentFile) === fileKey) {
+                setDetectionMapping(emptyMapping);
+            }
+        }
+    }, [collectFileAnnotations, currentFile, redactionOptions, setDetectionMapping, setFileDetectionMapping]);
+
+    // Listen for highlight removal events
+    useEffect(() => {
+        const handleHighlightRemoved = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { fileKey } = customEvent.detail || {};
+            
+            if (fileKey) {
+                // Find the file by key
+                const file = getFileByKey(fileKey);
+                if (file) {
+                    // Update the detection mapping for this file
+                    updateDetectionMappingFromHighlights(file);
+                }
+            }
+        };
+        
+        // Listen for the highlight-removed event from the HighlightStore
+        window.addEventListener('highlight-removed', handleHighlightRemoved);
+        
+        return () => {
+            window.removeEventListener('highlight-removed', handleHighlightRemoved);
+        };
+    }, [getFileByKey, updateDetectionMappingFromHighlights]);
+
+    // Listen for highlight addition events
+    useEffect(() => {
+        // Create a custom event handler for highlight additions
+        const handleHighlightAdded = () => {
+            // If there's a current file, update its detection mapping
+            if (currentFile) {
+                console.log(`[RedactionSidebar] Updating mapping after highlight addition for ${currentFile.name}`);
+                updateDetectionMappingFromHighlights(currentFile);
+            }
+        };
+
+        // Listen for refreshTrigger changes which happen when highlights are added
+        // Create a subscription to the highlight store for more direct notification
+        let subscription: { unsubscribe: () => void } = {
+            unsubscribe: () => {}
+        };
+        
+        try {
+            // Subscribe to highlight store changes 
+            const storeSubscription = highlightStore.subscribe((fileKey) => {
+                if (fileKey) {
+                    const file = getFileByKey(fileKey);
+                    if (file) {
+                        console.log(`[RedactionSidebar] Highlight store changed for file: ${fileKey}`);
+                        updateDetectionMappingFromHighlights(file);
+                    }
+                }
+            });
+            
+            // Store the unsubscribe function
+            subscription = storeSubscription;
+        } catch (error) {
+            console.error("[RedactionSidebar] Error subscribing to highlight store:", error);
+        }
+
+        return () => {
+            // Clean up subscription when component unmounts
+            subscription.unsubscribe();
+        };
+    }, [currentFile, updateDetectionMappingFromHighlights, getFileByKey]);
 
     // Generate redaction preview when relevant state changes
     useEffect(() => {
@@ -102,27 +211,37 @@ const RedactionSidebar: React.FC = () => {
         // Generate mapping for each file
         filesToProcess.forEach(file => {
             const fileKey = getFileKey(file);
-            const { includeSearchHighlights, includeEntityHighlights, includeManualHighlights } = redactionOptions;
+            
+            // First check if there's a global detection mapping for this file
+            const globalMapping = getFileDetectionMapping(fileKey);
+            
+            if (globalMapping) {
+                // Use the global mapping from EditContext
+                newMappings.set(fileKey, globalMapping);
+            } else {
+                // Generate mapping from highlights if no global mapping exists
+                const { includeSearchHighlights, includeEntityHighlights, includeManualHighlights } = redactionOptions;
 
-            // Get annotations for the current file using the new collection method
-            const fileAnnotations = collectFileAnnotations(file);
+                // Get annotations for the current file using the new collection method
+                const fileAnnotations = collectFileAnnotations(file);
 
-            // Create full redaction mapping
-            const fullMapping = createFullRedactionMapping(
-                fileAnnotations,
-                includeSearchHighlights,
-                includeEntityHighlights,
-                includeManualHighlights
-            );
+                // Create full redaction mapping
+                const fullMapping = createFullRedactionMapping(
+                    fileAnnotations,
+                    includeSearchHighlights,
+                    includeEntityHighlights,
+                    includeManualHighlights
+                );
 
-            // Only add if there are items to redact
-            if (fullMapping.pages && fullMapping.pages.length > 0) {
-                newMappings.set(fileKey, fullMapping);
+                // Only add if there are items to redact
+                if (fullMapping.pages && fullMapping.pages.length > 0) {
+                    newMappings.set(fileKey, fullMapping);
+                }
             }
         });
 
         // Update the state with new mappings
-        setRedactionMappings(newMappings);
+        setLocalRedactionMappings(newMappings);
 
     }, [
         getFilesToProcess,
@@ -130,9 +249,10 @@ const RedactionSidebar: React.FC = () => {
         redactionOptions.includeEntityHighlights,
         redactionOptions.includeManualHighlights,
         collectFileAnnotations,
-        getFileDetectionMapping,
         currentFile,
-        refreshTrigger // Important: ensures updates when highlights change
+        refreshTrigger,
+        getFileDetectionMapping,
+        fileDetectionMappings // Important: ensures updates when global detection mappings change
     ]);
 
     // Calculate combined redaction statistics across all files
@@ -144,7 +264,7 @@ const RedactionSidebar: React.FC = () => {
         const byFile: Record<string, number> = {};
 
         // Process each file's mapping
-        redactionMappings.forEach((mapping, fileKey) => {
+        localRedactionMappings.forEach((mapping, fileKey) => {
             if (!mapping.pages) return;
 
             const file = getFileByKey(fileKey);
@@ -173,7 +293,26 @@ const RedactionSidebar: React.FC = () => {
             byType,
             byFile
         };
-    }, [redactionMappings, getFileByKey]);
+    }, [localRedactionMappings, getFileByKey]);
+
+    /**
+     * Save redaction mapping to the backend for document history
+     */
+    const saveRedactionToHistory = useCallback(async (file: File, mapping: any) => {
+        if (!mapping || !mapping.pages || mapping.pages.length === 0) {
+            console.log('[RedactionSidebar] No mapping to save for file:', file.name);
+            return false;
+        }
+        
+        try {
+            const result = await saveDocument(file, mapping);
+            console.log(`[RedactionSidebar] Saved redaction mapping for file ${file.name} to history:`, result);
+            return true;
+        } catch (error) {
+            console.error(`[RedactionSidebar] Failed to save redaction mapping for ${file.name}:`, error);
+            return false;
+        }
+    }, [saveDocument]);
 
     /**
      * Handle redaction for multiple files
@@ -184,7 +323,7 @@ const RedactionSidebar: React.FC = () => {
              filesToRedact = getFilesToProcess();
         }
 
-        if (filesToRedact.length === 0 || redactionMappings.size === 0) {
+        if (filesToRedact.length === 0 || localRedactionMappings.size === 0) {
             const errorMessage = 'No files selected for redaction or no content to redact.';
             notify({
                 message: errorMessage,
@@ -214,7 +353,7 @@ const RedactionSidebar: React.FC = () => {
         // Filter to only files that have redaction mappings
         const filesToProcess = filesToRedact.filter(file => {
             const fileKey = getFileKey(file);
-            return redactionMappings.has(fileKey);
+            return localRedactionMappings.has(fileKey);
         });
 
         if (filesToProcess.length === 0) {
@@ -281,8 +420,8 @@ const RedactionSidebar: React.FC = () => {
             const mappingsObj: Record<string, any> = {};
             filesToProcess.forEach(file => {
                 const fileKey = getFileKey(file);
-                if (redactionMappings.has(fileKey)) {
-                    mappingsObj[fileKey] = redactionMappings.get(fileKey);
+                if (localRedactionMappings.has(fileKey)) {
+                    mappingsObj[fileKey] = localRedactionMappings.get(fileKey);
                 }
             });
 
@@ -292,16 +431,52 @@ const RedactionSidebar: React.FC = () => {
             if (filesToProcess.length === 1) {
                 const file = filesToProcess[0];
                 const fileKey = getFileKey(file);
-                const mapping = redactionMappings.get(fileKey);
-
+                const mapping = localRedactionMappings.get(fileKey);
+                //remove the file key and the last updated form the mapping
+                const cleanMapping = { ...mapping };
+                if (cleanMapping) {
+                    // Remove fileKey and lastUpdated properties
+                    delete cleanMapping.fileKey;
+                    delete cleanMapping.lastUpdated;
+                }
+                
                 // Use the hook's runRedactPdf method
-                const redactedBlob = await runRedactPdf(file, mapping, redactionOptions.removeImages);
+                const redactedBlob = await runRedactPdf(file, cleanMapping, redactionOptions.removeImages);
                 redactedPdfs = {[fileKey]: redactedBlob};
+                
+                // Save redaction mapping to backend for history
+                await saveRedactionToHistory(file, cleanMapping);
             } else {
                 // For multiple files, use the batch API from the hook
-                redactedPdfs = await runBatchRedactPdfs(filesToProcess, mappingsObj, redactionOptions.removeImages);
+                // Create clean mapping objects without fileKey and lastUpdated
+                const cleanMappings: Record<string, any> = {};
+                filesToProcess.forEach(file => {
+                    const fileKey = getFileKey(file);
+                    if (localRedactionMappings.has(fileKey)) {
+                        const originalMapping = localRedactionMappings.get(fileKey);
+                        const cleanMapping = { ...originalMapping };
+                        
+                        // Remove fileKey and lastUpdated properties
+                        if (cleanMapping) {
+                            delete cleanMapping.fileKey;
+                            delete cleanMapping.lastUpdated;
+                            cleanMappings[fileKey] = cleanMapping;
+                        }
+                    }
+                });
+                
+                // Use the clean mappings for the batch API
+                redactedPdfs = await runBatchRedactPdfs(filesToProcess, cleanMappings, redactionOptions.removeImages);
+                
+                // Save all redaction mappings to backend for history
+                for (const file of filesToProcess) {
+                    const fileKey = getFileKey(file);
+                    const cleanMapping = cleanMappings[fileKey];
+                    if (cleanMapping) {
+                        await saveRedactionToHistory(file, cleanMapping);
+                    }
+                }
             }
-
 
             try {
                 // Process the redacted files and update the application state
@@ -336,6 +511,22 @@ const RedactionSidebar: React.FC = () => {
                         redactedFiles: newRedactedFiles
                     }
                 }));
+
+                // Also notify the history tab to refresh
+                window.dispatchEvent(new CustomEvent('redaction-history-updated', {
+                    detail: {
+                        timestamp: Date.now()
+                    }
+                }));
+                
+                // Suggest user to check history
+                setTimeout(() => {
+                    notify({
+                        message: 'Redaction history saved. You can view it in the History tab.',
+                        type: 'info',
+                        duration: 5000
+                    });
+                }, 1000);
 
             } catch (processingError: any) {
                 const errorMessage = `Error processing redacted files: ${processingError.message}`;
@@ -392,18 +583,20 @@ const RedactionSidebar: React.FC = () => {
         }
     }, [
         getFilesToProcess,
-        redactionMappings,
+        localRedactionMappings,
         redactionOptions.removeImages,
         redactionScope,
         addFiles,
         files,
         selectedFiles,
         currentFile,
-        setDetectionMapping,
         runRedactPdf,
         runBatchRedactPdfs,
+        saveRedactionToHistory,
         startLoading,
-        stopLoading
+        stopLoading,
+        notify,
+        confirm
     ]);
 
     // Reset all redaction settings
@@ -419,7 +612,7 @@ const RedactionSidebar: React.FC = () => {
             message: 'Redaction settings reset',
             type: 'info'
         });
-    }, []);
+    }, [notify]);
 
     // Get overall stats - memoize for better performance
     const stats = useMemo(() => getOverallRedactionStats(), [getOverallRedactionStats]);
@@ -481,6 +674,22 @@ const RedactionSidebar: React.FC = () => {
             window.removeEventListener('trigger-redaction-process', handleTriggerRedaction);
         };
     }, [handleRedact]);
+
+    // Listen for redaction history updates to refresh the document history panel
+    useEffect(() => {
+        const handleHistoryUpdate = () => {
+            // Dispatch an event to navigate to the history tab
+            window.dispatchEvent(new CustomEvent('activate-left-panel', {
+                detail: { navigateToTab: 'history' }
+            }));
+        };
+
+        window.addEventListener('redaction-history-view', handleHistoryUpdate);
+        
+        return () => {
+            window.removeEventListener('redaction-history-view', handleHistoryUpdate);
+        };
+    }, []);
 
     return (
         <div className="redaction-sidebar">
@@ -578,7 +787,7 @@ const RedactionSidebar: React.FC = () => {
                     </div>
                 </div>
 
-                {redactionMappings.size > 0 && stats.totalItems > 0 ? (
+                {localRedactionMappings.size > 0 && stats.totalItems > 0 ? (
                     <div className="sidebar-section">
                         <h4>Redaction Preview</h4>
                         <div className="detection-stats">
@@ -631,7 +840,7 @@ const RedactionSidebar: React.FC = () => {
                                 <button
                                     className="sidebar-button redact-button action-button"
                                     onClick={() => handleRedact()}
-                                    disabled={isCurrentlyRedacting || redactionMappings.size === 0 || stats.totalItems === 0}
+                                    disabled={isCurrentlyRedacting || localRedactionMappings.size === 0 || stats.totalItems === 0}
                             >
                                     <LoadingWrapper
                                         isLoading={isCurrentlyRedacting}
@@ -660,6 +869,7 @@ const RedactionSidebar: React.FC = () => {
                         </div>
                     </div>
                 )}
+                
             </div>
         </div>
     );

@@ -554,11 +554,11 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
             maxY += correctionY;
 
             // Apply padding
-            const horizontalPadding = 1;
-            const verticalPadding = 2;
+            const horizontalPadding = 2;
+            const verticalPadding = 4;
 
             minX = Math.max(0, minX - horizontalPadding);
-            minY = Math.max(0, minY - verticalPadding);
+            minY = Math.max(0, minY );
             maxX = Math.min(pageSize.cssWidth, maxX + horizontalPadding );
             maxY = Math.min(pageSize.cssHeight, maxY + verticalPadding);
 

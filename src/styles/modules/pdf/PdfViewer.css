@@ -26,8 +26,10 @@ and related components including processing indicators
     -webkit-overflow-scrolling: touch;
     /* Hint to browser about scrolling intentions */
     scrollbar-width: thin;
+    /* Allow for panning/dragging when zoomed */
+    overflow-x: auto;
     /* Prevent unwanted touch behaviors on mobile */
-    touch-action: pan-y;
+    touch-action: pan-y pan-x;
 }
 
 /* Dark mode styling */
@@ -151,7 +153,7 @@ and related components including processing indicators
     border-radius: var(--border-radius-sm);
     transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     width: fit-content;
-    border: 4px solid transparent; /* Transparent border by default */
+    border: 2.5px solid transparent; /* Transparent border by default */
     contain: layout paint style;
     will-change: transform, border-color, box-shadow;
     transform: translateZ(0);
@@ -159,69 +161,73 @@ and related components including processing indicators
     backface-visibility: hidden;
 }
 
+/* Document-level dragging container */
+.pdf-document-draggable-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.05s ease-out;
+    will-change: transform;
+}
+
+/* Ensure no transition during active dragging for smoother movement */
+.pdf-document-container.dragging .pdf-document-draggable-container {
+    transition: none;
+}
+
+/* Add zoomed state styles for PDF viewer container */
+.pdf-viewer-container.zoomed-in {
+    overflow: auto;
+    background-color: var(--viewer-bg);
+}
+
+/* Ensure document container handles zoomed state properly */
+.pdf-document-container.zoomed {
+    min-width: fit-content;
+    min-height: fit-content;
+    cursor: grab;
+}
+
+.pdf-document-container.zoomed.dragging {
+    cursor: grabbing;
+}
+
+/* Improved text selection in PDF pages */
+.react-pdf__Page__textContent {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 2;
+    transform: none !important;
+    user-select: text;
+    pointer-events: auto !important;
+}
+
+/* Ensure text spans are selectable */
+.react-pdf__Page__textContent span {
+    color: transparent;
+    position: absolute;
+    white-space: pre-wrap;
+    cursor: text !important;
+    transform-origin: 0 0;
+    user-select: text !important;
+    pointer-events: auto !important;
+}
+
 /* Stronger visual indication for active page */
 .pdf-page-wrapper.active {
     border-color: var(--primary);
-    box-shadow: 0 0 0 2px var(--primary), var(--shadow-lg);
+    box-shadow: 0 0 0 1px var(--primary), var(--shadow-lg);
     z-index: 10; /* Ensure active page is above others */
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-@keyframes activePagePulse {
-    0% { box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.8), var(--shadow-lg); }
-    50% { box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.4), var(--shadow-lg); }
-    100% { box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.8), var(--shadow-lg); }
-}
-
-.pdf-page-wrapper.active.just-activated {
-    animation: activePagePulse 1.5s ease-in-out;
-}
-
-/* Make page number indicator always visible for active page */
-.pdf-page-wrapper.active .page-number-indicator {
-    opacity: 1;
-    background-color: var(--primary);
-    color: white;
-    font-weight: bold;
-    transform: translateX(-50%) translateY(-5px);
-    box-shadow: var(--shadow-sm);
-}
-
-/* Thumbnail active state enhancement */
-.thumbnail-wrapper.active {
-    border: 2px solid var(--primary);
-    background-color: rgba(var(--primary), 0.1);
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: var(--shadow-sm);
-}
-
-.thumbnail-wrapper.active .page-number-label {
-    background-color: var(--primary);
-    color: white;
-    font-weight: bold;
-}
-
-.react-pdf__Page {
-    position: relative;
-    margin: 0;
-    padding: 0;
-    display: block;
-    width: auto !important;
-    height: auto !important;
-}
-
-/* Page content container - critical for proper positioning */
-.pdf-page-content {
-    position: relative;
-    display: inline-block;
-    width: auto;
-    height: auto;
-}
-
-/* Page number indicator */
+/* Improved page number indicator */
 .page-number-indicator {
     position: absolute;
-    bottom: -20px;
+    bottom: -2rem;
     left: 50%;
     transform: translateX(-50%);
     background-color: var(--foreground);
@@ -238,7 +244,8 @@ and related components including processing indicators
 .pdf-page-wrapper.active .page-number-indicator {
     opacity: 1;
     background-color: var(--primary);
-    color: white;
+    color:var(--foreground);
+    bottom: 1rem;
     font-weight: bold;
     transform: translateX(-50%) translateY(-5px);
     box-shadow: var(--shadow-sm);
@@ -438,15 +445,6 @@ and related components including processing indicators
     }
 }
 
-/* Required styles for react-pdf TextLayer and AnnotationLayer */
-.react-pdf__Page__textContent span {
-    color: transparent;
-    position: absolute;
-    white-space: pre-wrap;
-    cursor: crosshair;
-    transform-origin: 0 0;
-    user-select: text;
-}
 /*
 ==============================================
 OPEN/CLOSE FILE FUNCTIONALITY
@@ -532,13 +530,10 @@ OPEN/CLOSE FILE FUNCTIONALITY
     height: 28px;
 }
 
-
 .pdf-file-action-button:hover {
     color: var(--primary);
     background-color: var(--button-hover);
 }
-
-
 
 /* Selection button states */
 .pdf-file-action-button.selected {
@@ -765,7 +760,6 @@ FULLSCREEN OVERLAY STYLES
     opacity: 1 !important;
     visibility: visible !important;
 }
-
 
 /* Focus styles for keyboard navigation */
 .pdf-file-action-button:focus-visible {
@@ -1103,15 +1097,15 @@ PROCESSING STATUS STYLES - INTEGRATED
 @keyframes activePagePulse {
     0% {
         border-color: var(--primary);
-        box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.8), var(--shadow-lg);
+        box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.8), var(--shadow-lg);
     }
     50% {
         border-color: var(--primary);
-        box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.4), var(--shadow-lg);
+        box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.4), var(--shadow-lg);
     }
     100% {
         border-color: var(--primary);
-        box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.8), var(--shadow-lg);
+        box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.8), var(--shadow-lg);
     }
 }
 
@@ -1179,4 +1173,137 @@ PROCESSING STATUS STYLES - INTEGRATED
 
 @keyframes spinner {
     to { transform: rotate(360deg); }
+}
+
+/* Add a container for draggable content */
+.pdf-page-draggable-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+/* Add zoomed state styles for PDF viewer container */
+.pdf-viewer-container.zoomed-in {
+    cursor: grab;
+    overflow: auto;
+    background-color: var(--viewer-bg);
+}
+
+.pdf-viewer-container.zoomed-in:active {
+    cursor: grabbing;
+}
+
+/* Ensure document container handles zoomed state properly */
+.pdf-document-container.zoomed {
+    min-width: fit-content;
+    min-height: fit-content;
+}
+
+/* Improve transition smoothness for drag operations */
+.pdf-page-draggable-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    transition: transform 0.05s ease-out;
+    will-change: transform;
+}
+
+/* Ensure proper drag behavior */
+.pdf-page-wrapper.dragging .pdf-page-draggable-container {
+    transition: none;
+}
+
+/* Prevent text selection during drag */
+.pdf-page-wrapper.dragging,
+.pdf-page-wrapper.dragging * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+}
+
+/* React-PDF Page specific styles */
+.react-pdf__Page {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    display: block;
+    width: auto !important;
+    height: auto !important;
+}
+
+/* Make sure annotations don't interfere with text selection */
+.react-pdf__Page__annotations {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 3;
+}
+
+/* Restore the page content styling */
+.pdf-page-content {
+    position: relative;
+    display: inline-block;
+    width: auto;
+    height: auto;
+}
+
+/* Restore thumbnail active state */
+.thumbnail-wrapper.active {
+    border: 2px solid var(--primary);
+    background-color: rgba(var(--primary-rgb), 0.1);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: var(--shadow-sm);
+}
+
+.thumbnail-wrapper.active .page-number-label {
+    background-color: var(--primary);
+    color: white;
+    font-weight: bold;
+}
+
+/* Just activated animation for better user feedback */
+@keyframes activePagePulse {
+    0% {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.8), var(--shadow-lg);
+    }
+    50% {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.4), var(--shadow-lg);
+    }
+    100% {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.8), var(--shadow-lg);
+    }
+}
+
+.pdf-page-wrapper.active.just-activated {
+    animation: activePagePulse 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Additional cursor styles to improve UX */
+.pdf-document-container.zoomed .react-pdf__Page__textContent {
+    cursor: text !important; 
+}
+
+.pdf-document-container.zoomed .pdf-page {
+    cursor: default;
+}
+
+/* Fix button spacing issues */
+.pdf-file-action-button:hover {
+    color: var(--primary);
+    background-color: var(--button-hover);
+    margin: 0 2px;
+}
+
+/* Ensure proper text selection on zoomed pages */
+.pdf-document-container.zoomed .react-pdf__Page__textContent ::selection {
+    background-color: rgba(var(--primary-rgb), 0.3) !important;
+    color: var(--foreground) !important;
 }

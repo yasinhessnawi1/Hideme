@@ -152,13 +152,13 @@ transition: transform 0.2s;
     width: 100%;
     padding: var(--spacing-sm);
     flex: 1;
-    overflow-y: visible;
+    overflow-y: hidden;
 }
 
 .file-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: space-around;
     padding: var(--spacing-sm) var(--spacing-md);
     border-radius: var(--border-radius-md);
     background-color: var(--button-bg);
@@ -280,31 +280,63 @@ transition: transform 0.2s;
     color: var(--muted-foreground);
 }
 
-/* Tooltip for full file name */
-.file-name-tooltip {
-    position: fixed;
-    bottom: 100%;
-    background-color: var(--foreground);
-    color: var(--background);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
-    font-size: var(--font-size-xs);
-    white-space: nowrap;
-    z-index: 50;
-    box-shadow: var(--shadow-md);
-    animation: fadeIn 0.2s ease;
+/* Custom tooltip styles */
+.file-item .tooltip {
+    visibility: hidden;
+    position: absolute;
+    bottom: -36px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--tooltip-bg, rgba(0, 0, 0, 0.95));
+    color: var(--tooltip-text, white);
+    text-align: center;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    z-index: 9999;
+    width: max-content;
+    max-width: 300px;
+    opacity: 0;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
     pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    font-weight: 500;
 }
 
-.file-name-tooltip::after {
-    content: '';
+.file-item .tooltip::after {
+    content: "";
     position: absolute;
-    bottom: -4px;
-    left: 10px;
-    width: 8px;
-    height: 8px;
-    background-color: var(--foreground);
-    transform: rotate(45deg);
+    bottom: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent var(--tooltip-bg, rgba(0, 0, 0, 0.95)) transparent;
+}
+
+/* Position tooltip at the top for the last file to prevent it from being cut off */
+.file-item.last-file .tooltip {
+    bottom: auto;
+    top: -36px;
+}
+
+.file-item.last-file .tooltip::after {
+    bottom: auto;
+    top: 100%;
+    border-color: var(--tooltip-bg, rgba(0, 0, 0, 0.95)) transparent transparent transparent;
+}
+
+.file-item:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+    transition-delay: 0.1s;
+}
+
+.file-item:hover {
+    z-index: 10;
 }
 
 .file-actions {
@@ -340,85 +372,6 @@ transition: transform 0.2s;
     transform: translateY(1px);
 }
 
-/* Dropdown menu styling */
-.file-dropdown {
-    position: absolute;
-    top: 0;
-    right: 0;
-    transform: translateY(-100%);
-    background-color: var(--background);
-    border: 1px solid var(--border);
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-md);
-    z-index: 50;
-    width: 200px;
-    padding-bottom: var(--spacing-xs);
-    animation: fadeIn 0.2s ease;
-}
-
-.dropdown-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-bottom: 1px solid var(--border);
-    background-color: var(--button-bg);
-}
-
-.dropdown-title {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    color: var(--foreground);
-    padding: 0 var(--spacing-md);
-}
-
-.dropdown-close {
-    background: none;
-    border: none;
-    color: var(--muted-foreground);
-    cursor: pointer;
-    display: flex;
-    padding: 0;
-    transition: color 0.2s ease;
-}
-
-.dropdown-close:hover {
-    color: var(--destructive);
-}
-
-.dropdown-item {
-    padding: 0;
-}
-
-.dropdown-button {
-    width: 100%;
-    text-align: left;
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: none;
-    border: none;
-    color: var(--foreground);
-    cursor: pointer;
-    font-size: var(--font-size-sm);
-    transition: background-color 0.2s ease;
-}
-
-.dropdown-button:hover {
-    background-color: var(--button-hover);
-}
-
-.dropdown-button.delete {
-    color: var(--destructive);
-}
-
-.dropdown-button.delete:hover {
-    background-color: var(--destructive-bg);
-}
-
-.dropdown-divider {
-    height: 1px;
-    background-color: var(--border);
-    margin: var(--spacing-xs) 0;
-}
 
 /* Empty state */
 .empty-files-message {

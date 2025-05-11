@@ -37,7 +37,7 @@ const PageRenderer: React.FC<PageRendererProps> = ({
     const [viewport, setViewport] = useState<PDFPageViewport | null>(null);
     const [textContent, setTextContent] = useState<TextContent | null>(null);
     const wrapperRef = useRef<HTMLDivElement | null>(null);
-
+    
     // Track component mount status to prevent state updates after unmount
     const isMountedRef = useRef<boolean>(true);
 

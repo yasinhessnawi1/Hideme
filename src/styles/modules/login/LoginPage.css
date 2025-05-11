@@ -88,7 +88,7 @@ LOGIN PAGE STYLES
 .login-container {
   width: 100%;
   max-width: 28rem;
-  background: rgba(24, 28, 34, 0.98);
+  background: var(--background);
   border: 1.5px solid var(--border);
   border-radius: 1.5rem;
   padding: 2.5rem 2.5rem 2rem 2.5rem;
@@ -158,7 +158,7 @@ LOGIN PAGE STYLES
   border-radius: 0.75rem;
   outline: none;
   font: inherit;
-  background-color: rgba(36, 40, 47, 0.95);
+  background-color: var(--background);
   color: var(--foreground);
   transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
   font-size: 1rem;
@@ -172,7 +172,7 @@ LOGIN PAGE STYLES
 .login-container input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 2px rgba(39, 171, 111, 0.15);
-  background: rgba(36, 40, 47, 1);
+  background: var(--background);
 }
 
 .login-container input:focus + label {
@@ -195,8 +195,8 @@ LOGIN PAGE STYLES
 .login-button {
   width: 100%;
   padding: 0.85rem 1rem;
-  background: linear-gradient(90deg, #27ab6f 0%, #1fd1f9 100%);
-  color: white;
+  background: var(--primary-hover) ;
+  color: var(--foreground);
   border: none;
   border-radius: 0.75rem;
   font-size: 1.1rem;
@@ -216,7 +216,7 @@ LOGIN PAGE STYLES
   left: 50%;
   width: 150%;
   height: 150%;
-  background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%);
+  background: radial-gradient(circle, var(--button-secondary-bg-color)0%, var(--button-primary-bg-color)70%);
   transform: translate(-50%, -50%) scale(0);
   border-radius: 50%;
   opacity: 0;
@@ -224,7 +224,7 @@ LOGIN PAGE STYLES
 }
 
 .login-button:hover {
-  background: linear-gradient(90deg, #1fd1f9 0%, #27ab6f 100%);
+  background: var(--primary);
   transform: translateY(-2px) scale(1.01);
   box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.13);
 }

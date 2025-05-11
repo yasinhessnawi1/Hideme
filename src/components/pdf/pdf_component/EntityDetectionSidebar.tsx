@@ -70,8 +70,6 @@ const EntityDetectionSidebar: React.FC = () => {
         setSelectedGlinerEntities,
         selectedHideMeEntities,
         setSelectedHideMeEntities,
-        setDetectionMapping,
-        setFileDetectionMapping,
         setSelectedHighlightId,
         setSelectedHighlightIds
     } = useEditContext();
@@ -270,14 +268,6 @@ const EntityDetectionSidebar: React.FC = () => {
                     // Process the detection results into highlights
                     await EntityHighlightProcessor.processDetectionResults(fileKey, result);
                     
-                    // Store the mapping for this file
-                    setFileDetectionMapping(fileKey, result.redaction_mapping || result);
-
-                    // If this is the current file, also update the current detection mapping
-                    if (currentFile && getFileKey(currentFile) === fileKey) {
-                        setDetectionMapping(result.redaction_mapping || result);
-                    }
-
                     // Mark processing as complete in the shared service
                     processingStateService.completeProcessing(fileKey, true);
 
@@ -336,8 +326,6 @@ const EntityDetectionSidebar: React.FC = () => {
         useBanlist,
         runBatchHybridDetect,
         getBanList,
-        setFileDetectionMapping,
-        setDetectionMapping,
         updateEntityFileSummary,
         resetErrors,
         notify,
@@ -365,7 +353,6 @@ const EntityDetectionSidebar: React.FC = () => {
             setSelectedAiEntities([]);
             setSelectedGlinerEntities([]);
             setSelectedHideMeEntities([]);
-            setDetectionMapping(null);
             
             // Use context function to clear all entity data
             clearAllEntityData();
@@ -388,7 +375,6 @@ const EntityDetectionSidebar: React.FC = () => {
         setSelectedAiEntities, 
         setSelectedGlinerEntities, 
         setSelectedHideMeEntities, 
-        setDetectionMapping, 
         clearAllEntityData, 
         removeHighlightsByType,
         getFilesToProcess,
@@ -419,10 +405,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 // Use context to remove the entity file summary
                 removeEntityFileSummary(fileKey);
 
-                // If this is the current file, also update the current detection mapping
-                if (currentFile && getFileKey(currentFile) === fileKey) {
-                    setDetectionMapping(null);
-                }
+ 
             }
         };
 
@@ -434,7 +417,7 @@ const EntityDetectionSidebar: React.FC = () => {
             window.removeEventListener('highlights-cleared', handleHighlightsCleared);
             window.removeEventListener('entity-highlights-cleared', handleHighlightsCleared);
         };
-    }, [currentFile, setDetectionMapping, removeEntityFileSummary]);
+    }, [currentFile, removeEntityFileSummary]);
 
     // Improved entity loading with better error handling and retry mechanism
     useEffect(() => {
@@ -488,6 +471,8 @@ const EntityDetectionSidebar: React.FC = () => {
                     handleHidemeChange(handleAllOptions(entitiesToOptions(hideme.map(e => e.entity_text), hidemeOptions), hidemeOptions, 'ALL_HIDEME'));
                 }
 
+                // Mark entities as initialized after all loading is complete
+                setEntitiesInitialized(true);
 
             } catch (err) {
                 notify({
@@ -530,7 +515,12 @@ const EntityDetectionSidebar: React.FC = () => {
             // Helper to safely map entities to option types and handle ALL options
             const getEntityOptions = (methodId: number, allOptions: OptionType[], allOptionValue: string) => {
                 const entities = modelEntities[methodId];
-                if (!entities || !Array.isArray(entities) || entities.length === 0) {
+                if (!entities || !Array.isArray(entities)) {
+                    return [];
+                }
+                
+                // Empty array check - if entities array exists but is empty, return empty array
+                if (entities.length === 0) {
                     return [];
                 }
 
@@ -556,24 +546,16 @@ const EntityDetectionSidebar: React.FC = () => {
 
             // Apply entities for each method
             const presOptions = getEntityOptions(METHOD_ID_MAP.presidio, presidioOptions, 'ALL_PRESIDIO');
-            if (presOptions.length > 0) {
-                setSelectedMlEntities(presOptions);
-            }
+            setSelectedMlEntities(presOptions);
 
             const glinerOpts = getEntityOptions(METHOD_ID_MAP.gliner, glinerOptions, 'ALL_GLINER');
-            if (glinerOpts.length > 0) {
-                setSelectedGlinerEntities(glinerOpts);
-            }
+            setSelectedGlinerEntities(glinerOpts);
 
             const geminiOpts = getEntityOptions(METHOD_ID_MAP.gemini, geminiOptions, 'ALL_GEMINI');
-            if (geminiOpts.length > 0) {
-                setSelectedAiEntities(geminiOpts);
-            }
+            setSelectedAiEntities(geminiOpts);
 
             const hidemeOpts = getEntityOptions(METHOD_ID_MAP.hideme, hidemeOptions, 'ALL_HIDEME');
-            if (hidemeOpts.length > 0) {
-                setSelectedHideMeEntities(hidemeOpts);
-            }
+            setSelectedHideMeEntities(hidemeOpts);
         };
 
         applyModelEntities();
@@ -611,20 +593,20 @@ const EntityDetectionSidebar: React.FC = () => {
             if (type === 'entity' && settings) {
 
                 // Apply appropriate entity settings if provided
-                if (settings.presidio) {
-                    setSelectedMlEntities(settings.presidio);
+                if ('presidio' in settings) {
+                    setSelectedMlEntities(settings.presidio || []);
                 }
 
-                if (settings.gliner) {
-                    setSelectedGlinerEntities(settings.gliner);
+                if ('gliner' in settings) {
+                    setSelectedGlinerEntities(settings.gliner || []);
                 }
 
-                if (settings.gemini) {
-                    setSelectedAiEntities(settings.gemini);
+                if ('gemini' in settings) {
+                    setSelectedAiEntities(settings.gemini || []);
                 }
 
-                if (settings.hideme) {
-                    setSelectedHideMeEntities(settings.hideme);
+                if ('hideme' in settings) {
+                    setSelectedHideMeEntities(settings.hideme || []);
                 }
 
                 // Apply detection threshold if provided

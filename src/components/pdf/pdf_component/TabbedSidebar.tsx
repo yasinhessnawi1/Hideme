@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { File, Layers } from 'lucide-react';
+import { File, Layers, History } from 'lucide-react';
 import PageThumbnails from './PageThumbnails';
 import FileSelector from './FileSelector';
+import HistoryViewer from './HistoryViewer';
 import '../../../styles/modules/pdf/TabbedSidebar.css';
 
 interface TabbedSidebarProps {
     isSidebarCollapsed?: boolean;
 }
 
-type TabType = 'thumbnails' | 'files';
+type TabType = 'thumbnails' | 'files' | 'history';
 
 const TabbedSidebar: React.FC<TabbedSidebarProps> = ({ isSidebarCollapsed }) => {
     const [activeTab, setActiveTab] = useState<TabType>('thumbnails');
@@ -23,6 +24,8 @@ const TabbedSidebar: React.FC<TabbedSidebarProps> = ({ isSidebarCollapsed }) => 
                 setActiveTab('files');
             } else if (navigateToTab === 'thumbnails' || navigateToTab === 'pages') {
                 setActiveTab('thumbnails');
+            } else if (navigateToTab === 'history') {
+                setActiveTab('history');
             }
         };
         
@@ -57,6 +60,14 @@ const TabbedSidebar: React.FC<TabbedSidebarProps> = ({ isSidebarCollapsed }) => 
                     <File size={18} />
                     <span className="tab-label">Files</span>
                 </button>
+                <button
+                    className={`sidebar-tab ${activeTab === 'history' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('history')}
+                    title="Document History"
+                >
+                    <History size={18} />
+                    <span className="tab-label">History</span>
+                </button>
             </div>
 
             <div className="sidebar-content">
@@ -65,6 +76,9 @@ const TabbedSidebar: React.FC<TabbedSidebarProps> = ({ isSidebarCollapsed }) => 
                 </div>
                 <div className={`tab-panel ${activeTab === 'files' ? 'active' : ''}`}>
                     <FileSelector />
+                </div>
+                <div className={`tab-panel ${activeTab === 'history' ? 'active' : ''}`}>
+                    <HistoryViewer />
                 </div>
             </div>
         </div>
