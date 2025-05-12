@@ -6,8 +6,11 @@ import { FloatingPaper } from "./FloatingPaper"
 import "../../styles/modules/landing/Hero.css"
 import {Button} from "../common/Button";
 import React from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 export default function Hero() {
+    const { t } = useLanguage();
+    
     return (
         <div className="hero">
             <div className="floating-papers">
@@ -18,8 +21,8 @@ export default function Hero() {
                 <div className="hero-text">
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                         <h1 className="hero-title">
-                            Transform Your Files Into
-                            <span className="highlight"> Safe Ones</span>
+                            {t('landing', 'transformTitle')}
+                            <span className="highlight"> {t('landing', 'safeOnes')}</span>
                         </h1>
                     </motion.div>
 
@@ -29,7 +32,7 @@ export default function Hero() {
                         transition={{ duration: 0.5, delay: 0.2 }}
                         className="hero-description"
                     >
-                        Upload your files  and let  AI and ML transform your file into a safe one for public use.
+                        {t('landing', 'heroDescription')}
                     </motion.p>
 
                 </div>

@@ -6,18 +6,20 @@ import LoadingWrapper from '../components/common/LoadingWrapper';
 import Navbar from '../components/static/Navbar';
 import authService from '../services/authService';
 import '../styles/modules/login/LoginPage.css';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const { notify } = useNotification();
   const { isLoading, startLoading, stopLoading } = useLoading();
+  const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!email.trim()) {
       notify({
-        message: 'Please enter your email address',
+        message: t('resetPassword', 'pleaseEnterEmailAddress'),
         type: 'error',
         duration: 3000
       });
@@ -29,13 +31,13 @@ const ForgotPasswordPage: React.FC = () => {
       await authService.forgotPassword(email);
       setSubmitted(true);
       notify({
-        message: 'If an account exists with that email, you will receive a password reset link shortly.',
+        message: t('resetPassword', 'resetLinkSent'),
         type: 'success',
         duration: 5000
       });
     } catch (error: any) {
       notify({
-        message: error.message || 'Failed to send reset link. Please try again.',
+        message: error.message || t('resetPassword', 'failedToSendResetLink'),
         type: 'error',
         duration: 3000
       });
@@ -50,19 +52,19 @@ const ForgotPasswordPage: React.FC = () => {
       <div className="login-page">
         <div className="login-left">
           <div className="login-container">
-            <h1 className="login-title">HIDE ME</h1>
-            <p className="login-subtitle">Reset Your Password</p>
+            <h1 className="login-title">{t('resetPassword', 'title')}</h1>
+            <p className="login-subtitle">{t('resetPassword', 'resetYourPassword')}</p>
 
             {!submitted ? (
               <form className="login-form" onSubmit={handleSubmit}>
                 <div className="form-group">
-                  <label htmlFor="email">Email Address</label>
+                  <label htmlFor="email">{t('resetPassword', 'emailAddress')}</label>
                   <input
                     type="email"
                     id="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email address"
+                    placeholder={t('resetPassword', 'enterYourEmailAddress')}
                     required
                   />
                 </div>
@@ -76,30 +78,30 @@ const ForgotPasswordPage: React.FC = () => {
                     isLoading={isLoading('forgotPassword')} 
                     overlay={true} 
                     fallback={''}>
-                    {isLoading('forgotPassword') ? 'Sending...' : 'Send Reset Link'}
+                    {isLoading('forgotPassword') ? t('resetPassword', 'sending') : t('resetPassword', 'sendResetLink')}
                   </LoadingWrapper>
                 </button>
 
                 <p className="signup-prompt enhanced-toggle">
-                  Remember your password? <Link to="/login">Log in</Link>
+                  {t('resetPassword', 'rememberPassword')} <Link to="/login">{t('resetPassword', 'logIn')}</Link>
                 </p>
               </form>
             ) : (
               <div className="reset-confirmation">
                 <div className="success-message">
-                  <p>Check your email!</p>
+                  <p>{t('resetPassword', 'checkYourEmail')}</p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    We've sent a password reset link to <strong>{email}</strong>.
+                    {t('resetPassword', 'weveSentAPasswordResetLinkTo')} <strong>{email}</strong>.
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    The link will expire in 15 minutes.
+                    {t('resetPassword', 'linkWillExpireIn').replace('{minutes}', String(15))}
                   </p>
                 </div>
                 <button className="login-button mt-4" onClick={() => setSubmitted(false)}>
-                  Back to Reset Password
+                  {t('resetPassword', 'backToResetPassword')}
                 </button>
                 <p className="signup-prompt enhanced-toggle mt-2">
-                  Remember your password? <Link to="/login">Log in</Link>
+                  {t('resetPassword', 'rememberPassword')} <Link to="/login">{t('resetPassword', 'logIn')}</Link>
                 </p>
               </div>
             )}

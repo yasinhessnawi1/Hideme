@@ -4,6 +4,7 @@ import { getFileKey } from '../../../contexts/PDFViewerContext';
 import processingStateService, { ProcessingInfo } from '../../../services/ProcessingStateService';
 import '../../../styles/modules/pdf/AutoProcessingStatus.css';
 import { XCircle, Loader, CheckCircle, AlertTriangle, Icon } from 'lucide-react';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 /**
  * ProcessingStatus component
@@ -13,17 +14,15 @@ import { XCircle, Loader, CheckCircle, AlertTriangle, Icon } from 'lucide-react'
  * ProcessingStateService to receive real-time updates.
  */
 
-
 const ProcessingStatus: React.FC = () => {
     const { files } = useFileContext();
+    const { t } = useLanguage();
     const [processingFiles, setProcessingFiles] = useState<Record<string, ProcessingInfo>>({});
 
     // Load initial state and subscribe to updates
     useEffect(() => {
-
         // Subscribe to processing state updates
         const subscription = processingStateService.subscribe((fileKey, info) => {
-
             setProcessingFiles(prevState => {
                 const newState = { ...prevState };
 
@@ -51,14 +50,13 @@ const ProcessingStatus: React.FC = () => {
             });
         });
 
-
         // Cleanup subscription on unmount
         return () => {
             subscription.unsubscribe();
         };
     }, []);
 
-     const clearProcessingStatus = ()  => {
+    const clearProcessingStatus = () => {
         setProcessingFiles({});
     };
 
@@ -74,7 +72,6 @@ const ProcessingStatus: React.FC = () => {
             delete newState[fileKey];
             return newState;
         });
-
     }, []);
 
     // Return null if no files are being processed
@@ -86,81 +83,81 @@ const ProcessingStatus: React.FC = () => {
     return (
         <div className="processing-status-container-wrapper">
             <XCircle size={16} onClick={() => clearProcessingStatus()} />
-        <div className="processing-status-containesr entering">
-            {Object.entries(processingFiles).map(([fileKey, info]) => {
-                const file = getFileByKey(fileKey);
-                const fileName = file?.name || fileKey;
+            <div className="processing-status-containesr entering">
+                {Object.entries(processingFiles).map(([fileKey, info]) => {
+                    const file = getFileByKey(fileKey);
+                    const fileName = file?.name || fileKey;
 
-                // Determine icon based on status
-                let StatusIcon = Loader;
-                let statusClass = 'processing';
+                    // Determine icon based on status
+                    let StatusIcon = Loader;
+                    let statusClass = 'processing';
 
-                if (info.status === 'completed') {
-                    StatusIcon = CheckCircle;
-                    statusClass = 'success';
-                } else if (info.status === 'failed') {
-                    StatusIcon = AlertTriangle;
-                    statusClass = 'error';
-                }
+                    if (info.status === 'completed') {
+                        StatusIcon = CheckCircle;
+                        statusClass = 'success';
+                    } else if (info.status === 'failed') {
+                        StatusIcon = AlertTriangle;
+                        statusClass = 'error';
+                    }
 
-                return (
-                    <div key={fileKey} className={`processing-status-item ${statusClass}`}>
-                        <div className="processing-status-header">
-                            <div className="processing-file-name" title={fileName}>
-                                <StatusIcon
-                                    size={16}
-                                    className={`processing-status-icon ${statusClass}`}
-                                />
-                                {fileName}
-                            </div>
+                    return (
+                        <div key={fileKey} className={`processing-status-item ${statusClass}`}>
+                            <div className="processing-status-header">
+                                <div className="processing-file-name" title={fileName}>
+                                    <StatusIcon
+                                        size={16}
+                                        className={`processing-status-icon ${statusClass}`}
+                                    />
+                                    {fileName}
+                                </div>
                                 <button
                                     className="dismiss-status-button"
                                     onClick={() => handleDismiss(fileKey)}
-                                    aria-label="Dismiss status"
+                                    aria-label={t('pdf', 'dismissStatus')}
                                 >
                                     <XCircle size={16} />
                                 </button>
-                        </div>
-
-                        {/* Progress bar */}
-                        {info.status === 'processing' && (
-                            <div className="progress-container">
-                                <div
-                                    className="progress-bar"
-                                    style={{ width: `${info.progress}%` }}
-                                    aria-valuemin={0}
-                                    aria-valuemax={100}
-                                    aria-valuenow={info.progress}
-                                    role="progressbar"
-                                />
                             </div>
-                        )}
 
-                        {/* Status message */}
-                        <div className="processing-status-message">
-                            {info.status === 'processing'
-                                ? `Processing... ${info.progress}%`
-                                : info.status === 'completed'
-                                    ? 'Processing completed'
-                                    : `Processing failed: ${info.error || 'Unknown error'}`
-                            }
-                        </div>
-                        {info.status === 'processing' && (
-                            <div className="progress-container">
-                                <div
-                                    className="progress-bar"
-                                    style={{ width: `${info.progress}%` }}
-                                    aria-valuemin={0}
-                                    aria-valuemax={100}
-                                    aria-valuenow={info.progress}
-                                    role="progressbar"
-                                />
+                            {/* Progress bar */}
+                            {info.status === 'processing' && (
+                                <div className="progress-container">
+                                    <div
+                                        className="progress-bar"
+                                        style={{ width: `${info.progress}%` }}
+                                        aria-valuemin={0}
+                                        aria-valuemax={100}
+                                        aria-valuenow={info.progress}
+                                        role="progressbar"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Status message */}
+                            <div className="processing-status-message">
+                                {info.status === 'processing'
+                                    ? `${t('pdf', 'processing')}... ${info.progress}%`
+                                    : info.status === 'completed'
+                                        ? t('pdf', 'processingCompleted')
+                                        : `${t('pdf', 'processingFailed')}: ${info.error || t('pdf', 'unknownError')}`
+                                }
                             </div>
-                        )}
-                    </div>
-                );
-            })}
-        </div>
+                            {info.status === 'processing' && (
+                                <div className="progress-container">
+                                    <div
+                                        className="progress-bar"
+                                        style={{ width: `${info.progress}%` }}
+                                        aria-valuemin={0}
+                                        aria-valuemax={100}
+                                        aria-valuenow={info.progress}
+                                        role="progressbar"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 };

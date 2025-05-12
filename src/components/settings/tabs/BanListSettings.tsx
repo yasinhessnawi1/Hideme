@@ -4,8 +4,10 @@ import useBanList from "../../../hooks/settings/useBanList"; // Adjust path if n
 import { useLoading } from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
 import { useNotification } from "../../../contexts/NotificationContext";
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 export default function BanListSettings() {
+    const { t } = useLanguage();
     const {
         banList,
         getBanList,
@@ -57,7 +59,7 @@ export default function BanListSettings() {
 
         if (!wordToAdd) {
             notify({
-                message: "Word cannot be empty",
+                message: t('banlist', 'wordCannotBeEmpty'),
                 type: 'error',
                 duration: 3000
             });
@@ -66,7 +68,7 @@ export default function BanListSettings() {
 
         if (localBannedWords.includes(wordToAdd)) {
             notify({
-                message: "This word is already in the ban list",
+                message: t('banlist', 'wordAlreadyInList'),
                 type: 'error',
                 duration: 3000
             });
@@ -82,7 +84,7 @@ export default function BanListSettings() {
             setNewBannedWord("");
         } catch (err: any) {
             notify({
-                message: (err.userMessage ?? err.message) ?? "Failed to add banned word.",
+                message: (err.userMessage ?? err.message) ?? t('banlist', 'failedToAddBannedWord'),
                 type: 'error',
                 duration: 3000
             });
@@ -101,7 +103,7 @@ export default function BanListSettings() {
             setTermBeingRemoved(wordToRemove);
         } catch (err: any) {
             notify({
-                message: (err.userMessage ?? err.message) ?? "Failed to remove ignored word.",
+                message: (err.userMessage ?? err.message) ?? t('banlist', 'failedToRemoveBannedWord'),
                 type: 'error',
                 duration: 3000
             });
@@ -114,14 +116,13 @@ export default function BanListSettings() {
     const handleClearAllBannedWords = async () => {
        const confirmed = await confirm({
         type: "warning",
-        title: "Clear All Ignored Words",
-        message: "Are you sure you want to remove all ignored words?",
+        title: t('banlist', 'clearAllIgnoredWordsTitle'),
+        message: t('banlist', 'clearAllIgnoredWordsMessage'),
         confirmButton: {
-            label: "Clear All",
-            
+            label: t('banlist', 'clearAll'),
         },
         cancelButton: {
-            label: "Cancel",
+            label: t('banlist', 'cancel'),
         }
        });
        if (confirmed) {
@@ -134,7 +135,7 @@ export default function BanListSettings() {
             }
         } catch (err: any) {
             notify({
-                message: (err.userMessage ?? err.message) ?? "Failed to clear ignored words list.",
+                message: (err.userMessage ?? err.message) ?? t('banlist', 'failedToClearIgnoredWordsList'),
                 type: 'error',
                 duration: 3000
             });
@@ -153,15 +154,15 @@ export default function BanListSettings() {
         <div className="space-y-6">
             <div className="card">
                 <div className="card-header">
-                    <h2 className="card-title">Ignored Words List</h2>
-                    <p className="card-description">Manage words to be automatically ignored</p>
+                    <h2 className="card-title">{t('banlist', 'ignoredWordsList')}</h2>
+                    <p className="card-description">{t('banlist', 'manageIgnoredWordsDescription')}</p>
                 </div>
                 <div className="card-content space-y-4">
                     <div className="space-y-4">
                         {/* Add New Word Form */}
                         <div className="form-group">
                             <label className="form-label" htmlFor="ignored-word">
-                                Add New Ignored Word
+                                {t('banlist', 'addNewIgnoredWord')}
                             </label>
                             <div className="flex space-x-2">
                                 <div className="flex-1">
@@ -170,7 +171,7 @@ export default function BanListSettings() {
                                         id="banned-word"
                                         value={newBannedWord}
                                         onChange={(e) => setNewBannedWord(e.target.value)}
-                                        placeholder="Enter word to ignore..."
+                                        placeholder={t('banlist', 'enterWordToIgnore')}
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -179,9 +180,9 @@ export default function BanListSettings() {
                                     onClick={handleAddBannedWord}
                                     disabled={isLoading || !newBannedWord.trim()}
                                 >
-                                    <LoadingWrapper isLoading={isLoading} fallback="Adding...">
+                                    <LoadingWrapper isLoading={isLoading} fallback={t('banlist', 'adding')}>
                                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Plus size={16} className="button-icon" />}
-                                        {isLoading ? 'Adding...' : 'Add'}
+                                        {isLoading ? t('banlist', 'adding') : t('banlist', 'add')}
                                     </LoadingWrapper>
                                 </button>
                             </div>
@@ -192,17 +193,15 @@ export default function BanListSettings() {
                         {/* Banned Words List */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-medium">Your Ignored Words ({localBannedWords.length})</h3>
+                                <h3 className="text-sm font-medium">{t('banlist', 'yourIgnoredWords').replace('{count}', String(localBannedWords.length))}</h3>
                                 {localBannedWords.length > 0 && (
                                     <button
                                         className="button button-outline button-sm"
                                         onClick={handleClearAllBannedWords}
                                         disabled={isLoading}
                                     >
-                                        <LoadingWrapper isLoading={isLoading} fallback="Clearing...">
-                                            {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Trash2 size={14} className="button-icon" />}
-                                            {isLoading ? 'Clearing...' : 'Clear All'}
-                                        </LoadingWrapper>
+                                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Trash2 size={14} className="button-icon" />}
+                                        {isLoading ? t('banlist', 'clearing') : t('banlist', 'clearAll')}
                                     </button>
                                 )}
                             </div>
@@ -210,13 +209,13 @@ export default function BanListSettings() {
                             {isUserLoading && localBannedWords.length === 0 && !initialLoadAttemptedRef.current && (
                                 <div className="flex justify-center items-center py-6">
                                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                    <span className="ml-2 text-muted-foreground">Loading ignored words list...</span>
+                                    <span className="ml-2 text-muted-foreground">{t('banlist', 'removing')}</span>
                                 </div>
                             )}
 
                             {!isUserLoading && localBannedWords.length === 0 ? (
                                 <div className="border border-dashed rounded-md p-6 text-center">
-                                    <p className="text-sm text-muted-foreground">No ignored words yet. Add some above.</p>
+                                    <p className="text-sm text-muted-foreground">{t('banlist', 'noIgnoredWords')}</p>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -227,11 +226,11 @@ export default function BanListSettings() {
                                                 className="button button-ghost button-sm p-1" // Smaller padding
                                                 onClick={() => handleRemoveBannedWord(word)}
                                                 disabled={isLoading}
-                                                title="Remove word"
+                                                title={t('banlist', 'remove')}
                                             >
-                                                <LoadingWrapper isLoading={termBeingRemoved === word} fallback="Removing...">
+                                                <LoadingWrapper isLoading={termBeingRemoved === word} fallback={t('banlist', 'removingWord')}>
                                                     {(termBeingRemoved === word) ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <X size={14} className="button-icon" />}
-                                                    {(termBeingRemoved === word) ? 'Removing...' : ''}
+                                                    {(termBeingRemoved === word) ? t('banlist', 'removingWord') : ''}
                                                 </LoadingWrapper>
                                             </button>
                                         </div>

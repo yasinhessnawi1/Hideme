@@ -21,6 +21,7 @@ import useSearchPatterns from "../../../hooks/settings/useSearchPatterns";
 import {HighlightRect, HighlightType} from "../../../types";
 import { useNotification } from '../../../contexts/NotificationContext';
 import { useEditContext } from "../../../contexts/EditContext";
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 /**
  * SearchSidebar component
@@ -60,6 +61,7 @@ const SearchSidebar: React.FC = () => {
     } = useBatchSearch();
     const { setSelectedHighlightIds, setSelectedHighlightId} = useEditContext();
 
+    const { t } = useLanguage();
 
     // Component state
     const [tempSearchTerm, setTempSearchTerm] = useState('');
@@ -106,7 +108,7 @@ const SearchSidebar: React.FC = () => {
 
         const filesToSearch = getFilesToProcess();
         if (filesToSearch.length === 0) {
-            setLocalSearchError('No files selected for search');
+            setLocalSearchError(t('pdf', 'no_files_selected_for_search'));
             return;
         }
 
@@ -123,7 +125,7 @@ const SearchSidebar: React.FC = () => {
             const isExistingTerm = activeQueries.some(query => query.term === searchTermToUse && query.caseSensitive === isCaseSensitive && query.isAiSearch === isAiSearch);
 
             if (isExistingTerm) {
-                setLocalSearchError(`"${searchTermToUse}" is already in your search terms`);
+                setLocalSearchError(t('pdf', 'searchTermAlreadyExists').replace('{term}', searchTermToUse));
                 // Keep focus on search input even when showing error
                 searchInputRef.current?.focus();
                 return;
@@ -162,7 +164,7 @@ const SearchSidebar: React.FC = () => {
                 searchInputRef.current?.focus();
             }, 100);
         } catch (error: any) {
-            setLocalSearchError(error.message ?? 'Error performing search');
+            setLocalSearchError(error.message ?? t('pdf', 'errorPerformingSearch'));
             // Refocus input even when there's an error
             searchInputRef.current?.focus();
         }
@@ -226,7 +228,7 @@ const SearchSidebar: React.FC = () => {
 
             if (patternsToAdd.length === 0) {
                 notify({
-                    message: 'All default search terms are already active',
+                    message: t('pdf', 'allDefaultTermsActive'),
                     type: 'info'
                 });
                 return;
@@ -241,7 +243,7 @@ const SearchSidebar: React.FC = () => {
                 try {
                     const filesToSearch = getFilesToProcess();
                     if (filesToSearch.length === 0) {
-                        setLocalSearchError('No files selected for search');
+                        setLocalSearchError(t('pdf', 'no_files_selected_for_search'));
                         return;
                     }
 
@@ -259,7 +261,7 @@ const SearchSidebar: React.FC = () => {
 
             if (addedCount > 0) {
                 notify({
-                    message: `Added ${addedCount} default search terms`,
+                    message: t('pdf', 'addedDefaultTerms').replace('{count}', String(addedCount)),
                     type: 'success'
                 });
 
@@ -288,11 +290,11 @@ const SearchSidebar: React.FC = () => {
             }
         } else {
             notify({
-                message: 'No default search terms found, add some to your settings',
+                message: t('pdf', 'noDefaultTermsFound'),
                 type: 'warning'
             });
         }
-    }, [searchPatterns, activeQueries, batchSearch, getFilesToProcess, getSearchResultsStats, files, updateSearchFileSummary, notify]);
+    }, [searchPatterns, activeQueries, batchSearch, getFilesToProcess, getSearchResultsStats, files, updateSearchFileSummary, notify, t]);
 
 
     // Create a function to focus the search input
@@ -396,14 +398,14 @@ const SearchSidebar: React.FC = () => {
                 // Show success message
                 setSuccessMessage(`"${contextMenuSearchTerm}" saved as a search pattern`);
                 notify({
-                    message: `Search term saved to patterns successfully with type: ${patternType}`,
+                    message: t('pdf', 'searchTermSaved').replace('{term}', contextMenuSearchTerm).replace('{type}', patternType),
                     type: 'success'
                 });
             } else {
                 // Pattern already exists
-                setSuccessMessage(`"${contextMenuSearchTerm}" is already a saved pattern`);
+                setSuccessMessage(t('pdf', 'patternAlreadyExists').replace('{term}', contextMenuSearchTerm));
                 notify({
-                    message: `Search term already exists in patterns`,
+                    message: t('pdf', 'patternAlreadyExists').replace('{term}', contextMenuSearchTerm),
                     type: 'info'
                 });
             }
@@ -414,7 +416,7 @@ const SearchSidebar: React.FC = () => {
             }, 3000);
         } catch (error) {
             notify({
-                message: "Failed to save search pattern.",
+                message: t('pdf', 'failedToSavePattern'),
                 type: 'error'
             });
 
@@ -688,10 +690,12 @@ const SearchSidebar: React.FC = () => {
 
     return (<div className="search-sidebar">
             <div className="sidebar-header search-header">
-                <h3>Search</h3>
-                {searchedFilesCount > 0 && (<div className="entity-badge">
-                        {searchedFilesCount} file{searchedFilesCount !== 1 ? 's' : ''} searched
-                    </div>)}
+                <h3>{t('pdf', 'search')}</h3>
+                {searchedFilesCount > 0 && (
+                    <div className="entity-badge">
+                        {t('pdf', 'filesSearched').replace('{count}', String(searchedFilesCount))}
+                    </div>
+                )}
             </div>
 
             <div className="sidebar-content">
@@ -703,7 +707,7 @@ const SearchSidebar: React.FC = () => {
                                 value={tempSearchTerm}
                                 onChange={(e) => setTempSearchTerm(e.target.value)}
                                 onKeyDown={handleSearchKeyDown}
-                                placeholder="Enter search term..."
+                                placeholder={t('pdf', 'searchTermPlaceholder')}
                                 className="search-input"
                                 disabled={isSearching}
                                 ref={searchInputRef}
@@ -726,7 +730,7 @@ const SearchSidebar: React.FC = () => {
                                     disabled={isSearching}
                                 />
                                 <span className="checkmark"></span>
-                                AI search
+                                {t('pdf', 'aiSearch')}
                             </label>
                             <label className="checkbox-label">
                                 <input
@@ -736,55 +740,55 @@ const SearchSidebar: React.FC = () => {
                                     disabled={isSearching}
                                 />
                                 <span className="checkmark"></span>
-                                Case sensitive
+                                {t('pdf', 'caseSensitive')}
                             </label>
                         </div>
                     </form>
                 </div>
 
                 <div className="sidebar-section scope-section">
-                    <h4>Search Scope</h4>
+                    <h4>{t('pdf', 'searchScope')}</h4>
                     <div className="scope-buttons">
                         <button
                             className={`scope-button ${searchScope === 'current' ? 'active' : ''}`}
                             onClick={() => handleChangeSearchScope('current')}
                             disabled={!currentFile || isSearching}
-                            title="Search in current file only"
+                            title={t('pdf', 'searchCurrentFileOnly')}
                         >
-                            Current File
+                            {t('pdf', 'currentFile')}
                         </button>
                         <button
                             className={`scope-button ${searchScope === 'selected' ? 'active' : ''}`}
                             onClick={() => handleChangeSearchScope('selected')}
                             disabled={selectedFiles.length === 0 || isSearching}
-                            title={`Search in ${selectedFiles.length} selected files`}
+                            title={t('pdf', 'searchSelectedFiles').replace('{count}', String(selectedFiles.length))}
                         >
-                            Selected ({selectedFiles.length})
+                            {t('pdf', 'selectedFiles').replace('{count}', String(selectedFiles.length))}
                         </button>
                         <button
                             className={`scope-button ${searchScope === 'all' ? 'active' : ''}`}
                             onClick={() => handleChangeSearchScope('all')}
                             disabled={isSearching}
-                            title={`Search in all ${files.length} files`}
+                            title={t('pdf', 'searchAllFiles').replace('{count}', String(files.length))}
                         >
-                            All Files ({files.length})
+                            {t('pdf', 'allFiles').replace('{count}', String(files.length))}
                         </button>
                     </div>
                 </div>
 
                 <div className="sidebar-section">
                     <div className="search-terms-header">
-                        <h4>Search Terms</h4>
+                        <h4>{t('pdf', 'searchTerms')}</h4>
                         {activeQueries.length > 0 && (<button
                                 className="clear-all-button"
                                 onClick={() => clearAllSearches()}
                                 disabled={isSearching}
                             >
-                                Clear All
+                                {t('pdf', 'clearAll')}
                             </button>)}
                     </div>
                     <div className="search-terms-list">
-                        {activeQueries.length === 0 ? (<div className="no-search-terms">No search terms</div>) : (
+                        {activeQueries.length === 0 ? (<div className="no-search-terms">{t('pdf', 'noSearchTerms')}</div>) : (
                             <div className="search-term-items">
                                 {activeQueries.map((query) => (<div
                                         key={query.term}
@@ -801,7 +805,7 @@ const SearchSidebar: React.FC = () => {
                                         <button
                                             className="search-term-remove"
                                             onClick={() => removeSearchTerm(query.term)}
-                                            title="Remove Search Term"
+                                            title={t('pdf', 'removeSearchTerm')}
                                             disabled={isSearching}
                                         >
                                             <XCircle size={16}/>
@@ -827,11 +831,10 @@ const SearchSidebar: React.FC = () => {
 
 
                 {isSearching && (
-                    <LoadingWrapper isLoading={isSearching} overlay={true} fallback={'Searching...'}
-                    >
+                    <LoadingWrapper isLoading={isSearching} overlay={true} fallback={t('pdf', 'searching')}>
                         <div className="sidebar-section">
                             <div className="progress-container">
-                                <div className="progress-label">Searching...</div>
+                                <div className="progress-label">{t('pdf', 'searching')}</div>
                             </div>
                         </div>
                     </LoadingWrapper>
@@ -839,13 +842,13 @@ const SearchSidebar: React.FC = () => {
 
                 <div className="sidebar-section">
                     <div className="search-results-header">
-                        <h4>Results</h4>
+                        <h4>{t('pdf', 'results')}</h4>
                         <div className="search-navigation">
                             <button
                                 className="nav-button"
                                 onClick={() => navigateToSearchResult('prev')}
                                 disabled={searchStats.totalMatches === 0 || isSearching}
-                                title="Previous Result"
+                                title={t('pdf', 'previousResult')}
                             >
                                 <ChevronUp size={16}/>
                             </button>
@@ -853,7 +856,7 @@ const SearchSidebar: React.FC = () => {
                                 className="nav-button"
                                 onClick={() => navigateToSearchResult('next')}
                                 disabled={searchStats.totalMatches === 0 || isSearching}
-                                title="Next Result"
+                                title={t('pdf', 'nextResult')}
                             >
                                 <ChevronDown size={16}/>
                             </button>
@@ -861,12 +864,12 @@ const SearchSidebar: React.FC = () => {
                     </div>
 
                     {searchStats.totalMatches > 0 && (<div className="results-count">
-                            {isSearching ? (`Searching...`) : (`${calculateOverallResultIndex()} of ${searchStats.totalMatches} matches`)}
+                            {isSearching ? t('pdf', 'searching') : `${calculateOverallResultIndex()} ${t('pdf', 'of')} ${searchStats.totalMatches} ${t('pdf', 'matches')}`}
                         </div>)}
 
                     <div className="search-results-list">
                         {searchStats.totalMatches === 0 && searchFileSummaries.length === 0 ? (
-                            <div className="no-results">No results found</div>) : (
+                            <div className="no-results">{t('pdf', 'noResultsFound')}</div>) : (
                             searchFileSummaries.map(summary => {
                                 const fileKey = summary.fileKey;
                                 const fileName = summary.fileName;
@@ -882,7 +885,7 @@ const SearchSidebar: React.FC = () => {
                                             <div className="file-summary-title">
                                                 <span className="file-name">{fileName}</span>
                                                 <span className="result-count-badge">
-                                                    {matchCount} matches
+                                                    {matchCount} {t('pdf', 'matches')}
                                                 </span>
                                             </div>
                                             <div className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>
@@ -899,11 +902,11 @@ const SearchSidebar: React.FC = () => {
                                                         >
                                                             <div className="page-item-left">
                                                                 <span className="page-name">
-                                                                    Page {pageNum}
+                                                                    {t('pdf', 'page')} {pageNum}
                                                                 </span>
                                                             </div>
                                                             <div className="page-item-right">
-                                                                <span className="match-count">{count} matches</span>
+                                                                <span className="match-count">{count} {t('pdf', 'matches')}</span>
                                                                 <div className="navigation-buttons">
                                                                     <button
                                                                         className="nav-button"
@@ -923,7 +926,7 @@ const SearchSidebar: React.FC = () => {
                                                                                 setSelectedHighlightId(searchHighlights[0].id);
                                                                             }
                                                                         }}
-                                                                        title="Navigate to page"
+                                                                        title={t('pdf', 'navigateToPage')}
                                                                     >
                                                                         <ChevronRight size={14}/>
                                                                     </button>
@@ -948,10 +951,10 @@ const SearchSidebar: React.FC = () => {
                     <button
                         className="context-menu-item"
                         onClick={handleSaveToSettings}
-                        title="Add this term to your default search terms"
+                        title={t('pdf', 'addThisTermToDefaultSearchTerms')}
                     >
                         <Save size={14}/>
-                        <span>Save as Default Term</span>
+                        <span>{t('pdf', 'saveAsDefaultTerm')}</span>
                     </button>
                 </div>)}
         </div>);

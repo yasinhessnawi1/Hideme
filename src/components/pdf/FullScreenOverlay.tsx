@@ -5,6 +5,7 @@ import { getFileKey, usePDFViewerContext } from '../../contexts/PDFViewerContext
 import MinimalToolbar from '../common/MinimalToolbar';
 import '../../styles/modules/pdf/PdfViewer.css';
 import '../../styles/modules/pdf/Toolbar.css';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface FullScreenOverlayProps {
     file: File;
@@ -22,6 +23,8 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({ file, onClose }) 
         zoomLevel,
         setZoomLevel
     } = usePDFViewerContext();
+
+    const { t } = useLanguage();
 
     // Handle escape key
     useEffect(() => {
@@ -53,8 +56,8 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({ file, onClose }) 
                     <button
                         className="toolbar-button fullscreen-close-button"
                         onClick={onClose}
-                        aria-label="Exit fullscreen"
-                        title="Exit Fullscreen (Esc)"
+                        aria-label={t('pdf', 'exitFullscreen')}
+                        title={t('pdf', 'exitFullscreenWithEsc')}
                     >
                         <X size={20} />
                     </button>

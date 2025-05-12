@@ -9,110 +9,117 @@ import { OptionType } from '../types';
 
 // ======= SHARED ENTITY MODEL OPTIONS =======
 
-// Presidio ML entity options
-export const presidioOptions: OptionType[] = [
-    { value: 'ALL_PRESIDIO', label: 'All Presidio Entities' },
-    { value: 'PERSON_P', label: 'Person' },
-    { value: 'DATE_TIME_P', label: 'Date/Time' },
-    { value: 'EMAIL_ADDRESS_P', label: 'Email Address' },
-    { value: 'IBAN_CODE_P', label: 'IBAN' },
-    { value: 'IP_ADDRESS_P', label: 'IP Address' },
-    { value: 'NO_COMPANY_NUMBER_P', label: 'Org number' },
-    { value: 'LOCATION_P', label: 'Location' },
-    { value: 'MEDICAL_LICENSE_P', label: 'Medical License' },
-    { value: 'URL_P', label: 'URL' },
-    { value: 'NO_ADDRESS_P', label: 'Address' },
-    { value: 'NO_PHONE_NUMBER_P', label: 'Phone' },
-    { value: 'NO_FODSELSNUMMER_P', label: 'ID' },
-    { value: 'NO_BANK_ACCOUNT_P', label: 'Bank account' },
-    { value: 'NO_LICENSE_PLATE_P', label: 'License plate' },
-    { value: 'ORGANIZATION_P', label: 'Organization' },
-    { value: 'CRYPTO_P', label: 'Crypto Wallet' },
+// Entity keys for each model
+export const PRESIDIO_ENTITY_KEYS = [
+    { value: 'ALL_PRESIDIO', key: 'allPresidioEntities' },
+    { value: 'PERSON_P', key: 'person' },
+    { value: 'DATE_TIME_P', key: 'dateTime' },
+    { value: 'EMAIL_ADDRESS_P', key: 'emailAddress' },
+    { value: 'IBAN_CODE_P', key: 'iban' },
+    { value: 'IP_ADDRESS_P', key: 'ipAddress' },
+    { value: 'NO_COMPANY_NUMBER_P', key: 'orgNumber' },
+    { value: 'LOCATION_P', key: 'location' },
+    { value: 'MEDICAL_LICENSE_P', key: 'medicalLicense' },
+    { value: 'URL_P', key: 'url' },
+    { value: 'NO_ADDRESS_P', key: 'address' },
+    { value: 'NO_PHONE_NUMBER_P', key: 'phone' },
+    { value: 'NO_FODSELSNUMMER_P', key: 'id' },
+    { value: 'NO_BANK_ACCOUNT_P', key: 'bankAccount' },
+    { value: 'NO_LICENSE_PLATE_P', key: 'licensePlate' },
+    { value: 'ORGANIZATION_P', key: 'organization' },
+    { value: 'CRYPTO_P', key: 'cryptoWallet' },
 ];
 
-// Gliner ML entity options
-export const glinerOptions: OptionType[] = [
-    { value: 'ALL_GLINER', label: 'All Gliner Entities' },
-    { value: 'person', label: 'Person' },
-    { value: 'location', label: 'Location' },
-    { value: 'date', label: 'Date' },
-    { value: 'organization', label: 'Organization' },
-    { value: 'phone number', label: 'Phone Number' },
-    { value: 'address', label: 'Address' },
-    { value: 'passport number', label: 'Passport Number' },
-    { value: 'email', label: 'Email' },
-    { value: 'credit card number', label: 'Credit Card Number' },
-    { value: 'date of birth', label: 'Date of Birth' },
-    { value: 'bank account number', label: 'Bank Account Number' },
-    { value: 'medication', label: 'Medication' },
-    { value: 'tax identification number', label: 'Tax Identification Number' },
-    { value: 'medical condition', label: 'Medical Condition' },
-    { value: 'identity card number', label: 'Identity Card Number' },
-    { value: 'national id number', label: 'National ID Number' },
-    { value: 'ip address', label: 'IP Address' },
-    { value: 'iban', label: 'IBAN' },
-    { value: 'credit card expiration date', label: 'Credit Card Expiration Date' },
-    { value: 'username', label: 'Username' },
-    { value: 'registration number', label: 'Registration Number' },
-    { value: 'student id number', label: 'Student ID Number' },
-    { value: 'insurance number', label: 'Insurance Number' },
-    { value: 'social media handle', label: 'Social Media Handle' },
-    { value: 'license plate number', label: 'License Plate Number' },
-    { value: 'postal code', label: 'Postal Code' },
-    { value: 'vehicle registration number', label: 'Vehicle Registration Number' },
-    { value: 'fax number', label: 'Fax Number' },
-    { value: 'visa number', label: 'Visa Number' },
-    { value: 'passport_number', label: 'Passport_number' },
+export const GLINER_ENTITY_KEYS = [
+    { value: 'ALL_GLINER', key: 'allGlinerEntities' },
+    { value: 'person', key: 'person' },
+    { value: 'location', key: 'location' },
+    { value: 'date', key: 'date' },
+    { value: 'organization', key: 'organization' },
+    { value: 'phone number', key: 'phoneNumber' },
+    { value: 'address', key: 'address' },
+    { value: 'passport number', key: 'passportNumber' },
+    { value: 'email', key: 'emailAddress' },
+    { value: 'credit card number', key: 'creditCardNumber' },
+    { value: 'date of birth', key: 'dateOfBirth' },
+    { value: 'bank account number', key: 'bankAccountNumber' },
+    { value: 'medication', key: 'medication' },
+    { value: 'tax identification number', key: 'taxIdentificationNumber' },
+    { value: 'medical condition', key: 'medicalCondition' },
+    { value: 'identity card number', key: 'identityCardNumber' },
+    { value: 'national id number', key: 'nationalIdNumber' },
+    { value: 'ip address', key: 'ipAddress' },
+    { value: 'iban', key: 'iban' },
+    { value: 'credit card expiration date', key: 'creditCardExpirationDate' },
+    { value: 'username', key: 'username' },
+    { value: 'registration number', key: 'registrationNumber' },
+    { value: 'student id number', key: 'studentIdNumber' },
+    { value: 'insurance number', key: 'insuranceNumber' },
+    { value: 'social media handle', key: 'socialMediaHandle' },
+    { value: 'license plate number', key: 'licensePlateNumber' },
+    { value: 'postal code', key: 'postalCode' },
+    { value: 'vehicle registration number', key: 'vehicleRegistrationNumber' },
+    { value: 'fax number', key: 'faxNumber' },
+    { value: 'visa number', key: 'visaNumber' },
+    { value: 'passport_number', key: 'passportNumber' },
 ];
 
-// Gemini AI entity options
-export const geminiOptions: OptionType[] = [
-    { value: 'ALL_GEMINI', label: 'All Gemini Entities' },
-    { value: 'PERSON-G', label: 'Person' },
-    { value: 'ORGANIZATION-G', label: 'Organization' },
-    { value: 'PHONE-G', label: 'Phone' },
-    { value: 'EMAIL-G', label: 'Email' },
-    { value: 'ADDRESS-G', label: 'Address' },
-    { value: 'LOCATION-G', label: 'Location' },
-    { value: 'DATE-G', label: 'Date' },
-    { value: 'NATIONAL_ID-G', label: 'National ID' },
-    { value: 'FINANCIAL_INFO-G', label: 'Financial' },
-    { value: 'AGE-G', label: 'Age' },
-    { value: 'HEALTH-G', label: 'Health' },
-    { value: 'CRIMINAL-G', label: 'Criminal' },
-    { value: 'SEXUAL-G', label: 'Sexual' },
-    { value: 'RELIGIOUS_BELIEF-G', label: 'Religious Belief' },
-    { value: 'POLITICAL_AFFILIATION-G', label: 'Political Affiliation' },
-    { value: 'TRADE_UNION-G', label: 'Trade Union' },
-    { value: 'BIOMETRIC_DATA-G', label: 'Biometric Data' },
-    { value: 'GENETIC_DATA-G', label: 'Genetic Data' },
-    { value: 'CONTEXT-G', label: 'Context' },
+export const GEMINI_ENTITY_KEYS = [
+    { value: 'ALL_GEMINI', key: 'allGeminiEntities' },
+    { value: 'PERSON-G', key: 'person' },
+    { value: 'ORGANIZATION-G', key: 'organization' },
+    { value: 'PHONE-G', key: 'phone' },
+    { value: 'EMAIL-G', key: 'emailAddress' },
+    { value: 'ADDRESS-G', key: 'address' },
+    { value: 'LOCATION-G', key: 'location' },
+    { value: 'DATE-G', key: 'date' },
+    { value: 'NATIONAL_ID-G', key: 'nationalId' },
+    { value: 'FINANCIAL_INFO-G', key: 'financial' },
+    { value: 'AGE-G', key: 'age' },
+    { value: 'HEALTH-G', key: 'health' },
+    { value: 'CRIMINAL-G', key: 'criminal' },
+    { value: 'SEXUAL-G', key: 'sexual' },
+    { value: 'RELIGIOUS_BELIEF-G', key: 'religiousBelief' },
+    { value: 'POLITICAL_AFFILIATION-G', key: 'politicalAffiliation' },
+    { value: 'TRADE_UNION-G', key: 'tradeUnion' },
+    { value: 'BIOMETRIC_DATA-G', key: 'biometricData' },
+    { value: 'GENETIC_DATA-G', key: 'geneticData' },
+    { value: 'CONTEXT-G', key: 'context' },
 ];
 
-// New! Hide me AI entity options
-export const hidemeOptions: OptionType[] = [
-    { value: 'ALL_HIDEME', label: 'All Hide me AI Entities' },
-    { value: 'PERSON-H', label: 'Person' },
-    { value: 'AGE-H', label: 'Age' },
-    { value: 'AGE_INFO-H', label: 'Contextual age Information' },
-    { value: 'DATE_TIME-H', label: 'Date' },
-    { value: 'EMAIL_ADDRESS-H', label: 'Email' },
-    { value: 'GOV_ID-H', label: 'ID' },
-    { value: 'NO_ADDRESS-H', label: 'Address' },
-    { value: 'POSTAL_CODE-H', label: 'Postal code' },
-    { value: 'NO_PHONE_NUMBER-H', label: 'Phone number' },
-    { value: 'POLITICAL_CASE-H', label: 'Political cases' },
-    { value: 'BEHAVIORAL_PATTERN-H', label: 'Behavioral pattern' },
-    { value: 'CONTEXT_SENSITIVE-H', label: 'Contextual Information' },
-    { value: 'CRIMINAL_RECORD-H', label: 'Criminal record' },
-    { value: 'ECONOMIC_STATUS-H', label: 'Economic status' },
-    { value: 'EMPLOYMENT_INFO-H', label: 'Employment information' },
-    { value: 'FAMILY_RELATION-H', label: 'Family related' },
-    { value: 'FINANCIAL_INFO-H', label: 'Financial information' },
-    { value: 'HEALTH_INFO-H', label: 'Health information' },
-    { value: 'SEXUAL_ORIENTATION-H', label: 'Sexual orientation' },
-    { value: 'ANIMAL_INFO-H', label: 'Animal related Information' },
+export const HIDEME_ENTITY_KEYS = [
+    { value: 'ALL_HIDEME', key: 'allHidemeEntities' },
+    { value: 'PERSON-H', key: 'person' },
+    { value: 'AGE-H', key: 'age' },
+    { value: 'AGE_INFO-H', key: 'contextualAgeInformation' },
+    { value: 'DATE_TIME-H', key: 'date' },
+    { value: 'EMAIL_ADDRESS-H', key: 'emailAddress' },
+    { value: 'GOV_ID-H', key: 'id' },
+    { value: 'NO_ADDRESS-H', key: 'address' },
+    { value: 'POSTAL_CODE-H', key: 'postalCode' },
+    { value: 'NO_PHONE_NUMBER-H', key: 'phoneNumber' },
+    { value: 'POLITICAL_CASE-H', key: 'politicalCases' },
+    { value: 'BEHAVIORAL_PATTERN-H', key: 'behavioralPattern' },
+    { value: 'CONTEXT_SENSITIVE-H', key: 'contextualInformation' },
+    { value: 'CRIMINAL_RECORD-H', key: 'criminalRecord' },
+    { value: 'ECONOMIC_STATUS-H', key: 'economicStatus' },
+    { value: 'EMPLOYMENT_INFO-H', key: 'employmentInformation' },
+    { value: 'FAMILY_RELATION-H', key: 'familyRelated' },
+    { value: 'FINANCIAL_INFO-H', key: 'financialInformation' },
+    { value: 'HEALTH_INFO-H', key: 'healthInformation' },
+    { value: 'SEXUAL_ORIENTATION-H', key: 'sexualOrientation' },
+    { value: 'ANIMAL_INFO-H', key: 'animalRelatedInformation' },
 ];
+
+// Helper to build options with translation
+export function buildEntityOptions(entityKeys: { value: string, key: string }[], t: (ns: string, key: string) => string): OptionType[] {
+    return entityKeys.map(({ value, key }) => ({ value, label: t('entityDetection', key) }));
+}
+
+export const getPresidioOptions = (t: (ns: string, key: string) => string): OptionType[] => buildEntityOptions(PRESIDIO_ENTITY_KEYS, t);
+export const getGlinerOptions = (t: (ns: string, key: string) => string): OptionType[] => buildEntityOptions(GLINER_ENTITY_KEYS, t);
+export const getGeminiOptions = (t: (ns: string, key: string) => string): OptionType[] => buildEntityOptions(GEMINI_ENTITY_KEYS, t);
+export const getHidemeOptions = (t: (ns: string, key: string) => string): OptionType[] => buildEntityOptions(HIDEME_ENTITY_KEYS, t);
 
 // Define model colors for dots and other UI elements
 export const MODEL_COLORS = {
@@ -262,6 +269,24 @@ export function entitiesToOptions(entities: string[], availableOptions: OptionTy
         const optionText = option.value.toLowerCase();
         return entityTexts.has(optionText) || optionText.startsWith('ALL_');
     });
+}
+
+// Helper to get translation key and model for an entity value
+export function getEntityTranslationKeyAndModel(entityValue: string): { key: string | null, model: string | null } {
+    // Check each model's entity keys
+    for (const { value, key } of PRESIDIO_ENTITY_KEYS) {
+        if (value === entityValue || key === entityValue) return { key, model: 'presidio' };
+    }
+    for (const { value, key } of GLINER_ENTITY_KEYS) {
+        if (value === entityValue || key === entityValue) return { key, model: 'gliner' };
+    }
+    for (const { value, key } of GEMINI_ENTITY_KEYS) {
+        if (value === entityValue || key === entityValue) return { key, model: 'gemini' };
+    }
+    for (const { value, key } of HIDEME_ENTITY_KEYS) {
+        if (value === entityValue || key === entityValue) return { key, model: 'hideme' };
+    }
+    return { key: null, model: null };
 }
 
 

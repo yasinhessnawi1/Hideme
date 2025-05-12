@@ -12,6 +12,8 @@ import {getCorrectedBoundingBox} from "../../../utils/utilities";
 import { useNotification } from '../../../contexts/NotificationContext';
 import useBanList from '../../../hooks/settings/useBanList';
 import { createPortal } from 'react-dom';
+import { useLanguage } from '../../../contexts/LanguageContext';
+import { getEntityTranslationKeyAndModel } from '../../../utils/EntityUtils';
 
 interface HighlightContextMenuProps {
     highlight: HighlightRect;
@@ -39,6 +41,14 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
     const { runFindWords } = usePDFApi();
     const {notify, confirmWithText} = useNotification();
     const {addBanListWords} = useBanList();
+    const { t } = useLanguage();
+
+    // Helper to get translated entity name
+    const getTranslatedEntity = (entity: string | undefined) => {
+        if (!entity) return '';
+        const { key } = getEntityTranslationKeyAndModel(entity);
+        return key ? t('entityDetection', key) : entity;
+    };
 
     // Handle delete current highlight
     const handleDelete = () => {
@@ -58,7 +68,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             addBanListWords([highlight.text]);
             notify({
                 type: 'success',
-                message: 'Added to ignore list',
+                message: t('toolbar', 'addedToIgnoreList'),
                 position: 'top-right'
             });
             onClose();
@@ -66,21 +76,21 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
         }else {
            const text = await confirmWithText({
                 type: 'error',
-                title: 'No text to add to ignore list',
-                message: 'This type of highlight does not have text, please enter the text you want to add to the ignore list',
+                title: t('toolbar', 'noTextToAddToIgnoreListTitle'),
+                message: t('toolbar', 'noTextToAddToIgnoreListMessage'),
                 confirmButton: {
-                    label: 'Add to ignore list',
+                    label: t('toolbar', 'addToIgnoreList'),
                 },
-                    inputLabel: 'Text to add to ignore list',
-                    inputPlaceholder: 'Enter text to add to ignore list',
-                    inputType: 'text',
+                inputLabel: t('toolbar', 'inputLabel'),
+                inputPlaceholder: t('toolbar', 'inputPlaceholder'),
+                inputType: 'text',
             }
             );
             if(text) {
                 addBanListWords([text]);
                 notify({
                     type: 'success',
-                    message: 'Added to ignore list',
+                    message: t('toolbar', 'addedToIgnoreList'),
                     position: 'top-right'
                 });
                 onClose();
@@ -96,7 +106,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
         if (!highlight.entity || !highlight.fileKey) {
             notify({
                 type: 'error',
-                message: 'Delete All Same failed! Try refreshing the page!',
+                message: t('toolbar', 'deleteAllSameFailed'),
                 position: 'top-right'
             });
             onClose();
@@ -109,14 +119,14 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                 onClose();
                 notify({
                     type: 'success',
-                    message: 'All ' + entityType + ' highlights deleted!',
+                    message: t('toolbar', 'allHighlightsDeleted', { entity: entityType }),
                     position: 'top-right'
                 });
             })
             .catch(error => {
                 notify({
                     type: 'error',
-                    message: 'Delete All Same failed! Try refreshing the page!' + error.message,
+                    message: t('toolbar', 'deleteAllSameFailed') + ' ' + error.message,
                     position: 'top-right'
                 });
                 onClose();
@@ -130,7 +140,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
         if (!highlight.fileKey) {
             notify({
                 type: 'error',
-                message: 'Delete All Same failed! Try refreshing the page!',
+                message: t('toolbar', 'deleteAllSameFailed'),
                 position: 'top-right'
             });
             onClose();
@@ -196,13 +206,13 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                 if (totalDeleted > 0) {
                         notify({
                             type: 'success',
-                        message: 'Deleted highlights for ' + totalDeleted + ' text occurrences',
-                        position: 'top-right'
-                    });
+                            message: t('toolbar', 'deletedHighlightsForOccurrences', { count: totalDeleted }),
+                            position: 'top-right'
+                        });
                 } else {
                     notify({
                         type: 'error',
-                        message: 'No matching highlights found to delete',
+                        message: t('toolbar', 'noMatchingHighlightsFound'),
                         position: 'top-right'
                     });
                 }
@@ -210,7 +220,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
         } catch (error) {
                 notify({
                     type: 'error',
-                    message: 'Error removing highlights by text: ' + error.message,
+                    message: t('toolbar', 'errorRemovingHighlightsByText', { error: error.message }),
                     position: 'top-right'
                 });
         }
@@ -223,7 +233,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
         if (!highlight.fileKey) {
             notify({
                 type: 'error',
-                message: 'Highlight All Same failed! Try refreshing the page!',
+                message: t('toolbar', 'highlightAllSameFailed'),
                 position: 'top-right'
             });
             onClose();
@@ -297,20 +307,20 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                 if (totalCount > 0) {
                     notify({
                         type: 'success',
-                        message: 'Added ' + totalCount + ' highlights for text "' + textToHighlight + '"',
+                        message: t('toolbar', 'addedHighlightsForText', { count: totalCount, text: textToHighlight }),
                         position: 'top-right'
                     });
                 } else {
                     notify({
                         type: 'error',
-                        message: 'No additional occurrences of text "' + textToHighlight + '" found.',
-                })
-            }
+                        message: t('toolbar', 'noAdditionalOccurrencesFound', { text: textToHighlight }),
+                    })
+                }
             }
         } catch (error) {
             notify({
                 type: 'error',
-                message: 'Error highlighting all occurrences: ' + error.message,
+                message: t('toolbar', 'errorHighlightingAllOccurrences', { error: error.message }),
                 position: 'top-right'
             });
         }
@@ -398,7 +408,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                 }}>
                     <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)' }}>
                         {highlight.text ? `"${highlight.text.length > 15 ? highlight.text.substring(0, 15) + '...' : highlight.text}"` :
-                            highlight.entity ? `Entity: ${highlight.entity}` : 'Highlight'}
+                            highlight.entity ? `Entity: ${getTranslatedEntity(highlight.entity)}` : 'Highlight'}
                     </div>
                     <button
                         onClick={onClose}
@@ -418,7 +428,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
 
                 <div className="context-menu-item" onClick={handleDelete}>
                     <Trash2 size={16}/>
-                    <span>Delete</span>
+                    <span>{t('entityDetection', 'delete')}</span>
                 </div>
                 { showTextOptions && (
                     <>
@@ -427,24 +437,24 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                 {isEntityHighlight && (
                     <div className="context-menu-item" onClick={handleDeleteAllSameEntityType}>
                         <Trash2 size={16}/>
-                        <span>Delete All {highlight.entity}</span>
+                        <span>{t('toolbar', 'deleteAll', { entity: getTranslatedEntity(highlight.entity) })}</span>
                     </div>
                 )}
 
                 <div className="context-menu-item" onClick={handleDeleteAllSameText}>
                     <Trash2 size={16}/>
-                    <span>Delete All Same Text</span>
+                    <span>{t('toolbar', 'deleteAllSameText')}</span>
                 </div>
 
                 <div className="context-menu-item" onClick={handleHighlightAllSame}>
                     <Highlighter size={16}/>
-                    <span>Highlight All Same</span>
+                    <span>{t('toolbar', 'highlightAllSame')}</span>
                 </div>
                     </>
                 )}
                 <div className="context-menu-item" onClick={handleAddToBanList}>
                     <Ban size={16}/>
-                    <span>Add to Ignore List</span>
+                    <span>{t('toolbar', 'addToIgnoreList')}</span>
                 </div>
 
                 {highlight.entity && (

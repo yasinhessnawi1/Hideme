@@ -18,6 +18,7 @@ import AboutPage from "../pages/AboutPage";
 import UserSettingsPage from "../pages/SettingsPage";
 import ProtectedRoute from './ProtectedRoute';
 import { useUserContext } from '../contexts/UserContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 /**
  * Main router component that defines all application routes
@@ -33,6 +34,7 @@ import { useUserContext } from '../contexts/UserContext';
 const AppRouter = (): JSX.Element => {
     const { isAuthenticated, isLoading } = useUserContext();
     const [authChecked, setAuthChecked] = useState(false);
+    const { t } = useLanguage();
 
     // Wait for authentication state to stabilize before rendering routes that depend on it
     useEffect(() => {
@@ -46,7 +48,7 @@ const AppRouter = (): JSX.Element => {
         return (
             <div className="loading-container">
                 <div className="loading-spinner"></div>
-                <p>Initializing application...</p>
+                <p>{t('common', 'initializingApp')}</p>
             </div>
         );
     }

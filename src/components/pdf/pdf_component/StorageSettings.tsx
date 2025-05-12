@@ -5,6 +5,7 @@ import { Database, Trash2, HardDrive, AlertTriangle } from 'lucide-react';
 import {useLoading} from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
 import { useNotification } from '../../../contexts/NotificationContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 /**
  * Component for managing PDF storage persistence settings
@@ -19,6 +20,7 @@ const StorageSettings: React.FC = () => {
         files
     } = useFileContext();
     const {notify , confirm} = useNotification();
+    const { t } = useLanguage();
 
     const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
 
@@ -28,14 +30,14 @@ const StorageSettings: React.FC = () => {
         // If enabling and we have files, show a message about current files
         if (enabled && files.length > 0) {
             const confirmed = await confirm({
-                title: 'Enable PDF storage in your browser?',
-                message: 'Current PDFs will be stored and automatically loaded when you return to this page.',
+                title: t('pdf', 'enablePdfStorageTitle'),
+                message: t('pdf', 'enablePdfStorageMessage'),
                 type: 'info',
                 confirmButton: {
-                    label: 'Enable',
+                    label: t('common', 'enable'),
                 },
                 cancelButton: {
-                    label: 'Cancel',
+                    label: t('common', 'cancel'),
                 }
             });
             if (confirmed) {
@@ -52,7 +54,7 @@ const StorageSettings: React.FC = () => {
             await clearStoredFiles();
             notify({
                 type: 'success',
-                message: 'All PDFs have been cleared from your browser.',
+                message: t('pdf', 'allPdfsCleared'),
                 position: 'top-right'
             });
         } catch (error) {
@@ -66,7 +68,7 @@ const StorageSettings: React.FC = () => {
         <div className="storage-settings">
             <div className="storage-settings-header">
                 <Database size={18} />
-                <h4>PDF Storage</h4>
+                <h4>{t('pdf', 'pdfStorage')}</h4>
             </div>
 
             <div className="storage-toggle">
@@ -76,15 +78,15 @@ const StorageSettings: React.FC = () => {
                         checked={isStoragePersistenceEnabled}
                         onChange={handleTogglePersistence}
                     />
-                    <span className="toggle-label-text">Store PDFs in browser</span>
+                    <span className="toggle-label-text">{t('pdf', 'storePdfsInBrowser')}</span>
                 </label>
             </div>
 
             <div className="storage-description">
                 {isStoragePersistenceEnabled ? (
-                    <p>PDFs will be stored locally in your browser and automatically loaded when you return.</p>
+                    <p>{t('pdf', 'pdfsStoredLocally')}</p>
                 ) : (
-                    <p>PDFs are not being saved to your browser.</p>
+                    <p>{t('pdf', 'pdfsNotSaved')}</p>
                 )}
             </div>
 
@@ -92,7 +94,7 @@ const StorageSettings: React.FC = () => {
                 <div className="storage-stats">
                     <div className="storage-stats-header">
                         <HardDrive size={16} />
-                        <span>Storage Usage</span>
+                        <span>{t('pdf', 'storageUsage')}</span>
                     </div>
 
                     <div className="storage-usage">
@@ -103,8 +105,8 @@ const StorageSettings: React.FC = () => {
                             />
                         </div>
                         <div className="usage-text">
-                            {storageStats.totalSizeFormatted} used
-                            ({files.length} file{files.length !== 1 ? 's' : ''})
+                            {storageStats.totalSizeFormatted} {t('pdf', 'used')}
+                            ({files.length} {t('pdf', 'files')})
                         </div>
                     </div>
 
@@ -114,10 +116,9 @@ const StorageSettings: React.FC = () => {
                         disabled={files.length === 0 || globalLoading('file_storage.clean')}
                     >
 
-                        <LoadingWrapper isLoading={globalLoading('file_storage.clean')} overlay={true} fallback={'Clearing....'}
-                        >
+                        <LoadingWrapper isLoading={globalLoading('file_storage.clean')} overlay={true} fallback={t('pdf', 'clearing')}>
                             <Trash2 size={14} />
-                            {globalLoading('file_storage.clean') ? '' :  'Clear All PDFs'}
+                            {globalLoading('file_storage.clean') ? '' :  t('pdf', 'clearAllPdfs')}
                         </LoadingWrapper>
                     </button>
                 </div>
@@ -126,7 +127,7 @@ const StorageSettings: React.FC = () => {
             {/* Privacy notice */}
             <div className="privacy-notice">
                 <AlertTriangle size={14} />
-                <p>PDFs are stored only in your browser and are not sent to any server.</p>
+                <p>{t('settings', 'pdfsStoredOnlyInBrowser')}</p>
             </div>
 
         </div>

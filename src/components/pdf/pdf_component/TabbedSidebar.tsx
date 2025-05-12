@@ -4,6 +4,7 @@ import PageThumbnails from './PageThumbnails';
 import FileSelector from './FileSelector';
 import HistoryViewer from './HistoryViewer';
 import '../../../styles/modules/pdf/TabbedSidebar.css';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface TabbedSidebarProps {
     isSidebarCollapsed?: boolean;
@@ -13,6 +14,7 @@ type TabType = 'thumbnails' | 'files' | 'history';
 
 const TabbedSidebar: React.FC<TabbedSidebarProps> = ({ isSidebarCollapsed }) => {
     const [activeTab, setActiveTab] = useState<TabType>('thumbnails');
+    const { t } = useLanguage();
 
     // Listen for tab navigation events from toolbar or other components
     useEffect(() => {
@@ -47,26 +49,26 @@ const TabbedSidebar: React.FC<TabbedSidebarProps> = ({ isSidebarCollapsed }) => 
                 <button
                     className={`sidebar-tab ${activeTab === 'thumbnails' ? 'active' : ''}`}
                     onClick={() => setActiveTab('thumbnails')}
-                    title="Page Thumbnails"
+                    title={t('pdf', 'pageThumbnails')}
                 >
                     <Layers size={18} />
-                    <span className="tab-label">Pages</span>
+                    <span className="tab-label">{t('pdf', 'pages')}</span>
                 </button>
                 <button
                     className={`sidebar-tab ${activeTab === 'files' ? 'active' : ''}`}
                     onClick={() => setActiveTab('files')}
-                    title="PDF Files"
+                    title={t('pdf', 'pdfFiles')}
                 >
                     <File size={18} />
-                    <span className="tab-label">Files</span>
+                    <span className="tab-label">{t('pdf', 'files')}</span>
                 </button>
                 <button
                     className={`sidebar-tab ${activeTab === 'history' ? 'active' : ''}`}
                     onClick={() => setActiveTab('history')}
-                    title="Document History"
+                    title={t('pdf', 'documentHistory')}
                 >
                     <History size={18} />
-                    <span className="tab-label">History</span>
+                    <span className="tab-label">{t('pdf', 'documentHistory')}</span>
                 </button>
             </div>
 

@@ -8,6 +8,7 @@
 import React, { JSX, useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useUserContext } from '../contexts/UserContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 /**
  * Props for the ProtectedRoute component
@@ -40,6 +41,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     const [isVerifying, setIsVerifying] = useState(true);
     const [verificationComplete, setVerificationComplete] = useState(false);
     const [isVerified, setIsVerified] = useState(false);
+    const { t } = useLanguage();
 
     // Perform token verification when component mounts
     useEffect(() => {
@@ -93,7 +95,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return (
             <div className="loading-container">
                 <div className="loading-spinner"></div>
-                <p>Verifying your session...</p>
+                <p>{t('common', 'verifyingSession')}</p>
             </div>
         );
     }

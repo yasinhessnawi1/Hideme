@@ -8,8 +8,10 @@ import RedactionSidebar from "../components/pdf/pdf_component/RadactionSidebar"
 import Navbar from "../components/static/Navbar"
 import '../styles/modules/pdf/PDFViewerPage.css'
 import AutoProcessProvider from "../contexts/AutoProcessProvider";
+import { useLanguage } from '../contexts/LanguageContext';
 
 const PDFViewerPageContent: React.FC = () => {
+    const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<'detection' | 'search' | 'redact'>('detection')
     // Left sidebar state with hover functionality
     const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(true)
@@ -153,19 +155,19 @@ const PDFViewerPageContent: React.FC = () => {
                                 className={`tab-button ${activeTab === 'detection' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('detection')}
                             >
-                                Detection
+                                {t('pdf', 'detection')}
                             </button>
                             <button
                                 className={`tab-button ${activeTab === 'search' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('search')}
                             >
-                                Search
+                                {t('pdf', 'search')}
                             </button>
                             <button
                                 className={`tab-button ${activeTab === 'redact' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('redact')}
                             >
-                                Redact
+                                {t('redaction', 'redactTab')}
                             </button>
                         </div>
 
@@ -188,6 +190,7 @@ const PDFViewerPageContent: React.FC = () => {
 };
 
 const PDFViewerPage = () => {
+    const { t } = useLanguage();
     return (
 
         <AutoProcessProvider>

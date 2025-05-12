@@ -5,7 +5,10 @@ import {useLoading} from "../../../contexts/LoadingContext"; // Adjust path if n
 import LoadingWrapper from "../../common/LoadingWrapper";
 import { useNotification } from "../../../contexts/NotificationContext";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from '../../../contexts/LanguageContext';
+
 export default function AccountSettings() {
+    const { t } = useLanguage();
     const {
         user,
         updateUserProfile,
@@ -67,13 +70,13 @@ export default function AccountSettings() {
                 email: email,
             });
             notify({
-                message: "Profile updated successfully!",
+                message: t('account', 'profileUpdated'),
                 type: 'success',
                 duration: 3000
             });
         } catch (err: any) {
             notify({
-                message: (err.userMessage ?? err.message) ?? "Failed to update profile.",
+                message: (err.userMessage ?? err.message) ?? t('errors', 'failedToUpdateProfile'),
                 type: 'error',
                 duration: 3000
             });
@@ -89,7 +92,7 @@ export default function AccountSettings() {
 
         if (!currentPassword) {
             notify({
-                message: "Current password is required",
+                message: t('account', 'currentPasswordRequired'),
                 type: 'error',
                 duration: 3000
             });
@@ -97,7 +100,7 @@ export default function AccountSettings() {
         }
         if (newPassword !== confirmPassword) {
             notify({
-                message: "New passwords don't match",
+                message: t('account', 'passwordsDoNotMatch'),
                 type: 'error',
                 duration: 3000
             });
@@ -105,7 +108,7 @@ export default function AccountSettings() {
         }
         if (newPassword.length < 8) {
             notify({
-                message: "Password must be at least 8 characters",
+                message: t('account', 'passwordTooShort'),
                 type: 'error',
                 duration: 3000
             });
@@ -126,7 +129,7 @@ export default function AccountSettings() {
             setTimeout(() => setPasswordSuccess(false), 3000);
         } catch (err: any) {
             notify({
-                message: (err.userMessage ?? err.message) ?? "Failed to change password.",
+                message: (err.userMessage ?? err.message) ?? t('errors', 'failedToChangePassword'),
                 type: 'error',
                 duration: 3000
             });
@@ -141,7 +144,7 @@ export default function AccountSettings() {
 
         if (deleteConfirmText !== "DELETE") {
             notify({
-                message: "Please type 'DELETE' to confirm.",
+                message: t('account', 'deleteConfirmationText'),
                 type: 'error',
                 duration: 3000
             });
@@ -149,7 +152,7 @@ export default function AccountSettings() {
         }
         if (!deletePassword) {
             notify({
-                message: "Password is required to delete your account.",
+                message: t('account', 'passwordRequiredForDeletion'),
                 type: 'error',
                 duration: 3000
             });
@@ -166,13 +169,13 @@ export default function AccountSettings() {
             });
             // Logout should be handled by useUser/AuthService after successful deletion
             notify({
-                message: "Account deletion initiated. You will be logged out.",
+                message: t('account', 'accountDeletionInitiated'),
                 type: 'success',
                 duration: 3000
             });
         } catch (err: any) {
             notify({
-                message: (err.userMessage ?? err.message) ?? "Failed to delete account. Check your password.",
+                message: (err.userMessage ?? err.message) ?? t('errors', 'failedToDeleteAccount'),
                 type: 'error',
                 duration: 3000
             });
@@ -189,8 +192,8 @@ export default function AccountSettings() {
             {/* Profile Information Card */}
             <div className="card">
                 <div className="card-header">
-                    <h2 className="card-title">Profile Information</h2>
-                    <p className="card-description">Update your personal information</p>
+                    <h2 className="card-title">{t('account', 'profileInformation')}</h2>
+                    <p className="card-description">{t('account', 'updatePersonalInformation')}</p>
                 </div>
                 <div className="card-content">
                     <div className="flex flex-col md:flex-row gap-6">
@@ -198,20 +201,20 @@ export default function AccountSettings() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="form-group">
                                     <label className="form-label" htmlFor="username">
-                                       Username
+                                       {t('account', 'username')}
                                     </label>
                                     <input
                                         className="form-input"
                                         id="username"
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value)}
-                                        placeholder="Enter your username"
+                                        placeholder={t('account', 'usernamePlaceholder')}
                                         disabled={isLoading}
                                     />
                                 </div>
                                 <div className="form-group">
                                 <label className="form-label" htmlFor="email">
-                                    Email Address
+                                    {t('account', 'email')}
                                 </label>
                                 <input
                                     className="form-input"
@@ -219,7 +222,7 @@ export default function AccountSettings() {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="Enter your email address"
+                                    placeholder={t('account', 'emailPlaceholder')}
                                     disabled={isLoading}
                                 />
                             </div>
@@ -231,9 +234,9 @@ export default function AccountSettings() {
                                     onClick={handleProfileSave}
                                     disabled={isLoading}
                                 >
-                                    <LoadingWrapper isLoading={isLoading} fallback="Saving...">
+                                    <LoadingWrapper isLoading={isLoading} fallback={t('common', 'loading')}>
                                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Save size={16} className="button-icon" />}
-                                    {isLoading ? 'Saving...' : 'Save Profile'}
+                                    {isLoading ? t('common', 'loading') : t('account', 'saveProfile')}
                                     </LoadingWrapper>
                                     
                                 </button>
@@ -246,15 +249,15 @@ export default function AccountSettings() {
             {/* Change Password Card */}
             <div className="card">
                 <div className="card-header">
-                    <h2 className="card-title">Change Password</h2>
-                    <p className="card-description">Update your password for security</p>
+                    <h2 className="card-title">{t('account', 'changePassword')}</h2>
+                    <p className="card-description">{t('account', 'updatePasswordDescription')}</p>
                 </div>
                 <div className="card-content space-y-4">
                     {passwordError && (
                         <div className="alert alert-destructive">
                             <AlertCircle className="alert-icon" size={16} />
                             <div>
-                                <div className="alert-title">Error</div>
+                                <div className="alert-title">{t('common', 'error')}</div>
                                 <div className="alert-description">{passwordError}</div>
                             </div>
                         </div>
@@ -262,15 +265,15 @@ export default function AccountSettings() {
                     {passwordSuccess && (
                         <div className="alert alert-success">
                             <div>
-                                <div className="alert-title">Success</div>
-                                <div className="alert-description">Password updated successfully!</div>
+                                <div className="alert-title">{t('common', 'success')}</div>
+                                <div className="alert-description">{t('account', 'passwordUpdated')}</div>
                             </div>
                         </div>
                     )}
 
                     <div className="form-group">
                         <label className="form-label" htmlFor="currentPassword">
-                            Current Password
+                            {t('account', 'currentPassword')}
                         </label>
                         <input
                             className="form-input"
@@ -280,14 +283,14 @@ export default function AccountSettings() {
                             type="password"
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}
-                            placeholder="Enter your current password"
+                            placeholder={t('account', 'currentPasswordPlaceholder')}
                             disabled={isLoading}
                         />
                     </div>
 
                     <div className="form-group">
                         <label className="form-label" htmlFor="newPassword">
-                            New Password
+                            {t('account', 'newPassword')}
                         </label>
                         <input
                             className="form-input"
@@ -295,14 +298,14 @@ export default function AccountSettings() {
                             type="password"
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
-                            placeholder="Enter minimum 8 characters"
+                            placeholder={t('account', 'newPasswordPlaceholder')}
                             disabled={isLoading}
                         />
                     </div>
 
                     <div className="form-group">
                         <label className="form-label" htmlFor="confirmPassword">
-                            Confirm New Password
+                            {t('account', 'confirmNewPassword')}
                         </label>
                         <input
                             className="form-input"
@@ -310,7 +313,7 @@ export default function AccountSettings() {
                             type="password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder="Confirm your new password"
+                            placeholder={t('account', 'confirmNewPasswordPlaceholder')}
                             disabled={isLoading}
                         />
                     </div>
@@ -321,7 +324,7 @@ export default function AccountSettings() {
                         disabled={isLoading || !currentPassword || !newPassword || !confirmPassword}
                     >
                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Save size={16} className="button-icon" />}
-                        {isLoading ? 'Updating...' : 'Update Password'}
+                        {isLoading ? t('common', 'loading') : t('account', 'updatePassword')}
                     </button>
                 </div>
             </div>
@@ -329,23 +332,23 @@ export default function AccountSettings() {
             {/* Danger Zone Card */}
             <div className="card">
                 <div className="card-header">
-                    <h2 className="card-title">Danger Zone</h2>
-                    <p className="card-description">Irreversible actions</p>
+                    <h2 className="card-title">{t('account', 'dangerZone')}</h2>
+                    <p className="card-description">{t('account', 'irreversibleActions')}</p>
                 </div>
                 <div className="card-content">
                     <div className="border border-destructive rounded-md p-4">
-                        <h3 className="text-lg font-medium text-destructive">Delete Account</h3>
+                        <h3 className="text-lg font-medium text-destructive">{t('account', 'deleteAccount')}</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Permanently delete your account and all associated data. This cannot be undone.
+                            {t('account', 'deleteAccountDescription')}
                         </p>
                             <div className="mt-4 space-y-3">
-                                <p className="text-sm font-medium">Type "DELETE" and enter your password to confirm:</p>
+                                <p className="text-sm font-medium">{t('account', 'typeDeleteToConfirm')}</p>
                                 <input
                                     className="form-input"
                                     type="text"
                                     value={deleteConfirmText}
                                     onChange={(e) => setDeleteConfirmText(e.target.value)}
-                                    placeholder='Type "DELETE" here'
+                                    placeholder={t('account', 'typeDeleteHerePlaceholder')}
                                     disabled={isLoading}
                                 />
                                 <input
@@ -353,7 +356,7 @@ export default function AccountSettings() {
                                     type="password"
                                     value={deletePassword}
                                     onChange={(e) => setDeletePassword(e.target.value)}
-                                    placeholder="Enter your password"
+                                    placeholder={t('account', 'passwordPlaceholder')}
                                     disabled={isLoading}
                                 />
                                 <div className="flex gap-3">
@@ -363,14 +366,14 @@ export default function AccountSettings() {
                                         disabled={isLoading || deleteConfirmText !== 'DELETE' || !deletePassword}
                                     >
                                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                                        {isLoading ? 'Deleting...' : 'Confirm Deletion'}
+                                        {isLoading ? t('common', 'loading') : t('account', 'confirmDeletion')}
                                     </button>
                                     <button
                                         className="button button-outline"
                                         onClick={() => setShowDeleteConfirm(false)}
                                         disabled={isLoading}
                                     >
-                                        Cancel
+                                        {t('common', 'cancel')}
                                     </button>
                                 </div>
                             </div>

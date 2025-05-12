@@ -9,8 +9,10 @@ import BanListSettings from "./tabs/BanListSettings";
 import '../../styles/SettingsPage.css'; // Ensure this path is correct
 import useSettings from "../../hooks/settings/useSettings"; // Ensure this path is correct
 import { useLoading } from "../../contexts/LoadingContext";
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function SettingsLayout() {
+    const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState("general");
     const { isLoading: isUserLoading, error: userError, settings, getSettings } = useSettings();
     const navigate = useNavigate();
@@ -83,22 +85,22 @@ export default function SettingsLayout() {
             <button
                 onClick={handleGoBack}
                 className="go-back-button"
-                aria-label="Go back"
-                title="Go back to previous page"
+                aria-label={t('settings', 'goBack')}
+                title={t('settings', 'goBackToPreviousPage')}
             >
                 <ArrowLeft size={24} />
             </button>
 
             <div className="max-w-5xl mx-auto">
                 <div className="mb-6 mt-2">
-                    <h1 className="text-3xl font-bold">Settings</h1>
-                    <p className="text-muted-foreground mt-1">Manage your account settings and preferences</p>
+                    <h1 className="text-3xl font-bold">{t('settings', 'title')}</h1>
+                    <p className="text-muted-foreground mt-1">{t('settings', 'manageAccountSettings')}</p>
                 </div>
 
                 {globalLoading(['setting.general']) && (
                     <div className="flex justify-center items-center py-10">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <span className="ml-2 text-muted-foreground">Loading settings...</span>
+                        <span className="ml-2 text-muted-foreground">{t('settings', 'loadingSettings')}</span>
                     </div>
                 )}
 
@@ -111,35 +113,35 @@ export default function SettingsLayout() {
                                 data-state={activeTab === "general" ? "active" : "inactive"}
                                 onClick={() => setActiveTab("general")}
                             >
-                                General
+                                {t('settings', 'generalSettings')}
                             </button>
                             <button
                                 className="tab-trigger"
                                 data-state={activeTab === "account" ? "active" : "inactive"}
                                 onClick={() => setActiveTab("account")}
                             >
-                                Account
+                                {t('settings', 'account')}
                             </button>
                             <button
                                 className="tab-trigger"
                                 data-state={activeTab === "entity" ? "active" : "inactive"}
                                 onClick={() => setActiveTab("entity")}
                             >
-                                Entities List
+                                {t('settings', 'entitiesList')}
                             </button>
                             <button
                                 className="tab-trigger"
                                 data-state={activeTab === "search" ? "active" : "inactive"}
                                 onClick={() => setActiveTab("search")}
                             >
-                                Search List
+                                {t('settings', 'searchList')}
                             </button>
                             <button
                                 className="tab-trigger"
                                 data-state={activeTab === "banlist" ? "active" : "inactive"}
                                 onClick={() => setActiveTab("banlist")}
                             >
-                                Ignore List
+                                {t('settings', 'ignoreList')}
                             </button>
                         </div>
 

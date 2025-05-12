@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNotification, ToastNotification, NotificationPosition } from '../../contexts/NotificationContext';
 import { AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
+import { useLanguage } from '../../utils/i18n';
 import '../../styles/components/Notifications.css';
 
 // Animation component for smooth transitions
@@ -10,7 +11,8 @@ const AnimatedToast: React.FC<{
     onRemove: (id: string) => void;
 }> = ({ toast, onRemove }) => {
     const [isLeaving, setIsLeaving] = useState(false);
-
+    const { t } = useLanguage();
+    
     const handleRemove = () => {
         setIsLeaving(true);
         // Wait for animation to complete before actually removing
@@ -33,7 +35,7 @@ const AnimatedToast: React.FC<{
             <button
                 className="toast-close"
                 onClick={handleRemove}
-                aria-label="Close notification"
+                aria-label={t('notifications', 'close_notification')}
             >
                 <X size={14} />
             </button>
@@ -44,6 +46,7 @@ const AnimatedToast: React.FC<{
 // Main component that renders all toasts
 export const ToastContainer: React.FC = () => {
     const { toasts, removeToast } = useNotification();
+    const { t } = useLanguage();
 
     // Group toasts by position
     const toastsByPosition = toasts.reduce((acc, toast) => {
@@ -59,7 +62,7 @@ export const ToastContainer: React.FC = () => {
     return (
         <>
             {Object.entries(toastsByPosition).map(([position, positionToasts]) => (
-                <div key={position} className={`toast-container toast-${position}`}>
+                <div key={position} className={`toast-container toast-${position}`} aria-label={t('notifications', 'toast_position').replace('{position}', position)}>
                     {positionToasts.map(toast => (
                         <AnimatedToast
                             key={toast.id}
@@ -76,6 +79,7 @@ export const ToastContainer: React.FC = () => {
 // Component to render the confirmation dialog
 export const ConfirmationDialog: React.FC = () => {
     const { confirmation, closeConfirmation } = useNotification();
+    const { t } = useLanguage();
 
     // No confirmation to show
     if (!confirmation) return null;
@@ -93,33 +97,33 @@ export const ConfirmationDialog: React.FC = () => {
     }, [closeConfirmation]);
 
     return (
-        <div className="confirmation-overlay" onClick={closeConfirmation}>
+        <div className="confirmation-overlay" onClick={closeConfirmation} aria-label={t('notifications', 'confirmation_overlay')}>
             <div
                 className={`confirmation-dialog confirmation-${confirmation.type}`}
                 onClick={e => e.stopPropagation()}
             >
                 <div className="confirmation-header">
-                    <h3 className="confirmation-title">{confirmation.title}</h3>
+                    <h3 className="confirmation-title">{t('notifications', confirmation.title || '')}</h3>
                     <button
                         className="confirmation-close"
                         onClick={closeConfirmation}
-                        aria-label="Close dialog"
+                        aria-label={t('notifications', 'close_dialog')}
                     >
                         <X size={18} />
                     </button>
                 </div>
 
                 <div className="confirmation-content">
-                    <p>{confirmation.message}</p>
+                    <p>{t('notifications', confirmation.message || '')}</p>
                     {confirmation.inputLabel && (
                         <div className="confirmation-input-group">
                             <label className="confirmation-input-label">
-                                {confirmation.inputLabel}
+                                {t('notifications', confirmation.inputLabel || '')}
                             </label>
                             <input
                                 className="confirmation-input"
                                 type={confirmation.inputType || "text"}
-                                placeholder={confirmation.inputPlaceholder}
+                                placeholder={t('notifications', confirmation.inputPlaceholder || '')}
                                 defaultValue={confirmation.inputDefaultValue}
                                 autoFocus
                                 onChange={e => confirmation.onInputChange?.(e.target.value)}
@@ -140,7 +144,7 @@ export const ConfirmationDialog: React.FC = () => {
                                 closeConfirmation();
                             }}
                         >
-                            {button.label}
+                            {t('notifications', button.label || '')}
                         </button>
                     ))}
 
@@ -150,7 +154,7 @@ export const ConfirmationDialog: React.FC = () => {
                             className={`confirmation-button confirmation-button-${confirmation.cancelButton.variant || 'secondary'}`}
                             onClick={confirmation.cancelButton.onClick}
                         >
-                            {confirmation.cancelButton.label}
+                            {t('notifications', (confirmation.cancelButton.label || 'cancel'))}
                         </button>
                     )}
 
@@ -161,7 +165,7 @@ export const ConfirmationDialog: React.FC = () => {
                             onClick={confirmation.confirmButton.onClick}
                             autoFocus
                         >
-                            {confirmation.confirmButton.label}
+                            {t('notifications', (confirmation.confirmButton.label || 'confirm'))}
                         </button>
                     )}
                 </div>

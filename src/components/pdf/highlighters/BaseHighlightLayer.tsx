@@ -8,6 +8,9 @@ import {usePDFViewerContext} from '../../../contexts/PDFViewerContext';
 import HighlightContextMenu from './HighlightContextMenu';
 import '../../../styles/modules/pdf/HighlightLayer.css';
 import {HighlightRect, HighlightType} from '../../../types/pdfTypes';
+import { getEntityTranslationKeyAndModel } from '../../../utils/EntityUtils';
+import { useLanguage } from '../../../contexts/LanguageContext';
+import { TranslationKey, NestedTranslationKey } from '../../../utils/i18n/translations';
 
 interface BaseHighlightLayerProps {
     pageNumber: number;
@@ -32,6 +35,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
     const { removeHighlight } = useHighlightStore();
     const { isEditingMode, getColorForModel, getSearchColor, selectedHighlightId, setSelectedHighlightId, selectedHighlightIds, setSelectedHighlightIds } = useEditContext();
     const { zoomLevel } = usePDFViewerContext();
+    const { t } = useLanguage();
     // State for selections and context menu
     const [hoveredAnnotation, setHoveredAnnotation] = useState<{
         annotation: HighlightRect;
@@ -247,7 +251,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                         zIndex: 1000,
                     }}
                 >
-                    {getTooltipContent(hoveredAnnotation.annotation)}
+                    {getTooltipContent(hoveredAnnotation.annotation, t)}
                 </div>
             )}
 
@@ -265,16 +269,33 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
 };
 
 // Helper function for tooltip content
-function getTooltipContent(highlight: HighlightRect): string {
+function getTooltipContent(
+  highlight: HighlightRect,
+  t: <T extends TranslationKey, K extends NestedTranslationKey<T>>(
+    category: T,
+    key: K,
+    params?: Record<string, string | number>
+  ) => string
+): string {
     if (highlight.type === 'ENTITY' && highlight.entity) {
+        const { key } = getEntityTranslationKeyAndModel(highlight.entity);
+        const translated = key ? t('entityDetection', key as NestedTranslationKey<'entityDetection'>) : highlight.entity;
         const model = highlight.model ? ` (${highlight.model})` : '';
-        return `Entity: ${highlight.entity}${model}`;
+        // Translate 'Entity'
+        const entityLabel = t('entityDetection', 'entity' as NestedTranslationKey<'entityDetection'>) || 'Entity';
+        return `${entityLabel}: ${translated}${model}`;
     } else if (highlight.type === 'SEARCH' && highlight.text) {
-        return `Search: "${highlight.text}"`;
+        // Translate 'Search'
+        const searchLabel = t('entityDetection', 'search' as NestedTranslationKey<'entityDetection'>) || 'Search';
+        return `${searchLabel}: "${highlight.text}"`;
     } else if (highlight.text && highlight.type === HighlightType.MANUAL) {
-        return highlight.type + ': ' + highlight.text;
+        // Translate 'Highlight'
+        const highlightLabel = t('entityDetection', 'highlight' as NestedTranslationKey<'entityDetection'>) || 'Highlight';
+        return `${highlightLabel}: ${highlight.text}`;
     } else {
-        return highlight.type ?? 'Highlight';
+        // Translate 'Highlight'
+        const highlightLabel = t('entityDetection', 'highlight' as NestedTranslationKey<'entityDetection'>) || 'Highlight';
+        return highlight.type ? highlightLabel : 'Highlight';
     }
 }
 

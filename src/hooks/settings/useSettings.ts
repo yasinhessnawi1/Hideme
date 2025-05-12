@@ -18,6 +18,7 @@ import { UserSettings, UserSettingsUpdate } from '../../types';
 import authStateManager from '../../managers/authStateManager';
 import { SettingsExport } from './useDocument';
 import authService from '../../services/authService';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export interface UseSettingsReturn {
     // User settings state
@@ -59,6 +60,8 @@ export const useSettings = (): UseSettingsReturn => {
 
     // Track settings fetch to prevent duplicate requests
     const fetchInProgressRef = useRef<boolean>(false);
+
+    const { t } = useLanguage();
 
     /**
      * Clear error messages
@@ -131,12 +134,12 @@ export const useSettings = (): UseSettingsReturn => {
 
             return updatedSettings;
         } catch (error: any) {
-            setError(error.userMessage ?? 'Failed to update settings');
+            setError(error.userMessage ?? t('errors', 'failedToUpdateSettings'));
             throw error;
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticatedOrCached, clearError]);
+    }, [isAuthenticatedOrCached, clearError, t]);
 
     /**
      * Export user settings to a file

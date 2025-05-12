@@ -8,8 +8,9 @@ interface ThemeToggleProps {
 }
 
 const ThemeToggler: React.FC<ThemeToggleProps> = ({ isDarkMode, toggleTheme }) => {
+    const { t } = require('../../contexts/LanguageContext').useLanguage();
     return (
-        <button className="theme-toggle" onClick={toggleTheme}>
+        <button className="theme-toggle" onClick={toggleTheme} aria-label={t('settings', isDarkMode ? 'light' : 'dark')}>
             {isDarkMode ? <Sun className="theme-icon" /> : <Moon className="theme-icon" />}
         </button>
     )

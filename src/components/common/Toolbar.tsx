@@ -1,12 +1,44 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { IconType } from 'react-icons';
 import '../../styles/modules/pdf/Toolbar.css';
+import { useLanguage } from '../../contexts/LanguageContext';
+
 export type ToolbarSectionAlignment = 'left' | 'center' | 'right';
+
+export type ToolbarTranslationKey =
+  | 'zoomIn'
+  | 'zoomOut'
+  | 'fitToWidth'
+  | 'fitToPage'
+  | 'rotateClockwise'
+  | 'rotateCounterClockwise'
+  | 'previousPage'
+  | 'nextPage'
+  | 'annotations'
+  | 'bookmarks'
+  | 'addedToIgnoreList'
+  | 'noTextToAddToIgnoreListTitle'
+  | 'noTextToAddToIgnoreListMessage'
+  | 'addToIgnoreList'
+  | 'inputLabel'
+  | 'inputPlaceholder'
+  | 'deleteAllSameFailed'
+  | 'allHighlightsDeleted'
+  | 'deletedHighlightsForOccurrences'
+  | 'noMatchingHighlightsFound'
+  | 'errorRemovingHighlightsByText'
+  | 'highlightAllSameFailed'
+  | 'addedHighlightsForText'
+  | 'noAdditionalOccurrencesFound'
+  | 'errorHighlightingAllOccurrences'
+  | 'deleteAll'
+  | 'deleteAllSameText'
+  | 'highlightAllSame';
 
 export interface ToolbarButtonProps {
   icon: React.ReactNode;
-  label?: string;
-  title: string;
+  label?: ToolbarTranslationKey;
+  title: ToolbarTranslationKey;
   onClick: (e: React.MouseEvent) => void;
   disabled?: boolean;
   active?: boolean;
@@ -16,7 +48,7 @@ export interface ToolbarButtonProps {
 export interface ToolbarDropdownItem {
   id: string;
   type: 'checkbox' | 'button' | 'color' | 'divider' | 'custom';
-  label?: string;
+  label?: ToolbarTranslationKey;
   checked?: boolean;
   onClick?: (e: React.MouseEvent) => void;
   onChange?: (value: any) => void;
@@ -26,8 +58,8 @@ export interface ToolbarDropdownItem {
 
 export interface ToolbarDropdownProps {
   icon: React.ReactNode;
-  label?: string;
-  title: string;
+  label?: ToolbarTranslationKey;
+  title: ToolbarTranslationKey;
   items: ToolbarDropdownItem[];
   sectionTitle?: string;
   className?: string;
@@ -60,15 +92,16 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   active = false,
   className = '',
 }) => {
+  const { t } = useLanguage();
   return (
     <button
       onClick={onClick}
       className={`toolbar-button ${active ? 'active' : ''} ${className}`}
-      title={title}
+      title={title ? t('toolbar', title) : undefined}
       disabled={disabled}
     >
       {icon}
-      {label && <span className="button-label">{label}</span>}
+      {label && <span className="button-label">{isToolbarTranslationKey(label) ? t('toolbar', label) : label}</span>}
     </button>
   );
 };
@@ -82,6 +115,7 @@ const ToolbarDropdown: React.FC<ToolbarDropdownProps> = ({
   sectionTitle,
   className = '',
 }) => {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -115,10 +149,10 @@ const ToolbarDropdown: React.FC<ToolbarDropdownProps> = ({
         ref={buttonRef}
         onClick={toggleMenu}
         className="toolbar-button"
-        title={title}
+        title={title ? t('toolbar', title) : undefined}
       >
         {icon}
-        {label && <span className="button-label">{label}</span>}
+        {label && <span className="button-label">{isToolbarTranslationKey(label) ? t('toolbar', label) : label}</span>}
       </button>
 
       {isOpen && (
@@ -127,7 +161,7 @@ const ToolbarDropdown: React.FC<ToolbarDropdownProps> = ({
           ref={menuRef}
           onClick={(e) => e.stopPropagation()}
         >
-          {sectionTitle && <h5 className="dropdown-title">{sectionTitle}</h5>}
+          {sectionTitle && <h5 className="dropdown-title">{isToolbarTranslationKey(sectionTitle) ? t('toolbar', sectionTitle) : sectionTitle}</h5>}
 
           {items.map((item) => {
             if (item.type === 'divider') {
@@ -153,19 +187,19 @@ const ToolbarDropdown: React.FC<ToolbarDropdownProps> = ({
                       onChange={item.onChange ? (e) => item.onChange?.(e.target.checked) : undefined}
                       readOnly={!item.onChange}
                     />
-                    {item.label}
+                    {item.label ? (isToolbarTranslationKey(item.label) ? t('toolbar', item.label) : item.label) : null}
                   </label>
                 )}
 
                 {item.type === 'button' && (
                   <button onClick={item.onClick}>
-                    {item.label}
+                    {item.label ? (isToolbarTranslationKey(item.label) ? t('toolbar', item.label) : item.label) : null}
                   </button>
                 )}
 
                 {item.type === 'color' && (
                   <label onClick={(e) => e.stopPropagation()}>
-                    {item.label}
+                    {item.label ? (isToolbarTranslationKey(item.label) ? t('toolbar', item.label) : item.label) : null}
                     <input
                       type="color"
                       value={item.colorValue}
@@ -224,6 +258,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
   maxZoom = 3.0,
   zoomStep = 0.2,
 }) => {
+  const { t } = useLanguage();
   const handleZoomIn = useCallback(() => {
     setZoomLevel(Math.min(zoomLevel + zoomStep, maxZoom));
   }, [zoomLevel, zoomStep, maxZoom, setZoomLevel]);
@@ -240,7 +275,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
     <>
       <ToolbarButton
         icon={<span>-</span>}
-        title="Zoom Out"
+        title={"zoomOut"}
         onClick={handleZoomOut}
         disabled={zoomLevel <= minZoom}
       />
@@ -249,20 +284,33 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
 
       <ToolbarButton
         icon={<span>+</span>}
-        title="Zoom In"
+        title={"zoomIn"}
         onClick={handleZoomIn}
         disabled={zoomLevel >= maxZoom}
       />
 
       <ToolbarButton
-        label="Reset"
-        title="Reset Zoom"
+        label={"fitToPage"}
+        title={"fitToPage"}
         icon={<></>}
         onClick={handleZoomReset}
       />
     </>
   );
 };
+
+// Add this helper function at the top of the file
+function isToolbarTranslationKey(key: any): key is ToolbarTranslationKey {
+  return [
+    'zoomIn', 'zoomOut', 'fitToWidth', 'fitToPage', 'rotateClockwise', 'rotateCounterClockwise',
+    'previousPage', 'nextPage', 'annotations', 'bookmarks', 'addedToIgnoreList',
+    'noTextToAddToIgnoreListTitle', 'noTextToAddToIgnoreListMessage', 'addToIgnoreList',
+    'inputLabel', 'inputPlaceholder', 'deleteAllSameFailed', 'allHighlightsDeleted',
+    'deletedHighlightsForOccurrences', 'noMatchingHighlightsFound', 'errorRemovingHighlightsByText',
+    'highlightAllSameFailed', 'addedHighlightsForText', 'noAdditionalOccurrencesFound',
+    'errorHighlightingAllOccurrences', 'deleteAll', 'deleteAllSameText', 'highlightAllSame'
+  ].includes(key);
+}
 
 // Export all components
 export {

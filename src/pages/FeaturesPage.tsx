@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Navbar from '../components/static/Navbar';
 import '../styles/FeaturesPage.css';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface OptionType {
     value: string;
@@ -28,6 +29,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
                                                      precision,
                                                  }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const { t } = useLanguage();
 
     return (
         <div className={`feature-card ${isExpanded ? 'expanded' : ''}`}>
@@ -35,24 +37,24 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
                 <div className="feature-icon">{icon}</div>
                 <h3>{title}</h3>
                 <div className={`data-safety-badge ${isSafeForData ? 'safe' : 'not-safe'}`}>
-                    {isSafeForData ? 'Safe for Data' : 'Not Safe for Data'}
+                    {isSafeForData ? t('features', 'safeForData') : t('features', 'notSafeForData')}
                 </div>
             </div>
 
             <p className="feature-description">{description}</p>
 
             <div className="feature-precision">
-                <strong>Precision & Accuracy:</strong> {precision}
+                <strong>{t('features', 'precisionAndAccuracy')}</strong> {precision}
             </div>
 
             <div className="feature-entities-preview">
-                <strong>Supported Entities:</strong>
+                <strong>{t('features', 'supportedEntities')}</strong>
                 <div className="entity-tags">
                     {entities.slice(0, 5).map((entity, index) => (
                         <span key={index} className="entity-tag">{entity.label}</span>
                     ))}
                     {entities.length > 5 && (
-                        <span className="entity-tag more-tag">{`+${entities.length - 5} more`}</span>
+                        <span className="entity-tag more-tag">{t('features', 'moreEntities').replace('{count}', String(entities.length - 5))}</span>
                     )}
                 </div>
             </div>
@@ -61,12 +63,12 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
                 className="view-all-button"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
-                {isExpanded ? 'Show Less' : 'View All Entities'}
+                {isExpanded ? t('features', 'showLess') : t('features', 'viewAllEntities')}
             </button>
 
             {isExpanded && (
                 <div className="expanded-entities">
-                    <h4>All Supported Entities</h4>
+                    <h4>{t('features', 'allSupportedEntities')}</h4>
                     <div className="entity-grid">
                         {entities.map((entity, index) => (
                             <div key={index} className="entity-item">
@@ -97,6 +99,7 @@ const ToolFeatureCard: React.FC<{ title: string; description: string; icon: stri
 };
 
 const FeaturesPage= () => {
+    const { t } = useLanguage();
     // Presidio ML entity options
     const presidioOptions: OptionType[] = [
         { value: 'CRYPTO', label: 'Crypto Wallet' },
@@ -176,124 +179,120 @@ const FeaturesPage= () => {
 
             <div className="features-hero">
                 <div className="features-hero-content">
-                    <h1>HideMeAI Features</h1>
+                    <h1>{t('features', 'featuresTitle')}</h1>
                     <p>
-                        Discover the powerful capabilities of our privacy-focused document redaction platform.
-                        HideMeAI offers multiple detection methods and tools to ensure your sensitive data
-                        remains protected.
+                        {t('features', 'featuresDescription')}
                     </p>
                 </div>
             </div>
 
             <div className="features-container">
                 <section className="tools-section">
-                    <h2>Redaction Tools</h2>
+                    <h2>{t('features', 'redactionTools')}</h2>
                     <p className="section-description">
-                        Our platform offers various tools to help you identify and redact sensitive information
-                        in your documents with precision and ease.
+                        {t('features', 'toolsSectionDescription')}
                     </p>
 
                     <div className="tools-grid">
                         <ToolFeatureCard
-                            title="Manual Highlighting"
+                            title={t('features', 'manualHighlightingTitle')}
                             icon="✏️"
-                            description="Select and highlight specific content you want to redact with our intuitive interface."
+                            description={t('features', 'manualHighlightingDescription')}
                         />
                         <ToolFeatureCard
-                            title="Search Highlighting"
+                            title={t('features', 'searchHighlightingTitle')}
                             icon="🔍"
-                            description="Search for specific terms or patterns and highlight all matches across your document."
+                            description={t('features', 'searchHighlightingDescription')}
                         />
                         <ToolFeatureCard
-                            title="Regex Search"
+                            title={t('features', 'regexSearchTitle')}
                             icon="⚙️"
-                            description="Use regular expressions to find complex patterns of sensitive information."
+                            description={t('features', 'regexSearchDescription')}
                         />
                         <ToolFeatureCard
-                            title="Case Sensitive Search"
+                            title={t('features', 'caseSensitiveSearchTitle')}
                             icon="Aa"
-                            description="Toggle case sensitivity for more precise control over your search results."
+                            description={t('features', 'caseSensitiveSearchDescription')}
                         />
                     </div>
                 </section>
 
                 <section className="detection-methods-section">
-                    <h2>Entity Detection Methods</h2>
+                    <h2>{t('features', 'entityDetectionMethods')}</h2>
                     <p className="section-description">
-                        HideMeAI offers multiple detection methods to identify sensitive information in your documents,
-                        each with different capabilities and privacy considerations.
+                        {t('features', 'detectionMethodsDescription')}
                     </p>
 
                     <div className="methods-grid">
                         <FeatureCard
-                            title="Gemini AI Detection"
-                            description="Leverage Google's Gemini AI model to identify a wide range of sensitive entities with high accuracy. Note that this method processes data on Google's servers."
+                            title={t('features', 'geminiAIDetectionTitle')}
+                            description={t('features', 'geminiAIDetectionDescription')}
                             icon="🤖"
                             isSafeForData={false}
                             entities={geminiOptions}
-                            precision="Testing in progress"
+                            precision={t('features', 'testingInProgress')}
                         />
 
                         <FeatureCard
-                            title="Gliner ML Detection"
-                            description="A locally running machine learning model that identifies sensitive entities without sending your data to external servers, ensuring complete privacy."
+                            title={t('features', 'glinerMLDetectionTitle')}
+                            description={t('features', 'glinerMLDetectionDescription')}
                             icon="🔒"
                             isSafeForData={true}
                             entities={glinerOptions}
-                            precision="Testing in progress"
+                            precision={t('features', 'testingInProgress')}
                         />
 
                         <FeatureCard
-                            title="Presidio ML Detection"
-                            description="Microsoft's Presidio framework with Kushtrim extensions running locally for enhanced privacy protection and specialized entity recognition."
+                            title={t('features', 'presidioMLDetectionTitle')}
+                            description={t('features', 'presidioMLDetectionDescription')}
                             icon="🛡️"
                             isSafeForData={true}
                             entities={presidioOptions}
-                            precision="Testing in progress"
+                            precision={t('features', 'testingInProgress')}
                         />
                     </div>
                 </section>
 
                 <section className="comparison-section">
-                    <h2>Detection Methods Comparison</h2>
+                    <h2>{t('features', 'detectionMethodsComparison')}</h2>
                     <div className="comparison-table-container">
                         <table className="comparison-table">
                             <thead>
                             <tr>
-                                <th>Feature</th>
-                                <th>Gemini AI</th>
-                                <th>Gliner ML</th>
-                                <th>Presidio ML</th>
+                                <th>{t('features', 'feature')}</th>
+                                <th>{t('features', 'geminiAI')}</th>
+                                <th>{t('features', 'glinerML')}</th>
+                                <th>{t('features', 'presidioML')}</th>
                             </tr>
                             </thead>
                             <tbody>
                             <tr>
-                                <td>Data Privacy</td>
-                                <td className="negative">Processes data externally</td>
-                                <td className="positive">Fully local processing</td>
-                                <td className="positive">Fully local processing</td>
+                                <td>{t('features', 'dataPrivacy')}</td>
+                                <td className="negative">{t('features', 'processesDataExternally')}</td>
+                                <td className="positive">{t('features', 'fullyLocalProcessing')}</td>
+                                <td className="positive">{t('features', 'fullyLocalProcessing')}</td>
                             </tr>
                             <tr>
-                                <td>Entity Types</td>
+                                <td>{t('features', 'entityTypes')}</td>
                                 <td>{geminiOptions.length}</td>
                                 <td>{glinerOptions.length}</td>
                                 <td>{presidioOptions.length}</td>
                             </tr>
                             <tr>
-                                <td>Performance</td>
-                                <td>Fast</td>
-                                <td>Medium</td>
-                                <td>Medium</td>
+                                <td>{t('features', 'performance')}</td>
+                                <td>{t('features', 'fast')}</td>
+                                <td>{t('features', 'medium')}</td>
+                                <td>{t('features', 'medium')}</td>
                             </tr>
                             <tr>
-                                <td>Contextual Understanding</td>
-                                <td className="positive">High</td>
-                                <td className="neutral">Medium</td>
-                                <td className="neutral">Medium</td>
+                                <td>{t('features', 'contextualUnderstanding')}</td>
+                                <td className="positive">{t('features', 'high')}</td>
+                                <td className="neutral">{t('features', 'medium')}</td>
+                                <td className="neutral">{t('features', 'medium')}</td>
                             </tr>
                             <tr>
-                                <td>Accuracy</td>
-                                <td colSpan={3} className="centered">Testing in progress</td>
+                                <td>{t('features', 'accuracy')}</td>
+                                <td colSpan={3} className="centered">{t('features', 'testingInProgress')}</td>
                             </tr>
                             </tbody>
                         </table>

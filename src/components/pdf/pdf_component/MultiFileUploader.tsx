@@ -3,6 +3,7 @@ import { Upload, Plus } from 'lucide-react';
 import { useFileContext } from '../../../contexts/FileContext';
 import '../../../styles/modules/pdf/PDFViewerPage.css';
 import { useNotification } from '../../../contexts/NotificationContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface MultiFileUploaderProps {
     mode?: 'replace' | 'add';
@@ -17,12 +18,14 @@ const MultiFileUploader: React.FC<MultiFileUploaderProps> = ({
     const { addFiles , files} = useFileContext();
     const [dragActive, setDragActive] = useState<boolean>(false);
     const {notify} = useNotification();
+    const { t } = useLanguage();
+
     // Handle file selection
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0 ) {
             const newFiles = Array.from(e.target.files);
             addFiles(newFiles, mode === 'replace');
-            notify({message: `${newFiles.length} file(s) added successfully`, type: 'success', position: 'top-right', duration: 3000});
+            notify({message: t('pdf', 'filesAddedSuccessfully').replace('{count}', String(newFiles.length)), type: 'success', position: 'top-right', duration: 3000});
         }
     };
 
@@ -47,7 +50,7 @@ const MultiFileUploader: React.FC<MultiFileUploaderProps> = ({
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             const newFiles = Array.from(e.dataTransfer.files);
             addFiles(newFiles, mode === 'replace');
-            notify({message: `${newFiles.length} file(s) added by droping successfully`, type: 'success', position: 'top-right', duration: 3000});
+            notify({message: t('pdf', 'filesAddedByDropSuccessfully').replace('{count}', String(newFiles.length)), type: 'success', position: 'top-right', duration: 3000});
         }
     };
 
@@ -71,7 +74,7 @@ const MultiFileUploader: React.FC<MultiFileUploaderProps> = ({
                 <button
                     className="add-file-button"
                     onClick={handleClick}
-                    title="Add more files"
+                    title={t('pdf', 'addMoreFiles')}
                 >
                     <Plus className="add-file-icon" size={24} />
                 </button>
@@ -81,7 +84,7 @@ const MultiFileUploader: React.FC<MultiFileUploaderProps> = ({
 
     return (
         <div className="file-upload-container">
-            <h2 className="file-upload-title">Upload Files</h2>
+            <h2 className="file-upload-title">{t('pdf', 'uploadFiles')}</h2>
             <input
                 id="pdf-upload"
                 type="file"
@@ -102,10 +105,10 @@ const MultiFileUploader: React.FC<MultiFileUploaderProps> = ({
             >
                 <Upload className="file-upload-icon" size={32} />
                 <span className="file-upload-text">
-                    Drag & Drop or Select PDFs to {mode === 'replace' ? 'Upload' : 'Add'}
+                    {t('pdf', 'dragDropOrSelect').replace('{action}', mode === 'replace' ? t('pdf', 'upload') : t('pdf', 'add'))}
                 </span>
                 <span className="file-upload-subtitle">
-                    Multiple files are supported
+                    {t('pdf', 'multipleFilesSupported')}
                 </span>
             </div>
         </div>

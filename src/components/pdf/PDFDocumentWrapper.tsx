@@ -7,6 +7,7 @@ import '../../styles/modules/pdf/PdfViewer.css';
 import scrollManager from '../../services/ScrollManagerService';
 import { useInView } from 'react-intersection-observer';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface PDFDocumentWrapperProps {
     file?: File; // New prop to accept a specific file
@@ -34,6 +35,7 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({
         zoomLevel
     } = usePDFViewerContext();
     const { notify } = useNotification();
+    const { t } = useLanguage();
     const [loadError, setLoadError] = useState<Error | null>(null);
 
     // Document dragging state
@@ -220,7 +222,7 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({
 
         } catch (error) {
             notify({
-                message: `Error loading PDF: ${error}`,
+                message: t('pdf', 'errorLoadingPdfGeneric'),
                 type: 'error',
                 duration: 3000
             });
@@ -232,7 +234,8 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({
         setNumPages,
         setRenderedPages,
         setFileNumPages,
-        setFileRenderedPages
+        setFileRenderedPages,
+        t
     ]);
 
 
@@ -306,9 +309,9 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({
         >
             {loadError && (
                 <div className="pdf-error">
-                    <h3>Error Loading PDF</h3>
-                    <p>Could not load the PDF file</p>
-                    <p>Please try uploading the file again or check if the file is valid.</p>
+                    <h3>{t('pdf', 'errorLoadingPdf')}</h3>
+                    <p>{t('pdf', 'couldNotLoadPdf')}</p>
+                    <p>{t('pdf', 'tryUploadingAgain')}</p>
                 </div>
             )}
 
@@ -317,7 +320,7 @@ const PDFDocumentWrapper: React.FC<PDFDocumentWrapperProps> = ({
                     file={pdfFile}
                     onLoadSuccess={onDocumentLoadSuccess}
                     onLoadError={() => notify({
-                        message: `Error loading PDF, refresh the page and try again`,
+                        message: t('pdf', 'errorLoadingPdfGeneric'),
                         type: 'error',
                         duration: 3000
                     })}

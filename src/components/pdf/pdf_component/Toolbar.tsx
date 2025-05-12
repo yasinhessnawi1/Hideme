@@ -15,6 +15,7 @@ import '../../../styles/modules/pdf/Toolbar.css';
 import { useLoading } from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
 import { useNotification } from '../../../contexts/NotificationContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface ToolbarProps {
     toggleLeftSidebar: () => void;
@@ -41,6 +42,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
 
     const { notify } = useNotification();
+    const { t } = useLanguage();
 
     // Toggle handlers
 
@@ -52,12 +54,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
             const newFiles = Array.from(e.target.files);
             addFiles(newFiles);
 
-                // Show notification about added files
-                notify({
-                    message: `Added ${newFiles.length} file${newFiles.length > 1 ? 's' : ''}`,
-                    type: 'success',
-                    duration: 3000
-                });
+            // Show notification about added files
+            notify({
+                message: t('pdf', 'file_added_successfully').replace('{{count}}', String(newFiles.length)),
+                type: 'success',
+                duration: 3000
+            });
         }
     };
 
@@ -70,13 +72,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
         return new Promise((resolve, reject) => {
             // Only start if we're not already redacting
             if (globalLoading('toolbar.redact')) {
-                reject(new Error("Redaction already in progress"));
+                reject(new Error(t('pdf', 'redacting')));
                 return;
             }
 
             startLoading('toolbar.redact');
             notify({
-                message: 'Processing redaction...',
+                message: t('pdf', 'redacting'),
                 type: 'success',
                 duration: 3000
             });
@@ -88,11 +90,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
             if (filesToHandle.length === 0) {
                 stopLoading('toolbar.redact');
                 notify({
-                    message: 'No files available for redaction',
+                    message: t('pdf', 'noFilesSelectedOrNoContentToRedact'),
                     type: 'error',
                     duration: 3000
                 });
-                reject(new Error("No files for redaction"));
+                reject(new Error(t('pdf', 'noFilesSelectedOrNoContentToRedact')));
                 return;
             }
 
@@ -110,7 +112,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     const resultingFiles = Array.isArray(newRedactedFiles) ? newRedactedFiles : [];
                     resolve(resultingFiles);
                 } else {
-                    reject(new Error(error ?? "Redaction failed"));
+                    reject(new Error(error ?? t('pdf', 'redaction_failed')));
                 }
             };
 
@@ -121,7 +123,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             const timeoutId = setTimeout(() => {
                 window.removeEventListener('redaction-process-complete', handleRedactionComplete);
                 stopLoading('toolbar.redact');
-                reject(new Error("Redaction timed out"));
+                reject(new Error(t('pdf', 'redaction_timed_out')));
             }, 60000); // 1 minute timeout
 
             // Trigger the redaction process
@@ -140,12 +142,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
     // Download/save functions using enhanced utility service
     const handleDownloadPDF = async () => {
         if (files.length === 0) {
-            notify({ message: 'No files available for download', type: 'error' });
+            notify({ message: t('pdf', 'no_files_selected_for_download'), type: 'error' });
             return;
         }
 
         try {
-            notify({ message: 'Preparing files for download...', type: 'success' });
+            notify({ message: t('pdf', 'preparing_download'), type: 'success' });
             startLoading('toolbar.save');
             //check if the files are already redacted
             let filesForDownload = files.filter(file => getFileKey(file).includes('redacted'));
@@ -159,12 +161,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
             stopLoading('toolbar.save');
             if (success) {
                 notify({
-                    message: `${filesForDownload.length > 1 ? 'Files' : 'File'} downloaded successfully`,
+                    message: t('pdf', 'files_downloaded_successfully'),
                     type: 'success'
                 });
             } else {
                 notify({
-                    message: 'Download failed. Please try again.',
+                    message: t('pdf', 'error_downloading_files'),
                     type: 'error',
                     duration: 3000
                 });
@@ -172,7 +174,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         } catch (error) {
             console.error('Error downloading file(s):', error);
             notify({
-                message: error instanceof Error ? error.message : 'Download failed',
+                message: error instanceof Error ? error.message : t('pdf', 'error_downloading_files'),
                 type: 'error',
                 duration: 3000
             });
@@ -183,13 +185,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     const handlePrint = async () => {
         if (files.length === 0) {
-            notify({ message: 'No files available for printing', type: 'error' });
+            notify({ message: t('pdf', 'no_files_to_print'), type: 'error' });
             return;
         }
 
 
         try {
-            notify({ message: 'Preparing files for printing...', type: 'success' });
+            notify({ message: t('pdf', 'preparing_print'), type: 'success' });
             startLoading('toolbar.print');
             let filesForPrinting = files.filter(file => getFileKey(file).includes('redacted'));
             if (filesForPrinting.length === 0) {
@@ -200,13 +202,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
             const success = await pdfUtilityService.printMultiplePDFs(filesForPrinting);
             stopLoading('toolbar.print');
             if (success) {
-                notify({
-                    message: 'Print job sent to browser',
-                    type: 'success'
-                });
+                notify({ message: t('toolbar', 'printJobSent'), type: 'success' });
             } else {
                 notify({
-                    message: 'Print failed. Please check popup blocker settings.',
+                    message: t('toolbar', 'printFailedPopup'),
                     type: 'error',
                     duration: 3000
                 });
@@ -214,7 +213,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         } catch (error) {
             console.error('Error printing file(s):', error);
             notify({
-                message: error instanceof Error ? error.message : 'Print failed',
+                message: error instanceof Error ? error.message : t('toolbar', 'printFailed'),
                 type: 'error',
                 duration: 3000
             });
@@ -228,7 +227,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         const filesToHandle = selectedFiles.length > 0 ? selectedFiles : files
 
         if (filesToHandle.length === 0) {
-            notify({ message: 'No files selected for detection', type: 'error' });
+            notify({ message: t('toolbar', 'noFilesSelectedForDetection'), type: 'error' });
             return;
         }
         startLoading('toolbar.detect');
@@ -261,7 +260,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         }, 300);
         stopLoading('toolbar.search');
         notify({
-            message: 'Searching with default terms',
+            message: t('toolbar', 'searchingWithDefaultTerms'),
             type: 'success',
             duration: 3000
         });
@@ -271,7 +270,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const handleRedaction = () => {
         const filesToHandle = selectedFiles.length > 0 ? selectedFiles : files
         if (filesToHandle.length === 0) {
-            notify({ message: 'No files available for redaction', type: 'error' });
+            notify({ message: t('toolbar', 'noFilesAvailableForRedaction'), type: 'error' });
             return;
         }
         startLoading('toolbar.redact');
@@ -286,7 +285,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         stopLoading('toolbar.redact');
 
         notify({
-            message: 'Starting redaction process',
+            message: t('toolbar', 'startingRedactionProcess'),
             type: 'success',
             duration: 3000
         });
@@ -366,7 +365,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <button
                 onClick={toggleLeftSidebar}
                 className={`toolbar-button sidebar-toggle left ${isLeftSidebarCollapsed ? 'collapsed' : ''}`}
-                title={isLeftSidebarCollapsed ? "Show left sidebar" : "Hide left sidebar"}
+                title={isLeftSidebarCollapsed ? t('toolbar', 'showLeftSidebar') : t('toolbar', 'hideLeftSidebar')}
                 style={{ backgroundColor: 'transparent', border: 'none' }}
             >
                 {isLeftSidebarCollapsed ? <LeftSidebarOpenIcon /> : <LeftSidebarCloseIcon />}
@@ -384,30 +383,30 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 <button
                     onClick={handleUploadClick}
                     className="toolbar-button"
-                    title="Open PDF"
+                    title={t('toolbar', 'openPDF')}
                 >
                     <FaUpload />
-                    <span className="button-label">Open</span>
+                    <span className="button-label">{t('toolbar', 'open')}</span>
                 </button>
 
                 <button
                     onClick={handleDownloadPDF}
                     className="toolbar-button"
-                    title="Save PDF"
+                    title={t('toolbar', 'savePDF')}
                     disabled={globalLoading('toolbar.save') || files.length === 0}
                 >
                     <FaFileDownload />
-                    <span className="button-label">Save</span>
+                    <span className="button-label">{t('toolbar', 'save')}</span>
                 </button>
 
                 <button
                     onClick={handlePrint}
                     className="toolbar-button"
-                    title="Print PDF"
+                    title={t('toolbar', 'printPDF')}
                     disabled={globalLoading('toolbar.print') || files.length === 0}
                 >
                     <FaPrint />
-                    <span className="button-label">Print</span>
+                    <span className="button-label">{t('toolbar', 'print')}</span>
                 </button>
             </div>
 
@@ -416,16 +415,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 <button
                     onClick={handleSearchShortcut}
                     className={`toolbar-button`}
-                    title="Search PDFs"
+                    title={t('toolbar', 'searchPDFs')}
                     disabled={globalLoading('toolbar.search') || files.length === 0}
                 >
 
-                    <LoadingWrapper isLoading={globalLoading('toolbar.search')} overlay={true} fallback={'Searching...'}
+                    <LoadingWrapper isLoading={globalLoading('toolbar.search')} overlay={true} fallback={t('toolbar', 'searching')}
                     >
                         {globalLoading('toolbar.search') ? '' :
                             <>
                                 <FaSearch />
-                                <span className="button-label">Search</span>
+                                <span className="button-label">{t('toolbar', 'search')}</span>
                             </>
                         }
 
@@ -435,16 +434,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 <button
                     onClick={handleEntityDetection}
                     className="toolbar-button"
-                    title="Detect Entities"
+                    title={t('toolbar', 'detectEntities')}
                     disabled={globalLoading('toolbar.search') || files.length === 0}
                 >
 
-                    <LoadingWrapper isLoading={globalLoading('toolbar.detect')} overlay={false} fallback={'Detecting...'}
+                    <LoadingWrapper isLoading={globalLoading('toolbar.detect')} overlay={false} fallback={t('toolbar', 'detecting')}
                     >
                         {globalLoading('toolbar.detect') ? '' :
                             <>
                                 <FaMagic />
-                                <span className="button-label">Detect</span>
+                                <span className="button-label">{t('toolbar', 'detect')}</span>
                             </>
                         }
                     </LoadingWrapper>
@@ -453,17 +452,17 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 <button
                     onClick={handleRedaction}
                     className={`toolbar-button ${globalLoading('toolbar.redact') ? 'processing' : ''}`}
-                    title="Redact PDFs"
+                    title={t('toolbar', 'redactPDFs')}
                     disabled={globalLoading('toolbar.redact') || files.length === 0}
                 >
 
-                    <LoadingWrapper isLoading={globalLoading('toolbar.redact')} overlay={true} fallback={'Redacting...'}
+                    <LoadingWrapper isLoading={globalLoading('toolbar.redact')} overlay={true} fallback={t('toolbar', 'redacting')}
                     >
                         {globalLoading('toolbar.redact') ? '' :
                             <>
                                 <FaEraser />
                                 <span className="button-label">
-                                    Redact
+                                    {t('toolbar', 'redact')}
                                 </span>
                             </>
                         }
@@ -482,7 +481,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <button
                 onClick={toggleRightSidebar}
                 className={`toolbar-button sidebar-toggle right ${isRightSidebarCollapsed ? 'collapsed' : ''}`}
-                title={isRightSidebarCollapsed ? "Show right sidebar" : "Hide right sidebar"}
+                title={isRightSidebarCollapsed ? t('toolbar', 'showRightSidebar') : t('toolbar', 'hideRightSidebar')}
                 style={{ backgroundColor: 'transparent', border: 'none' }}
             >
                 {isRightSidebarCollapsed ? <RightSidebarOpenIcon /> : <RightSidebarCloseIcon />}

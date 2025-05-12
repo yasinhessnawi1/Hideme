@@ -17,6 +17,8 @@ import authService from '../../services/authService';
 import authStateManager from '../../managers/authStateManager';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
+
 export interface UseAuthReturn {
     // Authentication state
     user: User | null;
@@ -48,6 +50,7 @@ export const useAuth = (): UseAuthReturn => {
     const cachedState = authStateManager.getCachedState();
     const hasToken = !!authService.getToken();
     const navigate = useNavigate();
+    const { t } = useLanguage();
     // Authentication state - initialize from cache when available
     const [user, setUser] = useState<User | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
@@ -163,7 +166,7 @@ export const useAuth = (): UseAuthReturn => {
                 verificationRef.current.lastVerified = now;
                 navigate('/login');
                 notify({
-                    message: "Your session has expired and you have been logged out",
+                    message: t('auth', 'sessionExpired'),
                     type: 'error',
                     duration: 3000
                 });
@@ -198,7 +201,7 @@ export const useAuth = (): UseAuthReturn => {
                         return true;
                     } catch {
                         notify({
-                            message: "Unable to verify your session due to connection issues",
+                            message: t('auth', 'unableToVerifySession'),
                             type: 'error',
                             duration: 3000
                         });
@@ -206,7 +209,7 @@ export const useAuth = (): UseAuthReturn => {
                     }
                 } else {
                     notify({
-                        message: "Unable to verify your session due to connection issues",
+                        message: t('auth', 'unableToVerifySession'),
                         type: 'error',
                         duration: 3000
                     });
@@ -224,7 +227,7 @@ export const useAuth = (): UseAuthReturn => {
                 setUser(null);
                 setIsAuthenticated(false);
                 notify({
-                    message: "Your session has expired and you have been logged out",
+                    message: t('auth', 'sessionExpired'),
                     type: 'error',
                     duration: 3000
                 });
@@ -308,7 +311,7 @@ export const useAuth = (): UseAuthReturn => {
                         // For connection errors, show a warning but keep the session
                             console.warn("[useAuth] Connection issue during token refresh - maintaining session");
                             notify({
-                                message: "Connection issue detected. Some features may be limited until connection is restored.",
+                                message: t('auth', 'connectionIssueDetected'),
                                 type: 'error',
                                 duration: 3000
                             });
@@ -323,7 +326,7 @@ export const useAuth = (): UseAuthReturn => {
                         authStateManager.clearState();
 
                         notify({
-                            message: "Your session expired while you were inactive. Please sign in again to continue.",
+                            message: t('auth', 'sessionExpiredWhileInactive'),
                             type: 'error',
                             duration: 3000
                         });
@@ -421,7 +424,7 @@ export const useAuth = (): UseAuthReturn => {
             await login(username, password);
         } catch (err: any) {
             console.error("[useAuth] Registration error:", err);
-            const errorMessage = err.userMessage ?? "Registration failed";
+            const errorMessage = err.userMessage ?? t('errors', 'registrationFailed');
             notify({
                 message: errorMessage,
                 type: 'error',

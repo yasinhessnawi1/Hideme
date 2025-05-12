@@ -14,6 +14,7 @@ import { useUserContext } from '../../contexts/UserContext';
 import { useLoading } from '../../contexts/LoadingContext';
 import LoadingWrapper from "../common/LoadingWrapper";
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 /**
  * Props interface for the LoginForm component.
@@ -68,7 +69,8 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
   // Get authentication methods and state from UserContext
   const { login, register, isLoading, clearError } = useUserContext();
-  const {notify} = useNotification();
+  const { notify } = useNotification();
+  const { t } = useLanguage();
   // Local form error state separate from the global auth context errors
   const { startLoading, stopLoading, isLoading: isGlobalLoading } = useLoading();
 
@@ -94,7 +96,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
         if (password !== confirmPassword) {
           notify({
             type: 'error',
-            message: 'Passwords do not match!',
+            message: t('auth', 'passwordsDoNotMatch'),
             position: 'top-right'
           });
           return;
@@ -102,18 +104,18 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
         // Validate required fields
         if (!username.trim()) {
-            notify({
-              type: 'error',
-              message: 'Username is required',
-              position: 'top-right'
-            });
+          notify({
+            type: 'error',
+            message: t('auth', 'usernameRequired'),
+            position: 'top-right'
+          });
           return;
         }
 
         if (!email.trim()) {
           notify({
             type: 'error',
-            message: 'Email is required',
+            message: t('auth', 'emailRequired'),
             position: 'top-right'
           });
           return;
@@ -123,14 +125,13 @@ const LoginForm: React.FC<LoginFormProps> = ({
         if (password.length < 8) {
           notify({
             type: 'error',
-            message: 'Password must be at least 8 characters long',
+            message: t('auth', 'passwordTooShort'),
             position: 'top-right'
           });
           return;
         }
 
         // Register the new user with the provided details
-        // The register function will automatically log the user in on success
         await register(username, email, password, confirmPassword);
         stopLoading('login.submit');
       } else {
@@ -140,7 +141,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
         if (!email.trim().isWellFormed()) {
           notify({
             type: 'error',
-            message: 'Email is required',
+            message: t('auth', 'emailRequired'),
             position: 'top-right'
           });
           return;
@@ -149,7 +150,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
         if (!password.trim()) {
           notify({
             type: 'error',
-            message: 'Password is required',
+            message: t('auth', 'passwordRequired'),
             position: 'top-right'
           });
           return;
@@ -165,14 +166,14 @@ const LoginForm: React.FC<LoginFormProps> = ({
       navigate('/playground');
       notify({
         type: 'success',
-        message: 'Login successful!',
+        message: t('auth', 'loginSuccess'),
         position: 'top-right'
       });
     } catch (err: any) {
       stopLoading('login.submit');
       notify({
         type: 'error',
-        message: 'Login failed! ' + err.message,
+        message: t('auth', 'loginFailed') + ' ' + err.message,
         position: 'top-right'
       });
     }
@@ -193,110 +194,79 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
   return (
       <>
-        <form className="login-form" onSubmit={handleSubmit}>
+        <form className="login-form" onSubmit={handleSubmit} aria-label={t('auth', isSignUp ? 'signUpForm' : 'loginForm')}>
           {/* Full Name field (only displayed for Sign-Up) */}
           {isSignUp && (
-              <>
-                <div className="form-group">
-                  <label htmlFor="username">Username</label>
-                  <input
-                      type="text"
-                      id="username"
-                      name="username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Enter your username"
-                      required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="email">Email</label>
-                  <input
-                      type="email"
-                      id="email"
-                      placeholder="Enter Your Email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                  />
-                </div>
-              </>
-          )}
-
-          {!isSignUp && (
-            <div className="form-group">
-                <label htmlFor="text">Email</label>
+              <div className="form-group">
+                <label htmlFor="username" className="login-label">
+                  {t('auth', 'username')}
+                </label>
                 <input
                   type="text"
-                  id="text"
-                  placeholder="Enter Your Email or username"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  placeholder={t('auth', 'usernamePlaceholder')}
+                  className="login-input"
                   required
-              />
-          </div>
-          )}
-
-          {/* Password field (always displayed) */}
-          <div className="form-group">
-            <div className="form-group-header">
-              <label htmlFor="password">Password</label>
-              {/* "Forgot password" link is only shown in login mode */}
-              {!isSignUp && (
-                  <Link
-                      to="/forgot-password"
-                      className="forgot-password"
-                  >
-                    Forgot your password?
-                  </Link>
-              )}
-            </div>
-            <input
-                type="password"
-                id="password"
-                placeholder="Enter Your Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-            />
-          </div>
-
-          {/* Confirm Password field (only for Sign-Up) */}
-          {isSignUp && (
-              <div className="form-group">
-                <label htmlFor="confirmPassword">Confirm Password</label>
-                <input
-                    type="password"
-                    id="confirmPassword"
-                    placeholder="Confirm Your Password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
                 />
               </div>
           )}
-
-          {/* Submit button - text changes based on mode and loading state */}
-          <button
-              type="submit"
-              className="login-button"
-              disabled={isLoading}
-          >
-            <LoadingWrapper isLoading={isLoading || isGlobalLoading('login.submit')} overlay={true} fallback={''}
-                            >
-              {isLoading || isGlobalLoading('login.submit') ? 'Logging in...' : (isSignUp ? 'Sign Up' : 'Login')}
-            </LoadingWrapper>
+          <div className="form-group">
+            <label htmlFor="email" className="login-label">
+              {t('auth', 'email')}
+            </label>
+            <input
+              type="text"
+              id="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder={isSignUp ? t('auth', 'emailPlaceholder') : t('auth', 'enterEmailOrUsername')}
+              className="login-input"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="password" className="login-label">
+              {t('auth', 'password')}
+            </label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder={t('auth', 'passwordPlaceholder')}
+              className="login-input"
+              required
+            />
+          </div>
+          {isSignUp && (
+              <div className="form-group">
+                <label htmlFor="confirmPassword" className="login-label">
+                  {t('auth', 'confirmPassword')}
+                </label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder={t('auth', 'confirmPasswordPlaceholder')}
+                  className="login-input"
+                  required
+                />
+              </div>
+          )}
+          <button type="submit" className="login-button">
+            {t('auth', isSignUp ? 'signUp' : 'login')}
           </button>
+          <p className="signup-prompt enhanced-toggle">
+            {t('auth', isSignUp ? 'alreadyHaveAccount' : 'noAccount')}
+            {' '}
+            <Link to="#" onClick={handleToggleSignUp} className="login-toggle-link">
+              {t('auth', isSignUp ? 'loginHere' : 'signUpHere')}
+            </Link>
+          </p>
         </form>
-
-        {/* Toggle prompt to switch between login and signup modes */}
-        <p className="signup-prompt enhanced-toggle">
-          {isSignUp ? 'Have an account? ' : "Don't have an account? "}
-          <a href="#" onClick={handleToggleSignUp}>
-            {isSignUp ? 'Log in' : 'Sign up'}
-          </a>
-        </p>
       </>
   );
 };

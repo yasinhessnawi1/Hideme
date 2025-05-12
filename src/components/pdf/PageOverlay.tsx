@@ -3,6 +3,7 @@ import { useEditContext } from '../../contexts/EditContext';
 import { ManualHighlightProcessor } from '../../managers/ManualHighlightProcessor';
 import { PDFPageViewport, HighlightCreationMode } from '../../types';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface PageOverlayProps {
     pageNumber: number;
@@ -33,6 +34,7 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
                                                      highlightingMode
                                                  }) => {
     const { manualColor } = useEditContext();
+    const { t } = useLanguage();
 
     // State for selection
     const [selectionStart, setSelectionStart] = useState<{x: number; y: number} | null>(null);
@@ -117,14 +119,14 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
                 );
             } else {
                 notify({
-                    message: 'Selection too small, ignoring',
+                    message: t('pageOverlay', 'selectionTooSmall'),
                     type: 'info',
                     duration: 3000
                 });
             }
         } catch (error) {
             notify({
-                message: `Error creating highlight: ${error}`,
+                message: t('pageOverlay', 'errorCreatingHighlight', { error }),
                 type: 'error',
                 duration: 3000
             });
@@ -134,7 +136,7 @@ const PageOverlay: React.FC<PageOverlayProps> = ({
             setSelectionStart(null);
             setSelectionEnd(null);
         }
-    }, [selectionStart, selectionEnd, pageNumber, fileKey, manualColor, isRectangularMode, viewport.scale]);
+    }, [selectionStart, selectionEnd, pageNumber, fileKey, manualColor, isRectangularMode, viewport.scale, t]);
 
     // Mouse leave handling
     const handleMouseLeave = useCallback(() => {

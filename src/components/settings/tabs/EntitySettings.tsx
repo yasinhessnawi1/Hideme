@@ -3,22 +3,26 @@ import {AlertTriangle, CheckCircle, ChevronDown, Loader2, Save} from "lucide-rea
 import {OptionType} from "../../../types";
 import {
     entitiesToOptions,
-    geminiOptions,
+    getGeminiOptions,
     getColorDotStyle,
-    glinerOptions,
-    hidemeOptions,
+    getGlinerOptions,
+    getHidemeOptions,
     METHOD_ID_MAP,
     MODEL_COLORS,
-    presidioOptions
+    getPresidioOptions
 } from "../../../utils/EntityUtils";
 import useEntityDefinitions from "../../../hooks/settings/useEntityDefinitions";
 import useAuth from "../../../hooks/auth/useAuth";
 import { useLoading } from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
 import { useNotification } from "../../../contexts/NotificationContext";
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 
 export default function EntitySettings() {
+    const { t } = useLanguage();
+    // Wrap t to match (ns: string, key: string) => string
+    const tSimple = (ns: string, key: string) => t(ns as any, key as any);
     // Get user and entity settings data
     const {
         modelEntities,
@@ -44,6 +48,12 @@ export default function EntitySettings() {
     // Refs to track which entity types we've already tried to load
     const loadedEntityTypesRef = useRef<Set<string>>(new Set());
 
+    // Initialize options using translation function
+    const presidioOptions = getPresidioOptions(tSimple);
+    const glinerOptions = getGlinerOptions(tSimple);
+    const geminiOptions = getGeminiOptions(tSimple);
+    const hidemeOptions = getHidemeOptions(tSimple);
+
     // Load entity data when component mounts - only once per entity type
     useEffect(() => {
         const loadEntities = async () => {
@@ -67,7 +77,7 @@ export default function EntitySettings() {
                             await getModelEntities(method.id);
                         } catch (error) {
                             notify({
-                                message: `Error loading ${method.name} entities:`,
+                                message: t('entityDetection', 'detectionError') + (method.name ? ` (${method.name})` : ''),
                                 type: 'error',
                                 duration: 3000
                             });
@@ -78,7 +88,7 @@ export default function EntitySettings() {
             } catch (error) {
                 console.error('[EntitySettings] Error loading entity data:', error);
                 notify({
-                    message: 'Error loading entity data:',
+                    message: t('errors', 'failedToLoadSettings'),
                     type: 'error',
                     duration: 3000
                 });
@@ -160,7 +170,7 @@ export default function EntitySettings() {
             options.filter(opt => !opt.value.startsWith('ALL_')).map(opt => opt.value)
         );
         notify({
-            message: 'All entities selected.',
+            message: t('settings', 'allSearchTermsCleared'),
             type: 'success',
             duration: 3000
         });
@@ -171,7 +181,7 @@ export default function EntitySettings() {
     ) => () => {
         setter([]);
         notify({
-            message: 'All entities cleared.',
+            message: t('settings', 'clearAllSearchTermsMessage').replace('{count}', ''),
             type: 'success',
             duration: 3000
         });
@@ -190,7 +200,7 @@ export default function EntitySettings() {
     const handleSaveChanges = useCallback(async () => {
             startLoading('setting.entity');
         notify({
-            message: 'Saving entity settings...',
+            message: t('settings', 'saving'),
             type: 'info',
             duration: 3000
         });
@@ -224,13 +234,13 @@ export default function EntitySettings() {
             }));
 
             notify({
-                message: 'Entity settings saved successfully!',
+                message: t('entityDetection', 'settingsSaved'),
                 type: 'success',
                 duration: 3000
             });
         } catch (err: any) {
             notify({
-                message: 'Error saving entity settings:',
+                message: t('entityDetection', 'errorSavingSettings') + (err?.message ? `: ${err.message}` : ''),
                 type: 'error',
                 duration: 3000
             });
@@ -264,14 +274,14 @@ export default function EntitySettings() {
         <div className="space-y-6">
             <div className="card">
                 <div className="card-header">
-                    <h2 className="card-title">Entity Detection Settings</h2>
-                    <p className="card-description">Configure which entities are detected in your documents</p>
+                    <h2 className="card-title">{t('entityDetection', 'detectionSettings')}</h2>
+                    <p className="card-description">{t('settings', 'configureProcessingAndStorage')}</p>
                 </div>
                 <div className="card-content space-y-6">
                     {isLoading && (
                         <div className="flex justify-center items-center py-6">
                             <Loader2 className="h-6 w-6 animate-spin text-primary"/>
-                            <span className="ml-2 text-muted-foreground">Loading entity data...</span>
+                            <span className="ml-2 text-muted-foreground">{t('settings', 'loadingSettings')}</span>
                         </div>
                     )}
 
@@ -288,7 +298,7 @@ export default function EntitySettings() {
                                         onClick={() => toggleAccordion("presidio")}
                                         aria-expanded={openAccordions.includes("presidio")}
                                     >
-                                        <span><ColorDot color={MODEL_COLORS.presidio}/>Presidio Machine Learning</span>
+                                        <span><ColorDot color={MODEL_COLORS.presidio}/>{t('entityDetection', 'presidioML')}</span>
                                         <ChevronDown
                                             className={`accordion-trigger-icon transition-transform duration-200 ${openAccordions.includes("presidio") ? 'rotate-180' : ''}`}
                                             size={16}
@@ -300,14 +310,14 @@ export default function EntitySettings() {
                                         <div className="space-y-4 py-2 px-1">
                                             <div className="flex justify-between gap-2">
                                                 <button className="button button-outline button-sm"
-                                                        onClick={selectAllPresidio} disabled={isLoading}>Select All
+                                                        onClick={selectAllPresidio} disabled={isLoading}>{t('pdf', 'selectAll')}
                                                 </button>
                                                 <button className="button button-outline button-sm"
-                                                        onClick={clearAllPresidio} disabled={isLoading}>Clear All
+                                                        onClick={clearAllPresidio} disabled={isLoading}>{t('pdf', 'deselectAll')}
                                                 </button>
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                                {presidioOptions.filter(opt => !opt.value.startsWith('ALL_')).map((option) => (
+                                                {presidioOptions.filter((opt: OptionType) => !opt.value.startsWith('ALL_')).map((option: OptionType) => (
                                                     <div key={option.value} className="checkbox-container">
                                                         <input
                                                             type="checkbox"
@@ -335,7 +345,7 @@ export default function EntitySettings() {
                                         onClick={() => toggleAccordion("gliner")}
                                         aria-expanded={openAccordions.includes("gliner")}
                                     >
-                                        <span><ColorDot color={MODEL_COLORS.gliner}/>Gliner Machine Learning</span>
+                                        <span><ColorDot color={MODEL_COLORS.gliner}/>{t('entityDetection', 'glinerML')}</span>
                                         <ChevronDown
                                             className={`accordion-trigger-icon transition-transform duration-200 ${openAccordions.includes("gliner") ? 'rotate-180' : ''}`}
                                             size={16}
@@ -347,15 +357,15 @@ export default function EntitySettings() {
                                         <div className="space-y-4 py-2 px-1">
                                             <div className="flex justify-between gap-2">
                                                 <button className="button button-outline button-sm"
-                                                        onClick={selectAllGliner} disabled={isLoading}>Select All
+                                                        onClick={selectAllGliner} disabled={isLoading}>{t('pdf', 'selectAll')}
                                                 </button>
                                                 <button className="button button-outline button-sm"
                                                         onClick={clearAllGliner}
-                                                        disabled={isLoading}>Clear All
+                                                        disabled={isLoading}>{t('pdf', 'deselectAll')}
                                                 </button>
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                                {glinerOptions.filter(opt => !opt.value.startsWith('ALL_')).map((option) => (
+                                                {glinerOptions.filter((opt: OptionType) => !opt.value.startsWith('ALL_')).map((option: OptionType) => (
                                                     <div key={option.value} className="checkbox-container">
                                                         <input
                                                             type="checkbox"
@@ -383,7 +393,7 @@ export default function EntitySettings() {
                                         onClick={() => toggleAccordion("gemini")}
                                         aria-expanded={openAccordions.includes("gemini")}
                                     >
-                                        <span><ColorDot color={MODEL_COLORS.gemini}/>Gemini AI</span>
+                                        <span><ColorDot color={MODEL_COLORS.gemini}/>{t('entityDetection', 'geminiAI')}</span>
                                         <ChevronDown
                                             className={`accordion-trigger-icon transition-transform duration-200 ${openAccordions.includes("gemini") ? 'rotate-180' : ''}`}
                                             size={16}
@@ -395,15 +405,15 @@ export default function EntitySettings() {
                                         <div className="space-y-4 py-2 px-1">
                                             <div className="flex justify-between gap-2">
                                                 <button className="button button-outline button-sm"
-                                                        onClick={selectAllGemini} disabled={isLoading}>Select All
+                                                        onClick={selectAllGemini} disabled={isLoading}>{t('pdf', 'selectAll')}
                                                 </button>
                                                 <button className="button button-outline button-sm"
                                                         onClick={clearAllGemini}
-                                                        disabled={isLoading}>Clear All
+                                                        disabled={isLoading}>{t('pdf', 'deselectAll')}
                                                 </button>
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                                {geminiOptions.filter(opt => !opt.value.startsWith('ALL_')).map((option) => (
+                                                {geminiOptions.filter((opt: OptionType) => !opt.value.startsWith('ALL_')).map((option: OptionType) => (
                                                     <div key={option.value} className="checkbox-container">
                                                         <input
                                                             type="checkbox"
@@ -431,7 +441,7 @@ export default function EntitySettings() {
                                         onClick={() => toggleAccordion("hideme")}
                                         aria-expanded={openAccordions.includes("hideme")}
                                     >
-                                        <span><ColorDot color={MODEL_COLORS.hideme}/>Hide me AI</span>
+                                        <span><ColorDot color={MODEL_COLORS.hideme}/>{t('entityDetection', 'hidemeAI')}</span>
                                         <ChevronDown
                                             className={`accordion-trigger-icon transition-transform duration-200 ${openAccordions.includes("hideme") ? 'rotate-180' : ''}`}
                                             size={16}
@@ -443,15 +453,15 @@ export default function EntitySettings() {
                                         <div className="space-y-4 py-2 px-1">
                                             <div className="flex justify-between gap-2">
                                                 <button className="button button-outline button-sm"
-                                                        onClick={selectAllHideme} disabled={isLoading}>Select All
+                                                        onClick={selectAllHideme} disabled={isLoading}>{t('pdf', 'selectAll')}
                                                 </button>
                                                 <button className="button button-outline button-sm"
                                                         onClick={clearAllHideme}
-                                                        disabled={isLoading}>Clear All
+                                                        disabled={isLoading}>{t('pdf', 'deselectAll')}
                                                 </button>
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                                {hidemeOptions.filter(opt => !opt.value.startsWith('ALL_')).map((option) => (
+                                                {hidemeOptions.filter((opt: OptionType) => !opt.value.startsWith('ALL_')).map((option: OptionType) => (
                                                     <div key={option.value} className="checkbox-container">
                                                         <input
                                                             type="checkbox"
@@ -484,10 +494,10 @@ export default function EntitySettings() {
                     onClick={handleSaveChanges}
                     disabled={isLoading}
                 >
-                    <LoadingWrapper isLoading={isLoading} fallback="Saving...">
+                    <LoadingWrapper isLoading={isLoading} fallback={t('settings', 'saving')}>
                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
                             <Save size={16} className="button-icon"/>}
-                        {isLoading ? 'Saving...' : 'Save Entity Settings'}
+                        {isLoading ? t('settings', 'saving') : t('settings', 'saveChanges')}
                     </LoadingWrapper>
                 </button>
             </div>

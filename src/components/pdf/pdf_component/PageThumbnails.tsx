@@ -7,12 +7,14 @@ import '../../../styles/modules/pdf/PageThumbnails.css';
 import usePDFNavigation from "../../../hooks/usePDFNavigation";
 import { ChevronRight } from 'lucide-react';
 import { ChevronDown } from 'lucide-react';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface PageThumbnailsProps {
     isSidebarCollapsed?: boolean;
 }
 
 const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) => {
+    const { t } = useLanguage();
     // Previous sidebar collapsed state for detecting changes
     const wasCollapsed = useRef<boolean | undefined>(isSidebarCollapsed);
 
@@ -440,12 +442,12 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
         >
             <div className="thumbnails-header">
                     <div className="thumbnails-title-area">
-                        <h3 className="thumbnails-title">Files ({files.length})</h3>
+                        <h3 className="thumbnails-title">{t('pdf', 'files')} ({files.length})</h3>
                     </div>
             </div>
 
             {files.length === 0 ? (
-                <div className="empty-message">Upload a PDF to view thumbnails</div>
+                <div className="empty-message">{t('pdf', 'uploadPdfToViewThumbnails')}</div>
             ) : (
                 <div className="thumbnails-container" ref={thumbnailsRef}>
                     {files.map((file) => {
@@ -487,8 +489,8 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
                                                 className="nav-button"
                                                 onClick={() => handleNavigatePrevious(file)}
                                                 disabled={currentPageForFile <= 1}
-                                                aria-label="Previous page"
-                                                title="Previous page"
+                                                aria-label={t('pdf', 'previousPage')}
+                                                title={t('pdf', 'previousPage')}
                                             >
                                                 <FaChevronUp size={18} />
                                             </button>
@@ -500,8 +502,8 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
                                                     onChange={(e) => handlePageInputChange(e)}
                                                     onKeyDown={(e) => handlePageInputKeyDown(e, file)}
                                                     onBlur={(e) => handlePageInputBlur(e, file)}
-                                                    title="Enter page number"
-                                                    aria-label="Enter page number"
+                                                    title={t('pdf', 'enterPageNumber')}
+                                                    aria-label={t('pdf', 'enterPageNumber')}
                                                 />
                                                 <span className="page-separator">/</span>
                                                 <span className="total-pages">{numPagesForFile}</span>
@@ -510,8 +512,8 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
                                                 className="nav-button"
                                                 onClick={() => handleNavigateNext(file)}
                                                 disabled={currentPageForFile >= numPagesForFile}
-                                                aria-label="Next page"
-                                                title="Next page"
+                                                aria-label={t('pdf', 'nextPage')}
+                                                title={t('pdf', 'nextPage')}
                                             >
                                                 <FaChevronDown size={18} />
                                             </button>
@@ -519,8 +521,8 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
 
                                         <Document
                                             file={file}
-                                            loading={<p className="thumbnails-loading">Loading thumbnails...</p>}
-                                            error={<p className="thumbnails-loading">Error loading thumbnails</p>}
+                                            loading={<p className="thumbnails-loading">{t('pdf', 'loadingThumbnails')}</p>}
+                                            error={<p className="thumbnails-loading">{t('pdf', 'errorLoadingThumbnails')}</p>}
                                         >
                                             <div className="file-thumbnails-grid">
                                                 {pagesToRender.map(pageNumber => {
@@ -532,7 +534,7 @@ const PageThumbnails: React.FC<PageThumbnailsProps> = ({ isSidebarCollapsed }) =
                                                             key={`thumb-${fileKey}-${pageNumber}`}
                                                             className={`thumbnail-wrapper ${isActivePage ? 'active' : ''}`}
                                                             onClick={() => handleThumbnailClick(file, pageNumber)}
-                                                            title={`Go to page ${pageNumber}`}
+                                                            title={t('pdf', 'goToPage').replace('{page}', String(pageNumber))}
                                                             data-page={pageNumber}
                                                             id={`thumbnail-${fileKey}-${pageNumber}`}
                                                         >

@@ -1,5 +1,6 @@
 // NotificationContext.tsx
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Base notification types
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';
@@ -82,6 +83,7 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { t } = useLanguage();
     const [toasts, setToasts] = useState<ToastNotification[]>([]);
     const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
     const toastTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -170,7 +172,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             // Default confirm button based on type
             const defaultConfirmButton: ConfirmationButton = {
-                label: 'Confirm',
+                label: t('common', 'confirm'),
                 variant: 'primary',
                 onClick: () => {
                     if (confirmResolvers.current.has(id)) {
@@ -183,16 +185,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             // Customize button based on confirmation type
             if (type === 'delete') {
-                defaultConfirmButton.label = 'Delete';
+                defaultConfirmButton.label = t('common', 'delete');
                 defaultConfirmButton.variant = 'danger';
             } else if (type === 'warning') {
-                defaultConfirmButton.label = 'Continue';
+                defaultConfirmButton.label = t('common', 'continue');
                 defaultConfirmButton.variant = 'warning';
             }
 
             // Default cancel button
             const defaultCancelButton: ConfirmationButton = {
-                label: 'Cancel',
+                label: t('common', 'cancel'),
                 variant: 'secondary',
                 onClick: () => {
                     if (confirmResolvers.current.has(id)) {
@@ -228,7 +230,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             setConfirmation(newConfirmation);
         });
-    }, []);
+    }, [t, removeToast]);
 
     const confirmWithText = useCallback(({
         type,
@@ -237,10 +239,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         confirmButton,
         cancelButton,
         additionalButtons = [],
-        inputLabel = "Input",
-        inputPlaceholder = "",
-        inputDefaultValue = "",
-        inputType = "text"
+        inputLabel = t('common', 'input'),
+        inputPlaceholder = '',
+        inputDefaultValue = '',
+        inputType = 'text'
     }: {
         type: ConfirmationType;
         title: string;
@@ -262,7 +264,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             // Default confirm button
             const defaultConfirmButton: ConfirmationButton = {
-                label: 'Confirm',
+                label: t('common', 'confirm'),
                 variant: 'primary',
                 onClick: () => {
                     if (confirmResolvers.current.has(id)) {
@@ -275,7 +277,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             // Default cancel button
             const defaultCancelButton: ConfirmationButton = {
-                label: 'Cancel',
+                label: t('common', 'cancel'),
                 variant: 'secondary',
                 onClick: () => {
                     if (confirmResolvers.current.has(id)) {
@@ -318,7 +320,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             setConfirmation(newConfirmation);
         });
-    }, []);
+    }, [t]);
 
     const value = {
         toasts,

@@ -1,20 +1,23 @@
-
 import React, { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {Link, redirect, useNavigate} from 'react-router-dom'
 import { Menu, LogOut, Settings } from 'lucide-react'
 import "../../styles/components/Navbar.css"
+import "../../styles/components/LanguageSwitcher.css"
 import { Button } from "../common"
+import LanguageSwitcher from '../common/LanguageSwitcher'
 
 import TrueFocus from './TrueFocus';
 import {useUserContext} from "../../contexts/UserContext";
 import { useNotification } from "../../contexts/NotificationContext";
+import { useLanguage } from '../../contexts/LanguageContext';
 
 
 export default function Navbar() {
     const navigate = useNavigate()
     const { isAuthenticated, logout , user , isLoading } = useUserContext()
     const { notify } = useNotification();
+    const { t } = useLanguage();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -37,13 +40,13 @@ export default function Navbar() {
             await logout()
             navigate('/')
             notify({
-                message: 'Logged out successfully!',
+                message: t('notifications', 'loggedOut'),
                 type: 'success',
                 duration: 3000
             });
         } catch (error) {
             notify({
-                message: 'Logout failed:',
+                message: t('notifications', 'logoutFailed'),
                 type: 'error',
                 duration: 3000
             });
@@ -55,7 +58,7 @@ export default function Navbar() {
         <motion.nav initial={{ y: -100 }} animate={{ y: 0 }} className="navbar">
             <Link to="/"  className="logo">
                 <TrueFocus
-                    sentence="Hide Me"
+                    sentence={t('common', 'hideMe')}
                     manualMode={true}
                     blurAmount={5}
                     borderColor="limegreen"
@@ -66,11 +69,11 @@ export default function Navbar() {
             </Link>
 
             <div className="nav-links" >
-                <NavLink to={"/features"}>Features</NavLink>
-                <NavLink to="/how-to">How it Works</NavLink>
-                <NavLink to="/about">About</NavLink>
+                <NavLink to={"/features"}>{t('common', 'features')}</NavLink>
+                <NavLink to="/how-to">{t('common', 'howItWorks')}</NavLink>
+                <NavLink to="/about">{t('common', 'about')}</NavLink>
                 {isAuthenticated && user ? (
-                    <NavLink to="/playground">Playground</NavLink>
+                    <NavLink to="/playground">{t('common', 'playground')}</NavLink>
                 ) : null}
             </div>
 
@@ -103,7 +106,7 @@ export default function Navbar() {
                                     }}
                                 >
                                     <Settings size={16} />
-                                    <span>Settings</span>
+                                    <span>{t('common', 'settings')}</span>
                                 </button>
                                 <button
                                     className="dropdown-item"
@@ -113,7 +116,7 @@ export default function Navbar() {
                                     }}
                                 >
                                     <LogOut size={16} />
-                                    <span>Logout</span>
+                                    <span>{t('common', 'logout')}</span>
                                 </button>
                             </div>
                         )}
@@ -127,10 +130,11 @@ export default function Navbar() {
                             background="rgb(116,142,155)"
                             onClick={() => navigate("/login", )}
                         >
-                            <span>Get Started</span>
+                            <span>{t('common', 'getStarted')}</span>
                         </Button>
                 )}
 
+                <LanguageSwitcher className="nav-language-switcher" />
             </div>
 
             <button className="menu-button">

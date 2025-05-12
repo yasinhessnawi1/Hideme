@@ -18,6 +18,7 @@ import { getFileKey } from "../../../contexts/PDFViewerContext";
 import scrollManager from '../../../services/ScrollManagerService';
 import StorageSettings from './StorageSettings';
 import { useNotification } from '../../../contexts/NotificationContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface FileSelectorProps {
     className?: string;
@@ -47,10 +48,11 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
         isFileOpen
     } = useFileContext();
 
-    const [showActions, setShowActions] = useState<number | null>(null);
+    const [showActions, setShowActions] = useState<string | null>(null);
     const {notify, confirm} = useNotification();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const pdfNavigation = usePDFNavigation('file-selector');
+    const { t } = useLanguage();
 
     // For handling the file selection with improved navigation
     const handleFileSelect = useCallback((file: File) => {
@@ -100,10 +102,10 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
         }
 
         notify({
-            message: 'File removed successfully'
-            , type: 'success'
-            , position: 'top-right'
-            ,duration: 3000
+            message: t('pdf', 'file_removed_successfully'),
+            type: 'success',
+            position: 'top-right',
+            duration: 3000
         });
     };
 
@@ -136,7 +138,12 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
             // Add files to the top of the list instead of the bottom
             addFiles(newFiles, false);
 
-            notify({message: `${newFiles.length} file(s) added successfully`, type: 'success', position: 'top-right', duration: 3000});
+            notify({
+                message: t('pdf', 'file_added_successfully'),
+                type: 'success',
+                position: 'top-right',
+                duration: 3000
+            });
 
             // Refresh observers to detect the new content
             setTimeout(() => {
@@ -157,16 +164,21 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
     // Delete all selected files
     const handleDeleteSelected = async () => {
         if (selectedFiles.length === 0) {
-            notify({message: 'No files selected for deletion', type: 'error' ,position: 'top-right', duration: 3000});
+            notify({
+                message: t('pdf', 'no_files_selected_for_deletion'),
+                type: 'error',
+                position: 'top-right',
+                duration: 3000
+            });
             return;
         }
 
         const confirmDelete = await confirm({
-            title: 'Delete Files',
-            message: `Are you sure you want to delete ${selectedFiles.length} selected file(s)?`,
+            title: t('pdf', 'delete_files'),
+            message: t('pdf', 'are_you_sure_you_want_to_delete'),
             type: 'delete',
             confirmButton: {
-                label: 'Delete',
+                label: t('pdf', 'delete'),
             }
         });
 
@@ -183,7 +195,12 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
             });
 
 
-            notify({message: `${selectedFiles.length} file(s) deleted successfully`, type: 'success', position: 'top-right', duration: 3000});
+            notify({
+                message: t('pdf', 'file_deleted_successfully'),
+                type: 'success',
+                position: 'top-right',
+                duration: 3000
+            });
 
         }
     };
@@ -191,12 +208,22 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
     // Function to print specific files - handles both single and multiple files
     const printFiles = async (filesToPrint: File[]) => {
         if (filesToPrint.length === 0) {
-            notify({message: 'No files to print', type: 'error', position: 'top-right', duration: 3000});
+            notify({
+                message: t('pdf', 'no_files_to_print'),
+                type: 'error',
+                position: 'top-right',
+                duration: 3000
+            });
             return;
         }
 
         try {
-            notify({message: 'Preparing print...', type: 'success', position: 'top-right', duration: 3000});
+            notify({
+                message: t('pdf', 'preparing_print'),
+                type: 'success',
+                position: 'top-right',
+                duration: 3000
+            });
 
             // If only one file, use simple approach
             if (filesToPrint.length === 1) {
@@ -211,7 +238,12 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                     };
                 } else {
                     // If popup blocked, show instructions
-                    notify({message: 'Please allow popups to print files', type: 'error', position: 'top-right', duration: 3000});
+                    notify({
+                        message: t('pdf', 'please_allow_popups_to_print_files'),
+                        type: 'error',
+                        position: 'top-right',
+                        duration: 3000
+                    });
                 }
             }
             // If multiple files, merge them before printing
@@ -256,16 +288,31 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                         };
                     } else {
                         // If popup blocked, show instructions
-                        notify({message: 'Please allow popups to print files', type: 'error', position: 'top-right', duration: 3000});
+                        notify({
+                            message: t('pdf', 'please_allow_popups_to_print_files'),
+                            type: 'error',
+                            position: 'top-right',
+                            duration: 3000
+                        });
                     }
                 } catch (error) {
                     console.error('Error merging PDFs:', error);
-                    notify({message: 'Error merging PDFs for printing.', type: 'error', position: 'top-right', duration: 3000});
+                    notify({
+                        message: t('pdf', 'error_merging_pdfs_for_printing'),
+                        type: 'error',
+                        position: 'top-right',
+                        duration: 3000
+                    });
                 }
             }
         } catch (error) {
             console.error('Error printing files:', error);
-            notify({message: 'Error printing files', type: 'error', position: 'top-right', duration: 3000});
+            notify({
+                message: t('pdf', 'error_printing_files'),
+                type: 'error',
+                position: 'top-right',
+                duration: 3000
+            });
         }
     };
 
@@ -280,12 +327,22 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
         const filesToDownload = selectedFiles.length > 0 ? selectedFiles : currentFile ? [currentFile] : [];
 
         if (filesToDownload.length === 0) {
-            notify({message: 'No files selected for download', type: 'error', position: 'top-right', duration: 3000});
+            notify({
+                message: t('pdf', 'no_files_selected_for_download'),
+                type: 'error',
+                position: 'top-right',
+                duration: 3000
+            });
             return;
         }
 
         try {
-            notify({message: 'Preparing download...', type: 'success', position: 'top-right', duration: 3000});
+            notify({
+                message: t('pdf', 'preparing_download'),
+                type: 'success',
+                position: 'top-right',
+                duration: 3000
+            });
 
             // If only one file, download it directly
             if (filesToDownload.length === 1) {
@@ -324,16 +381,31 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                         document.body.removeChild(a);
                         URL.revokeObjectURL(url);
 
-                        notify({message: 'Files downloaded successfully', type: 'success', position: 'top-right', duration: 3000});
+                        notify({
+                            message: t('pdf', 'files_downloaded_successfully'),
+                            type: 'success',
+                            position: 'top-right',
+                            duration: 3000
+                        });
                     } catch (error) {
-                        notify({message: 'Error creating ZIP file. JSZip library may not be available.', type: 'error', position: 'top-right', duration: 3000});
+                        notify({
+                            message: t('pdf', 'error_creating_zip_file_jszip_library_may_not_be_available'),
+                            type: 'error',
+                            position: 'top-right',
+                            duration: 3000
+                        });
                     }
                 };
 
                 await loadJSZip();
             }
         } catch (error) {
-            notify({message: 'Error downloading files', type: 'error', position: 'top-right', duration: 3000});
+            notify({
+                message: t('pdf', 'error_downloading_files'),
+                type: 'error',
+                position: 'top-right',
+                duration: 3000
+            });
         }
     };
 
@@ -350,14 +422,14 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
             <div className={`file-selector ${className ?? ''}`}>
                 <div className="file-selector-header">
                     <div className="file-selector-title-area">
-                        <h3 className="file-selector-title">Files ({files.length})</h3>
+                        <h3 className="file-selector-title">{t('pdf', 'files')} ({files.length})</h3>
                         {files.length > 0 && (
                             <div className="select-all-control">
                                 <button
                                     className="select-all-button"
                                     onClick={handleSelectAll}
-                                    title={allSelected ? "Deselect all" : "Select all"}
-                                    aria-label={allSelected ? "Deselect all files" : "Select all files"}
+                                    title={allSelected ? t('pdf', 'deselectAll') : t('pdf', 'selectAll')}
+                                    aria-label={allSelected ? t('pdf', 'deselectAllFiles') : t('pdf', 'selectAllFiles')}
                                 >
                                     {allSelected ? (
                                         <CheckSquare size={16} className="icon-check-all"/>
@@ -380,24 +452,24 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                 <button
                                     className="file-action-toolbar-button delete-button"
                                     onClick={handleDeleteSelected}
-                                    title="Delete selected files"
-                                    aria-label="Delete selected files"
+                                    title={t('pdf', 'deleteSelectedFiles')}
+                                    aria-label={t('pdf', 'deleteSelectedFiles')}
                                 >
                                     <Trash2 size={16}/>
                                 </button>
                                 <button
                                     className="file-action-toolbar-button download-button"
                                     onClick={handleDownloadFiles}
-                                    title="Download selected files"
-                                    aria-label="Download selected files"
+                                    title={t('pdf', 'downloadSelectedFiles')}
+                                    aria-label={t('pdf', 'downloadSelectedFiles')}
                                 >
                                     <Download size={16}/>
                                 </button>
                                 <button
                                     className="file-action-toolbar-button print-button"
                                     onClick={handlePrintFiles}
-                                    title="Print selected files"
-                                    aria-label="Print selected files"
+                                    title={t('pdf', 'printSelectedFiles')}
+                                    aria-label={t('pdf', 'printSelectedFiles')}
                                 >
                                     <Printer size={16}/>
                                 </button>
@@ -406,8 +478,8 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                         <button
                             className="add-files-button"
                             onClick={handleAddFiles}
-                            title="Add more files"
-                            aria-label="Add more files"
+                            title={t('pdf', 'addMoreFiles')}
+                            aria-label={t('pdf', 'addMoreFiles')}
                         >
                             <Plus size={16}/>
                         </button>
@@ -426,10 +498,10 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                 {files.length === 0 ? (
                     <div className="empty-files-message">
                         <FileIcon size={32} className="empty-icon" />
-                        <p>No PDF files loaded</p>
+                        <p>{t('pdf', 'noPdfFilesLoaded')}</p>
                         <button className="add-files-empty-button" onClick={handleAddFiles}>
                             <Plus size={16}/>
-                            <span>Add PDF Files</span>
+                            <span>{t('pdf', 'addPdfFiles')}</span>
                         </button>
                     </div>
                 ) : (
@@ -445,7 +517,6 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                     key={fileKey}
                                     className={`file-item ${currentFile === file ? 'current' : ''} ${isSelected ? 'selected' : ''} ${isActive ? 'active' : 'inactive'} ${isLastFile ? 'last-file' : ''}`}
                                     onClick={() => handleFileSelect(file)}
-                                    onContextMenu={(e) => handleContextMenu(e, fileKey)}
                                     onMouseEnter={() => {
                                         setShowActions(fileKey);
                                     }}
@@ -457,8 +528,8 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                         <button
                                             className="file-select-button"
                                             onClick={(e) => handleToggleSelection(file, e)}
-                                            title={isSelected ? "Deselect file" : "Select file for batch operations"}
-                                            aria-label={isSelected ? "Deselect file" : "Select file"}
+                                            title={isSelected ? t('pdf', 'deselectFile') : t('pdf', 'selectFileForBatch')}
+                                            aria-label={isSelected ? t('pdf', 'deselectFile') : t('pdf', 'selectFile')}
                                         >
                                             {isSelected ? (
                                                 <CheckSquare size={16} className="select-file-icon"/>
@@ -470,8 +541,8 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                         <button
                                             className={`file-visibility-button ${isActive ? 'visible' : 'hidden'}`}
                                             onClick={(e) => handleToggleActive(file, e)}
-                                            title={isActive ? "Hide file" : "Show file"}
-                                            aria-label={isActive ? "Hide file" : "Show file"}
+                                            title={isActive ? t('pdf', 'hideFile') : t('pdf', 'showFile')}
+                                            aria-label={isActive ? t('pdf', 'hideFile') : t('pdf', 'showFile')}
                                         >
                                             {isActive ? (
                                                 <Eye size={16} className="visibility-icon"/>
@@ -499,8 +570,8 @@ const FileSelector: React.FC<FileSelectorProps> = ({ className }) => {
                                                 <button
                                                     className="file-action-button delete-button"
                                                     onClick={(e) => handleFileDelete(index, e)}
-                                                    title="Remove file"
-                                                    aria-label="Remove file"
+                                                    title={t('pdf', 'removeFile')}
+                                                    aria-label={t('pdf', 'removeFile')}
                                                 >
                                                     <Trash2 size={16}/>
                                                 </button>

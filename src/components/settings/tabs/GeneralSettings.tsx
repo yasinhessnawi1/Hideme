@@ -9,6 +9,8 @@ import useDocument from "../../../hooks/settings/useDocument";
 import LoadingWrapper from "../../common/LoadingWrapper";
 import { useNotification } from "../../../contexts/NotificationContext";
 import { useLoading } from "../../../contexts/LoadingContext";
+import { useLanguage } from "../../../contexts/LanguageContext";
+import { AVAILABLE_LANGUAGES, Language } from "../../../utils/i18n"; // Import Language type and AVAILABLE_LANGUAGES
 
 export default function GeneralSettings() {
     const { 
@@ -69,6 +71,8 @@ export default function GeneralSettings() {
         return false; // Default to not using ban list
     });
     const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+
+    const { t, language, setLanguage } = useLanguage();
 
     // Clear import status messages after a delay
     useEffect(() => {
@@ -181,16 +185,16 @@ export default function GeneralSettings() {
             }));
 
             notify({
-                message: "Settings saved successfully.",
+                message: t('notifications', 'settingsSaved'),
                 type: "success",
                 duration: 3000
             });
         } catch (err: any) {
-            const message = err.userMessage || err.message || "Failed to save settings.";
+            const message = err.userMessage || err.message || t('errors', 'failedToUpdateSettings');
             notify({
                 message: message,
                 type: "error",
-                duration: 3000
+                duration: 5000
             });
         } finally {
             stopLoading('setting.general.save');
@@ -198,16 +202,20 @@ export default function GeneralSettings() {
     };
 
     const handleClearStoredFilesClick = async () => {
-        // ... (Clear logic remains the same) ...
         startLoading('setting.general.clear');
         try {
             await clearStoredFiles();
+            notify({
+                message: t('notifications', 'storedFilesCleared'),
+                type: "success",
+                duration: 3000
+            });
         } catch (error) {
             console.error('Error clearing stored files:', error);
             notify({
-                message: "Failed to clear stored files.",
+                message: t('notifications', 'failedToClearFiles'),
                 type: "error",
-                duration: 3000
+                duration: 5000
             });
         } finally {
             stopLoading('setting.general.clear');
@@ -222,16 +230,16 @@ export default function GeneralSettings() {
             await exportSettings();
             
             notify({
-                message: "Settings exported successfully.",
+                message: t('notifications', 'settingsExported'),
                 type: "success",
                 duration: 3000
             });
         } catch (error: any) {
             console.error('Error exporting settings:', error);
             notify({
-                message: error.message || "Failed to export settings.",
+                message: error.message || t('notifications', 'exportFailed'),
                 type: "error",
-                duration: 3000
+                duration: 5000
             });
         } finally {
             stopLoading('settings.export');
@@ -264,7 +272,7 @@ export default function GeneralSettings() {
             if (result) {
                 setImportSuccess(true);
                 notify({
-                    message: "Settings imported successfully. Refreshing settings...",
+                    message: t('notifications', 'settingsImported'),
                     type: "success",
                     duration: 3000
                 });
@@ -300,27 +308,48 @@ export default function GeneralSettings() {
             {/* Appearance Card */}
             <div className="card">
                 <div className="card-header">
-                    <h2 className="card-title">Appearance</h2>
-                    <p className="card-description">Customize how the application looks</p>
+                    <h2 className="card-title">{t('settings', 'appearance')}</h2>
+                    <p className="card-description">{t('settings', 'customizeAppearance')}</p>
                 </div>
                 <div className="card-content space-y-4">
-                    <div className="form-group">
-                        <label className="form-label" htmlFor="theme-select">Theme</label>
-                        <div className="select-container">
-                            <select
-                                className="select"
-                                id="theme-select"
-                                value={currentThemePreference}
-                                onChange={(e) => handleThemeChange(e.target.value as ThemePreference)}
-                                disabled={isLoading}
-                            >
-                                <option value="light">Light</option>
-                                <option value="dark">Dark</option>
-                                <option value="system">System Default</option>
-                            </select>
-                            <ChevronDown className="select-icon" size={16} />
+                    <div className="setting-row">
+                        <div className="setting-label">
+                            <label className="form-label" htmlFor="theme-select">{t('settings', 'theme')}</label>
                         </div>
-                        <p className="form-helper">Choose your preferred interface theme.</p>
+                        <div className="setting-control">
+                            <select
+                                id="theme-select"
+                                name="theme"
+                                className="select"
+                                value={settings?.theme || 'system'}
+                                onChange={(e) => handleThemeChange(e.target.value as ThemePreference)}
+                            >
+                                <option value="light">{t('settings', 'light')}</option>
+                                <option value="dark">{t('settings', 'dark')}</option>
+                                <option value="system">{t('settings', 'system')}</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    {/* Language selector */}
+                    <div className="setting-row">
+                        <div className="setting-label">
+                            <label className="form-label" htmlFor="language-select">{t('settings', 'language')}</label>
+                        </div>
+                        <div className="setting-control">
+                            <select
+                                id="language-select"
+                                className="select"
+                                value={language}
+                                onChange={(e) => setLanguage(e.target.value as Language)}
+                            >
+                                {Object.entries(AVAILABLE_LANGUAGES).map(([code, name]) => (
+                                    <option key={code} value={code}>
+                                        {name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -328,16 +357,16 @@ export default function GeneralSettings() {
             {/* Processing & Storage Card */}
             <div className="card">
                 <div className="card-header">
-                    <h2 className="card-title">Processing & Storage</h2>
-                    <p className="card-description">Configure file processing and browser storage</p>
+                    <h2 className="card-title">{t('settings', 'processingAndStorage')}</h2>
+                    <p className="card-description">{t('settings', 'configureProcessingAndStorage')}</p>
                 </div>
                 <div className="card-content space-y-4">
                     {/* Auto Processing Toggle */}
                     <div className="switch-container">
                         <div className="space-y-0.5">
-                            <label className="form-label" htmlFor="auto-process">Auto-process new files</label>
+                            <label className="form-label" htmlFor="auto-process">{t('settings', 'autoProcessNewFiles')}</label>
                             <p className="text-sm text-muted-foreground">
-                                {isAutoProcessing ? "New files inherit current settings" : "Manual processing required"}
+                                {isAutoProcessing ? t('settings', 'newFilesInheritSettings') : t('settings', 'manualProcessingRequired')}
                             </p>
                         </div>
                         <label className="switch">
@@ -357,14 +386,14 @@ export default function GeneralSettings() {
                         <div className="form-header-with-icon">
                             <Sliders size={18} className="text-primary" />
                             <label className="form-label" htmlFor="detection-threshold">
-                                Detection Threshold ({Math.round(detectionThreshold * 100)}%)
+                                {t('settings', 'detectionThreshold')} ({Math.round(detectionThreshold * 100)}%)
                             </label>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">
-                            Higher values reduce false positives but may miss some entities
+                            {t('settings', 'detectionThresholdDescription')}
                         </p>
                         <div className="flex items-center gap-4">
-                            <span className="text-xs text-muted-foreground">Low</span>
+                            <span className="text-xs text-muted-foreground">{t('settings', 'low')}</span>
                             <input
                                 type="range"
                                 id="detection-threshold"
@@ -376,16 +405,16 @@ export default function GeneralSettings() {
                                 className="flex-1 accent-primary"
                                 disabled={isLoading}
                             />
-                            <span className="text-xs text-muted-foreground">High</span>
+                            <span className="text-xs text-muted-foreground">{t('settings', 'high')}</span>
                         </div>
                     </div>
 
                     {/* Ban List Usage Toggle */}
                     <div className="switch-container">
                         <div className="space-y-0.5">
-                            <label className="form-label" htmlFor="use-banlist">Use ban list for detection</label>
+                            <label className="form-label" htmlFor="use-banlist">{t('settings', 'useBanListForDetection')}</label>
                             <p className="text-sm text-muted-foreground">
-                                {useBanlist ? "Ban list words will be flagged in documents" : "Ban list will be ignored during detection"}
+                                {useBanlist ? t('settings', 'banListWillBeFlagged') : t('settings', 'banListIgnored')}
                             </p>
                         </div>
                         <label className="switch">
@@ -403,9 +432,9 @@ export default function GeneralSettings() {
                     {/* Storage Persistence Toggle */}
                     <div className="switch-container">
                         <div className="space-y-0.5">
-                            <label className="form-label" htmlFor="storage-persistence">Store PDFs in browser</label>
+                            <label className="form-label" htmlFor="storage-persistence">{t('settings', 'storePDFsInBrowser')}</label>
                             <p className="text-sm text-muted-foreground">
-                                {isStorageEnabled ? "PDFs stored locally" : "PDFs not saved"}
+                                {isStorageEnabled ? t('settings', 'pdfsStoredLocally') : t('settings', 'pdfsNotSaved')}
                             </p>
                         </div>
                         <label className="switch">
@@ -425,52 +454,52 @@ export default function GeneralSettings() {
                         className="button button-outline w-full flex justify-between"
                         onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
                     >
-                        <span>{showAdvancedSettings ? "Hide Storage Details" : "Show Storage Details"}</span>
+                        <span>{showAdvancedSettings ? t('settings', 'hideStorageDetails') : t('settings', 'showStorageDetails')}</span>
                         {showAdvancedSettings ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </button>
 
                     {showAdvancedSettings && isStorageEnabled && (
                         <div className="mt-4 space-y-6 rounded-md border p-4">
-                            <div className="flex items-center gap-2"><HardDrive size={18} /><h3 className="text-lg font-medium">Storage Usage</h3></div>
+                            <div className="flex items-center gap-2"><HardDrive size={18} /><h3 className="text-lg font-medium">{t('settings', 'storageUsage')}</h3></div>
                             <div className="space-y-3">
                                 <div className="space-y-2">
                                     <div className="progress">
                                         <div className="progress-value" style={{ width: `${Math.min(effectiveStorageStats.percentUsed, 100)}%` }}></div>
                                     </div>
                                     <div className="text-xs text-muted-foreground">
-                                        {effectiveStorageStats.percentUsed} used ({effectiveStorageStats.fileCount} file{effectiveStorageStats.fileCount !== 1 ? "s" : ""})
+                                        {effectiveStorageStats.percentUsed} {t('settings', 'used')} ({effectiveStorageStats.fileCount} {effectiveStorageStats.fileCount === 1 ? t('settings', 'file') : t('settings', 'files')})
                                     </div>
                                 </div>
                                 <button
                                     className="button button-outline button-sm w-full text-destructive hover:bg-destructive hover:text-destructive-foreground"
                                     onClick={() => confirm({
-                                        title: "Clear Stored PDFs",
-                                        message: "This will permanently delete all PDFs stored in your browser. This action cannot be undone.",
+                                        title: t('settings', 'clearStoredPDFsTitle'),
+                                        message: t('settings', 'clearStoredPDFsMessage'),
                                         confirmButton: {
-                                            label: "Clear All PDFs",
+                                            label: t('settings', 'clearAllPDFs'),
                                             onClick: handleClearStoredFilesClick,
                                         },
                                         cancelButton: {
-                                            label: "Cancel",
+                                            label: t('common', 'cancel'),
                                         },
                                         type: "info"
                                     })}
                                     disabled={effectiveStorageStats.fileCount === 0 || isLoading}
                                 >
                                     <Trash2 size={14} className="mr-2" />
-                                    <span>Clear Stored PDFs</span>
+                                    <span>{t('settings', 'clearStoredPDFs')}</span>
                                     {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                                 </button>
                             </div>
                             <div className="flex items-start gap-2 rounded-md bg-amber-50 p-3 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                                 <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
-                                <p className="text-xs">PDFs are stored only in your browser and are not sent to any server.</p>
+                                <p className="text-xs">{t('settings', 'pdfsStoredOnlyInBrowser')}</p>
                             </div>
                         </div>
                     )}
                     {showAdvancedSettings && !isStorageEnabled && (
                         <div className="mt-4 rounded-md border p-4 text-center text-muted-foreground">
-                            Enable storage persistence to see usage details.
+                            {t('settings', 'enableStoragePersistenceToSeeUsageDetails')}
                         </div>
                     )}
                 </div>
@@ -479,13 +508,12 @@ export default function GeneralSettings() {
             {/* Settings Import/Export Card */}
             <div className="card">
                 <div className="card-header">
-                    <h2 className="card-title">Settings Management</h2>
-                    <p className="card-description">Import or export your application settings</p>
+                    <h2 className="card-title">{t('settings', 'settingsManagement')}</h2>
+                    <p className="card-description">{t('settings', 'importOrExportSettings')}</p>
                 </div>
                 <div className="card-content space-y-4">
                     <p className="text-sm text-muted-foreground mb-4">
-                        Export your current settings to a file or import settings from a previously exported file.
-                        This includes theme preferences, detection settings, and processing configurations.
+                        {t('settings', 'exportImportSettingsDescription')}
                     </p>
                     
                     {/* Import/Export Buttons */}
@@ -498,7 +526,7 @@ export default function GeneralSettings() {
                             <LoadingWrapper isLoading={globalLoading('settings.import')} fallback={<Loader2 size={16} className="mr-2 animate-spin" />}>
                                 <Upload size={16} className="mr-2" />
                             </LoadingWrapper>
-                            <span>Import Settings</span>
+                            <span>{t('settings', 'importSettings')}</span>
                         </button>
                         
                         <button
@@ -509,7 +537,7 @@ export default function GeneralSettings() {
                             <LoadingWrapper isLoading={globalLoading('settings.export')} fallback={<Loader2 size={16} className="mr-2 animate-spin" />}>
                                 <Download size={16} className="mr-2" />
                             </LoadingWrapper>
-                            <span>Export Settings</span>
+                            <span>{t('settings', 'exportSettings')}</span>
                         </button>
                         
                         {/* Hidden file input for importing */}
@@ -533,7 +561,7 @@ export default function GeneralSettings() {
                     {importSuccess && (
                         <div className="flex items-start gap-2 rounded-md bg-green-50 p-3 text-green-800 dark:bg-green-950 dark:text-green-300 mt-3">
                             <Database size={16} className="mt-0.5 flex-shrink-0" />
-                            <p className="text-xs">Settings imported successfully.</p>
+                            <p className="text-xs">{t('settings', 'settingsImportedSuccessfully')}</p>
                         </div>
                     )}
                 </div>
@@ -546,9 +574,9 @@ export default function GeneralSettings() {
                     onClick={handleSaveChanges}
                     disabled={isLoading}
                 >
-                    <LoadingWrapper isLoading={globalLoading('setting.general.save')} fallback="Saving...">
+                    <LoadingWrapper isLoading={globalLoading('setting.general.save')} fallback={t('settings', 'saving')}>
                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon" /> : <Save size={16} className="button-icon" />}
-                        {isLoading ? 'Saving...' : 'Save Changes'}
+                        {isLoading ? t('settings', 'saving') : t('settings', 'saveChanges')}
                     </LoadingWrapper>
                 </button>
             </div>

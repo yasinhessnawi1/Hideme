@@ -6,6 +6,7 @@ import LoadingWrapper from '../components/common/LoadingWrapper';
 import Navbar from '../components/static/Navbar';
 import authService from '../services/authService';
 import '../styles/modules/login/LoginPage.css';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -17,11 +18,12 @@ const ResetPasswordPage: React.FC = () => {
   const [resetComplete, setResetComplete] = useState(false);
   const { notify } = useNotification();
   const { isLoading, startLoading, stopLoading } = useLoading();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!token) {
       notify({
-        message: 'Invalid or missing reset token. Please request a new password reset link.',
+        message: t('resetPassword', 'invalidOrMissingToken'),
         type: 'error',
         duration: 5000
       });
@@ -34,7 +36,7 @@ const ResetPasswordPage: React.FC = () => {
     
     if (!newPassword.trim() || !confirmPassword.trim()) {
       notify({
-        message: 'Both fields are required',
+        message: t('resetPassword', 'bothFieldsRequired'),
         type: 'error',
         duration: 3000
       });
@@ -43,7 +45,7 @@ const ResetPasswordPage: React.FC = () => {
     
     if (newPassword.length < 8) {
       notify({
-        message: 'Password must be at least 8 characters long',
+        message: t('resetPassword', 'passwordTooShort'),
         type: 'error',
         duration: 3000
       });
@@ -52,7 +54,7 @@ const ResetPasswordPage: React.FC = () => {
 
     if (newPassword !== confirmPassword) {
       notify({
-        message: 'Passwords do not match',
+        message: t('resetPassword', 'passwordsDoNotMatch'),
         type: 'error',
         duration: 3000
       });
@@ -64,13 +66,13 @@ const ResetPasswordPage: React.FC = () => {
       await authService.resetPassword(token!, newPassword);
       setResetComplete(true);
       notify({
-        message: 'Password has been successfully reset',
+        message: t('resetPassword', 'passwordResetSuccess'),
         type: 'success',
         duration: 5000
       });
     } catch (error: any) {
       notify({
-        message: error.message || 'Failed to reset password. The link may have expired.',
+        message: error.message || t('resetPassword', 'resetFailed'),
         type: 'error',
         duration: 5000
       });
@@ -89,31 +91,31 @@ const ResetPasswordPage: React.FC = () => {
       <div className="login-page">
         <div className="login-left">
           <div className="login-container">
-            <h1 className="login-title">HIDE ME</h1>
-            <p className="login-subtitle">Set New Password</p>
+            <h1 className="login-title">{t('resetPassword', 'title')}</h1>
+            <p className="login-subtitle">{t('resetPassword', 'subtitle')}</p>
 
             {!resetComplete ? (
               <form className="login-form" onSubmit={handleSubmit}>
                 <div className="form-group">
-                  <label htmlFor="newPassword">New Password</label>
+                  <label htmlFor="newPassword">{t('resetPassword', 'newPasswordLabel')}</label>
                   <input
                     type="password"
                     id="newPassword"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
+                    placeholder={t('resetPassword', 'newPasswordPlaceholder')}
                     required
                   />
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="confirmPassword">Confirm Password</label>
+                  <label htmlFor="confirmPassword">{t('resetPassword', 'confirmPasswordLabel')}</label>
                   <input
                     type="password"
                     id="confirmPassword"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm your new password"
+                    placeholder={t('resetPassword', 'confirmPasswordPlaceholder')}
                     required
                   />
                 </div>
@@ -127,26 +129,26 @@ const ResetPasswordPage: React.FC = () => {
                     isLoading={isLoading('resetPassword')} 
                     overlay={true} 
                     fallback={''}>
-                    {isLoading('resetPassword') ? 'Resetting...' : 'Reset Password'}
+                    {isLoading('resetPassword') ? t('resetPassword', 'resetting') : t('resetPassword', 'resetPassword')}
                   </LoadingWrapper>
                 </button>
               </form>
             ) : (
               <div className="reset-confirmation">
                 <div className="success-message">
-                  <p>Password Reset Complete!</p>
+                  <p>{t('resetPassword', 'resetCompleteMessage')}</p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Your password has been successfully reset.
+                    {t('resetPassword', 'resetCompleteSubmessage')}
                   </p>
                 </div>
                 <Link to="/login" className="login-button mt-4" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
-                  Log In with New Password
+                  {t('resetPassword', 'logInWithNewPassword')}
                 </Link>
               </div>
             )}
             
             <p className="signup-prompt enhanced-toggle">
-              Need another reset link? <Link to="/forgot-password">Request again</Link>
+              {t('resetPassword', 'needAnotherResetLink')} <Link to="/forgot-password">{t('resetPassword', 'requestAgain')}</Link>
             </p>
           </div>
         </div>

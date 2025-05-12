@@ -4,6 +4,7 @@ import { useFileContext } from '../../../contexts/FileContext';
 import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { useEditContext } from '../../../contexts/EditContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import { 
     File as FileIcon, 
     Trash2, 
@@ -79,6 +80,7 @@ const HistoryViewer: React.FC = () => {
     const { setDetectionMapping, setFileDetectionMapping } = useEditContext();
     const { notify, confirm } = useNotification();
     const { removeHighlightsFromFile, addHighlight } = useHighlightStore();
+    const { t } = useLanguage();
 
     const [page, setPage] = useState(1);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -321,7 +323,7 @@ const HistoryViewer: React.FC = () => {
         if (!matchingFile) {
             // File not uploaded yet
             notify({
-                message: `Please upload "${document.hashed_name}" to see its redaction history`,
+                message: t('redaction', 'pleaseUpload').replace('{file}', document.hashed_name),
                 type: 'warning',
                 duration: 5000
             });
@@ -359,7 +361,7 @@ const HistoryViewer: React.FC = () => {
                     console.log('[HistoryViewer] Parsed schema:', parsedSchema);
                 } catch (parseError) {
                     console.error('[HistoryViewer] Error parsing redaction schema:', parseError);
-                    throw new Error('Failed to parse redaction schema');
+                    throw new Error(t('redaction', 'couldNotLoadRedactionHistory').replace('{file}', document.hashed_name));
                 }
 
                 // Apply redaction mapping to global state
@@ -373,7 +375,7 @@ const HistoryViewer: React.FC = () => {
                 await processRedactionHighlights(matchingFile.name, parsedSchema);
             
                 notify({
-                    message: `Loaded redaction history for ${document.hashed_name}`,
+                    message: t('redaction', 'loadedRedactionHistory').replace('{file}', document.hashed_name),
                     type: 'success',
                     duration: 3000
                 });
@@ -388,23 +390,23 @@ const HistoryViewer: React.FC = () => {
         } catch (err) {
             console.error('Error loading redaction history:', err);
             notify({
-                message: `Could not load redaction history for ${document.hashed_name}`,
+                message: t('redaction', 'couldNotLoadRedactionHistory').replace('{file}', document.hashed_name),
                 type: 'error',
                 duration: 4000
             });
         }
-    }, [files, getDocumentById, setCurrentFile, addToActiveFiles, setDetectionMapping, setFileDetectionMapping, notify, removeHighlightsFromFile, processRedactionHighlights]);
+    }, [files, getDocumentById, setCurrentFile, addToActiveFiles, setDetectionMapping, setFileDetectionMapping, notify, removeHighlightsFromFile, processRedactionHighlights, t]);
 
     // Handle document deletion
     const handleDeleteDocument = useCallback(async (e: React.MouseEvent, document: DocumentHistoryItem) => {
         e.stopPropagation(); // Prevent triggering the document click
 
         const confirmed = await confirm({
-            title: 'Delete Document History',
-            message: `Are you sure you want to delete the history for "${document.hashed_name}"?`,
+            title: t('redaction', 'deleteDocumentHistoryTitle'),
+            message: t('redaction', 'deleteDocumentHistoryMessage').replace('{file}', document.hashed_name),
             type: 'delete',
             confirmButton: {
-                label: 'Delete',
+                label: t('pdf', 'delete'),
                 variant: 'danger'
             }
         });
@@ -414,19 +416,19 @@ const HistoryViewer: React.FC = () => {
 
             if (success) {
                 notify({
-                    message: `History for "${document.hashed_name}" has been deleted`,
+                    message: t('redaction', 'historyDeleted').replace('{file}', document.hashed_name),
                     type: 'success',
                     duration: 3000
                 });
             } else {
                 notify({
-                    message: `Could not delete history for "${document.hashed_name}"`,
+                    message: t('redaction', 'couldNotDeleteHistory').replace('{file}', document.hashed_name),
                     type: 'error',
                     duration: 3000
                 });
             }
         }
-    }, [deleteDocument, confirm, notify]);
+    }, [deleteDocument, confirm, notify, t]);
 
     // Format date for display - simplified
     const formatDate = (dateString: string) => {
@@ -454,12 +456,12 @@ const HistoryViewer: React.FC = () => {
     return (
         <div className="history-viewer">
             <div className="history-viewer-header">
-                <h3 className="history-viewer-title">Document History ({documents.length})</h3>
+                <h3 className="history-viewer-title">{t('redaction', 'documentHistory').replace('{count}', String(documents.length))}</h3>
                 <button
                     className="refresh-button"
                     onClick={fetchDocuments}
                     disabled={isRefreshing}
-                    title="Refresh document history"
+                    title={t('redaction', 'refreshDocumentHistory')}
                 >
                     <RefreshCw size={16} className={isRefreshing ? "spinning" : ""} />
                 </button>
@@ -467,20 +469,20 @@ const HistoryViewer: React.FC = () => {
 
             <div className="history-content">
                 {loading && !isRefreshing ? (
-                    <div className="history-loading">Loading document history...</div>
+                    <div className="history-loading">{t('redaction', 'loadingDocumentHistory')}</div>
                 ) : error ? (
                     <div className="history-error">
-                        <p>Error loading document history</p>
+                        <p>{t('redaction', 'errorLoadingDocumentHistory')}</p>
                         <button onClick={fetchDocuments} className="retry-button">
-                            Try again
+                            {t('redaction', 'tryAgain')}
                         </button>
                     </div>
                 ) : documents.length === 0 ? (
                     <div className="empty-history">
                         <FileIcon size={32} className="empty-icon" />
-                        <p>No document history available</p>
+                        <p>{t('redaction', 'noDocumentHistory')}</p>
                         <p className="empty-subtitle">
-                            Redacted documents will appear here
+                            {t('redaction', 'redactedDocumentsAppearHere')}
                         </p>
                     </div>
                 ) : (
@@ -493,7 +495,7 @@ const HistoryViewer: React.FC = () => {
 
                             // Format entity count with proper text
                             const entityCount = document.entity_count !== undefined
-                                ? `${document.entity_count} ${document.entity_count === 1 ? 'entity' : 'entities'}`
+                                ? `${document.entity_count} ${document.entity_count === 1 ? t('redaction', 'entity') : t('redaction', 'entities')}`
                                 : '';
 
                             return (
@@ -510,7 +512,7 @@ const HistoryViewer: React.FC = () => {
                                             <span className="doc-name-text">{document.hashed_name}</span>
                                             {!hasMatchingFile && (
                                                 <span className="unavailable-badge">
-                                                    Not uploaded
+                                                    {t('redaction', 'notUploaded')}
                                                 </span>
                                             )}
                                         </div>
@@ -531,7 +533,7 @@ const HistoryViewer: React.FC = () => {
                                     <button
                                         className="document-delete"
                                         onClick={(e) => handleDeleteDocument(e, document)}
-                                        title="Delete document history"
+                                        title={t('redaction', 'deleteDocumentHistory')}
                                     >
                                         <Trash2 size={16} />
                                     </button>

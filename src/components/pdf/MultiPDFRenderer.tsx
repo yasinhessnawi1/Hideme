@@ -6,6 +6,7 @@ import FullScreenOverlay from './FullScreenOverlay';
 import MultiFileUploader from "./pdf_component/MultiFileUploader";
 import { ChevronDown, ChevronUp, Maximize, Check, X } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 /**
  * Component that renders a list of PDF files with open/close functionality
@@ -25,6 +26,7 @@ const MultiPDFRenderer: React.FC = () => {
     // State for fullscreen mode
     const [fullscreenFile, setFullscreenFile] = useState<File | null>(null);
     const { notify } = useNotification();
+    const { t } = useLanguage();
     // Find file index by key
     const getFileIndex = useCallback((file: File) => {
         return files.findIndex(f =>
@@ -71,13 +73,13 @@ const MultiPDFRenderer: React.FC = () => {
                 }));
             }
             notify({
-                message: `File "${file.name}" and its highlights removed permanently`,
+                message: t('pdf', 'fileAndHighlightsRemoved').replace('{file}', file.name),
                 type: 'success',
                 duration: 3000
             });
         } catch (error) {
             notify({
-                message: `Error removing file: ${error}`,
+                message: t('pdf', 'errorRemovingFile').replace('{error}', String(error)),
                 type: 'error',
                 duration: 3000
             });
@@ -95,7 +97,7 @@ const MultiPDFRenderer: React.FC = () => {
         // Set the file for fullscreen display
         setFullscreenFile(file);
         notify({
-            message: `Exit full screen mode by pressing ESC or clicking the X button`,
+            message: t('pdf', 'exitFullScreenInfo'),
             type: 'info',
             duration: 3000
         });
@@ -191,7 +193,7 @@ const MultiPDFRenderer: React.FC = () => {
                                         <button
                                             className="pdf-file-toggle-button"
                                             onClick={(e) => handleToggleOpen(file, e)}
-                                            title={isOpen ? "Collapse file" : "Expand file"}
+                                            title={isOpen ? t('pdf', 'collapseFile') : t('pdf', 'expandFile')}
                                         >
                                             {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                                         </button>
@@ -203,7 +205,7 @@ const MultiPDFRenderer: React.FC = () => {
                                         <button
                                             className={`pdf-file-action-button ${isSelected ? 'selected' : ''}`}
                                             onClick={(e) => handleToggleSelection(file, e)}
-                                            title={isSelected ? "Deselect file" : "Select file"}
+                                            title={isSelected ? t('pdf', 'deselectFile') : t('pdf', 'selectFile')}
                                             aria-pressed={isSelected}
                                         >
                                             {isSelected ? <Check size={18} /> : <span className="select-icon"></span>}
@@ -211,14 +213,14 @@ const MultiPDFRenderer: React.FC = () => {
                                         <button
                                             className="pdf-file-action-button"
                                             onClick={(e) => handleEnterFullScreen(file, e)}
-                                            title="View in full screen"
+                                            title={t('pdf', 'viewInFullScreen')}
                                         >
                                             <Maximize size={18} />
                                         </button>
                                         <button
                                             className="pdf-file-action-button"
                                             onClick={(e) => handleRemoveFile(file, e)}
-                                            title="Remove file"
+                                            title={t('pdf', 'removeFile')}
                                         >
                                             <X size={18} />
                                         </button>

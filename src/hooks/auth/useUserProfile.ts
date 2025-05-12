@@ -22,6 +22,7 @@ import apiClient from '../../services/apiClient';
 import { User } from '../../types';
 import authStateManager from '../../managers/authStateManager';
 import authService from '../../services/authService';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export interface UseUserProfileReturn {
     // User state (from auth hook)
@@ -63,6 +64,8 @@ export const useUserProfile = (): UseUserProfileReturn => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
+    const { t } = useLanguage();
+
     /**
      * Clear error messages
      */
@@ -88,12 +91,12 @@ export const useUserProfile = (): UseUserProfileReturn => {
             const response = await apiClient.get<{ data: User }>('/users/me');
             return response.data.data;
         } catch (error: any) {
-            setError(error.userMessage ?? 'Failed to load user profile');
+            setError(error.userMessage ?? t('errors', 'failedToLoadUserProfile'));
             return null;
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticatedOrCached, clearError]);
+    }, [isAuthenticatedOrCached, clearError, t]);
 
     /**
      * Update user profile information

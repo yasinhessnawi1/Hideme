@@ -5,6 +5,7 @@ import LoginForm from '../components/forms/LoginForm';
 import personalSettingsSVG from '../assets/undraw_personal-settings_8xv3.svg';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import Navbar from "../components/static/Navbar";
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface LoginPageProps {
   initialSignUp?: boolean;
@@ -14,7 +15,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ initialSignUp = false }) => {
   // Get URL parameters
   const [searchParams] = useSearchParams();
   const location = useLocation();
-
+  const {t} = useLanguage();
   // State to toggle between login and sign-up modes
   const [isSignUp, setIsSignUp] = useState<boolean>(initialSignUp);
   const [username, setUsername] = useState<string>('');
@@ -44,10 +45,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ initialSignUp = false }) => {
         {/* Left section: contains the form and related text */}
         <div className="login-left">
           <div className="login-container">
-            <h1 className="login-title">HIDE ME</h1>
+            <h1 className="login-title">{t('auth', 'loginPage_title')}</h1>
             {/* Subtitle changes based on mode */}
             <p className="login-subtitle">
-              {isSignUp ? 'Create an Account' : 'Login To Your Account'}
+              {isSignUp ? t('auth', 'loginPage_signUpSubtitle') : t('auth', 'loginPage_loginSubtitle')}
             </p>
 
             <LoginForm

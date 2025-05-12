@@ -10,6 +10,7 @@ import useAuth from './auth/useAuth';
 import useBanList from './settings/useBanList';
 import authStateManager from '../managers/authStateManager';
 import { useNotification } from '../contexts/NotificationContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export const useAutoProcess = () => {
     const { isAuthenticated, isLoading: userLoading } = useAuth();
@@ -21,6 +22,7 @@ export const useAutoProcess = () => {
     const { modelEntities, getModelEntities } = useEntityDefinitions();
     const { banList, getBanList } = useBanList();
     const { notify } = useNotification();
+    const { t } = useLanguage();
 
     const [entitiesFetched, setEntitiesFetched] = useState({
         presidio: false,
@@ -89,7 +91,7 @@ export const useAutoProcess = () => {
                     return;
                 }
                 notify({
-                    message: "auto processing might need a refresh to save setting changes",
+                    message: t('settings', 'autoProcessRefreshNeeded'),
                     type: 'info',
                     duration: 3000
                 });

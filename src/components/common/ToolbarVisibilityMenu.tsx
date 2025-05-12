@@ -7,6 +7,7 @@ import { useFileContext } from '../../contexts/FileContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useBatchSearch } from '../../contexts/SearchContext';
 import { useFileSummary } from '../../contexts/FileSummaryContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const ToolbarVisibilityMenu: React.FC = () => {
     const {
@@ -26,6 +27,7 @@ const ToolbarVisibilityMenu: React.FC = () => {
         clearAllEntityData, 
         clearAllSearchData 
     } = useFileSummary();
+    const { t } = useLanguage();
 
     const {
         removeAllHighlights,
@@ -37,7 +39,7 @@ const ToolbarVisibilityMenu: React.FC = () => {
         setShowManualHighlights(!showManualHighlights);
         notify({
             type: 'success',
-            message: 'Manual Highlights is now ' + (!showManualHighlights ? 'visible' : 'hidden') + '!',
+            message: t('toolbarVisibilityMenu', 'manualHighlightsVisible').replace('{visible}', !showManualHighlights ? t('common', 'visible') : t('common', 'hidden')),
             position: 'top-right'
         });
     };
@@ -47,7 +49,7 @@ const ToolbarVisibilityMenu: React.FC = () => {
         setShowSearchHighlights(!showSearchHighlights);
         notify({
             type: 'success',
-            message: 'Search Highlights is now ' + (showSearchHighlights ? 'visible' : 'hidden') + '!',
+            message: t('toolbarVisibilityMenu', 'searchHighlightsVisible').replace('{visible}', showSearchHighlights ? t('common', 'visible') : t('common', 'hidden')),
             position: 'top-right'
         });
     };
@@ -57,7 +59,7 @@ const ToolbarVisibilityMenu: React.FC = () => {
         setShowEntityHighlights(!showEntityHighlights);
         notify({
             type: 'success',
-            message: 'Entity Highlights is now ' + (showEntityHighlights ? 'visible' : 'hidden') + '!',
+            message: t('toolbarVisibilityMenu', 'entityHighlightsVisible').replace('{visible}', showEntityHighlights ? t('common', 'visible') : t('common', 'hidden')),
             position: 'top-right'
         });
     };
@@ -89,7 +91,7 @@ const ToolbarVisibilityMenu: React.FC = () => {
         
         notify({
             type: 'success',
-            message: 'All Highlights Cleared!',
+            message: t('toolbarVisibilityMenu', 'allHighlightsCleared'),
             position: 'top-right'
         });
     };
@@ -109,7 +111,7 @@ const ToolbarVisibilityMenu: React.FC = () => {
         
         notify({
             type: 'success',
-            message: 'Manual Highlights Cleared!',
+            message: t('toolbarVisibilityMenu', 'manualHighlightsCleared'),
             position: 'top-right'
         });
     };
@@ -135,7 +137,7 @@ const ToolbarVisibilityMenu: React.FC = () => {
         
         notify({
             type: 'success',
-            message: 'Search Highlights Cleared!',
+            message: t('toolbarVisibilityMenu', 'searchHighlightsCleared'),
             position: 'top-right'
         });
     };
@@ -163,7 +165,7 @@ const ToolbarVisibilityMenu: React.FC = () => {
         
         notify({
             type: 'success',
-            message: 'Entity Highlights Cleared!',
+            message: t('toolbarVisibilityMenu', 'entityHighlightsCleared'),
             position: 'top-right'
         });
     };
@@ -178,7 +180,7 @@ const ToolbarVisibilityMenu: React.FC = () => {
                         onClick={handleToggleManualHighlights}
                         readOnly
                     />
-                    Manual Highlights
+                    {t('toolbarVisibilityMenu', 'manualHighlights')}
                 </label>
             </div>
             <div className="dropdown-item">
@@ -189,7 +191,7 @@ const ToolbarVisibilityMenu: React.FC = () => {
                         onClick={handleToggleSearchHighlights}
                         readOnly
                     />
-                    Search Highlights
+                    {t('toolbarVisibilityMenu', 'searchHighlights')}
                 </label>
             </div>
             <div className="dropdown-item">
@@ -200,21 +202,21 @@ const ToolbarVisibilityMenu: React.FC = () => {
                         onClick={handleToggleEntityHighlights}
                         readOnly
                     />
-                    Entity Highlights
+                    {t('toolbarVisibilityMenu', 'entityHighlights')}
                 </label>
             </div>
             <div className="dropdown-divider"></div>
             <div className="dropdown-item">
-                <button onClick={handleClearAllHighlights}>Clear All</button>
+                <button onClick={handleClearAllHighlights}>{t('toolbarVisibilityMenu', 'clearAll')}</button>
             </div>
             <div className="dropdown-item">
-                <button onClick={handleClearManualHighlights}>Clear Manual</button>
+                <button onClick={handleClearManualHighlights}>{t('toolbarVisibilityMenu', 'clearManual')}</button>
             </div>
             <div className="dropdown-item">
-                <button onClick={handleClearSearchHighlights}>Clear Search</button>
+                <button onClick={handleClearSearchHighlights}>{t('toolbarVisibilityMenu', 'clearSearch')}</button>
             </div>
             <div className="dropdown-item">
-                <button onClick={handleClearEntityHighlights}>Clear Entity</button>
+                <button onClick={handleClearEntityHighlights}>{t('toolbarVisibilityMenu', 'clearEntity')}</button>
             </div>
         </>
     );

@@ -13,8 +13,10 @@ import {useLoading} from "../../../contexts/LoadingContext";
 import LoadingWrapper from '../../common/LoadingWrapper';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { ConfirmationType } from '../../../contexts/NotificationContext';
-import { HighlightType } from '../../../types';
+import { HighlightType } from '../../../types/pdfTypes';
 import { highlightStore } from '../../../store/HighlightStore';
+import { useLanguage } from '../../../contexts/LanguageContext';
+import { getEntityTranslationKeyAndModel } from '../../../utils/EntityUtils';
 
 const RedactionSidebar: React.FC = () => {
     const {
@@ -62,6 +64,8 @@ const RedactionSidebar: React.FC = () => {
 
     // Map of fileKey -> redaction mapping
     const [localRedactionMappings, setLocalRedactionMappings] = useState<Map<string, any>>(new Map());
+
+    const { t } = useLanguage();
 
     // Get files to process based on selected scope
     const getFilesToProcess = useCallback((): File[] => {
@@ -324,7 +328,7 @@ const RedactionSidebar: React.FC = () => {
         }
 
         if (filesToRedact.length === 0 || localRedactionMappings.size === 0) {
-            const errorMessage = 'No files selected for redaction or no content to redact.';
+            const errorMessage = t('redaction', 'noFilesSelectedOrNoContentToRedact');
             notify({
                 message: errorMessage,
                 type: 'error'
@@ -357,7 +361,7 @@ const RedactionSidebar: React.FC = () => {
         });
 
         if (filesToProcess.length === 0) {
-            const errorMessage = 'No redaction content found in selected files.';
+            const errorMessage = t('redaction', 'noRedactionContentFound');
             notify({
                 message: errorMessage,
                 type: 'error'
@@ -390,20 +394,20 @@ const RedactionSidebar: React.FC = () => {
         if (shouldConfirm) {
             // Confirm with user for manual interactions
             const confirmMessage = filesToProcess.length === 1
-                ? `Are you sure you want to redact the highlighted content in ${filesToProcess[0].name}? This will create a new PDF document.`
-                : `Are you sure you want to redact the highlighted content in ${filesToProcess.length} files? This will create new PDF documents.`;
+                ? t('redaction', 'confirmRedactionSingle').replace('{fileName}', filesToProcess[0].name)
+                : t('redaction', 'confirmRedactionMultiple').replace('{fileCount}', String(filesToProcess.length));
 
            const confirmed = await confirm({
                 message: confirmMessage,
-                title: 'Confirm Redaction',
+                title: t('redaction', 'confirmRedactionTitle'),
                 type: 'confirm',
                 confirmButton: {
-                    label: 'Confirm',
+                    label: t('common', 'confirm'),
                     variant: 'primary',
 
                 },
                 cancelButton: {
-                    label: 'Cancel',
+                    label: t('common', 'cancel'),
                     variant: 'secondary',
                 }
             });
@@ -522,7 +526,7 @@ const RedactionSidebar: React.FC = () => {
                 // Suggest user to check history
                 setTimeout(() => {
                     notify({
-                        message: 'Redaction history saved. You can view it in the History tab.',
+                        message: t('redaction', 'historySavedInfo'),
                         type: 'info',
                         duration: 5000
                     });
@@ -596,7 +600,8 @@ const RedactionSidebar: React.FC = () => {
         startLoading,
         stopLoading,
         notify,
-        confirm
+        confirm,
+        t
     ]);
 
     // Reset all redaction settings
@@ -609,10 +614,10 @@ const RedactionSidebar: React.FC = () => {
         });
         setRedactionScope('all');
         notify({
-            message: 'Redaction settings reset',
+            message: t('redaction', 'redactionSettingsReset'),
             type: 'info'
         });
-    }, [notify]);
+    }, [notify, t]);
 
     // Get overall stats - memoize for better performance
     const stats = useMemo(() => getOverallRedactionStats(), [getOverallRedactionStats]);
@@ -694,43 +699,43 @@ const RedactionSidebar: React.FC = () => {
     return (
         <div className="redaction-sidebar">
             <div className="sidebar-header redaction-header">
-                <h3>Redaction Tools</h3>
-                <div className="redaction-mode-badge">Redaction Mode</div>
+                <h3>{t('redaction', 'redactionTools')}</h3>
+                <div className="redaction-mode-badge">{t('redaction', 'redactionMode')}</div>
             </div>
 
             <div className="sidebar-content">
                 <div className="sidebar-section">
-                    <h4>Redaction Scope</h4>
+                    <h4>{t('redaction', 'redactionScope')}</h4>
                     <div className="scope-options">
                         <button
                             className={`scope-button ${redactionScope === 'current' ? 'active' : ''}`}
                             onClick={() => setRedactionScope('current')}
                             disabled={!currentFile || isCurrentlyRedacting}
-                            title="Redact current file only"
+                            title={t('redaction', 'redactCurrentFileOnly')}
                         >
-                            Current File
+                            {t('redaction', 'currentFile')}
                         </button>
                         <button
                             className={`scope-button ${redactionScope === 'selected' ? 'active' : ''}`}
                             onClick={() => setRedactionScope('selected')}
                             disabled={selectedFiles.length === 0 || isCurrentlyRedacting}
-                            title={`Redact ${selectedFiles.length} selected files`}
+                            title={t('redaction', 'redactSelectedFiles').replace('{count}', String(selectedFiles.length))}
                         >
-                            Selected ({selectedFiles.length})
+                            {t('redaction', 'selectedFiles').replace('{count}', String(selectedFiles.length))}
                         </button>
                         <button
                             className={`scope-button ${redactionScope === 'all' ? 'active' : ''}`}
                             onClick={() => setRedactionScope('all')}
                             disabled={isCurrentlyRedacting}
-                            title={`Redact all ${files.length} files`}
+                            title={t('redaction', 'redactAllFiles').replace('{count}', String(files.length))}
                         >
-                            All Files ({files.length})
+                            {t('redaction', 'allFiles').replace('{count}', String(files.length))}
                         </button>
                     </div>
                 </div>
 
                 <div className="sidebar-section">
-                    <h4>Redaction Options</h4>
+                    <h4>{t('redaction', 'redactionOptions')}</h4>
                     <div className="checkbox-group">
                         <label className="checkbox-label">
                             <input
@@ -743,7 +748,7 @@ const RedactionSidebar: React.FC = () => {
                                 disabled={isCurrentlyRedacting}
                             />
                             <span className="checkmark"></span>
-                            Include Manual Highlights
+                            {t('redaction', 'includeManualHighlights')}
                         </label>
                         <label className="checkbox-label">
                             <input
@@ -756,7 +761,7 @@ const RedactionSidebar: React.FC = () => {
                                 disabled={isCurrentlyRedacting}
                             />
                             <span className="checkmark"></span>
-                            Include Search Highlights
+                            {t('redaction', 'includeSearchHighlights')}
                         </label>
                         <label className="checkbox-label">
                             <input
@@ -769,7 +774,7 @@ const RedactionSidebar: React.FC = () => {
                                 disabled={isCurrentlyRedacting}
                             />
                             <span className="checkmark"></span>
-                            Include Detected Entities
+                            {t('redaction', 'includeDetectedEntities')}
                         </label>
                         <label className="checkbox-label">
                             <input
@@ -782,46 +787,57 @@ const RedactionSidebar: React.FC = () => {
                                 disabled={isCurrentlyRedacting}
                             />
                             <span className="checkmark"></span>
-                            Remove Images
+                            {t('redaction', 'removeImages')}
                         </label>
                     </div>
                 </div>
 
                 {localRedactionMappings.size > 0 && stats.totalItems > 0 ? (
                     <div className="sidebar-section">
-                        <h4>Redaction Preview</h4>
+                        <h4>{t('redaction', 'redactionPreview')}</h4>
                         <div className="detection-stats">
                             <div className="stat-item">
-                                <span className="stat-label">Total Items</span>
+                                <span className="stat-label">{t('redaction', 'totalItems')}</span>
                                 <span className="stat-value">{stats.totalItems}</span>
                             </div>
                             <div className="stat-item">
-                                <span className="stat-label">Files</span>
+                                <span className="stat-label">{t('redaction', 'files')}</span>
                                 <span className="stat-value">{stats.totalFiles}</span>
                             </div>
                             <div className="stat-item">
-                                <span className="stat-label">Pages</span>
+                                <span className="stat-label">{t('redaction', 'pages')}</span>
                                 <span className="stat-value">{stats.totalPages}</span>
                             </div>
                             <div className="stat-item">
-                                <span className="stat-label">Entity Types</span>
+                                <span className="stat-label">{t('redaction', 'entityTypes')}</span>
                                 <span className="stat-value">{Object.keys(stats.byType).length}</span>
                             </div>
                         </div>
 
-                        <h5>By Entity Type</h5>
+                        <h5>{t('redaction', 'byEntityType')}</h5>
                         <div className="stat-breakdown">
-                            {Object.entries(stats.byType).map(([type, count]) => (
-                                <div key={type} className="stat-row">
-                                    <span className="entity-type">{type}</span>
-                                    <span className="entity-count">{count}</span>
-                                </div>
-                            ))}
+                            {Object.entries(stats.byType).map(([type, count]) => {
+                                let translated: string;
+                                if (type === HighlightType.SEARCH) {
+                                    translated = t('entityDetection', 'search');
+                                } else if (type === HighlightType.MANUAL) {
+                                    translated = t('entityDetection', 'highlight');
+                                } else {
+                                    const { key } = getEntityTranslationKeyAndModel(type);
+                                    translated = key ? t('entityDetection', key as any) : type;
+                                }
+                                return (
+                                    <div key={type} className="stat-row">
+                                        <span className="entity-type">{translated}</span>
+                                        <span className="entity-count">{count}</span>
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         {stats.totalFiles > 1 && (
                             <>
-                                <h5>By File</h5>
+                                <h5>{t('redaction', 'byFile')}</h5>
                                 <div className="stat-breakdown">
                                     {Object.entries(stats.byFile).map(([fileName, count]) => (
                                         <div key={fileName} className="stat-row">
@@ -845,9 +861,9 @@ const RedactionSidebar: React.FC = () => {
                                     <LoadingWrapper
                                         isLoading={isCurrentlyRedacting}
                                         overlay={true}
-                                        fallback='Redacting...'
+                                        fallback={t('redaction', 'redacting')}
                                     >
-                                        {isCurrentlyRedacting ? '' : 'Redact Content'}
+                                        {isCurrentlyRedacting ? '' : t('redaction', 'redactContent')}
                             </LoadingWrapper>
                             </button>
 
@@ -857,15 +873,15 @@ const RedactionSidebar: React.FC = () => {
                                 onClick={handleReset}
                                 disabled={isCurrentlyRedacting}
                             >
-                                Reset Options
+                                {t('redaction', 'resetOptions')}
                             </button>
                         </div>
                     </div>
                 ) : (
                     <div className="sidebar-section empty-state">
                         <div className="empty-message">
-                            <p>No content selected for redaction.</p>
-                            <p>Use the options above to include highlighted content.</p>
+                            <p>{t('redaction', 'noContentSelectedForRedaction')}</p>
+                            <p>{t('redaction', 'useOptionsAbove')}</p>
                         </div>
                     </div>
                 )}

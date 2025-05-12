@@ -13,32 +13,35 @@ import { LoadingProvider } from './contexts/LoadingContext';
 import {NotificationProvider} from "./contexts/NotificationContext";
 import {NotificationRenderer} from "./components/common/NotificationRenderer";
 import { FileSummaryProvider } from './contexts/FileSummaryContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 const App: React.FC = () => {
 
     return (
         <ErrorBoundary>
             <LoadingProvider>
-                <NotificationProvider>
-            <UserContextProvider>
-                <ThemeProvider >
-                    <FileProvider>
-                        <PDFViewerProvider>
-                            <HighlightStoreProvider>
-                                <EditProvider>
-                                    <BatchSearchProvider>
-                                        <FileSummaryProvider>
-                                            <AppRouter/>
-                                            <NotificationRenderer />
-                                        </FileSummaryProvider>
-                                    </BatchSearchProvider>
-                                </EditProvider>
-                            </HighlightStoreProvider>
-                        </PDFViewerProvider>
-                    </FileProvider>
-                </ThemeProvider>
-            </UserContextProvider>
-                </NotificationProvider>
+                <LanguageProvider>
+                    <NotificationProvider>
+                        <UserContextProvider>
+                            <ThemeProvider >
+                                <FileProvider>
+                                    <PDFViewerProvider>
+                                        <HighlightStoreProvider>
+                                            <EditProvider>
+                                                <BatchSearchProvider>
+                                                    <FileSummaryProvider>
+                                                        <AppRouter/>
+                                                        <NotificationRenderer />
+                                                    </FileSummaryProvider>
+                                                </BatchSearchProvider>
+                                            </EditProvider>
+                                        </HighlightStoreProvider>
+                                    </PDFViewerProvider>
+                                </FileProvider>
+                            </ThemeProvider>
+                        </UserContextProvider>
+                    </NotificationProvider>
+                </LanguageProvider>
             </LoadingProvider>
         </ErrorBoundary>
 

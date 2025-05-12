@@ -2,6 +2,7 @@ import React from 'react';
 import { useEditContext } from '../../contexts/EditContext';
 import '../../styles/modules/pdf/Toolbar.css'; // Assuming shared styles
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const ToolbarSettingsMenu: React.FC = () => {
     const {
@@ -20,7 +21,7 @@ const ToolbarSettingsMenu: React.FC = () => {
     } = useEditContext();
 
     const { notify } = useNotification();
-
+    const { t } = useLanguage();
 
     const handleManualColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         e.stopPropagation();
@@ -33,22 +34,22 @@ const ToolbarSettingsMenu: React.FC = () => {
         setPresidioColor('#ffd771'); // Yellow
         setGlinerColor('#ff7171'); // Red
         setGeminiColor('#7171ff'); // Blue
-        setHidemeColor('#71ffa0'); // Gr
+        setHidemeColor('#71ffa0'); // Green
         setSearchColor('#71c4ff');
         setManualColor('#00ff15');
         notify({
             type: 'success',
-            message: 'Colors reset successfully!',
+            message: t('toolbarSettingsMenu', 'colorsResetSuccess'),
             position: 'top-right'
         });
     };
     return (
         <>
             <div className="dropdown-section">
-                <h5 className="dropdown-title">Manual Highlight</h5>
+                <h5 className="dropdown-title">{t('toolbarSettingsMenu', 'manualHighlight')}</h5>
                 <div className="dropdown-item">
                     <label onClick={(e) => e.stopPropagation()}>
-                        Color
+                        {t('toolbarSettingsMenu', 'color')}
                         <input
                             type="color"
                             value={manualColor}
@@ -60,10 +61,10 @@ const ToolbarSettingsMenu: React.FC = () => {
             </div>
 
             <div className="dropdown-section">
-                <h5 className="dropdown-title">Entity Model Colors</h5>
+                <h5 className="dropdown-title">{t('toolbarSettingsMenu', 'entityModelColors')}</h5>
                 <div className="dropdown-item">
                     <label onClick={(e) => e.stopPropagation()}>
-                        Presidio
+                        {t('toolbarSettingsMenu', 'presidio')}
                         <input
                             type="color"
                             value={presidioColor}
@@ -74,7 +75,7 @@ const ToolbarSettingsMenu: React.FC = () => {
                 </div>
                 <div className="dropdown-item">
                     <label onClick={(e) => e.stopPropagation()}>
-                        Gliner
+                        {t('toolbarSettingsMenu', 'gliner')}
                         <input
                             type="color"
                             value={glinerColor}
@@ -85,7 +86,7 @@ const ToolbarSettingsMenu: React.FC = () => {
                 </div>
                 <div className="dropdown-item">
                     <label onClick={(e) => e.stopPropagation()}>
-                        Gemini
+                        {t('toolbarSettingsMenu', 'gemini')}
                         <input
                             type="color"
                             value={geminiColor}
@@ -96,7 +97,7 @@ const ToolbarSettingsMenu: React.FC = () => {
                 </div>
                 <div className="dropdown-item">
                     <label onClick={(e) => e.stopPropagation()}>
-                        HideMe AI
+                        {t('toolbarSettingsMenu', 'hidemeAI')}
                         <input
                             type="color"
                             value={hidemeColor}
@@ -107,7 +108,7 @@ const ToolbarSettingsMenu: React.FC = () => {
                 </div>
                 <div className="dropdown-item">
                     <label onClick={(e) => e.stopPropagation()}>
-                        Search
+                        {t('toolbarSettingsMenu', 'search')}
                         <input
                             type="color"
                             value={searchColor}
@@ -117,7 +118,7 @@ const ToolbarSettingsMenu: React.FC = () => {
                     </label>
                 </div>
                 <div className="dropdown-item">
-                    <button onClick={handleResetEntityColors}>Reset Entity Colors</button>
+                    <button onClick={handleResetEntityColors}>{t('toolbarSettingsMenu', 'resetEntityColors')}</button>
                 </div>
             </div>
         </>

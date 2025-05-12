@@ -1,5 +1,6 @@
 import React, { type ComponentPropsWithoutRef } from "react"
 import "../../styles/components/Button.css"
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export interface ButtonProps extends ComponentPropsWithoutRef<"button"> {
     shimmerColor?: string
@@ -25,6 +26,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         },
         ref,
     ) => {
+        const { t } = useLanguage();
         return (
             <button
                 style={
@@ -38,6 +40,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 }
                 className={`shimmer-button ${className || ""}`}
                 ref={ref}
+                aria-label={props["aria-label"] || t('common', 'button')}
                 {...props}
             >
                 <div className="shimmer-button__spark-container">

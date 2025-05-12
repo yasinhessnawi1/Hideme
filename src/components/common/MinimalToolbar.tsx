@@ -8,6 +8,7 @@ import '../../styles/modules/pdf/Toolbar.css';
 import {ZoomControls} from "./Toolbar";
 import {useEditContext} from "../../contexts/EditContext";
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface MinimalToolbarProps {
     zoomLevel: number;
@@ -26,6 +27,7 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
         setIsEditingMode,
         setHighlightingMode,
     } = useEditContext();
+    const { t } = useLanguage();
     // --- State and Refs for Toolbar Dropdowns --- //
     const visibilityButtonRef = useRef<HTMLButtonElement | null>(null);
     const visibilityMenuRef = useRef<HTMLDivElement | null>(null);
@@ -91,7 +93,7 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
         setIsEditMenuOpen(false);
         notify({
             type: 'success',
-            message: 'Highlighting mode set to rectangular',
+            message: t('minimalToolbar', 'highlightingModeSet').replace('{mode}', t('minimalToolbar', 'rectangular')),
             position: 'top-right'
         });
     }, [setHighlightingMode, setIsEditingMode]);
@@ -102,19 +104,19 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
         setIsEditMenuOpen(false);
         notify({
             type: 'success',
-            message: 'Highlighting mode set to text selection',
+            message: t('minimalToolbar', 'highlightingModeSet').replace('{mode}', t('minimalToolbar', 'textSelection')),
             position: 'top-right'
         });
     }, [setHighlightingMode, setIsEditingMode]);
     const getHighlightLabel = () => {
-        if (!isEditingMode) return 'Edit';
+        if (!isEditingMode) return t('minimalToolbar', 'edit');
         switch (highlightingMode) {
             case HighlightCreationMode.RECTANGULAR:
-                return 'Area';
+                return t('minimalToolbar', 'area');
             case HighlightCreationMode.TEXT_SELECTION:
-                return 'Text';
+                return t('minimalToolbar', 'text');
             default:
-                return 'Edit';
+                return t('minimalToolbar', 'edit');
         }
     };
     // Handle clicks outside dropdowns
@@ -146,7 +148,7 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
                         onClick={handleEditModeToggle} // Use the passed toggle handler
                         onDoubleClick={() => setIsEditingMode(!isEditingMode)}
                         className={`toolbar-button ${isEditingMode ? 'active' : ''}`}
-                        title={isEditingMode ? `Highlight Mode: ${getHighlightLabel()} (Double Click to Disable)` : "Enable Editing Mode"}
+                        title={isEditingMode ? `${t('minimalToolbar', 'highlightMode')}: ${getHighlightLabel()} (${t('minimalToolbar', 'doubleClickToDisable')})` : t('minimalToolbar', 'enableEditingMode')}
                     >
                         {getHighlightIcon()}
                         <span className="button-label">{getHighlightLabel()}</span>
@@ -159,20 +161,20 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
                             onClick={(e) => e.stopPropagation()} // Prevent menu close on item click
                         >
                             <div className="dropdown-section">
-                                <h5 className="dropdown-title">Highlight Mode</h5>
+                                <h5 className="dropdown-title">{t('minimalToolbar', 'highlightMode')}</h5>
                                 <div
                                     className={`dropdown-item ${highlightingMode === HighlightCreationMode.RECTANGULAR ? 'active' : ''}`}
                                     onClick={onSetRectangularHighlightingMode}
                                 >
                                     <FaDrawPolygon size={16}/>
-                                    <span>Rectangular Selection</span>
+                                    <span>{t('minimalToolbar', 'rectangular')}</span>
                                 </div>
                                 <div
                                     className={`dropdown-item ${highlightingMode === HighlightCreationMode.TEXT_SELECTION ? 'active' : ''}`}
                                     onClick={onSetTextSelectionHighlightingMode}
                                 >
                                     <FaFont size={16}/>
-                                    <span>Text Selection</span>
+                                    <span>{t('minimalToolbar', 'textSelection')}</span>
                                 </div>
                             </div>
                         </div>
@@ -184,14 +186,14 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
                         ref={visibilityButtonRef}
                         onClick={toggleVisibilityMenu}
                         className="toolbar-button visibility-toggle"
-                        title="Highlight Visibility"
+                        title={t('minimalToolbar', 'highlightVisibility')}
                     >
                         {showManualHighlights && showSearchHighlights && showEntityHighlights ? (
                             <FaRegEye/>
                         ) : (
                             <FaRegEyeSlash/>
                         )}
-                        <span className="button-label">Show</span>
+                        <span className="button-label">{t('minimalToolbar', 'show')}</span>
                     </button>
                     {isVisibilityMenuOpen && (
                         <div
@@ -209,10 +211,10 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
                         ref={settingsButtonRef}
                         onClick={toggleSettingsMenu}
                         className="toolbar-button settings-toggle"
-                        title="Settings"
+                        title={t('minimalToolbar', 'settings')}
                     >
                         <FaCog/>
-                        <span className="button-label">Settings</span>
+                        <span className="button-label">{t('minimalToolbar', 'settings')}</span>
                     </button>
                     {isSettingsMenuOpen && (
                         <div

@@ -11,15 +11,17 @@ import '../../../styles/modules/pdf/EntityDetectionSidebar.css';
 import { ChevronDown, ChevronRight, ChevronUp, Save, Sliders } from 'lucide-react';
 import { usePDFNavigation } from '../../../hooks/usePDFNavigation';
 import {
-    geminiOptions,
+    getGeminiOptions,
+    getGlinerOptions,
+    getHidemeOptions,
+    getPresidioOptions,
+    entitiesToOptions,
     getColorDotStyle,
-    glinerOptions,
-    handleAllOptions,
-    hidemeOptions,
     METHOD_ID_MAP,
     MODEL_COLORS,
     prepareEntitiesForApi,
-    presidioOptions, entitiesToOptions
+    handleAllOptions,
+    getEntityTranslationKeyAndModel
 } from '../../../utils/EntityUtils';
 import { EntityHighlightProcessor } from "../../../managers/EntityHighlightProcessor";
 import processingStateService from '../../../services/ProcessingStateService';
@@ -29,6 +31,7 @@ import { LoadingWrapper } from '../../common/LoadingWrapper';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { useAuth } from '../../../hooks/auth/useAuth';
 import { useFileSummary } from '../../../contexts/FileSummaryContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 /**
  * EntityDetectionSidebar component
@@ -112,6 +115,12 @@ const EntityDetectionSidebar: React.FC = () => {
         runBatchHybridDetect,
         resetErrors
     } = usePDFApi();
+
+    const { t } = useLanguage();
+    const geminiOptions = getGeminiOptions(t as (ns: string, key: string) => string);
+    const glinerOptions = getGlinerOptions(t as (ns: string, key: string) => string);
+    const hidemeOptions = getHidemeOptions(t as (ns: string, key: string) => string);
+    const presidioOptions = getPresidioOptions(t as (ns: string, key: string) => string);
 
     // Custom select styles to match design
     const customSelectStyles = {
@@ -209,7 +218,7 @@ const EntityDetectionSidebar: React.FC = () => {
         if (filesToProcess.length === 0) {
             notify({
                 type: 'info',
-                message: 'No files selected for detection. Upload or select files to detect entities.',
+                message: t('entityDetection', 'noFilesSelected'),
                 position: 'top-right'
             });
             return;
@@ -288,7 +297,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 } catch (error: any) {
                     notify({
                         type: 'error',
-                        message: 'Error processing highlights for file ' + fileKey + ': ' + error.message,
+                        message: t('entityDetection', 'errorProcessingHighlights').replace('{fileKey}', fileKey).replace('{error}', error.message),
                         position: 'bottom-left'
                     });
                     processingStateService.completeProcessing(fileKey, false);
@@ -297,13 +306,13 @@ const EntityDetectionSidebar: React.FC = () => {
 
             notify({
                 type: 'success',
-                message: 'Entity detection completed successfully',
+                message: t('entityDetection', 'detectionCompleted'),
                 position: 'top-right'
             });
         } catch (err: any) {
             notify({
                 type: 'error',
-                message: 'An error occurred during entity detection: ' + err.message,
+                message: t('entityDetection', 'detectionError').replace('{error}', err.message),
                 position: 'top-right'
             });
 
@@ -331,19 +340,20 @@ const EntityDetectionSidebar: React.FC = () => {
         notify,
         startLoading,
         stopLoading,
+        t
     ]);
 
     // Handle reset with context functions
     const handleReset = useCallback(async () => {
         const confirmed = await confirm({
-            title: "Reset Detection Settings",
-            message: "Are you sure you want to reset all detection settings and results? This will clear all detected entities.",
+            title: t('entityDetection', 'resetDetectionTitle'),
+            message: t('entityDetection', 'resetDetectionMessage'),
             type: "warning",
             confirmButton: {
-                label: "Reset"
+                label: t('entityDetection', 'reset')
             },
             cancelButton: {
-                label: "Cancel"
+                label: t('common', 'cancel')
             }
         });
 
@@ -366,7 +376,7 @@ const EntityDetectionSidebar: React.FC = () => {
 
             notify({
                 type: 'success',
-                message: 'Entity detection settings reset successfully',
+                message: t('entityDetection', 'resetSuccess'),
                 position: 'top-right'
             });
         }
@@ -379,7 +389,8 @@ const EntityDetectionSidebar: React.FC = () => {
         removeHighlightsByType,
         getFilesToProcess,
         confirm,
-        notify
+        notify,
+        t
     ]);
 
     // Format entity name for display
@@ -496,7 +507,7 @@ const EntityDetectionSidebar: React.FC = () => {
             } catch (error) {
                 notify({
                     type: 'error',
-                    message: 'Error loading settings: ' + error.message,
+                    message: t('entityDetection', 'errorLoadingSettings').replace('{error}', error.message),
                     position: 'top-right'
                 });
             }
@@ -730,7 +741,7 @@ const EntityDetectionSidebar: React.FC = () => {
         if (!isAuthenticated || isUserLoading || entitiesLoading || isSettingsLoading) {
             notify({
                 type: 'error',
-                message: 'Please wait for authentication to complete',
+                message: t('entityDetection', 'waitForAuth'),
                 position: 'top-right'
             });
             return;
@@ -799,7 +810,7 @@ const EntityDetectionSidebar: React.FC = () => {
             // Show success message
             notify({
                 type: 'success',
-                message: 'Entity Settings saved successfully',
+                message: t('entityDetection', 'settingsSaved'),
                 position: 'top-right'
             });
 
@@ -821,7 +832,7 @@ const EntityDetectionSidebar: React.FC = () => {
         } catch (error) {
             notify({
                 type: 'error',
-                message: 'Error saving settings: ' + error.message,
+                message: t('entityDetection', 'errorSavingSettings').replace('{error}', error.message),
                 position: 'top-right'
             });
         } finally {
@@ -856,40 +867,40 @@ const EntityDetectionSidebar: React.FC = () => {
     return (
         <div className="entity-detection-sidebar">
             <div className="sidebar-header entity-header">
-                <h3>Automatic Detection</h3>
+                <h3>{t('entityDetection', 'automaticDetection')}</h3>
                 {analyzedFilesCount > 0 && (
                     <div className="entity-badge">
-                        {analyzedFilesCount} file{analyzedFilesCount !== 1 ? 's' : ''} analyzed
+                        {analyzedFilesCount} {t('entityDetection', analyzedFilesCount !== 1 ? 'filesAnalyzed' : 'fileAnalyzed')}
                     </div>
                 )}
             </div>
 
             <div className="sidebar-content">
                 <div className="sidebar-section scope-section">
-                    <h4>Detection Scope</h4>
+                    <h4>{t('entityDetection', 'detectionScope')}</h4>
                     <div className="scope-buttons">
                         <button
                             className={`scope-button ${detectionScope === 'current' ? 'active' : ''}`}
                             onClick={() => setDetectionScope('current')}
                             disabled={!currentFile}
-                            title="Detect in current file only"
+                            title={t('entityDetection', 'detectCurrentFileOnly')}
                         >
-                            Current File
+                            {t('entityDetection', 'currentFile')}
                         </button>
                         <button
                             className={`scope-button ${detectionScope === 'selected' ? 'active' : ''}`}
                             onClick={() => setDetectionScope('selected')}
                             disabled={selectedFiles.length === 0}
-                            title={`Detect in ${selectedFiles.length} selected files`}
+                            title={t('entityDetection', 'detectSelectedFiles').replace('{count}', String(selectedFiles.length))}
                         >
-                            Selected ({selectedFiles.length})
+                            {t('entityDetection', 'selectedFiles').replace('{count}', String(selectedFiles.length))}
                         </button>
                         <button
                             className={`scope-button ${detectionScope === 'all' ? 'active' : ''}`}
                             onClick={() => setDetectionScope('all')}
-                            title={`Detect in all ${files.length} files`}
+                            title={t('entityDetection', 'detectAllFiles').replace('{count}', String(files.length))}
                         >
-                            All Files ({files.length})
+                            {t('entityDetection', 'allFiles').replace('{count}', String(files.length))}
                         </button>
                     </div>
                 </div>
@@ -897,7 +908,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 <div className="sidebar-section entity-select-section">
                     <div className="entity-select-header">
                         <ColorDot color={MODEL_COLORS.presidio} />
-                        <h4>Presidio Machine Learning</h4>
+                        <h4>{t('entityDetection', 'presidioML')}</h4>
                     </div>
                     <Select
                         key="presidio-select"
@@ -905,7 +916,7 @@ const EntityDetectionSidebar: React.FC = () => {
                         options={presidioOptions}
                         value={selectedMlEntities}
                         onChange={handlePresidioChange}
-                        placeholder="Select entities to detect..."
+                        placeholder={t('entityDetection', 'selectEntitiesPlaceholder')}
                         className="entity-select"
                         classNamePrefix="entity-select"
                         isDisabled={isLoading}
@@ -919,7 +930,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 <div className="sidebar-section entity-select-section">
                     <div className="entity-select-header">
                         <ColorDot color={MODEL_COLORS.gliner} />
-                        <h4>Gliner Machine Learning</h4>
+                        <h4>{t('entityDetection', 'glinerML')}</h4>
                     </div>
                     <Select
                         key="gliner-select"
@@ -927,7 +938,7 @@ const EntityDetectionSidebar: React.FC = () => {
                         options={glinerOptions}
                         value={selectedGlinerEntities}
                         onChange={handleGlinerChange}
-                        placeholder="Select entities to detect..."
+                        placeholder={t('entityDetection', 'selectEntitiesPlaceholder')}
                         className="entity-select"
                         classNamePrefix="entity-select"
                         isDisabled={isLoading}
@@ -941,7 +952,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 <div className="sidebar-section entity-select-section">
                     <div className="entity-select-header">
                         <ColorDot color={MODEL_COLORS.gemini} />
-                        <h4>Gemini AI</h4>
+                        <h4>{t('entityDetection', 'geminiAI')}</h4>
                     </div>
                     <Select
                         key="gemini-select"
@@ -949,7 +960,7 @@ const EntityDetectionSidebar: React.FC = () => {
                         options={geminiOptions}
                         value={selectedAiEntities}
                         onChange={handleGeminiChange}
-                        placeholder="Select entities to detect..."
+                        placeholder={t('entityDetection', 'selectEntitiesPlaceholder')}
                         className="entity-select"
                         classNamePrefix="entity-select"
                         isDisabled={isLoading}
@@ -962,7 +973,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 <div className="sidebar-section entity-select-section">
                     <div className="entity-select-header">
                         <ColorDot color={MODEL_COLORS.hideme} />
-                        <h4>Hide me AI</h4>
+                        <h4>{t('entityDetection', 'hidemeAI')}</h4>
                     </div>
                     <Select
                         key="hideme-select"
@@ -970,7 +981,7 @@ const EntityDetectionSidebar: React.FC = () => {
                         options={hidemeOptions}
                         value={selectedHideMeEntities}
                         onChange={handleHidemeChange}
-                        placeholder="Select entities to detect..."
+                        placeholder={t('entityDetection', 'selectEntitiesPlaceholder')}
                         className="entity-select"
                         classNamePrefix="entity-select"
                         isDisabled={isLoading}
@@ -984,17 +995,17 @@ const EntityDetectionSidebar: React.FC = () => {
                 <div className="sidebar-section entity-select-section">
                     <div className="entity-select-header">
                         <Sliders size={18} />
-                        <h4>Detection Settings</h4>
+                        <h4>{t('entityDetection', 'detectionSettings')}</h4>
                     </div>
                     <div className="form-group mt-2">
                         <label className="text-sm font-medium mb-2 block">
-                            Accuracy ({Math.round(detectionThreshold * 100)}%)
+                            {t('entityDetection', 'accuracy')} ({Math.round(detectionThreshold * 100)}%)
                         </label>
                         <p className="text-xs text-muted-foreground mb-2">
-                            Higher values reduce false positives but may miss some entities
+                            {t('entityDetection', 'accuracyDescription')}
                         </p>
                         <div className="flex items-center gap-4">
-                            <span className="text-xs text-muted-foreground">Low</span>
+                            <span className="text-xs text-muted-foreground">{t('entityDetection', 'low')}</span>
                             <input
                                 type="range"
                                 min="0"
@@ -1005,16 +1016,16 @@ const EntityDetectionSidebar: React.FC = () => {
                                 className="flex-1 accent-primary"
                                 disabled={isLoading}
                             />
-                            <span className="text-xs text-muted-foreground">High</span>
+                            <span className="text-xs text-muted-foreground">{t('entityDetection', 'high')}</span>
                         </div>
                     </div>
 
                     <div className="form-group mt-4">
                         <div className="switch-container">
                             <div>
-                                <label className="text-sm font-medium mb-1 block">Use Ban List</label>
+                                <label className="text-sm font-medium mb-1 block">{t('entityDetection', 'useBanList')}</label>
                                 <p className="text-xs text-muted-foreground">
-                                    {useBanlist ? "Applying ban list to detection" : "Ban list ignored"}
+                                    {useBanlist ? t('entityDetection', 'banListApplied') : t('entityDetection', 'banListIgnored')}
                                 </p>
                             </div>
                             <label className="switch">
@@ -1048,7 +1059,7 @@ const EntityDetectionSidebar: React.FC = () => {
                             isLoading={isLoading}
                             overlay={true}
                         >
-                            <span > {'Detect Sensitive information'}</span>
+                            <span >{t('entityDetection', 'detectSensitiveInformation')}</span>
                         </LoadingWrapper>
                     </button>
 
@@ -1059,7 +1070,7 @@ const EntityDetectionSidebar: React.FC = () => {
                             onClick={handleReset}
                             disabled={isLoading || (selectedMlEntities.length === 0 && selectedAiEntities.length === 0 && selectedGlinerEntities.length === 0 && selectedHideMeEntities.length === 0 && fileSummaries.length === 0)}
                         >
-                            Reset
+                            {t('entityDetection', 'reset')}
                         </button>
 
                         <button
@@ -1068,14 +1079,14 @@ const EntityDetectionSidebar: React.FC = () => {
                             disabled={isLoading || !isAuthenticated || isUserLoading}
                         >
                             <Save size={16} />
-                            <span>{'Save to Settings'}</span>
+                            <span>{t('entityDetection', 'saveToSettings')}</span>
                         </button>
                     </div>
                 </div>
 
                 {fileSummaries.length > 0 && (
                     <div className="sidebar-section detection-results-section">
-                        <h4>Detection Results</h4>
+                        <h4>{t('entityDetection', 'detectionResults')}</h4>
 
                         {fileSummaries.map((fileSummary) => {
                             const isExpanded = expandedFileSummaries.has(fileSummary.fileKey);
@@ -1093,7 +1104,7 @@ const EntityDetectionSidebar: React.FC = () => {
                                         <div className="file-summary-title">
                                             <span className="file-name">{fileSummary.fileName}</span>
                                             <span className="entity-count-badge">
-                                                {entitiesDetected.total} entities
+                                                {entitiesDetected.total} {t('entityDetection', 'entities')}
                                             </span>
                                         </div>
                                         <div className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>
@@ -1107,15 +1118,15 @@ const EntityDetectionSidebar: React.FC = () => {
                                             {performance && (
                                                 <div className="performance-stats">
                                                     <div className="stat-item">
-                                                        <span className="stat-label">Pages</span>
+                                                        <span className="stat-label">{t('entityDetection', 'pages')}</span>
                                                         <span className="stat-value">{performance.pages_count}</span>
                                                     </div>
                                                     <div className="stat-item">
-                                                        <span className="stat-label">Words</span>
+                                                        <span className="stat-label">{t('entityDetection', 'words')}</span>
                                                         <span className="stat-value">{performance.words_count}</span>
                                                     </div>
                                                     <div className="stat-item">
-                                                        <span className="stat-label">Entity Density</span>
+                                                        <span className="stat-label">{t('entityDetection', 'entityDensity')}</span>
                                                         <span
                                                             className="stat-value">{performance.entity_density.toFixed(2)}%</span>
                                                     </div>
@@ -1124,16 +1135,18 @@ const EntityDetectionSidebar: React.FC = () => {
 
                                             {/* By entity type section */}
                                             <div className="entities-by-section">
-                                                <h5>By Entity Type</h5>
+                                                <h5>{t('entityDetection', 'byEntityType')}</h5>
                                                 <div className="entity-list">
                                                     {Object.entries(entitiesDetected.by_type).map(([entityType, count]) => {
                                                         const model = getEntityModel(entityType);
+                                                        const { key } = getEntityTranslationKeyAndModel(entityType);
+                                                        const translated = key ? t('entityDetection', key as any) : formatEntityDisplay(entityType);
                                                         return (
                                                             <div className="entity-list-item" key={entityType}>
                                                                 <div className="entity-item-left" >
                                                                     <ColorDot color={MODEL_COLORS[model]} />
                                                                     <span className="entity-name">
-                                                                        {formatEntityDisplay(entityType)}
+                                                                        {translated}
                                                                     </span>
                                                                 </div>
                                                                 <div className="entity-item-right">
@@ -1170,7 +1183,7 @@ const EntityDetectionSidebar: React.FC = () => {
                                                                                     }
                                                                                 }
                                                                             }}
-                                                                            title="Navigate to entity"
+                                                                            title={t('entityDetection', 'navigateToEntity')}
                                                                         >
                                                                             <ChevronRight size={14} />
                                                                         </button>
@@ -1184,7 +1197,7 @@ const EntityDetectionSidebar: React.FC = () => {
 
                                             {/* By page section */}
                                             <div className="entities-by-section">
-                                                <h5>By Page</h5>
+                                                <h5>{t('entityDetection', 'byPage')}</h5>
                                                 <div className="entity-list">
                                                     {Object.entries(entitiesDetected.by_page)
                                                         .sort((a, b) => {
@@ -1200,12 +1213,12 @@ const EntityDetectionSidebar: React.FC = () => {
                                                                 <div className="page-list-item" key={page}>
                                                                     <div className="page-item-left">
                                                                         <span className="page-name">
-                                                                            Page {pageNumber}
+                                                                            {t('entityDetection', 'page')} {pageNumber}
                                                                         </span>
                                                                     </div>
                                                                     <div className="page-item-right">
                                                                         <span
-                                                                            className="entity-count">{String(count)} entities</span>
+                                                                            className="entity-count">{String(count)} {t('entityDetection', 'entities')}</span>
                                                                         <div className="navigation-buttons">
                                                                             <button
                                                                                 className="nav-button"
@@ -1227,7 +1240,7 @@ const EntityDetectionSidebar: React.FC = () => {
                                                                                         setSelectedHighlightId(entityHighlights[0].id);
                                                                                     }
                                                                                 }}
-                                                                                title="Navigate to page"
+                                                                                title={t('entityDetection', 'navigateToPage')}
                                                                             >
                                                                                 <ChevronRight size={14} />
                                                                             </button>

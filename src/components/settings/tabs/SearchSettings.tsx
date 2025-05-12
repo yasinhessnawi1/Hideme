@@ -6,7 +6,10 @@ import useAuth from "../../../hooks/auth/useAuth"; // Adjust path
 import { useLoading } from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
 import { useNotification } from "../../../contexts/NotificationContext";
+import { useLanguage } from '../../../contexts/LanguageContext';
+
 export default function SearchSettings() {
+    const { t } = useLanguage();
     const {
         searchPatterns, // This comes from useUser hook
         getSearchPatterns,
@@ -62,7 +65,7 @@ export default function SearchSettings() {
     const handleAddSearchTerm = async () => {
         if (!newSearchTerm.trim()) {
             notify({
-                message: "Search term cannot be empty",
+                message: t('settings', 'searchTermCannotBeEmpty'),
                 type: "error",
                 duration: 3000
             });
@@ -85,7 +88,7 @@ export default function SearchSettings() {
 
         if (termExists) {
             notify({
-                message: "This search term/type combination already exists.",
+                message: t('settings', 'searchTermExists'),
                 type: "error",
                 duration: 3000
             });
@@ -101,7 +104,7 @@ export default function SearchSettings() {
             setIsAiSearch(false);
         } catch (err: any) {
             notify({
-                message: err.userMessage || err.message || "Failed to add search term.",
+                message: err.userMessage || err.message || t('settings', 'failedToAddSearchTerm'),
                 type: "error",
                 duration: 3000
             });
@@ -118,7 +121,7 @@ export default function SearchSettings() {
         try {
             await deleteSearchPattern(id);
             notify({
-                message: "Search term removed.",
+                message: t('settings', 'searchTermRemoved'),
                 type: "success",
                 duration: 3000
             });
@@ -126,7 +129,7 @@ export default function SearchSettings() {
             setSearchTermBeingRemoved(searchPatterns.find(p => p.id === id)?.pattern_text || '');
         } catch (err: any) {
             notify({
-                message: err.userMessage || err.message || "Failed to remove search term.",
+                message: err.userMessage || err.message || t('settings', 'failedToRemoveSearchTerm'),
                 type: "error",
                 duration: 3000
             });
@@ -142,13 +145,13 @@ export default function SearchSettings() {
         if (currentLocalPatterns.length === 0) return; // Nothing to clear
 
         if (await confirm({
-            title: "Clear All Search Terms",
-            message: `Are you sure you want to remove all ${currentLocalPatterns.length} saved search terms?`,
+            title: t('settings', 'clearAllSearchTermsTitle'),
+            message: t('settings', 'clearAllSearchTermsMessage').replace('{count}', String(currentLocalPatterns.length)),
             confirmButton: {
-                label: "Clear"
+                label: t('common', 'clear')
             },
             cancelButton: {
-                label: "Cancel"
+                label: t('common', 'cancel')
             },
             type: "delete"
         })) {
@@ -159,14 +162,14 @@ export default function SearchSettings() {
                 const deletePromises = currentLocalPatterns.map(p => deleteSearchPattern(p.id));
                 await Promise.all(deletePromises);
                 notify({
-                    message: "All search terms cleared.",
+                    message: t('settings', 'allSearchTermsCleared'),
                     type: "success",
                     duration: 3000
                 });
                 // State updates via useEffect watching `searchPatterns`
             } catch (err: any) {
                 notify({
-                    message: err.userMessage || err.message || "Failed to clear all search terms.",
+                    message: err.userMessage || err.message || t('settings', 'failedToClearAllSearchTerms'),
                     type: "error",
                     duration: 3000
                 });
@@ -187,15 +190,15 @@ export default function SearchSettings() {
         <div className="space-y-6">
             <div className="card">
                 <div className="card-header">
-                    <h2 className="card-title">Saved Search Terms</h2>
-                    <p className="card-description">Manage terms used for automatic highlightining of content in documents</p>
+                    <h2 className="card-title">{t('settings', 'savedSearchTerms')}</h2>
+                    <p className="card-description">{t('settings', 'manageSearchTermsDescription')}</p>
                 </div>
                 <div className="card-content space-y-4">
                     <div className="space-y-4">
                         {/* Add New Term Form */}
                         <div className="form-group">
                             <label className="form-label" htmlFor="search-term">
-                                Save New Search Term
+                                {t('settings', 'saveNewSearchTerm')}
                             </label>
                             <div className="flex flex-col sm:flex-row sm:space-x-2"> {/* Stack on small screens */}
                                 <div className="flex-1 mb-2 sm:mb-0"> {/* Add bottom margin on small screens */}
@@ -204,7 +207,7 @@ export default function SearchSettings() {
                                         id="search-term"
                                         value={newSearchTerm}
                                         onChange={(e) => setNewSearchTerm(e.target.value)}
-                                        placeholder="Enter search term..."
+                                        placeholder={t('settings', 'searchTermPlaceholder')}
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -213,10 +216,10 @@ export default function SearchSettings() {
                                     onClick={handleAddSearchTerm}
                                     disabled={isLoading || !newSearchTerm.trim()}
                                 >
-                                    <LoadingWrapper isLoading={isLoading} fallback="Adding...">
+                                    <LoadingWrapper isLoading={isLoading} fallback={t('settings', 'adding')}>
                                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
                                             <Search size={16} className="button-icon"/>}
-                                        {isLoading ? 'Adding...' : 'Add Term'}
+                                        {isLoading ? t('settings', 'adding') : t('settings', 'addTerm')}
                                     </LoadingWrapper>
                                 </button>
                             </div>
@@ -235,7 +238,7 @@ export default function SearchSettings() {
                                     </label>
                                     <label className="checkbox-label"
                                            htmlFor="ai-search"> {/* Use checkbox-label style */}
-                                        Ai Search
+                                        {t('settings', 'aiSearch')}
                                     </label>
                                 </div>
                                 <div className="flex items-center space-x-2">
@@ -251,7 +254,7 @@ export default function SearchSettings() {
                                     </label>
                                     <label className="checkbox-label"
                                            htmlFor="case-sensitive-search"> {/* Use checkbox-label style */}
-                                        Case Sensitive
+                                        {t('settings', 'caseSensitive')}
                                     </label>
                                 </div>
                             </div>
@@ -262,26 +265,28 @@ export default function SearchSettings() {
                         {/* Saved Terms List */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between mb-2"> {/* Added margin */}
-                                <h3 className="text-sm font-medium">Your Saved Terms ({patternsToRender.length})</h3>
+                                <h3 className="text-sm font-medium">{t('settings', 'yourSavedTerms').replace('{count}', String(patternsToRender.length))}</h3>
                                 {patternsToRender.length > 0 && (
                                     <button
                                         className="button button-outline button-sm"
                                         onClick={handleClearAllSearchTerms}
                                         disabled={isLoading}
                                     >
-                                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
-                                            <Trash2 size={14} className="button-icon"/>}
-                                        {isLoading ? 'Clearing...' : 'Clear All'}
+                                        <LoadingWrapper isLoading={isLoading} fallback={t('settings', 'clearing')}>
+                                            {isLoading ? <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
+                                                <Trash2 size={14} className="button-icon"/>}
+                                            {isLoading ? t('settings', 'clearing') : t('settings', 'clearAll')}
+                                        </LoadingWrapper>
                                     </button>
                                 )}
                             </div>
 
                             {/* Loading State */}
                             {isUserLoading && (
-                                <LoadingWrapper isLoading={isLoading} fallback="Loading...">
+                                <LoadingWrapper isLoading={isLoading} fallback={t('settings', 'loading')}>
                                     <div className="flex justify-center items-center py-6">
                                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                        <span className="ml-2 text-muted-foreground">Loading terms...</span>
+                                        <span className="ml-2 text-muted-foreground">{t('settings', 'loadingTerms')}</span>
                                     </div>
                                 </LoadingWrapper>
                             )
@@ -290,7 +295,7 @@ export default function SearchSettings() {
                             {/* Empty State */}
                             {!isUserLoading && patternsToRender.length === 0 ? (
                                 <div className="border border-dashed rounded-md p-6 text-center">
-                                    <p className="text-sm text-muted-foreground">No saved search terms yet. Add some above.</p>
+                                    <p className="text-sm text-muted-foreground">{t('settings', 'noSavedSearchTerms')}</p>
                                 </div>
                             ) : (
                                 /* List of Terms */
@@ -310,7 +315,7 @@ export default function SearchSettings() {
                                                 className="button button-ghost button-sm p-1 text-muted-foreground hover:text-destructive" // Subtle styling
                                                 onClick={() => handleRemoveSearchTerm(pattern.id)}
                                                 disabled={isLoading || searchTermBeingRemoved === pattern.pattern_text}
-                                                title="Remove term"
+                                                title={t('settings', 'removeTerm')}
                                             >
                                                 <X size={16} />
                                             </button>

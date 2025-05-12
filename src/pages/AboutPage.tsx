@@ -3,6 +3,7 @@ import Navbar from '../components/static/Navbar';
 import '../styles/AboutPage.css';
 // @ts-ignore
 import ntnuCampus from '../assets/ntnu-campus.png';
+import { useLanguage } from '../contexts/LanguageContext';
 
 
 const NtnuLogo = () => (
@@ -49,87 +50,86 @@ const NtnuLogo = () => (
 );
 
 const AboutPage= () => {
+    const { t } = useLanguage();
     return (
         <div className="about-page">
             <Navbar  />
 
             <div className="about-hero">
                 <div className="about-hero-content">
-                    <h1>About Hide Me</h1>
+                    <h1>{t('about', 'aboutTitle')}</h1>
                     <p>
-                        Automatic removal of sensitive content in images and documents – a solution for efficient archiving.
+                        {t('about', 'aboutDescription')}
                     </p>
                 </div>
             </div>
 
             <div className="about-container">
                 <section className="our-story-section">
-                    <h2>Our Story</h2>
+                    <h2>{t('about', 'ourStory')}</h2>
                     <div className="story-content">
                         <div className="story-image">
                             <img src={ntnuCampus} alt="NTNU Campus" />
                         </div>
                         <div className="story-text">
                             <p>
-                                Hide Me was developed as a bachelor thesis project in collaboration with Mattilsynet. Our project, titled
-                                "Automatic Removal of Sensitive Content in Images and Documents for Efficient Archiving," addresses the challenge of distinguishing between sensitive and public information in archived files.
+                                {t('about', 'ourStoryText1')}
                             </p>
                             <p>
-                                Using advanced machine learning and AI techniques, we have built a system that automatically removes or masks sensitive data before documents are archived. This not only streamlines the workflow for data request teams but also strengthens data privacy.
+                                {t('about', 'ourStoryText2')}
                             </p>
                         </div>
                     </div>
                 </section>
 
                 <section className="team-section">
-                    <h2>Meet Our Team</h2>
+                    <h2>{t('about', 'meetOurTeam')}</h2>
                     <div className="team-grid">
                         <div className="team-member">
-
                             <h3>Yasin Hessnawi</h3>
-                            <p className="member-title">Computer Science Engineer</p>
+                            <p className="member-title">{t('about', 'computerScienceEngineer')}</p>
                         </div>
                         <div className="team-member">
                             <h3>Anwar Debs</h3>
-                            <p className="member-title">Computer Science Engineer</p>
+                            <p className="member-title">{t('about', 'computerScienceEngineer')}</p>
                         </div>
                         <div className="team-member">
                             <h3>Rami Amer</h3>
-                            <p className="member-title">Computer Science Engineer</p>
+                            <p className="member-title">{t('about', 'computerScienceEngineer')}</p>
                         </div>
                     </div>
                 </section>
 
                 <section className="mission-section">
-                    <h2>Our Mission</h2>
+                    <h2>{t('about', 'ourMission')}</h2>
                     <div className="mission-content">
                         <div className="mission-values">
                             <div className="value-item">
                                 <div className="value-icon">🔒</div>
-                                <h3>Privacy First</h3>
+                                <h3>{t('about', 'privacyFirst')}</h3>
                                 <p>
-                                    We believe that privacy is a fundamental right. Our solution ensures that sensitive information is removed before archiving.
+                                    {t('about', 'privacyFirstText')}
                                 </p>
                             </div>
                             <div className="value-item">
                                 <div className="value-icon">🤖</div>
-                                <h3>Advanced Technology</h3>
+                                <h3>{t('about', 'advancedTechnology')}</h3>
                                 <p>
-                                    Leveraging machine learning and AI, we achieve exceptional precision in identifying and removing sensitive content.
+                                    {t('about', 'advancedTechnologyText')}
                                 </p>
                             </div>
                             <div className="value-item">
                                 <div className="value-icon">🌐</div>
-                                <h3>Efficient Archiving</h3>
+                                <h3>{t('about', 'efficientArchiving')}</h3>
                                 <p>
-                                    Our technology streamlines the workflow by providing pre-processed, secure documents ready for archiving.
+                                    {t('about', 'efficientArchivingText')}
                                 </p>
                             </div>
                             <div className="value-item">
                                 <div className="value-icon">⚖️</div>
-                                <h3>Ethical Responsibility</h3>
+                                <h3>{t('about', 'ethicalResponsibility')}</h3>
                                 <p>
-                                    We develop our solutions with a strong focus on ethics and data security, ensuring that privacy is always protected.
+                                    {t('about', 'ethicalResponsibilityText')}
                                 </p>
                             </div>
                         </div>
@@ -137,30 +137,28 @@ const AboutPage= () => {
                 </section>
 
                 <section className="education-section">
-                    <h2>Academic Foundation</h2>
+                    <h2>{t('about', 'academicFoundation')}</h2>
                     <div className="education-content">
                         <div className="education-image">
                             <NtnuLogo />
                         </div>
                         <div className="education-text">
-                            <h3>NTNU – Norwegian University of Science and Technology</h3>
+                            <h3>{t('about', 'ntnuTitle')}</h3>
                             <p>
-                                Hide Me was developed as a bachelor thesis project within BIDATA at NTNU in collaboration with Mattilsynet.
-                                Our academic background provides the foundation for building innovative solutions for automated removal of sensitive content.
+                                {t('about', 'ntnuText1')}
                             </p>
                             <p>
-                                Guided by experts in data privacy and security, we have combined theoretical knowledge with practical applications to create a tool that is both effective and user-friendly.
+                                {t('about', 'ntnuText2')}
                             </p>
                         </div>
                     </div>
                 </section>
 
                 <section className="future-section">
-                    <h2>Looking Forward</h2>
+                    <h2>{t('about', 'lookingForward')}</h2>
                     <p>
-                        We envision a future where automated solutions for handling sensitive data play a central role in secure archiving and document management. Hide Me will continue to evolve to support additional file formats and integrate with existing systems – all with a strong focus on security and privacy.
+                        {t('about', 'lookingForwardText')}
                     </p>
-
                 </section>
             </div>
         </div>
