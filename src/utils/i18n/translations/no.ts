@@ -8,7 +8,7 @@ export const no = {
     getStarted: "Kom i Gang",
     settings: "Innstillinger",
     logout: "Logg Ut",
-    
+
     // Buttons
     save: "Lagre",
     cancel: "Avbryt",
@@ -21,7 +21,7 @@ export const no = {
     import: "Importer",
     export: "Eksporter",
     button: "Knapp",
-    
+
     // Messages
     success: "Suksess",
     error: "Feil",
@@ -35,7 +35,7 @@ export const no = {
     enable: "Aktiver",
     input: "Inndata",
   },
-  
+
   notifications: {
     settingsSaved: "Innstillingene ble lagret.",
     settingsExported: "Innstillingene ble eksportert.",
@@ -51,7 +51,7 @@ export const no = {
     confirmation_overlay: "Bekreftelsesdialog-overlegg",
     close_dialog: "Lukk dialog",
   },
-  
+
   settings: {
     // General
     generalSettings: "Generelle Innstillinger",
@@ -87,12 +87,12 @@ export const no = {
     clearAllPDFs: "Fjern alle PDF-er",
     clearStoredPDFs: "Fjern lagrede PDF-er",
     pdfsStoredOnlyInBrowser: "PDF-er lagres kun i nettleseren din og sendes ikke til noen server.",
-    
+
     // Themes
     light: "Lys",
     dark: "Mørk",
     system: "System",
-    
+
     // Entities
     entitySettings: "Entitetsinnstillinger",
     presidioEntities: "Alle Presidio Entiteter",
@@ -177,7 +177,7 @@ export const no = {
     page: "Side",
     navigateToPage: "Gå til side",
   },
-  
+
   auth: {
     login: "Logg Inn",
     register: "Registrer",
@@ -218,7 +218,7 @@ export const no = {
     confirmPasswordPlaceholder: "Bekreft ditt nye passord",
     loginHere: "Logg inn her",
   },
-  
+
   pdf: {
     previousPage: "Forrige side",
     nextPage: "Neste side",
@@ -364,34 +364,22 @@ export const no = {
     detection: 'Deteksjon',
     search: "Søk",
     caseSensitive: "Skill mellom store og små bokstaver",
-    searchScope: "Søkeomfang",
     currentFile: "Gjeldende fil",
     selectedFiles: "Valgt ({count})",
     allFiles: "Alle filer ({count})",
     searchTerms: "Søkeord",
-    clearAll: "Tøm alle",
-    noSearchTerms: "Ingen søkeord",
-    removeSearchTerm: "Fjern søkeord",
     searching: "Søker...",
-    results: "Resultater",
-    previousResult: "Forrige resultat",
-    nextResult: "Neste resultat",
     of: "av",
-    matches: "treff",
-    noResultsFound: "Ingen resultater funnet",
-    addThisTermToDefaultSearchTerms: "Legg til dette søkeordet i dine standardsøkeord",
-    saveAsDefaultTerm: "Lagre som standardsøkeord",
-    page: "Side",
     navigateToPage: "Gå til side",
     searchTermPlaceholder: "Skriv inn søkeord...",
   },
-  
+
   landing: {
     transformTitle: "Transformer Filene Dine Til",
     safeOnes: "Trygge Filer",
     heroDescription: "Last opp filene dine og la AI og ML transformere filen din til en trygg fil for offentlig bruk.",
   },
-  
+
   errors: {
     invalidFile: "Ugyldig filtype. Vennligst last opp en JSON-fil.",
     fileTooLarge: "Filen er for stor. Maksimal størrelse er 5MB.",
@@ -407,7 +395,7 @@ export const no = {
     failedToLoadUserProfile: 'Kunne ikke laste brukerprofil.',
     registrationFailed: 'Registrering mislyktes.',
   },
-  
+
   toolbar: {
     zoomIn: 'Zoom Inn',
     zoomOut: 'Zoom Ut',
@@ -469,7 +457,7 @@ export const no = {
     noFilesAvailableForRedaction: "Ingen filer tilgjengelig for sladding",
     startingRedactionProcess: "Starter sladdeprosess"
   },
-  
+
   resetPassword: {
     title: 'HIDE ME',
     subtitle: 'Sett nytt passord',
@@ -505,13 +493,13 @@ export const no = {
     linkWillExpireIn: 'Lenken utløper om {minutes} minutter.',
     backToResetPassword: 'Tilbake til tilbakestilling av passord',
   },
-  
+
   notFound: {
     title: 'Siden finnes ikke',
     description: 'Beklager, siden du leter etter finnes ikke.',
     goHome: 'Gå til forsiden',
   },
-  
+
   entityDetection: {
     noFilesSelected: "Ingen filer valgt for deteksjon. Last opp eller velg filer for å oppdage entiteter.",
     errorProcessingHighlights: "Feil ved behandling av uthevinger for fil {fileKey}: {error}",
@@ -534,7 +522,7 @@ export const no = {
     presidioML: "Presidio maskinlæring",
     glinerML: "Gliner maskinlæring",
     geminiAI: "Gemini AI",
-    hidemeAI: "Hide me AI",
+    hidemeAI: "Hide Me AI",
     selectEntitiesPlaceholder: "Velg entiteter som skal oppdages...",
     detectionSettings: "Deteksjonsinnstillinger",
     accuracy: "Nøyaktighet",
@@ -634,7 +622,7 @@ export const no = {
     highlight: "Utheving",
     delete: "Slett",
   },
-  
+
   redaction: {
     deleteDocumentHistory: "Slett dokumenthistorikk",
     noFilesSelectedOrNoContentToRedact: "Ingen filer valgt eller ingen innhold å sladde.",
@@ -665,6 +653,10 @@ export const no = {
     resetOptions: "Tilbakestill alternativer",
     noContentSelectedForRedaction: "Ingen innhold valgt for sladding.",
     useOptionsAbove: "Bruk alternativene ovenfor for å inkludere uthevet innhold.",
+    redactionCompleteOne: "Sladding fullført. 1 fil er behandlet.",
+    redactionCompleteMultiple: "Sladding fullført. {count} filer er behandlet.",
+    errorProcessingRedactedFiles: "Feil ved behandling av sladdede filer: {error}",
+    genericRedactionError: "Det oppstod en feil under sladdingen",
     currentFile: "Gjeldende fil",
     selectedFiles: "Valgt ({count})",
     allFiles: "Alle filer ({count})",
@@ -689,7 +681,7 @@ export const no = {
     historySavedInfo: "Sladdehistorikk lagret. Du kan se den i Historikk-fanen.",
     redactionSettingsReset: "Sladdeinnstillinger tilbakestilt",
   },
-  
+
   toolbarSettingsMenu: {
     manualHighlight: 'Manuell utheving',
     color: 'Farge',
@@ -702,12 +694,12 @@ export const no = {
     resetEntityColors: 'Tilbakestill entitetsfarger',
     colorsResetSuccess: 'Entitetsfarger tilbakestilt til standard!',
   },
-  
+
   languages: {
     en: 'Engelsk',
     no: 'Norsk',
   },
-  
+
   minimalToolbar: {
     highlightingModeSet: 'Uthevingsmodus satt til {mode}',
     rectangular: 'Rektangulær',
@@ -721,9 +713,9 @@ export const no = {
     highlightVisibility: 'Uthevingssynlighet',
     show: 'Vis',
     settings: 'Innstillinger',
-    
+
   },
-  
+
   toolbarVisibilityMenu: {
     searchHighlights: 'Søkeuthevinger',
     entityHighlights: 'Entitetsuthevinger',
@@ -732,11 +724,11 @@ export const no = {
     clearAll: 'Tøm alle',
     clearManual: 'Tøm manuelle',
   },
-  
+
   pageRenderer: {
     errorLoadingPage: 'Feil ved lasting av pdf-side: {error}',
   },
-  
+
   banlist: {
     wordCannotBeEmpty: "Ordet kan ikke være tomt.",
     wordAlreadyInList: "Ordet er allerede i ignoreringslisten.",
@@ -765,7 +757,7 @@ export const no = {
     success: "Suksess",
     cancel: "Avbryt"
   },
-  
+
   howto: {
     howToRedactTitle: "Hvordan sladde innhold",
     howToRedactDescription: "Følg disse stegene for å sladde sensitivt innhold i filene dine med HideMeAI.",
@@ -783,7 +775,7 @@ export const no = {
     yes: "Ja",
     no: "Nei"
   },
-  
+
   about: {
     aboutTitle: "Om HideMeAI",
     aboutDescription: "HideMeAI er et personvernfokusert verktøy utviklet av et engasjert team ved NTNU for å hjelpe deg med å sladde sensitiv informasjon sikkert.",
@@ -808,7 +800,7 @@ export const no = {
     lookingForward: "Vi ser fremover",
     lookingForwardText: "Vi gleder oss til å videreutvikle HideMeAI og støtte dine personvernbehov i den digitale tidsalderen."
   },
-  
+
   features: {
     safeForData: 'Trygg for data',
     notSafeForData: 'Ikke trygg for data',
@@ -855,7 +847,7 @@ export const no = {
     high: 'Høy',
     accuracy: 'Nøyaktighet',
   },
-  
+
   account: {
     profileInformation: 'Profilinformasjon',
     updatePersonalInformation: 'Oppdater din personlige informasjon',
@@ -892,4 +884,4 @@ export const no = {
   },
 };
 
-export default no; 
+export default no;

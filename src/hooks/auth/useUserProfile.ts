@@ -17,11 +17,11 @@ import userService, {
     PasswordChange,
     AccountDeletion,
     ActiveSession
-} from '../../services/userService';
-import apiClient from '../../services/apiClient';
+} from '../../services/database-backend-services/userService';
+import apiClient from '../../services/api-services/apiClient';
 import { User } from '../../types';
 import authStateManager from '../../managers/authStateManager';
-import authService from '../../services/authService';
+import authService from '../../services/database-backend-services/authService';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export interface UseUserProfileReturn {

@@ -2,7 +2,7 @@
 // Let's update the renderedHighlights calculation in BaseHighlightLayer.tsx
 
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {useHighlightStore} from '../../../hooks/useHighlightStore';
+import {useHighlightStore} from '../../../hooks/general/useHighlightStore';
 import {useEditContext} from '../../../contexts/EditContext';
 import {usePDFViewerContext} from '../../../contexts/PDFViewerContext';
 import HighlightContextMenu from './HighlightContextMenu';
@@ -60,7 +60,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
     const handleHighlightClick = useCallback((e: React.MouseEvent, highlight: HighlightRect) => {
         e.stopPropagation();
         e.preventDefault();
-        
+
         // Always allow selection, even if not in editing mode
         // This ensures search results can be selected
         setSelectedHighlightId(highlight.id);
@@ -103,7 +103,7 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
             window.removeEventListener('highlight-removed', handleHighlightRemoved);
         };
     }, []);
-    
+
     // Handle mouse enter for hover tooltip
     const handleHighlightMouseEnter = useCallback((e: React.MouseEvent, highlight: HighlightRect) => {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();

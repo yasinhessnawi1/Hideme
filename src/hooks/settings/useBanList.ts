@@ -11,7 +11,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import useAuth from '../auth/useAuth';
-import apiClient from '../../services/apiClient';
+import apiClient from '../../services/api-services/apiClient';
 import { BanListWithWords } from '../../types';
 import authStateManager from '../../managers/authStateManager';
 
@@ -67,17 +67,17 @@ export const useBanList = (): UseBanListReturn => {
         if (!isAuthenticatedOrCached) {
             return null;
         }
-        
+
         setIsLoading(true);
         clearError();
-        
+
         try {
             const response = await apiClient.get<{ data: BanListWithWords }>('/settings/ban-list', null, forceRefresh);
             const banListData = response.data.data;
-            
+
             // Update ban list state
             setBanList(banListData);
-            
+
             return banListData;
         } catch (error: any) {
             setError(error.userMessage ?? 'Failed to load ban list');
@@ -183,7 +183,7 @@ export const useBanList = (): UseBanListReturn => {
             console.log('[BanList] User authenticated, loading initial ban list');
             getBanList().then(result => {
                 if (result) {
-                    console.log(`[BanList] Initial ban list loaded with ${result.words.length} words`);
+                    console.log(`[BanList] Initial ban list loaded with ${result.words?.length} words`);
                 }
             });
         }

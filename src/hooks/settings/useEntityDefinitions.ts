@@ -12,7 +12,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import useAuth from '../auth/useAuth';
-import apiClient from '../../services/apiClient';
+import apiClient from '../../services/api-services/apiClient';
 import { ModelEntity, ModelEntityBatch, OptionType } from '../../types';
 import authStateManager from '../../managers/authStateManager';
 
@@ -76,7 +76,7 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
 
     /**
      * Get all model entities for a specific detection method
-     * 
+     *
      * @param methodId The detection method ID (1-4)
      * @param forceRefresh Whether to bypass cache and force a fresh request
      */
@@ -84,32 +84,32 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
         if (!isAuthenticatedOrCached) {
             return null;
         }
-        
+
         // Validate method ID
         if (methodId < 1 || methodId > 4) {
             console.error(`[EntityDefinitions] Invalid method ID: ${methodId}`);
             setError(`Invalid method ID: ${methodId}`);
             return null;
         }
-        
+
         setIsLoading(true);
         clearError();
-        
+
         try {
             const response = await apiClient.get<{ data: ModelEntity[] }>(
                 `/settings/entities/${methodId}`,
                 null,
                 forceRefresh
             );
-            
+
             const entities = response.data.data || [];
-            
+
             // Update state with the new entities
             setModelEntities(prevEntities => ({
                 ...prevEntities,
                 [methodId]: entities
             }));
-            
+
             return entities;
         } catch (error: any) {
             setError(error.userMessage ?? `Failed to load entities for method ${methodId}`);

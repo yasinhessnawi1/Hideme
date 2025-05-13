@@ -11,7 +11,7 @@ import {BatchSearchProvider} from "./contexts/SearchContext";
 import AutoProcessProvider from "./contexts/AutoProcessProvider";
 import { LoadingProvider } from './contexts/LoadingContext';
 import {NotificationProvider} from "./contexts/NotificationContext";
-import {NotificationRenderer} from "./components/common/NotificationRenderer";
+import {NotificationRenderer} from "./components/static/NotificationRenderer";
 import { FileSummaryProvider } from './contexts/FileSummaryContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 

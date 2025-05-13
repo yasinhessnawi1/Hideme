@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo} from 'react';
-import { useHighlightStore } from '../../../hooks/useHighlightStore';
+import { useHighlightStore } from '../../../hooks/general/useHighlightStore';
 import { useEditContext } from '../../../contexts/EditContext';
 import EntityHighlightLayer from './EntityHighlightLayer';
 import ManualHighlightLayer from './ManualHighlightLayer';

@@ -21,7 +21,7 @@ import useEntityDefinitions from '../hooks/settings/useEntityDefinitions';
 import useSearchPatterns from '../hooks/settings/useSearchPatterns';
 import useUserProfile from '../hooks/auth/useUserProfile';
 import { SettingsExport } from '../hooks/settings/useDocument';
-import apiClient from '../services/apiClient';
+import apiClient from '../services/api-services/apiClient';
 
 interface UserContextProps {
     user: User | null;
@@ -156,46 +156,46 @@ const UserContextProvider: React.FC<{ children: React.ReactNode }> = ({children}
         const handleSettingsImport = (event: Event) => {
             const customEvent = event as CustomEvent;
             const { success } = customEvent.detail || {};
-            
+
             // Only refresh if import was successful
             if (success) {
                 console.log('[UserContext] Settings import completed, refreshing all settings');
-                
+
                 // Clear all settings-related caches to ensure fresh data
                 apiClient.clearCacheEntry('/settings');
                 apiClient.clearCacheEntry('/settings/patterns');
                 apiClient.clearCacheEntry('/settings/ban-list');
-                
+
                 // Method IDs are typically 1-4 (Presidio, Gemini, Gliner, HideMe)
                 [1, 2, 3, 4].forEach(methodId => {
                     apiClient.clearCacheEntry(`/settings/entities/${methodId}`);
                 });
-                
+
                 // Refresh all settings states with a small delay to ensure cache is cleared
                 setTimeout(() => {
                     // Refresh general settings with force refresh
                     getSettings(true).then(() => {
                         console.log('[UserContext] General settings refreshed');
                     }).catch(err => console.error('[UserContext] Failed to refresh general settings:', err));
-                    
+
                     // Refresh ban list with force refresh
                     getBanList(true).then(() => {
                         console.log('[UserContext] Ban list refreshed');
                     }).catch(err => console.error('[UserContext] Failed to refresh ban list:', err));
-                    
+
                     // Refresh model entities for each potential method
                     [1, 2, 3, 4].forEach(methodId => {
                         getModelEntities(methodId, true).then(() => {
                             console.log(`[UserContext] Model entities for method ${methodId} refreshed`);
                         }).catch(err => console.error(`[UserContext] Failed to refresh model entities for method ${methodId}:`, err));
                     });
-                    
+
                     // Wait a bit longer for search patterns to ensure other requests are completed
                     setTimeout(() => {
                         console.log('[UserContext] Starting search patterns refresh with longer delay');
                         // Force refresh the search patterns cache again
                         apiClient.clearCacheEntry('/settings/patterns');
-                        
+
                         // Refresh search patterns with force refresh
                         getSearchPatterns(true).then((patterns) => {
                             console.log(`[UserContext] Search patterns refreshed, found ${patterns.length} patterns`);
@@ -204,10 +204,10 @@ const UserContextProvider: React.FC<{ children: React.ReactNode }> = ({children}
                 }, 100);
             }
         };
-        
+
         // Add event listener for settings import completion
         window.addEventListener('settings-import-completed', handleSettingsImport);
-        
+
         // Clean up
         return () => {
             window.removeEventListener('settings-import-completed', handleSettingsImport);

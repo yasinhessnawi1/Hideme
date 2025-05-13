@@ -119,11 +119,34 @@ export function createRedactionRequest(
 ): { file_results: FileResult[] } {
     const fileResults: FileResult[] = [];
 
+    console.log('[redactionUtils] Creating redaction request for files:', 
+                files.map(f => f.name),
+                'with mappings for keys:', Object.keys(redactionMappings));
+
     files.forEach(file => {
         const fileKey = getFileKey(file);
         if (redactionMappings[fileKey]) {
+            console.log(`[redactionUtils] Processing file ${file.name} with key ${fileKey}`);
+            
+            const redactionMapping = redactionMappings[fileKey];
+            
+            // Add additional validation and sanitation of the redaction mapping
+            if (!redactionMapping.pages) {
+                console.warn(`[redactionUtils] No pages found in redaction mapping for ${file.name}`);
+                redactionMapping.pages = [];
+            }
+            
+            // Count total redactions for logging
+            const totalRedactions = redactionMapping.pages.reduce(
+                (count, page) => count + (page.sensitive?.length || 0), 0);
+            
+            console.log(`[redactionUtils] Redaction mapping for ${file.name}: ` + 
+                        `${redactionMapping.pages?.length || 0} pages with ` +
+                        `${totalRedactions} total redactions`);
+            
+            // Create detailed file result object
             const fileResult: FileResult = {
-                file: file.name,
+                file: file.name, // Make sure we're using the exact original filename
                 status: "success",
                 results: {
                     redaction_mapping: redactionMappings[fileKey],
@@ -131,6 +154,35 @@ export function createRedactionRequest(
                 }
             };
             fileResults.push(fileResult);
+        } else {
+            console.warn(`[redactionUtils] No redaction mapping found for file ${file.name} with key ${fileKey}`);
+        }
+    });
+
+    console.log(`[redactionUtils] Final redaction request with ${fileResults.length} file results`);
+    
+    // Ensure each mapping has well-formed pages array
+    fileResults.forEach(result => {
+        if (result.status === 'success' && result.results?.redaction_mapping) {
+            const mapping = result.results.redaction_mapping;
+            if (!mapping.pages) {
+                mapping.pages = [];
+            }
+            // Validate each page is well-formed
+            mapping.pages.forEach(page => {
+                if (!page.sensitive) {
+                    page.sensitive = [];
+                }
+                // Ensure each sensitive item has a valid entity_type and bbox
+                page.sensitive.forEach(item => {
+                    if (!item.entity_type) {
+                        item.entity_type = 'MANUAL';
+                    }
+                    if (!item.bbox) {
+                        console.warn(`[redactionUtils] Missing bbox in sensitive item for page ${page.page}`);
+                    }
+                });
+            });
         }
     });
 
@@ -143,7 +195,7 @@ export function createRedactionRequest(
 function createFileInfo(file: File): FileInfo {
     return {
         filename: file.name,
-        content_type: file.type,
+        content_type: file.type || 'application/pdf',
         size: file.size.toString()
     };
 }

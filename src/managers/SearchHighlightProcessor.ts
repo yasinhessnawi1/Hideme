@@ -1,6 +1,6 @@
 import { HighlightRect, HighlightType } from '../types/pdfTypes';
 import { highlightStore } from '../store/HighlightStore';
-import { SearchResult } from '../services/BatchSearchService';
+import { SearchResult } from '../services/processing-backend-services/BatchSearchService';
 import { getFileKey } from "../contexts/PDFViewerContext";
 import summaryPersistenceStore from '../store/SummaryPersistenceStore';
 

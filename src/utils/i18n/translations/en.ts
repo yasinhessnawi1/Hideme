@@ -9,7 +9,7 @@ export const en = {
     getStarted: "Get Started",
     settings: "Settings",
     logout: "Logout",
-    
+
     // Buttons
     save: "Save",
     cancel: "Cancel",
@@ -23,7 +23,7 @@ export const en = {
     export: "Export",
     button: "Button",
     input: "Input",
-    
+
     // Messages
     success: "Success",
     error: "Error",
@@ -36,7 +36,7 @@ export const en = {
     hidden: "Hidden",
     enable: "Enable",
   },
-  
+
   notifications: {
     settingsSaved: "Settings saved successfully.",
     settingsExported: "Settings exported successfully.",
@@ -52,7 +52,7 @@ export const en = {
     confirmation_overlay: "Confirmation dialog overlay",
     close_dialog: "Close dialog",
   },
-  
+
   settings: {
     // General
     generalSettings: "General Settings",
@@ -101,12 +101,12 @@ export const en = {
     clearAllPDFs: "Clear All PDFs",
     clearStoredPDFs: "Clear Stored PDFs",
     clearAll: "Clear All",
-    
+
     // Themes
     light: "Light",
     dark: "Dark",
     system: "System",
-    
+
     // Entities
     entitySettings: "Entity Settings",
     presidioEntities: "All Presidio Entities",
@@ -159,7 +159,7 @@ export const en = {
     loading: "Loading...",
     autoProcessRefreshNeeded: 'Auto processing might need a refresh to save setting changes.',
   },
-  
+
   auth: {
     login: "Login",
     register: "Register",
@@ -202,7 +202,7 @@ export const en = {
     connectionIssueDetected: 'Connection issue detected. Some features may be limited until connection is restored.',
     sessionExpiredWhileInactive: 'Your session expired while you were inactive. Please sign in again to continue.',
   },
-  
+
   pdf: {
     previousPage: "Previous page",
     nextPage: "Next page",
@@ -364,13 +364,13 @@ export const en = {
     errorLoadingPdfGeneric: "Error loading PDF, refresh the page and try again.",
     detection: 'Detection',
   },
-  
+
   landing: {
     transformTitle: "Transform Your Files Into",
     safeOnes: "Safe Ones",
     heroDescription: "Upload your files and let AI and ML transform your file into a safe one for public use.",
   },
-  
+
   errors: {
     invalidFile: "Invalid file type. Please upload a JSON file.",
     fileTooLarge: "File is too large. Maximum size is 5MB.",
@@ -387,7 +387,7 @@ export const en = {
     failedToLoadUserProfile: 'Failed to load user profile.',
     registrationFailed: 'Registration failed.',
   },
-  
+
   toolbarVisibilityMenu: {
     manualHighlightsVisible: 'Manual Highlights is now {visible}!',
     searchHighlightsVisible: 'Search Highlights is now {visible}!',
@@ -404,11 +404,11 @@ export const en = {
     clearSearch: 'Clear Search',
     clearEntity: 'Clear Entity'
   },
-  
+
   pageRenderer: {
     errorLoadingPage: 'Error loading pdf page: {error}',
   },
-  
+
   toolbar: {
     open: "Open",
     openPDF: "Open PDF",
@@ -465,7 +465,7 @@ export const en = {
     deleteAllSameText: 'Delete all same text',
     highlightAllSame: 'Highlight all same',
   },
-  
+
   resetPassword: {
     title: 'HIDE ME',
     subtitle: 'Set New Password',
@@ -501,13 +501,13 @@ export const en = {
     linkWillExpireIn: 'Link will expire in {minutes} minutes.',
     backToResetPassword: 'Back to Reset Password',
   },
-  
+
   notFound: {
     title: 'Page Not Found',
     description: 'Sorry, the page you are looking for does not exist.',
     goHome: 'Go Home',
   },
-  
+
   entityDetection: {
     noFilesSelected: "No files selected for detection. Upload or select files to detect entities.",
     errorProcessingHighlights: "Error processing highlights for file {fileKey}: {error}",
@@ -530,7 +530,7 @@ export const en = {
     presidioML: "Presidio Machine Learning",
     glinerML: "Gliner Machine Learning",
     geminiAI: "Gemini AI",
-    hidemeAI: "Hide me AI",
+    hidemeAI: "Hide Me AI",
     selectEntitiesPlaceholder: "Select entities to detect...",
     detectionSettings: "Detection Settings",
     accuracy: "Accuracy",
@@ -631,7 +631,7 @@ export const en = {
     highlight: "Highlight",
     delete: "Delete",
   },
-  
+
   redaction: {
     deleteDocumentHistory: "Delete document history",
     noFilesSelectedOrNoContentToRedact: "No files selected or no content to redact.",
@@ -662,6 +662,10 @@ export const en = {
     resetOptions: "Reset Options",
     noContentSelectedForRedaction: "No content selected for redaction.",
     useOptionsAbove: "Use the options above to include highlighted content.",
+    redactionCompleteOne: "Redaction complete. 1 file has been processed.",
+    redactionCompleteMultiple: "Redaction complete. {count} files have been processed.",
+    errorProcessingRedactedFiles: "Error processing redacted files: {error}",
+    genericRedactionError: "An error occurred during redaction",
     currentFile: "Current File",
     selectedFiles: "Selected ({count})",
     allFiles: "All Files ({count})",
@@ -686,7 +690,7 @@ export const en = {
     historySavedInfo: "Redaction history saved. You can view it in the History tab.",
     redactionSettingsReset: "Redaction settings reset",
   },
-  
+
   toolbarSettingsMenu: {
     manualHighlight: 'Manual Highlight',
     color: 'Color',
@@ -699,12 +703,12 @@ export const en = {
     resetEntityColors: 'Reset Entity Colors',
     colorsResetSuccess: 'Entity colors reset to default!',
   },
-  
+
   languages: {
     en: 'English',
     no: 'Norwegian',
   },
-  
+
   minimalToolbar: {
     highlightingModeSet: 'Highlighting mode set to {mode}',
     rectangular: 'Rectangular',
@@ -719,7 +723,7 @@ export const en = {
     show: 'Show',
     settings: 'Settings',
   },
-  
+
   banlist: {
     wordCannotBeEmpty: "Word cannot be empty.",
     wordAlreadyInList: "Word is already in the ignore list.",
@@ -748,7 +752,7 @@ export const en = {
     success: "Success",
     cancel: "Cancel"
   },
-  
+
   howto: {
     howToRedactTitle: "How to Redact Content",
     howToRedactDescription: "Follow these steps to redact sensitive content from your files using HideMeAI.",
@@ -766,7 +770,7 @@ export const en = {
     yes: "Yes",
     no: "No"
   },
-  
+
   about: {
     aboutTitle: "About HideMeAI",
     aboutDescription: "HideMeAI is a privacy-focused tool developed by a passionate team at NTNU to help you securely redact sensitive information from your documents.",
@@ -791,7 +795,7 @@ export const en = {
     lookingForward: "Looking Forward",
     lookingForwardText: "We are excited to continue developing HideMeAI and supporting your privacy needs in the digital age."
   },
-  
+
   features: {
     safeForData: 'Safe for Data',
     notSafeForData: 'Not Safe for Data',
@@ -838,7 +842,7 @@ export const en = {
     high: 'High',
     accuracy: 'Accuracy',
   },
-  
+
   account: {
     profileInformation: 'Profile Information',
     updatePersonalInformation: 'Update your personal information',
@@ -875,4 +879,4 @@ export const en = {
   },
 };
 
-export default en; 
+export default en;
