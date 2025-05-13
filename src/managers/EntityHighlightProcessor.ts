@@ -1,6 +1,6 @@
 import { HighlightRect, HighlightType } from '../types';
 import { highlightStore } from '../store/HighlightStore';
-import processingStateService from '../services/ProcessingStateService';
+import processingStateService from '../services/client-services/ProcessingStateService';
 import summaryPersistenceStore from '../store/SummaryPersistenceStore';
 
 /**

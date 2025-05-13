@@ -12,7 +12,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import useAuth from '../auth/useAuth';
-import apiClient from '../../services/apiClient';
+import apiClient from '../../services/api-services/apiClient';
 import authStateManager from '../../managers/authStateManager';
 import {
     SearchPattern,
@@ -74,34 +74,34 @@ export const useSearchPatterns = (): UseSearchPatternsReturn => {
             console.warn('[SearchPatterns] getSearchPatterns called but user is not authenticated');
             return [];
         }
-        
+
         console.log(`[SearchPatterns] Fetching search patterns, forceRefresh=${forceRefresh}`);
         setIsLoading(true);
         clearError();
-        
+
         try {
             // Clear the cache for this endpoint if forcing refresh
             if (forceRefresh) {
                 console.log('[SearchPatterns] Force refreshing - clearing cache');
                 apiClient.clearCacheEntry('/settings/patterns');
             }
-            
+
             const response = await apiClient.get<{ data: SearchPattern[] }>(
-                '/settings/patterns', 
-                null, 
+                '/settings/patterns',
+                null,
                 forceRefresh
             );
-            
+
             const patterns = response.data.data || [];
             console.log(`[SearchPatterns] Fetched ${patterns.length} patterns successfully`);
-            
+
             // Always update patterns in state, even if empty
             setSearchPatterns(patterns);
             setIsInitialized(true);
             return patterns;
         } catch (error: any) {
             console.error('[SearchPatterns] Error fetching patterns:', error);
-            
+
             // Don't set error for 404 (empty patterns is not an error)
             if (error.response?.status !== 404) {
                 setError(error.userMessage ?? 'Failed to load search patterns');

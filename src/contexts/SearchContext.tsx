@@ -1,6 +1,6 @@
 import React, {createContext, useContext, useState, useCallback, useRef, useMemo, useEffect} from 'react';
-import { BatchSearchService, SearchResult, BatchSearchResponse } from '../services/BatchSearchService';
-import { usePDFApi } from "../hooks/usePDFApi";
+import { BatchSearchService, SearchResult, BatchSearchResponse } from '../services/processing-backend-services/BatchSearchService';
+import { usePDFApi } from "../hooks/general/usePDFApi";
 import {useHighlightStore} from './HighlightStoreContext';
 import {SearchHighlightProcessor} from "../managers/SearchHighlightProcessor";
 import summaryPersistenceStore from "../store/SummaryPersistenceStore";

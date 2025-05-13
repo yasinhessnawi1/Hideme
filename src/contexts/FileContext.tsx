@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { getFileKey } from './PDFViewerContext';
 import { autoProcessManager } from '../managers/AutoProcessManager';
-import pdfStorageService from '../services/PDFStorageService';
+import pdfStorageService from '../services/client-services/PDFStorageService';
 import { pdfjs } from 'react-pdf';
 import { StorageStats } from '../types';
 import { useHighlightStore } from "./HighlightStoreContext";
-import processingStateService from "../services/ProcessingStateService";
+import processingStateService from "../services/client-services/ProcessingStateService";
 import summaryPersistenceStore from "../store/SummaryPersistenceStore";
 import { useLoading } from './LoadingContext';
 import { useSettings } from '../hooks/settings/useSettings';

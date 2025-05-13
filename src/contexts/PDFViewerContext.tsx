@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useFileContext } from './FileContext';
-import scrollManager from '../services/ScrollManagerService';
+import scrollManager from '../services/client-services/ScrollManagerService';
 
 const EVENT_PROCESSING = {
     isProcessing: false,

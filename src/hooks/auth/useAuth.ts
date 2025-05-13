@@ -11,9 +11,9 @@
  */
 
 import {useCallback, useEffect, useRef, useState} from 'react';
-import apiClient from '../../services/apiClient';
+import apiClient from '../../services/api-services/apiClient';
 import {User} from "../../types";
-import authService from '../../services/authService';
+import authService from '../../services/database-backend-services/authService';
 import authStateManager from '../../managers/authStateManager';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../contexts/NotificationContext';

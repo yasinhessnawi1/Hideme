@@ -1,6 +1,6 @@
 import { BanListWithWords, HighlightType, OptionType } from '../types';
 import { getFileKey } from '../contexts/PDFViewerContext';
-import processingStateService from '../services/ProcessingStateService';
+import processingStateService from '../services/client-services/ProcessingStateService';
 import { EntityHighlightProcessor } from "./EntityHighlightProcessor";
 import { highlightStore } from "../store/HighlightStore";
 import summaryPersistenceStore from "../store/SummaryPersistenceStore";

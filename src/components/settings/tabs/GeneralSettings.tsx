@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Save, ChevronDown, ChevronUp, AlertTriangle, Database, HardDrive, Trash2, Loader2, Sliders, Upload, Download, FileWarning } from "lucide-react";
 import { useFileContext } from "../../../contexts/FileContext"; // Adjust path if needed
-import { useAutoProcess } from "../../../hooks/useAutoProcess"; // Adjust path if needed
-import { ThemePreference } from "../../../hooks/useTheme";
+import { useAutoProcess } from "../../../hooks/general/useAutoProcess"; // Adjust path if needed
+import { ThemePreference } from "../../../hooks/general/useTheme";
 import { useThemeContext } from "../../../contexts/ThemeContext";
 import { useUserContext } from "../../../contexts/UserContext";
 import useDocument from "../../../hooks/settings/useDocument";
@@ -13,14 +13,14 @@ import { useLanguage } from "../../../contexts/LanguageContext";
 import { AVAILABLE_LANGUAGES, Language } from "../../../utils/i18n"; // Import Language type and AVAILABLE_LANGUAGES
 
 export default function GeneralSettings() {
-    const { 
-        settings, 
-        updateSettings, 
-        exportSettings, 
+    const {
+        settings,
+        updateSettings,
+        exportSettings,
         importSettings,
-        settingsLoading: isUserLoading, 
-        settingsError: userError, 
-        clearSettingsError: clearUserError 
+        settingsLoading: isUserLoading,
+        settingsError: userError,
+        clearSettingsError: clearUserError
     } = useUserContext();
     const {
         isStoragePersistenceEnabled,
@@ -31,22 +31,22 @@ export default function GeneralSettings() {
     const { setAutoProcessingEnabled: setAutoProcessHookEnabled, getConfig } = useAutoProcess();
     const { preference: currentThemePreference, setPreference: setThemePreference } = useThemeContext();
     const { notify, confirm } = useNotification();
-    const { 
-        validateSettingsFile, 
-        sanitizeSettingsFile, 
-        downloadJsonFile, 
+    const {
+        validateSettingsFile,
+        sanitizeSettingsFile,
+        downloadJsonFile,
         parseJsonFile,
         error: documentError,
         isLoading: documentLoading,
         clearError: clearDocumentError
     } = useDocument();
-    
+
     // Initialize the loading context hook
     const { isLoading: globalLoading, startLoading, stopLoading } = useLoading();
-    
+
     // Reference to the file input element
     const fileInputRef = useRef<HTMLInputElement>(null);
-    
+
     // Import/Export state
     const [importError, setImportError] = useState<string | null>(null);
     const [importSuccess, setImportSuccess] = useState<boolean>(false);
@@ -107,22 +107,22 @@ export default function GeneralSettings() {
             setIsStorageEnabled(isStoragePersistenceEnabled);
         }
     }, [settings, isStoragePersistenceEnabled]); // Keep dependencies minimal
-    
+
     // Add an effect to listen for settings import completion
     useEffect(() => {
         const handleSettingsImportCompleted = (event: Event) => {
             const customEvent = event as CustomEvent;
             const { success } = customEvent.detail || {};
-            
+
             if (success) {
                 // Update UI after the settings have been refreshed
                 // This will happen automatically when the settings state updates
                 console.log("[GeneralSettings] Settings import completed");
             }
         };
-        
+
         window.addEventListener('settings-import-completed', handleSettingsImportCompleted);
-        
+
         return () => {
             window.removeEventListener('settings-import-completed', handleSettingsImportCompleted);
         };
@@ -221,14 +221,14 @@ export default function GeneralSettings() {
             stopLoading('setting.general.clear');
         }
     };
-    
+
     // --- Import/Export Handlers ---
     const handleExportSettings = async () => {
         startLoading('settings.export');
         try {
             // The exportSettings function now handles the file download directly
             await exportSettings();
-            
+
             notify({
                 message: t('notifications', 'settingsExported'),
                 type: "success",
@@ -245,30 +245,30 @@ export default function GeneralSettings() {
             stopLoading('settings.export');
         }
     };
-    
+
     const handleImportClick = () => {
         // Clear previous status
         setImportError(null);
         setImportSuccess(false);
-        
+
         // Trigger file input click
         if (fileInputRef.current) {
             fileInputRef.current.click();
         }
     };
-    
+
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        
+
         startLoading('settings.import');
         setImportError(null);
         setImportSuccess(false);
-        
+
         try {
             // Import the file directly without parsing
             const result = await importSettings(file);
-            
+
             if (result) {
                 setImportSuccess(true);
                 notify({
@@ -276,7 +276,7 @@ export default function GeneralSettings() {
                     type: "success",
                     duration: 3000
                 });
-                
+
                 // Note: Settings states will be refreshed automatically by UserContext
                 // via the settings-import-completed event
             } else {
@@ -290,14 +290,14 @@ export default function GeneralSettings() {
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
-            
+
             // Keep loading state active for a short period while settings refresh
             setTimeout(() => {
                 stopLoading('settings.import');
             }, 1000);
         }
     };
-    
+
     const isLoading = isUserLoading || documentLoading;
 
     const effectiveStorageStats = storageStats || { percentUsed: 0, totalSize: "0 MB", fileCount: 0 };
@@ -330,7 +330,7 @@ export default function GeneralSettings() {
                             </select>
                         </div>
                     </div>
-                    
+
                     {/* Language selector */}
                     <div className="setting-row">
                         <div className="setting-label">
@@ -504,7 +504,7 @@ export default function GeneralSettings() {
                     )}
                 </div>
             </div>
-            
+
             {/* Settings Import/Export Card */}
             <div className="card">
                 <div className="card-header">
@@ -515,7 +515,7 @@ export default function GeneralSettings() {
                     <p className="text-sm text-muted-foreground mb-4">
                         {t('settings', 'exportImportSettingsDescription')}
                     </p>
-                    
+
                     {/* Import/Export Buttons */}
                     <div className="flex flex-col sm:flex-row gap-3">
                         <button
@@ -528,7 +528,7 @@ export default function GeneralSettings() {
                             </LoadingWrapper>
                             <span>{t('settings', 'importSettings')}</span>
                         </button>
-                        
+
                         <button
                             className="button button-outline flex items-center justify-center"
                             onClick={handleExportSettings}
@@ -539,7 +539,7 @@ export default function GeneralSettings() {
                             </LoadingWrapper>
                             <span>{t('settings', 'exportSettings')}</span>
                         </button>
-                        
+
                         {/* Hidden file input for importing */}
                         <input
                             type="file"
@@ -549,7 +549,7 @@ export default function GeneralSettings() {
                             onChange={handleFileChange}
                         />
                     </div>
-                    
+
                     {/* Import Status Messages */}
                     {importError && (
                         <div className="flex items-start gap-2 rounded-md bg-red-50 p-3 text-red-800 dark:bg-red-950 dark:text-red-300 mt-3">
@@ -557,7 +557,7 @@ export default function GeneralSettings() {
                             <p className="text-xs">{importError}</p>
                         </div>
                     )}
-                    
+
                     {importSuccess && (
                         <div className="flex items-start gap-2 rounded-md bg-green-50 p-3 text-green-800 dark:bg-green-950 dark:text-green-300 mt-3">
                             <Database size={16} className="mt-0.5 flex-shrink-0" />

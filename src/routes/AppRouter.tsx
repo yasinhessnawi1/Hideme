@@ -7,15 +7,15 @@
  */
 import React, { JSX, useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
-import LandingPage from '../pages/LandingPage'
-import LoginPage from '../pages/LoginPage'
-import ForgotPasswordPage from '../pages/ForgotPasswordPage'
-import ResetPasswordPage from '../pages/ResetPasswordPage'
-import PDFViewerPage from "../pages/PDFViewerPage";
-import HowToPage from "../pages/HowToPage";
-import FeaturesPage from "../pages/FeaturesPage";
-import AboutPage from "../pages/AboutPage";
-import UserSettingsPage from "../pages/SettingsPage";
+import LandingPage from '../pages/static-pages/LandingPage'
+import LoginPage from '../pages/dynamic-pages/LoginPage'
+import ForgotPasswordPage from '../pages/dynamic-pages/ForgotPasswordPage'
+import ResetPasswordPage from '../pages/dynamic-pages/ResetPasswordPage'
+import PDFViewerPage from "../pages/dynamic-pages/PDFViewerPage";
+import HowToPage from "../pages/static-pages/HowToPage";
+import FeaturesPage from "../pages/static-pages/FeaturesPage";
+import AboutPage from "../pages/static-pages/AboutPage";
+import UserSettingsPage from "../pages/dynamic-pages/SettingsPage";
 import ProtectedRoute from './ProtectedRoute';
 import { useUserContext } from '../contexts/UserContext';
 import { useLanguage } from '../contexts/LanguageContext';

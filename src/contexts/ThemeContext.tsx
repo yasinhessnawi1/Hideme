@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import {AppliedTheme, ThemePreference, useTheme} from "../hooks/useTheme";
+import {AppliedTheme, ThemePreference, useTheme} from "../hooks/general/useTheme";
 
 interface ThemeContextProps {
     preference: ThemePreference;

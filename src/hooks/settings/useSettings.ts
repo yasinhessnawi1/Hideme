@@ -13,11 +13,11 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import useAuth from '../auth/useAuth';
-import apiClient from '../../services/apiClient';
+import apiClient from '../../services/api-services/apiClient';
 import { UserSettings, UserSettingsUpdate } from '../../types';
 import authStateManager from '../../managers/authStateManager';
 import { SettingsExport } from './useDocument';
-import authService from '../../services/authService';
+import authService from '../../services/database-backend-services/authService';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export interface UseSettingsReturn {
@@ -31,7 +31,7 @@ export interface UseSettingsReturn {
     // Settings operations
     getSettings: (forceRefresh?: boolean) => Promise<UserSettings | null>;
     updateSettings: (data: UserSettingsUpdate) => Promise<UserSettings | null>;
-    
+
     // Import/Export operations
     exportSettings: () => Promise<void>;
     importSettings: (settingsFile: File) => Promise<UserSettings | null>;
@@ -158,14 +158,14 @@ export const useSettings = (): UseSettingsReturn => {
             // Use apiClient directly, but override the cache settings
             // and pass the necessary headers
             const response = await apiClient.get('/settings/export', null, true);
-            
+
             // Extract the raw response data (this is the binary file content)
             const fileData = response.data;
-            
+
             // Get content disposition header to extract the filename
             const contentDisposition = response.headers?.['content-disposition'];
             let filename = 'settings_export.json';
-            
+
             // Extract filename from content-disposition if available
             if (contentDisposition) {
                 const filenameMatch = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
@@ -177,17 +177,17 @@ export const useSettings = (): UseSettingsReturn => {
                 const dateStr = new Date().toISOString().split('T')[0];
                 filename = `settings_export_${dateStr}.json`;
             }
-            
-            // Convert the data to a string 
+
+            // Convert the data to a string
             let jsonString = '';
-            
+
             // Check if the data is already a string, otherwise stringify it
             if (typeof fileData === 'string') {
                 jsonString = fileData;
             } else if (fileData instanceof Blob) {
                 // If it's already a blob, use it directly
                 const url = window.URL.createObjectURL(fileData);
-                
+
                 // Create and trigger download
                 const link = document.createElement('a');
                 link.href = url;
@@ -196,7 +196,7 @@ export const useSettings = (): UseSettingsReturn => {
                 link.click();
                 document.body.removeChild(link);
                 window.URL.revokeObjectURL(url);
-                
+
                 setIsLoading(false);
                 return;
             } else if (fileData && typeof fileData === 'object') {
@@ -223,11 +223,11 @@ export const useSettings = (): UseSettingsReturn => {
                     throw new Error('Failed to process settings file');
                 }
             }
-            
+
             // Create a blob with the JSON data
             const blob = new Blob([jsonString], { type: 'application/json' });
             const url = window.URL.createObjectURL(blob);
-            
+
             // Create a temporary anchor element to trigger download
             const link = document.createElement('a');
             link.href = url;
@@ -236,7 +236,7 @@ export const useSettings = (): UseSettingsReturn => {
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-            
+
         } catch (error: any) {
             console.error('Failed to export settings:', error);
             setError(error.userMessage ?? 'Failed to export settings');
@@ -262,10 +262,10 @@ export const useSettings = (): UseSettingsReturn => {
             // Create FormData to upload the file
             const formData = new FormData();
             formData.append('settings', settingsFile);
-            
+
             // Get the axios instance to handle multipart/form-data
             const axiosInstance = apiClient.getAxiosInstance();
-            
+
             // Send the file to the import endpoint
             const response = await axiosInstance.post('/settings/import', formData, {
                 headers: {
@@ -273,34 +273,34 @@ export const useSettings = (): UseSettingsReturn => {
                     'Authorization': `Bearer ${authService.getToken()}`
                 },
             });
-            
+
             // Check if we received a success message rather than settings data
-            const isSuccessMessage = response.data.success && 
-                response.data.data && 
-                response.data.data.message && 
+            const isSuccessMessage = response.data.success &&
+                response.data.data &&
+                response.data.data.message &&
                 !response.data.data.theme; // Check if it's just a message without actual settings
-            
+
             let updatedSettings: UserSettings | null = null;
-            
+
             if (isSuccessMessage) {
                 // If we only got a success message, we need to fetch the settings
                 console.log('[useSettings] Import successful, fetching updated settings');
-                
+
                 // Clear cache to ensure fresh data
                 apiClient.clearCacheEntry('/settings');
-                
+
                 // Force refresh to bypass cache
                 updatedSettings = await getSettings(true);
             } else {
                 // If we got the actual settings data in the response
                 updatedSettings = response.data.data;
-                
+
                 // Make sure to update settings state
                 if (updatedSettings) {
                     setSettings(updatedSettings);
                 }
             }
-            
+
             // Dispatch event for settings update
             window.dispatchEvent(new CustomEvent('settings-import-completed', {
                 detail: {
@@ -309,12 +309,12 @@ export const useSettings = (): UseSettingsReturn => {
                     timestamp: Date.now()
                 }
             }));
-            
+
             return updatedSettings;
         } catch (error: any) {
             console.error('Failed to import settings:', error);
             setError(error.userMessage ?? 'Failed to import settings');
-            
+
             // Dispatch event for failed import
             window.dispatchEvent(new CustomEvent('settings-import-completed', {
                 detail: {
@@ -324,7 +324,7 @@ export const useSettings = (): UseSettingsReturn => {
                     timestamp: Date.now()
                 }
             }));
-            
+
             return null;
         } finally {
             setIsLoading(false);
@@ -356,7 +356,7 @@ export const useSettings = (): UseSettingsReturn => {
         // Settings operations
         getSettings,
         updateSettings,
-        
+
         // Import/Export operations
         exportSettings,
         importSettings,

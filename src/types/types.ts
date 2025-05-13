@@ -8,7 +8,9 @@ export interface ApiResponse<T> {
     message?: string;
     status?: number;
 }
-
+export interface EncryptedApiResponse {
+    encrypted_data: string;
+}
 /**
  * Cache options for API requests
  */

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useAutoProcess } from '../hooks/useAutoProcess';
+import { useAutoProcess } from '../hooks/general/useAutoProcess';
 
 /**
  * Provider component that initializes and connects the auto-processing system
