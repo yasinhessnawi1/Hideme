@@ -5,7 +5,7 @@ import authService from '../../services/database-backend-services/authService';
 import authStateManager from '../../managers/authStateManager';
 
 // Mock dependencies
-vi.mock('../services/apiClient', () => ({
+vi.mock('../../services/api-services/apiClient', () => ({
     default: {
         get: vi.fn(),
         put: vi.fn(),
@@ -15,14 +15,14 @@ vi.mock('../services/apiClient', () => ({
     }
 }));
 
-vi.mock('../services/authService', () => ({
+vi.mock('../../services/database-backend-services/authService', () => ({
     default: {
         clearToken: vi.fn(),
         getToken: vi.fn()
     }
 }));
 
-vi.mock('../managers/authStateManager', () => ({
+vi.mock('../../managers/authStateManager', () => ({
     default: {
         clearState: vi.fn()
     }
@@ -67,7 +67,7 @@ describe('userService', () => {
                 updated_at: '2023-01-02'
             };
 
-            (apiClient.get as any).mockResolvedValue({
+            vi.mocked(apiClient.get).mockResolvedValue({
                 data: {
                     data: mockUser
                 }
@@ -86,7 +86,7 @@ describe('userService', () => {
         test('should handle API error', async () => {
             // Mock API error
             const mockError = new Error('API error');
-            (apiClient.get as any).mockRejectedValue(mockError);
+            vi.mocked(apiClient.get).mockRejectedValue(mockError);
 
             // Call and expect error
             await expect(userService.getCurrentUser()).rejects.toThrow();
@@ -113,7 +113,7 @@ describe('userService', () => {
             };
 
             // Mock API response
-            (apiClient.put as any).mockResolvedValue({
+            vi.mocked(apiClient.put).mockResolvedValue({
                 data: mockResponse
             });
 
@@ -135,7 +135,7 @@ describe('userService', () => {
 
             // Mock API error
             const mockError = new Error('API error');
-            (apiClient.put as any).mockRejectedValue(mockError);
+            vi.mocked(apiClient.put).mockRejectedValue(mockError);
 
             // Call and expect error
             await expect(userService.updateUser(updateData)).rejects.toThrow();
@@ -155,7 +155,7 @@ describe('userService', () => {
             };
 
             // Mock API response
-            (apiClient.post as any).mockResolvedValue({
+            vi.mocked(apiClient.post).mockResolvedValue({
                 data: {
                     message: 'Password changed successfully'
                 }
@@ -181,7 +181,7 @@ describe('userService', () => {
 
             // Mock API error
             const mockError = new Error('Current password is incorrect');
-            (apiClient.post as any).mockRejectedValue(mockError);
+            vi.mocked(apiClient.post).mockRejectedValue(mockError);
 
             // Call and expect error
             await expect(userService.changePassword(passwordData)).rejects.toThrow();
@@ -200,7 +200,7 @@ describe('userService', () => {
             };
 
             // Mock API response
-            (apiClient.delete as any).mockResolvedValue({
+            vi.mocked(apiClient.delete).mockResolvedValue({
                 data: {
                     message: 'Account deleted successfully'
                 }
@@ -245,7 +245,7 @@ describe('userService', () => {
 
             // Mock API error
             const mockError = new Error('Password is incorrect');
-            (apiClient.delete as any).mockRejectedValue(mockError);
+            vi.mocked(apiClient.delete).mockRejectedValue(mockError);
 
             // Call and expect error
             await expect(userService.deleteAccount(deleteData)).rejects.toThrow();
@@ -264,7 +264,7 @@ describe('userService', () => {
     describe('checkUsername', () => {
         test('should check username availability successfully', async () => {
             // Mock API response for available username
-            (apiClient.get as any).mockResolvedValue({
+            vi.mocked(apiClient.get).mockResolvedValue({
                 data: {
                     username: 'testuser',
                     available: true
@@ -287,7 +287,7 @@ describe('userService', () => {
         test('should handle API error during username check', async () => {
             // Mock API error
             const mockError = new Error('API error');
-            (apiClient.get as any).mockRejectedValue(mockError);
+            vi.mocked(apiClient.get).mockRejectedValue(mockError);
 
             // Call and expect error
             await expect(userService.checkUsername('testuser')).rejects.toThrow();
@@ -300,7 +300,7 @@ describe('userService', () => {
             const username = 'test@user+name';
             const encodedUsername = encodeURIComponent(username);
 
-            (apiClient.get as any).mockResolvedValue({
+            vi.mocked(apiClient.get).mockResolvedValue({
                 data: {
                     username: username,
                     available: true
@@ -316,7 +316,7 @@ describe('userService', () => {
     describe('checkEmail', () => {
         test('should check email availability successfully', async () => {
             // Mock API response for available email
-            (apiClient.get as any).mockResolvedValue({
+            vi.mocked(apiClient.get).mockResolvedValue({
                 data: {
                     email: 'test@example.com',
                     available: true
@@ -339,7 +339,7 @@ describe('userService', () => {
         test('should handle API error during email check', async () => {
             // Mock API error
             const mockError = new Error('API error');
-            (apiClient.get as any).mockRejectedValue(mockError);
+            vi.mocked(apiClient.get).mockRejectedValue(mockError);
 
             // Call and expect error
             await expect(userService.checkEmail('test@example.com')).rejects.toThrow();
@@ -365,7 +365,7 @@ describe('userService', () => {
                 }
             ];
 
-            (apiClient.get as any).mockResolvedValue({
+            vi.mocked(apiClient.get).mockResolvedValue({
                 data: mockSessions
             });
 
@@ -382,7 +382,7 @@ describe('userService', () => {
         test('should handle API error during session fetch', async () => {
             // Mock API error
             const mockError = new Error('API error');
-            (apiClient.get as any).mockRejectedValue(mockError);
+            vi.mocked(apiClient.get).mockRejectedValue(mockError);
 
             // Call and expect error
             await expect(userService.getActiveSessions()).rejects.toThrow();
@@ -392,7 +392,7 @@ describe('userService', () => {
         });
 
         test('should return empty array when server returns no sessions', async () => {
-            (apiClient.get as any).mockResolvedValue({
+            vi.mocked(apiClient.get).mockResolvedValue({
                 data: []
             });
 
@@ -409,7 +409,7 @@ describe('userService', () => {
             const sessionId = 'session1';
 
             // Mock API response
-            (apiClient.delete as any).mockResolvedValue({
+            vi.mocked(apiClient.delete).mockResolvedValue({
                 data: {
                     message: 'Session invalidated successfully'
                 }
@@ -433,7 +433,7 @@ describe('userService', () => {
 
             // Mock API error
             const mockError = new Error('Invalid session ID');
-            (apiClient.delete as any).mockRejectedValue(mockError);
+            vi.mocked(apiClient.delete).mockRejectedValue(mockError);
 
             // Call and expect error
             await expect(userService.invalidateSession(sessionId)).rejects.toThrow();
@@ -448,7 +448,7 @@ describe('userService', () => {
             // Empty session ID
             const sessionId = '';
 
-            (apiClient.delete as any).mockResolvedValue({
+            vi.mocked(apiClient.delete).mockResolvedValue({
                 data: {
                     message: 'No session specified'
                 }

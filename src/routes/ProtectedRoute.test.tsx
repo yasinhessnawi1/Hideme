@@ -5,10 +5,25 @@ import ProtectedRoute from '../routes/ProtectedRoute';
 import { useUserContext } from '../contexts/UserContext';
 import { NotificationProvider } from '../contexts/NotificationContext';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Mock the UserContext hook
 vi.mock('../contexts/UserContext', () => ({
     useUserContext: vi.fn(),
+}));
+
+// Mock LanguageContext hook
+vi.mock('../contexts/LanguageContext', () => ({
+    useLanguage: vi.fn(() => ({
+        language: 'en',
+        setLanguage: vi.fn(),
+        t: vi.fn((category, key) => {
+            if (category === 'common' && key === 'verifyingSession') {
+                return 'Verifying your session...';
+            }
+            return `${category}.${key}`;
+        })
+    })),
 }));
 
 // Mock NotificationContext hook for context provider

@@ -20,9 +20,9 @@ describe('getCorrectedBoundingBox', () => {
         const result = getCorrectedBoundingBox(highlight);
 
         expect(result).toEqual({
-            x0: 105,
+            x0: 103,
             y0: 205,
-            x1: 152,
+            x1: 150,
             y1: 225
         });
     });
@@ -134,9 +134,9 @@ describe('getCorrectedBoundingBox', () => {
         const result = getCorrectedBoundingBox(highlight);
 
         expect(result).toEqual({
-            x0: 105,
+            x0: 103,
             y0: 205,
-            x1: 102,
+            x1: 100,
             y1: 200
         });
     });

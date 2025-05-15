@@ -198,8 +198,14 @@ describe('apiClient', () => {
                 }
             }));
 
-            // Check result
-            expect(result).toEqual({ data: 'created' });
+            // Check result includes all the expected properties
+            expect(result).toEqual({
+                data: 'created',
+                status: 200,
+                statusText: 'OK',
+                headers: {},
+                config: {}
+            });
         });
 
         test('should support cacheable option for POST requests', async () => {

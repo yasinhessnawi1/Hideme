@@ -9,11 +9,11 @@ import { HighlightRect, HighlightType, RedactionMapping } from '../../types';
 import { getFileKey } from '../../contexts/PDFViewerContext';
 
 // Mock dependencies
-vi.mock('../utils/utilities', () => ({
+vi.mock('../../utils/utilities', () => ({
     getCorrectedBoundingBox: vi.fn()
 }));
 
-vi.mock('../contexts/PDFViewerContext', () => ({
+vi.mock('../../contexts/PDFViewerContext', () => ({
     getFileKey: vi.fn()
 }));
 
@@ -26,7 +26,7 @@ describe('redactionUtils', () => {
         vi.resetAllMocks();
 
         // Default mock implementation for getCorrectedBoundingBox
-        (getCorrectedBoundingBox as unknown as any).mockImplementation((highlight: { x: any; y: any; w: any; h: any; }) => ({
+        vi.mocked(getCorrectedBoundingBox).mockImplementation((highlight: { x: any; y: any; w: any; h: any; }) => ({
             x0: highlight.x,
             y0: highlight.y,
             x1: highlight.x + highlight.w,
@@ -34,7 +34,7 @@ describe('redactionUtils', () => {
         }));
 
         // Default mock implementation for getFileKey
-        (getFileKey as unknown as any).mockImplementation((file: { name: any; }) => file.name);
+        vi.mocked(getFileKey).mockImplementation((file: { name: any; }) => file.name);
     });
 
     describe('createFullRedactionMapping', () => {
@@ -343,7 +343,7 @@ describe('redactionUtils', () => {
             };
 
             // Configure mock for getFileKey
-            (getFileKey as unknown as any).mockImplementation((file: { name: any; }) => file.name);
+            vi.mocked(getFileKey).mockImplementation((file: { name: any; }) => file.name);
 
             // Create request
             const request = createRedactionRequest(files, redactionMappings);
@@ -498,7 +498,7 @@ describe('redactionUtils', () => {
             const updateFiles = vi.fn();
 
             // Configure getFileKey mock
-            (getFileKey as unknown as any).mockImplementation((file: { name: any; }) => file.name);
+            vi.mocked(getFileKey).mockImplementation((file: { name: any; }) => file.name);
 
             // Process redacted files
             const result = await processRedactedFiles(redactedFiles, updateFiles, currentFiles);
@@ -540,7 +540,7 @@ describe('redactionUtils', () => {
             const updateFiles = vi.fn();
 
             // Configure getFileKey mock
-            (getFileKey as unknown as any).mockImplementation((file: { name: any; }) => file.name);
+            vi.mocked(getFileKey).mockImplementation((file: { name: any; }) => file.name);
 
             // Process redacted files
             const result = await processRedactedFiles(redactedFiles, updateFiles, currentFiles);

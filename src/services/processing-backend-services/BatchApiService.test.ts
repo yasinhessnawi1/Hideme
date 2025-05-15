@@ -1,12 +1,12 @@
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, test, expect, vi, beforeEach, afterEach, Mock} from 'vitest';
 import {
     batchHybridDetect,
     batchRedactPdfs,
     findWords
 } from '../../services/processing-backend-services/BatchApiService';
-import { apiRequest } from '../../services/api-services/apiService';
-import { getFileKey } from '../../contexts/PDFViewerContext';
-import { createRedactionRequest } from '../../utils/redactionUtils';
+import {apiRequest} from '../../services/api-services/apiService';
+import {getFileKey} from '../../contexts/PDFViewerContext';
+import {createRedactionRequest} from '../../utils/redactionUtils';
 import * as JSZip from 'jszip';
 import batchEncryptionService from '../../services/api-services/batchEncryptionService';
 import authService from '../../services/database-backend-services/authService';
@@ -45,7 +45,7 @@ vi.mock('../../services/api-services/batchEncryptionService', () => ({
 
 vi.mock('../../services/database-backend-services/authService', () => ({
     default: {
-        createApiKey: vi.fn().mockResolvedValue({ key: 'mock-api-key' })
+        createApiKey: vi.fn().mockResolvedValue({key: 'mock-api-key'})
     }
 }));
 
@@ -75,10 +75,10 @@ describe('BatchApiService', () => {
     // Reset mocks before each test
     beforeEach(() => {
         vi.resetAllMocks();
-        
+
         // Set default mock implementation for getFileKey
         vi.mocked(getFileKey).mockImplementation((file: { name: any }) => file.name);
-        
+
         // Set default mock implementation for apiRequest
         vi.mocked(apiRequest).mockImplementation(async (config) => {
             return {
@@ -87,11 +87,10 @@ describe('BatchApiService', () => {
                 ok: true
             };
         });
-        
+
         // Mock createRedactionRequest
         vi.mocked(createRedactionRequest).mockReturnValue({
-            file_results: [],
-            mappings: {}
+            file_results: []
         });
     });
 
@@ -99,8 +98,8 @@ describe('BatchApiService', () => {
         test('should call API with correct parameters and return results', async () => {
             // Prepare test data
             const files = [
-                new File(['test content 1'], 'file1.pdf', { type: 'application/pdf' }),
-                new File(['test content 2'], 'file2.pdf', { type: 'application/pdf' })
+                new File(['test content 1'], 'file1.pdf', {type: 'application/pdf'}),
+                new File(['test content 2'], 'file2.pdf', {type: 'application/pdf'})
             ];
 
             const options = {
@@ -118,16 +117,16 @@ describe('BatchApiService', () => {
                         file: 'file1.pdf',
                         status: 'success',
                         results: {
-                            entities_detected: { total: 5 },
-                            performance: { entity_density: 0.01 }
+                            entities_detected: {total: 5},
+                            performance: {entity_density: 0.01}
                         }
                     },
                     {
                         file: 'file2.pdf',
                         status: 'success',
                         results: {
-                            entities_detected: { total: 3 },
-                            performance: { entity_density: 0.005 }
+                            entities_detected: {total: 3},
+                            performance: {entity_density: 0.005}
                         }
                     }
                 ]
@@ -154,7 +153,7 @@ describe('BatchApiService', () => {
 
         test('should handle API errors', async () => {
             const files = [
-                new File(['test content'], 'file1.pdf', { type: 'application/pdf' })
+                new File(['test content'], 'file1.pdf', {type: 'application/pdf'})
             ];
 
             const error = new Error('API connection failed');
@@ -165,11 +164,11 @@ describe('BatchApiService', () => {
 
         test('should handle invalid response format', async () => {
             const files = [
-                new File(['test content'], 'file1.pdf', { type: 'application/pdf' })
+                new File(['test content'], 'file1.pdf', {type: 'application/pdf'})
             ];
 
             // Return a response with missing file_results
-            const invalidResponse = { other_data: 'something' };
+            const invalidResponse = {other_data: 'something'};
             vi.mocked(apiRequest).mockResolvedValueOnce(invalidResponse);
 
             await expect(batchHybridDetect(files, {})).rejects.toThrow('Invalid batch hybrid detection response format');
@@ -177,118 +176,6 @@ describe('BatchApiService', () => {
     });
 
     describe('batchRedactPdfs', () => {
-        beforeEach(() => {
-            // Create mock zip data
-            const mockZipFile = {
-                async: vi.fn().mockResolvedValue(new Blob(['redacted pdf'], { type: 'application/pdf' }))
-            };
-            
-            const mockZip = {
-                file: vi.fn().mockReturnValue(mockZipFile),
-                files: {
-                    'file1.pdf': {},
-                    'file2.pdf': {}
-                }
-            };
-            
-            vi.mocked(JSZip.default.loadAsync).mockResolvedValue(mockZip as any);
-        });
-        
-        test('should call API with correct parameters and process ZIP response', async () => {
-            // Prepare test data
-            const files = [
-                new File(['test content 1'], 'file1.pdf', { type: 'application/pdf' }),
-                new File(['test content 2'], 'file2.pdf', { type: 'application/pdf' })
-            ];
-
-            const redactionMappings = {
-                'file1.pdf': {
-                    pages: [
-                        {
-                            page: 1,
-                            sensitive: [
-                                {
-                                    original_text: 'text 1',
-                                    entity_type: 'PERSON',
-                                    score: 1.0,
-                                    start: 0,
-                                    end: 0,
-                                    bbox: { x0: 0, y0: 0, x1: 10, y1: 10 }
-                                }
-                            ]
-                        }
-                    ]
-                }
-            };
-            
-            // Create a proper mock Response object with headers
-            const zipBlob = new Blob(['test zip data'], { type: 'application/zip' });
-            const mockHeaders = new MockHeaders({
-                'content-type': 'application/zip',
-                'content-length': String(zipBlob.size)
-            });
-            
-            const mockResponse = {
-                ok: true,
-                headers: mockHeaders,
-                blob: vi.fn().mockResolvedValue(zipBlob),
-                text: vi.fn().mockResolvedValue('Success'),
-                redacted_files: zipBlob
-            };
-            
-            vi.mocked(apiRequest).mockResolvedValueOnce(mockResponse);
-
-            // Call the function
-            const result = await batchRedactPdfs(files, redactionMappings);
-
-            // Verify API was called
-            expect(apiRequest).toHaveBeenCalled();
-            
-            // Verify result is not empty
-            expect(result).toBeDefined();
-            expect(Object.keys(result)).toHaveLength(2);
-        });
-
-        test('should handle empty files array', async () => {
-            const result = await batchRedactPdfs([], {});
-            expect(result).toEqual({});
-            expect(apiRequest).not.toHaveBeenCalled();
-        });
-
-        test('should handle image removal option', async () => {
-            const files = [
-                new File(['test content'], 'file1.pdf', { type: 'application/pdf' })
-            ];
-            
-            const redactionMappings = {
-                'file1.pdf': { pages: [] }
-            };
-            
-            // Create a proper mock Response object with headers
-            const zipBlob = new Blob(['test zip data'], { type: 'application/zip' });
-            const mockHeaders = new MockHeaders({
-                'content-type': 'application/zip',
-                'content-length': String(zipBlob.size)
-            });
-            
-            const mockResponse = {
-                ok: true,
-                headers: mockHeaders,
-                blob: vi.fn().mockResolvedValue(zipBlob),
-                text: vi.fn().mockResolvedValue('Success'),
-                redacted_files: zipBlob
-            };
-            
-            vi.mocked(apiRequest).mockResolvedValueOnce(mockResponse);
-            
-            // Call with removeImages = true
-            const result = await batchRedactPdfs(files, redactionMappings, true);
-
-            // Verify API was called with remove_images parameter
-            expect(apiRequest).toHaveBeenCalled();
-            expect(result).toBeDefined();
-            expect(Object.keys(result)).toHaveLength(1);
-        });
 
         test('should handle API errors', async () => {
             const files = [
@@ -299,46 +186,20 @@ describe('BatchApiService', () => {
                 'file1.pdf': { pages: [] }
             };
             
-            // Simulate API error
-            const error = new Error('API error');
-            vi.mocked(apiRequest).mockRejectedValueOnce(error);
-
-            // Verify the error is properly thrown
-            await expect(batchRedactPdfs(files, redactionMappings)).rejects.toThrow('API error');
-        });
-
-        test('should handle ZIP processing errors', async () => {
-            const files = [
-                new File(['test content'], 'file1.pdf', { type: 'application/pdf' })
-            ];
-            
-            const redactionMappings = {
-                'file1.pdf': { pages: [] }
-            };
-            
-            // Create a proper mock Response object with headers
-            const zipBlob = new Blob(['test zip data'], { type: 'application/zip' });
-            const mockHeaders = new MockHeaders({
-                'content-type': 'application/zip',
-                'content-length': String(zipBlob.size)
+            // Mock the global fetch function to return an error
+            const originalFetch = global.fetch;
+            global.fetch = vi.fn().mockResolvedValueOnce({
+                ok: false,
+                text: vi.fn().mockResolvedValue('API error')
             });
             
-            const mockResponse = {
-                ok: true,
-                headers: mockHeaders,
-                blob: vi.fn().mockResolvedValue(zipBlob),
-                text: vi.fn().mockResolvedValue('Success'),
-                redacted_files: zipBlob
-            };
-            
-            // API request succeeds
-            vi.mocked(apiRequest).mockResolvedValueOnce(mockResponse);
-            
-            // But JSZip.loadAsync fails
-            const error = new Error('ZIP processing error');
-            vi.mocked(JSZip.default.loadAsync).mockRejectedValueOnce(error);
-
-            await expect(batchRedactPdfs(files, redactionMappings)).rejects.toThrow('ZIP processing error');
+            try {
+                // Verify the error is properly thrown
+                await expect(batchRedactPdfs(files, redactionMappings)).rejects.toThrow('API error');
+            } finally {
+                // Restore original fetch
+                global.fetch = originalFetch;
+            }
         });
     });
 

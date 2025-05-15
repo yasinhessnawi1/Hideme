@@ -5,7 +5,7 @@ import authStateManager from '../../managers/authStateManager';
 import {Key} from "lucide-react";
 
 // Mock dependencies
-vi.mock('../services/apiClient', () => ({
+vi.mock('../../services/api-services/apiClient', () => ({
     default: {
         post: vi.fn(),
         get: vi.fn(),
@@ -14,7 +14,7 @@ vi.mock('../services/apiClient', () => ({
     }
 }));
 
-vi.mock('../managers/authStateManager', () => ({
+vi.mock('../../managers/authStateManager', () => ({
     default: {
         saveState: vi.fn(),
         clearState: vi.fn()
@@ -80,31 +80,6 @@ describe('authService', () => {
     });
 
     describe('login', () => {
-        /*
-        test('successful login should store token and return user data', async () => {
-            const mockResponse = {
-                data: {
-                    success: true,
-                    data: {
-                        user: { id: 1, username: 'testuser', email: 'test@example.com' },
-                        access_token: 'valid-access-token',
-                        expires_in: 3600
-                    }
-                }
-            };
-
-            (apiClient.post as any).mockResolvedValueOnce(mockResponse);
-
-            const credentials = { username: 'testuser', password: 'password123' };
-            const result = await authService.login(credentials);
-
-            expect(apiClient.post).toHaveBeenCalledWith('/auth/login', credentials);
-            expect(localStorageMock.setItem).toHaveBeenCalledWith('auth_token', 'valid-access-token');
-            expect(result).toEqual(mockResponse.data);
-            expect(authStateManager.saveState).toHaveBeenCalled();
-        });
-        */
-
         test('login should handle missing token in response', async () => {
             const mockResponse = {
                 data: {
@@ -117,7 +92,7 @@ describe('authService', () => {
                 }
             };
 
-            (apiClient.post as any).mockResolvedValueOnce(mockResponse);
+            vi.mocked(apiClient.post).mockResolvedValue(mockResponse);
 
             const credentials = { username: 'testuser', password: 'password123' };
 
@@ -127,7 +102,7 @@ describe('authService', () => {
 
         test('login should propagate API errors', async () => {
             const error = new Error('Login failed');
-            (apiClient.post as any).mockRejectedValueOnce(error);
+            vi.mocked(apiClient.post).mockRejectedValue(error);
 
             const credentials = { username: 'testuser', password: 'password123' };
 
@@ -139,7 +114,7 @@ describe('authService', () => {
     describe('register', () => {
         test('successful registration', async () => {
             const mockResponse = { data: { success: true } };
-            (apiClient.post as any).mockResolvedValueOnce(mockResponse);
+            vi.mocked(apiClient.post).mockResolvedValue(mockResponse);
 
             const registrationData = {
                 username: 'newuser',
@@ -155,7 +130,7 @@ describe('authService', () => {
 
         test('registration should propagate errors', async () => {
             const error = new Error('Registration failed');
-            (apiClient.post as any).mockRejectedValueOnce(error);
+            vi.mocked(apiClient.post).mockRejectedValue(error);
 
             const registrationData = {
                 username: 'newuser',
@@ -169,19 +144,6 @@ describe('authService', () => {
     });
 
     describe('logout', () => {
-        /*
-        test('successful logout with token', async () => {
-            localStorageMock.getItem.mockReturnValueOnce('test-token');
-            (apiClient.post as any).mockResolvedValueOnce({});
-
-            await authService.logout();
-
-            expect(apiClient.post).toHaveBeenCalledWith('/auth/logout');
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith('auth_token');
-            expect(authStateManager.clearState).toHaveBeenCalled();
-        });
-        */
-
         test('logout without token should skip API call', async () => {
             localStorageMock.getItem.mockReturnValueOnce(null);
 
@@ -190,50 +152,9 @@ describe('authService', () => {
             expect(apiClient.post).not.toHaveBeenCalled();
             expect(localStorageMock.removeItem).toHaveBeenCalledWith('auth_token');
         });
-
-        /*
-        test('logout should handle API errors', async () => {
-            localStorageMock.getItem.mockReturnValueOnce('test-token');
-            const error = new Error('Logout failed');
-            (apiClient.post as any).mockRejectedValueOnce(error);
-
-            console.error = vi.fn();
-
-            await authService.logout();
-
-            expect(console.error).toHaveBeenCalled();
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith('auth_token');
-            expect(authStateManager.clearState).toHaveBeenCalled();
-        });
-        */
     });
 
     describe('refreshToken', () => {
-        /*
-        test('successful token refresh', async () => {
-            localStorageMock.getItem.mockReturnValueOnce('old-token');
-
-            const mockResponse = {
-                data: {
-                    data: {
-                        access_token: 'new-refreshed-token',
-                        user: { id: 1, username: 'testuser' },
-                        expires_in: 3600
-                    }
-                }
-            };
-
-            (apiClient.post as any).mockResolvedValueOnce(mockResponse);
-
-            const result = await authService.refreshToken();
-
-            expect(apiClient.post).toHaveBeenCalledWith('/auth/refresh');
-            expect(localStorageMock.setItem).toHaveBeenCalledWith('auth_token', 'new-refreshed-token');
-            expect(result).toEqual(mockResponse.data);
-            expect(authStateManager.saveState).toHaveBeenCalled();
-        });
-        */
-
         test('refresh should throw error when no token available', async () => {
             localStorageMock.getItem.mockReturnValueOnce(null);
 
@@ -254,7 +175,7 @@ describe('authService', () => {
                 }
             };
 
-            (apiClient.post as any).mockResolvedValueOnce(mockResponse);
+            vi.mocked(apiClient.post).mockResolvedValue(mockResponse);
 
             console.warn = vi.fn();
 
@@ -270,7 +191,7 @@ describe('authService', () => {
             localStorageMock.getItem.mockReturnValueOnce('old-token');
 
             const error = new Error('Refresh failed');
-            (apiClient.post as any).mockRejectedValueOnce(error);
+            vi.mocked(apiClient.post).mockRejectedValue(error);
 
             await expect(authService.refreshToken()).rejects.toThrow('Refresh failed');
         });
@@ -287,7 +208,7 @@ describe('authService', () => {
                 }
             };
 
-            (apiClient.get as any).mockResolvedValueOnce(mockResponse);
+            vi.mocked(apiClient.get).mockResolvedValue(mockResponse);
 
             const result = await authService.getCurrentUser();
 
@@ -303,10 +224,10 @@ describe('authService', () => {
         });
 
         test('getCurrentUser should propagate API errors', async () => {
-            localStorageMock.getItem.mockReturnValueOnce('test-token');
+            localStorageMock.getItem.mockReturnValueOnce('old-token');
 
             const error = new Error('User fetch failed');
-            (apiClient.get as any).mockRejectedValueOnce(error);
+            vi.mocked(apiClient.get).mockRejectedValue(error);
 
             await expect(authService.getCurrentUser()).rejects.toThrow('User fetch failed');
         });
@@ -314,33 +235,40 @@ describe('authService', () => {
 
     describe('API key management', () => {
         test('createAPIKey should create a new API key', async () => {
-            const keyData = { name: 'Test Key', duration: 30 };
+            localStorageMock.getItem.mockReturnValueOnce('test-token');
+
+            const keyData = { name: 'Temporary Key', duration: '15m' };
             const mockResponse = {
                 data: {
-                    id: 'key-123',
-                    name: 'Test Key',
-                    prefix: 'abc',
-                    key: 'abc.123456',
-                    createdAt: '2023-01-01'
+                    data: {
+                        id: 'new-api-key-123',
+                        key: 'new-api-key-123',
+                        name: 'Test API Key',
+                        expires_at: '2023-12-31T23:59:59Z'
+                    }
                 }
             };
 
-            (apiClient.post as any).mockResolvedValueOnce(mockResponse);
+            vi.mocked(apiClient.post).mockResolvedValue(mockResponse);
 
-            const result = await authService.createAPIKey(keyData);
+            const result = await authService.createApiKey();
 
-            expect(apiClient.post).toHaveBeenCalledWith('/auth/api-keys', keyData);
-            expect(result).toEqual(mockResponse.data);
+            expect(apiClient.post).toHaveBeenCalledWith('/keys', expect.objectContaining({
+                name: 'Temporary Key',
+                duration: '15m'
+            }));
+            expect(result).toEqual(mockResponse.data.data);
         });
 
         test('deleteAPIKey should delete an API key', async () => {
+            localStorageMock.getItem.mockReturnValueOnce('test-token');
             const keyId = 'key-123';
 
-            (apiClient.delete as any).mockResolvedValueOnce({});
+            vi.mocked(apiClient.delete).mockResolvedValue({});
 
             await authService.deleteApiKey(keyId);
 
-            expect(apiClient.delete).toHaveBeenCalledWith(`/auth/api-keys/${keyId}`);
+            expect(apiClient.delete).toHaveBeenCalledWith(`/keys/${keyId}`);
         });
     });
 });

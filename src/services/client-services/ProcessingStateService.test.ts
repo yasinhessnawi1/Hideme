@@ -3,7 +3,7 @@ import processingStateService, { ProcessingStatus, ProcessingInfo } from '../../
 import { getFileKey } from '../../contexts/PDFViewerContext';
 
 // Mock dependencies
-vi.mock('../contexts/PDFViewerContext', () => ({
+vi.mock('../../contexts/PDFViewerContext', () => ({
     getFileKey: vi.fn()
 }));
 
@@ -34,7 +34,7 @@ describe('ProcessingStateService', () => {
         vi.resetAllMocks();
 
         // Default mock implementation for getFileKey
-        (getFileKey as unknown as any).mockImplementation((file: { name: any; }) => file.name);
+        vi.mocked(getFileKey).mockImplementation((file: { name: any }) => file.name);
 
         // Reset localStorage mock
         localStorageMock.clear();
