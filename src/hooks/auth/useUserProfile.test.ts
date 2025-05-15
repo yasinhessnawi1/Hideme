@@ -8,29 +8,45 @@ import authStateManager from '../../managers/authStateManager';
 import authService from '../../services/database-backend-services/authService';
 import { User } from '../../types';
 import type { Mock } from 'vitest';
-import {useState} from "react";
+import { useState } from "react";
+import { ReactNode } from 'react';
+import { LanguageProvider } from '../../contexts/LanguageContext';
+import React from 'react';
 
 // Mock dependencies
 vi.mock('./useAuth', () => ({
     default: vi.fn()
 }));
 
-vi.mock('../../services/userService', () => ({
-    default: {
-        changePassword: vi.fn(),
-        deleteAccount: vi.fn()
-    }
-}));
+vi.mock('../../services/database-backend-services/userService', () => {
+    const changePassword = vi.fn();
+    const deleteAccount = vi.fn();
+    
+    return {
+        default: {
+            changePassword,
+            deleteAccount
+        }
+    };
+});
 
-vi.mock('../../services/apiClient', () => ({
-    default: {
-        get: vi.fn(),
-        put: vi.fn(),
-        delete: vi.fn(),
-        clearCache: vi.fn(),
-        clearCacheEntry: vi.fn()
-    }
-}));
+vi.mock('../../services/api-services/apiClient', () => {
+    const get = vi.fn();
+    const put = vi.fn();
+    const deleteMethod = vi.fn();
+    const clearCache = vi.fn();
+    const clearCacheEntry = vi.fn();
+    
+    return {
+        default: {
+            get,
+            put,
+            delete: deleteMethod,
+            clearCache,
+            clearCacheEntry
+        }
+    };
+});
 
 vi.mock('../../managers/authStateManager', () => ({
     default: {
@@ -39,17 +55,29 @@ vi.mock('../../managers/authStateManager', () => ({
     }
 }));
 
-vi.mock('../../services/authService', () => ({
-    default: {
-        clearToken: vi.fn()
-    }
-}));
+vi.mock('../../services/database-backend-services/authService', () => {
+    const clearToken = vi.fn();
+    
+    return {
+        default: {
+            clearToken
+        }
+    };
+});
 
-// Mock localStorage
+// Mock localStorage properly for tests
 const localStorageMock = {
+    getItem: vi.fn().mockReturnValue('en'),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
     clear: vi.fn()
 };
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true });
+
+// Create wrapper with context providers - Fixed with React.createElement
+function createWrapper({ children }: { children: ReactNode }) {
+  return React.createElement(LanguageProvider, null, children);
+}
 
 // Mock window.location.reload
 const reloadMock = vi.fn();
@@ -101,7 +129,7 @@ describe('useUserProfile', () => {
 
     describe('Initial state', () => {
         test('should initialize with user state from auth hook', () => {
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             expect(result.current.user).toBe(mockUser);
             expect(result.current.isAuthenticated).toBe(true);
@@ -127,7 +155,7 @@ describe('useUserProfile', () => {
                 setError: vi.fn()
             });
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             // Should still be authenticated due to cached state
             expect(result.current.isAuthenticated).toBe(true);
@@ -143,7 +171,7 @@ describe('useUserProfile', () => {
                 }
             });
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             let profile;
             await act(async () => {
@@ -162,7 +190,7 @@ describe('useUserProfile', () => {
             mockError.userMessage = 'Could not load your profile';
             (apiClient.get as Mock).mockRejectedValue(mockError);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             let profile;
             await act(async () => {
@@ -194,7 +222,7 @@ describe('useUserProfile', () => {
 
             (authStateManager.getCachedState as Mock).mockReturnValue(null);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             let profile;
             await act(async () => {
@@ -214,7 +242,7 @@ describe('useUserProfile', () => {
                 data: updatedUser
             });
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             let profile;
             await act(async () => {
@@ -234,7 +262,7 @@ describe('useUserProfile', () => {
             mockError.userMessage = 'Username already taken';
             (apiClient.put as Mock).mockRejectedValue(mockError);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             await act(async () => {
                 try {
@@ -268,7 +296,7 @@ describe('useUserProfile', () => {
 
             (authStateManager.getCachedState as Mock).mockReturnValue(null);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             let profile;
             await act(async () => {
@@ -285,7 +313,7 @@ describe('useUserProfile', () => {
             // Mock service response
             (userService.changePassword as Mock).mockResolvedValue(undefined);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             await act(async () => {
                 await result.current.changePassword({
@@ -310,7 +338,7 @@ describe('useUserProfile', () => {
             mockError.userMessage = 'Current password is incorrect';
             (userService.changePassword as Mock).mockRejectedValue(mockError);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             await act(async () => {
                 try {
@@ -348,7 +376,7 @@ describe('useUserProfile', () => {
 
             (authStateManager.getCachedState as Mock).mockReturnValue(null);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             await act(async () => {
                 await result.current.changePassword({
@@ -367,7 +395,7 @@ describe('useUserProfile', () => {
             // Mock service response
             (userService.deleteAccount as Mock).mockResolvedValue(undefined);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             await act(async () => {
                 await result.current.deleteAccount({
@@ -395,7 +423,7 @@ describe('useUserProfile', () => {
             mockError.userMessage = 'Incorrect password';
             (userService.deleteAccount as Mock).mockRejectedValue(mockError);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             await act(async () => {
                 try {
@@ -437,7 +465,7 @@ describe('useUserProfile', () => {
 
             (authStateManager.getCachedState as Mock).mockReturnValue(null);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             await act(async () => {
                 await result.current.deleteAccount({
@@ -462,7 +490,7 @@ describe('useUserProfile', () => {
                 data: mockSessions
             });
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             let sessions;
             await act(async () => {
@@ -481,7 +509,7 @@ describe('useUserProfile', () => {
             mockError.userMessage = 'Could not load your active sessions';
             (apiClient.get as Mock).mockRejectedValue(mockError);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             let sessions;
             await act(async () => {
@@ -513,7 +541,7 @@ describe('useUserProfile', () => {
 
             (authStateManager.getCachedState as Mock).mockReturnValue(null);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             let sessions;
             await act(async () => {
@@ -532,7 +560,7 @@ describe('useUserProfile', () => {
                 data: { success: true }
             });
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             await act(async () => {
                 await result.current.invalidateSession('session-id');
@@ -550,7 +578,7 @@ describe('useUserProfile', () => {
             mockError.userMessage = 'Session not found';
             (apiClient.delete as Mock).mockRejectedValue(mockError);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             await act(async () => {
                 try {
@@ -585,7 +613,7 @@ describe('useUserProfile', () => {
 
             (authStateManager.getCachedState as Mock).mockReturnValue(null);
 
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             await act(async () => {
                 await result.current.invalidateSession('session-id');
@@ -598,7 +626,7 @@ describe('useUserProfile', () => {
     describe('clearError', () => {
         test('should clear error and call auth clearError', () => {
             // Create a hook with an error
-            const { result } = renderHook(() => useUserProfile());
+            const { result } = renderHook(() => useUserProfile(), { wrapper: createWrapper });
 
             // Set initial error state using useState return value (simulate error state)
             let hookInstance: any;

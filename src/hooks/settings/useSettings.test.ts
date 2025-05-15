@@ -6,25 +6,40 @@ import apiClient from '../../services/api-services/apiClient';
 import authStateManager from '../../managers/authStateManager';
 import { UserSettings, UserSettingsUpdate } from '../../types';
 import type { Mock } from 'vitest';
+import { ReactNode } from 'react';
+import { LanguageProvider } from '../../contexts/LanguageContext';
+import React from 'react';
 
 // Mock dependencies
 vi.mock('../auth/useAuth', () => ({
     default: vi.fn()
 }));
 
-vi.mock('../../services/apiClient', () => ({
-    default: {
-        get: vi.fn(),
-        put: vi.fn(),
-        clearCacheEntry: vi.fn()
-    }
-}));
+// Mock apiClient with proper Jest/Vitest mocks
+vi.mock('../../services/api-services/apiClient', () => {
+    const get = vi.fn();
+    const put = vi.fn();
+    const clearCacheEntry = vi.fn();
+    
+    return {
+        default: {
+            get,
+            put,
+            clearCacheEntry
+        }
+    };
+});
 
 vi.mock('../../managers/authStateManager', () => ({
     default: {
         getCachedState: vi.fn()
     }
 }));
+
+// Create wrapper with context providers - Fixed with React.createElement
+function createWrapper({ children }: { children: ReactNode }) {
+  return React.createElement(LanguageProvider, null, children);
+}
 
 // Mock window.dispatchEvent
 const dispatchEventMock = vi.fn();
@@ -88,7 +103,7 @@ describe('useSettings', () => {
 
     describe('Initial state', () => {
         test('should initialize with default values', () => {
-            const { result } = renderHook(() => useSettings());
+            const { result } = renderHook(() => useSettings(), { wrapper: createWrapper });
 
             expect(result.current.settings).toBeNull();
             expect(result.current.isLoading).toBe(false);
@@ -104,14 +119,14 @@ describe('useSettings', () => {
                 }
             });
 
-            renderHook(() => useSettings());
+            renderHook(() => useSettings(), { wrapper: createWrapper });
 
             // Fast-forward timers to trigger the initial fetch
             await act(async () => {
                 vi.advanceTimersByTime(50);
             });
 
-            expect(apiClient.get).toHaveBeenCalledWith('/settings');
+            expect(apiClient.get).toHaveBeenCalledWith('/settings', expect.any(Object), expect.any(Boolean));
         });
 
         test('should not fetch settings when not authenticated', () => {
@@ -134,7 +149,7 @@ describe('useSettings', () => {
 
             (authStateManager.getCachedState as Mock).mockReturnValue(null);
 
-            renderHook(() => useSettings());
+            renderHook(() => useSettings(), { wrapper: createWrapper });
 
             // Fast-forward timers
             act(() => {
@@ -154,14 +169,14 @@ describe('useSettings', () => {
                 }
             });
 
-            const { result } = renderHook(() => useSettings());
+            const { result } = renderHook(() => useSettings(), { wrapper: createWrapper });
 
             let settings;
             await act(async () => {
                 settings = await result.current.getSettings();
             });
 
-            expect(apiClient.get).toHaveBeenCalledWith('/settings');
+            expect(apiClient.get).toHaveBeenCalledWith('/settings', expect.any(Object), expect.any(Boolean));
             expect(settings).toEqual(mockSettings);
             expect(result.current.settings).toEqual(mockSettings);
             expect(result.current.isLoading).toBe(false);
@@ -175,7 +190,7 @@ describe('useSettings', () => {
             mockError.userMessage = 'Could not load your settings';
             (apiClient.get as Mock).mockRejectedValue(mockError);
 
-            const { result } = renderHook(() => useSettings());
+            const { result } = renderHook(() => useSettings(), { wrapper: createWrapper });
 
             let settings;
             await act(async () => {
@@ -202,7 +217,7 @@ describe('useSettings', () => {
                 });
             });
 
-            const { result } = renderHook(() => useSettings());
+            const { result } = renderHook(() => useSettings(), { wrapper: createWrapper });
 
             // Call getSettings twice in quick succession
             let settings1, settings2;
@@ -231,7 +246,7 @@ describe('useSettings', () => {
                 }
             });
 
-            const { result } = renderHook(() => useSettings());
+            const { result } = renderHook(() => useSettings(), { wrapper: createWrapper });
 
             // First fetch
             await act(async () => {
@@ -276,7 +291,7 @@ describe('useSettings', () => {
                 }
             });
 
-            const { result } = renderHook(() => useSettings());
+            const { result } = renderHook(() => useSettings(), { wrapper: createWrapper });
 
             const updateData: UserSettingsUpdate = { theme: 'dark' };
             let settings;
@@ -308,7 +323,7 @@ describe('useSettings', () => {
             mockError.userMessage = 'Invalid settings data';
             (apiClient.put as Mock).mockRejectedValue(mockError);
 
-            const { result } = renderHook(() => useSettings());
+            const { result } = renderHook(() => useSettings(), { wrapper: createWrapper });
 
             await act(async () => {
                 try {
@@ -343,7 +358,7 @@ describe('useSettings', () => {
 
             (authStateManager.getCachedState as Mock).mockReturnValue(null);
 
-            const { result } = renderHook(() => useSettings());
+            const { result } = renderHook(() => useSettings(), { wrapper: createWrapper });
 
             let settings;
             await act(async () => {
@@ -362,7 +377,7 @@ describe('useSettings', () => {
             mockError.userMessage = 'Could not load your settings';
             (apiClient.get as Mock).mockRejectedValue(mockError);
 
-            const { result } = renderHook(() => useSettings());
+            const { result } = renderHook(() => useSettings(), { wrapper: createWrapper });
 
             // First cause an error
             await act(async () => {

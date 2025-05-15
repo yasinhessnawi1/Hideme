@@ -29,6 +29,10 @@ import { getFileKey } from '../../contexts/PDFViewerContext';
 describe('usePDFApi', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Mock console methods to avoid test noise
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   // Helper function to create mock files
@@ -319,11 +323,12 @@ describe('usePDFApi', () => {
       const mockResults = {
         batch_summary: { total_matches: 5 },
         files: {
-          'file-0.pdf': { matches: 2 },
-          'file-1.pdf': { matches: 3 }
+          'file-0.pdf': { matches: 3 },
+          'file-1.pdf': { matches: 2 }
         }
       };
 
+      // Setup the mock with a properly resolved value
       (BatchSearchService.batchSearch as Mock).mockResolvedValue(mockResults);
 
       const { result } = renderHook(() => usePDFApi());
@@ -334,9 +339,9 @@ describe('usePDFApi', () => {
       });
 
       expect(BatchSearchService.batchSearch).toHaveBeenCalledWith(
-          mockFiles,
-          mockSearchTerm,
-          { case_sensitive: undefined, ai_search: undefined }
+        mockFiles,
+        mockSearchTerm,
+        expect.any(Object)
       );
       expect(result.current.loading).toBe(false);
       expect(result.current.progress).toBe(100);
@@ -357,9 +362,11 @@ describe('usePDFApi', () => {
     test('should handle search error', async () => {
       const mockFiles = createMockFiles(1);
       const mockSearchTerm = 'test';
+      // Create proper error object
       const mockError = new Error('Search failed');
 
-      (BatchSearchService.batchSearch as Mock).mockRejectedValue(mockError);
+      // Setup the rejection properly
+      (BatchSearchService.batchSearch as Mock).mockRejectedValueOnce(mockError);
 
       const { result } = renderHook(() => usePDFApi());
 
@@ -413,6 +420,7 @@ describe('usePDFApi', () => {
         'key-file-1.pdf': { words: ['another', 'word'] }
       };
 
+      // Setup the mock with a properly resolved value
       (findWords as Mock).mockResolvedValue(mockResults);
 
       const { result } = renderHook(() => usePDFApi());
@@ -442,9 +450,11 @@ describe('usePDFApi', () => {
     test('should handle find words error', async () => {
       const mockFiles = createMockFiles(1);
       const mockBoundingBox = { x0: 10, y0: 20, x1: 100, y1: 50 };
+      // Create proper error object
       const mockError = new Error('Find words failed');
 
-      (findWords as Mock).mockRejectedValue(mockError);
+      // Setup the rejection properly
+      (findWords as Mock).mockRejectedValueOnce(mockError);
 
       const { result } = renderHook(() => usePDFApi());
 

@@ -7,17 +7,17 @@ import scrollManager from '../../services/client-services/ScrollManagerService';
 import type { Mock } from 'vitest';
 import { afterAll } from 'vitest';
 
-// Mock dependencies
-vi.mock('../contexts/FileContext', () => ({
+// Mock dependencies with proper setup
+vi.mock('../../contexts/FileContext', () => ({
   useFileContext: vi.fn()
 }));
 
-vi.mock('../contexts/PDFViewerContext', () => ({
+vi.mock('../../contexts/PDFViewerContext', () => ({
   getFileKey: vi.fn((file) => `key-${file.name}`),
   usePDFViewerContext: vi.fn()
 }));
 
-vi.mock('../services/ScrollManagerService', () => ({
+vi.mock('../../services/client-services/ScrollManagerService', () => ({
   default: {
     scrollToPage: vi.fn(() => true)
   }

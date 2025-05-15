@@ -8,57 +8,81 @@ import { HighlightRect, HighlightType } from '../../types';
 import type { Mock } from 'vitest';
 
 // Mock the highlightStore
-vi.mock('../store/HighlightStore', () => {
+vi.mock('../../store/HighlightStore', () => {
   const mockSubscriptions: Array<(fileKey?: string, page?: number, type?: HighlightType) => void> = [];
+  
+  // Create spy functions with vi.fn()
+  const addHighlight = vi.fn(async () => 'mock-id');
+  const removeHighlight = vi.fn(async () => true);
+  const addMultipleHighlights = vi.fn(async () => ['mock-id-1', 'mock-id-2']);
+  const removeMultipleHighlights = vi.fn(async () => true);
+  const getHighlightsForPage = vi.fn(() => []);
+  const addHighlightsToPage = vi.fn(async () => ['mock-id-1', 'mock-id-2']);
+  const removeHighlightsFromPage = vi.fn(async () => true);
+  const getHighlightsForFile = vi.fn(() => []);
+  const addHighlightsToFile = vi.fn(async () => ['mock-id-1', 'mock-id-2']);
+  const removeHighlightsFromFile = vi.fn(async () => true);
+  const getHighlightsByType = vi.fn(() => []);
+  const addHighlightsByType = vi.fn(async () => ['mock-id-1', 'mock-id-2']);
+  const removeHighlightsByType = vi.fn(async () => true);
+  const getHighlightsByProperty = vi.fn(() => []);
+  const removeHighlightsByProperty = vi.fn(async () => true);
+  const removeHighlightsByPropertyFromAllFiles = vi.fn(async () => true);
+  const getHighlightsByText = vi.fn(() => []);
+  const removeHighlightsByText = vi.fn(async () => true);
+  const removeAllHighlights = vi.fn(async () => true);
+  const removeAllHighlightsByType = vi.fn(async () => true);
+  const removeHighlightsByPosition = vi.fn(async () => true);
+  const subscribe = vi.fn((callback) => {
+    mockSubscriptions.push(callback);
+    return {
+      unsubscribe: vi.fn(() => {
+        const index = mockSubscriptions.indexOf(callback);
+        if (index !== -1) {
+          mockSubscriptions.splice(index, 1);
+        }
+      })
+    };
+  });
 
   const mockStore = {
     // Core operations
-    addHighlight: vi.fn(async () => 'mock-id'),
-    removeHighlight: vi.fn(async () => true),
+    addHighlight,
+    removeHighlight,
 
     // Batch operations
-    addMultipleHighlights: vi.fn(async () => ['mock-id-1', 'mock-id-2']),
-    removeMultipleHighlights: vi.fn(async () => true),
+    addMultipleHighlights,
+    removeMultipleHighlights,
 
     // Page operations
-    getHighlightsForPage: vi.fn(() => []),
-    addHighlightsToPage: vi.fn(async () => ['mock-id-1', 'mock-id-2']),
-    removeHighlightsFromPage: vi.fn(async () => true),
+    getHighlightsForPage,
+    addHighlightsToPage,
+    removeHighlightsFromPage,
 
     // File operations
-    getHighlightsForFile: vi.fn(() => []),
-    addHighlightsToFile: vi.fn(async () => ['mock-id-1', 'mock-id-2']),
-    removeHighlightsFromFile: vi.fn(async () => true),
+    getHighlightsForFile,
+    addHighlightsToFile,
+    removeHighlightsFromFile,
 
     // Type operations
-    getHighlightsByType: vi.fn(() => []),
-    addHighlightsByType: vi.fn(async () => ['mock-id-1', 'mock-id-2']),
-    removeHighlightsByType: vi.fn(async () => true),
+    getHighlightsByType,
+    addHighlightsByType,
+    removeHighlightsByType,
 
     // Property operations
-    getHighlightsByProperty: vi.fn(() => []),
-    removeHighlightsByProperty: vi.fn(async () => true),
-    removeHighlightsByPropertyFromAllFiles: vi.fn(async () => true),
-    getHighlightsByText: vi.fn(() => []),
-    removeHighlightsByText: vi.fn(async () => true),
+    getHighlightsByProperty,
+    removeHighlightsByProperty,
+    removeHighlightsByPropertyFromAllFiles,
+    getHighlightsByText,
+    removeHighlightsByText,
 
     // Global operations
-    removeAllHighlights: vi.fn(async () => true),
-    removeAllHighlightsByType: vi.fn(async () => true),
-    removeHighlightsByPosition: vi.fn(async () => true),
+    removeAllHighlights,
+    removeAllHighlightsByType,
+    removeHighlightsByPosition,
 
     // Subscription management
-    subscribe: vi.fn((callback) => {
-      mockSubscriptions.push(callback);
-      return {
-        unsubscribe: vi.fn(() => {
-          const index = mockSubscriptions.indexOf(callback);
-          if (index !== -1) {
-            mockSubscriptions.splice(index, 1);
-          }
-        })
-      };
-    }),
+    subscribe,
 
     // Helper to trigger subscriptions for testing
     _triggerSubscriptions: (fileKey?: string, page?: number, type?: HighlightType) => {

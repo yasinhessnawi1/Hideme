@@ -8,27 +8,45 @@ import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../contexts/NotificationContext';
 import { User } from '../../types';
 import type { Mock } from 'vitest';
+import React, { ReactNode } from 'react';
+import { LanguageProvider } from '../../contexts/LanguageContext';
 
 // Mock dependencies
-vi.mock('../../services/apiClient', () => ({
-    default: {
-        get: vi.fn(),
-        clearCache: vi.fn()
-    }
-}));
+vi.mock('../../services/api-services/apiClient', () => {
+    const get = vi.fn();
+    const clearCache = vi.fn();
+    
+    return {
+        default: {
+            get,
+            clearCache
+        }
+    };
+});
 
-vi.mock('../../services/authService', () => ({
-    default: {
-        getToken: vi.fn(),
-        setToken: vi.fn(),
-        clearToken: vi.fn(),
-        login: vi.fn(),
-        register: vi.fn(),
-        logout: vi.fn(),
-        refreshToken: vi.fn(),
-        getCurrentUser: vi.fn()
-    }
-}));
+vi.mock('../../services/database-backend-services/authService', () => {
+    const getToken = vi.fn();
+    const setToken = vi.fn();
+    const clearToken = vi.fn();
+    const login = vi.fn();
+    const register = vi.fn();
+    const logout = vi.fn();
+    const refreshToken = vi.fn();
+    const getCurrentUser = vi.fn();
+    
+    return {
+        default: {
+            getToken,
+            setToken,
+            clearToken,
+            login,
+            register,
+            logout,
+            refreshToken,
+            getCurrentUser
+        }
+    };
+});
 
 vi.mock('../../managers/authStateManager', () => ({
     default: {
@@ -45,6 +63,11 @@ vi.mock('react-router-dom', () => ({
 vi.mock('../../contexts/NotificationContext', () => ({
     useNotification: vi.fn()
 }));
+
+// Create wrapper with language provider for the tests - Fix JSX syntax issue
+function createWrapper({ children }: { children: ReactNode }) {
+  return React.createElement(LanguageProvider, null, children);
+}
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -103,7 +126,7 @@ describe('useAuth', () => {
 
     describe('Initial state', () => {
         test('should initialize with default state when no cached state', () => {
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             expect(result.current.user).toBeNull();
             expect(result.current.isAuthenticated).toBe(false);
@@ -122,7 +145,7 @@ describe('useAuth', () => {
             // Mock token
             (authService.getToken as Mock).mockReturnValue('mock-token');
 
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             expect(result.current.isAuthenticated).toBe(true);
             expect(result.current.isLoading).toBe(true); // Loading because token exists
@@ -145,7 +168,7 @@ describe('useAuth', () => {
 
             (authService.getCurrentUser as Mock).mockResolvedValue(mockUser);
 
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             // Pre-set authenticated state to avoid race conditions in testing
             act(() => {
@@ -184,7 +207,7 @@ describe('useAuth', () => {
                 }
             });
 
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             let isVerified;
             await act(async () => {
@@ -207,16 +230,22 @@ describe('useAuth', () => {
             (authService.getToken as Mock).mockReturnValue('mock-token');
 
             // Mock stored user data
-            localStorageMock.getItem.mockReturnValueOnce(JSON.stringify(mockUser));
+            localStorageMock.getItem.mockImplementation((key) => {
+                if (key === 'user_data') {
+                    return JSON.stringify(mockUser);
+                }
+                return null;
+            });
 
             // Mock API error
             (apiClient.get as Mock).mockRejectedValue(new Error('Network error'));
 
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             // Pre-set authenticated state to avoid race conditions in testing
             act(() => {
                 result.current.setIsAuthenticated(true);
+                result.current.setUser(mockUser);
             });
 
             await act(async () => {
@@ -247,7 +276,7 @@ describe('useAuth', () => {
                 }
             });
 
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             let isVerified;
             await act(async () => {
@@ -275,7 +304,7 @@ describe('useAuth', () => {
                 }
             });
 
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             await act(async () => {
                 await result.current.login('testuser', 'password');
@@ -307,7 +336,7 @@ describe('useAuth', () => {
                 }
             });
 
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             await act(async () => {
                 await result.current.login('test@example.com', 'password');
@@ -327,7 +356,7 @@ describe('useAuth', () => {
             mockError.userMessage = 'Login failed. Please check your credentials.';
             (authService.login as Mock).mockRejectedValue(mockError);
 
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             await act(async () => {
                 try {
@@ -362,7 +391,7 @@ describe('useAuth', () => {
                 }
             });
 
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             await act(async () => {
                 await result.current.register('testuser', 'test@example.com', 'password', 'password');
@@ -390,7 +419,7 @@ describe('useAuth', () => {
             mockError.userMessage = 'Registration failed';
             (authService.register as Mock).mockRejectedValue(mockError);
 
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             await act(async () => {
                 try {
@@ -427,7 +456,7 @@ describe('useAuth', () => {
                 }
             });
 
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             // Set authenticated state
             act(() => {
@@ -459,7 +488,7 @@ describe('useAuth', () => {
             // Mock logout error
             (authService.logout as Mock).mockRejectedValue(new Error('Network error'));
 
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             // Set authenticated state
             act(() => {
@@ -479,118 +508,9 @@ describe('useAuth', () => {
         });
     });
 
-
-    /*
-    describe('Token refresh', () => {
-        test('should set up token refresh interval when authenticated', async () => {
-            // Setup authenticated state
-            (authStateManager.getCachedState as Mock).mockReturnValue({
-                isAuthenticated: true,
-                userId: '123',
-                username: 'testuser'
-            });
-
-            const { result } = renderHook(() => useAuth());
-
-            // Set authenticated state
-            act(() => {
-                result.current.setUser(mockUser);
-                result.current.setIsAuthenticated(true);
-            });
-
-            // Mock successful token refresh
-            (authService.refreshToken as Mock).mockResolvedValue({
-                data: {
-                    access_token: 'new-mock-token'
-                }
-            });
-
-            // Fast-forward to trigger token refresh
-            act(() => {
-                vi.advanceTimersByTime(14 * 60 * 1000); // 14 minutes
-            });
-
-            expect(authService.refreshToken).toHaveBeenCalled();
-            expect(authStateManager.saveState).toHaveBeenCalledWith({
-                isAuthenticated: true
-            });
-        });
-
-        test('should handle token refresh network error', async () => {
-            // Setup authenticated state
-            (authStateManager.getCachedState as Mock).mockReturnValue({
-                isAuthenticated: true,
-                userId: '123',
-                username: 'testuser'
-            });
-
-            const { result } = renderHook(() => useAuth());
-
-            // Set authenticated state
-            act(() => {
-                result.current.setUser(mockUser);
-                result.current.setIsAuthenticated(true);
-            });
-
-            // Mock token refresh network error
-            (authService.refreshToken as Mock).mockRejectedValue(new Error('Network error'));
-
-            // Fast-forward to trigger token refresh
-            act(() => {
-                vi.advanceTimersByTime(14 * 60 * 1000); // 14 minutes
-            });
-
-            // Should show notification but maintain session
-            expect(mockNotify).toHaveBeenCalled();
-            expect(result.current.isAuthenticated).toBe(true);
-        });
-
-        test('should handle token refresh API error', async () => {
-            // Setup authenticated state
-            (authStateManager.getCachedState as Mock).mockReturnValue({
-                isAuthenticated: true,
-                userId: '123',
-                username: 'testuser'
-            });
-
-            const { result } = renderHook(() => useAuth());
-
-            // Set authenticated state
-            act(() => {
-                result.current.setUser(mockUser);
-                result.current.setIsAuthenticated(true);
-            });
-
-            // Mock token refresh API error
-            (authService.refreshToken as Mock).mockRejectedValue({
-                response: {
-                    status: 401,
-                    data: {
-                        message: 'Invalid refresh token'
-                    }
-                }
-            });
-
-            // Fast-forward to trigger token refresh
-            act(() => {
-                vi.advanceTimersByTime(14 * 60 * 1000); // 14 minutes
-            });
-
-            // Should log out user
-            expect(result.current.isAuthenticated).toBe(false);
-            expect(result.current.user).toBeNull();
-            expect(authService.clearToken).toHaveBeenCalled();
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith('user_data');
-            expect(authStateManager.clearState).toHaveBeenCalled();
-            expect(mockNotify).toHaveBeenCalled();
-        });
-    });
-
-    */
-
     describe('Utility methods', () => {
         test('should clear error', () => {
-            const { result } = renderHook(() => useAuth());
+            const { result } = renderHook(() => useAuth(), { wrapper: createWrapper });
 
             // Set error
             act(() => {
