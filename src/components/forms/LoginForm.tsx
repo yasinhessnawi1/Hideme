@@ -239,6 +239,12 @@ const LoginForm: React.FC<LoginFormProps> = ({
               className="login-input"
               required
             />
+            {/* "Forgot password" link is only shown in login mode */}
+            {!isSignUp && (
+              <Link className="forgot-password" to="/forgot-password">
+                {t('auth', 'forgotPassword')}
+              </Link>
+            )}
           </div>
           {isSignUp && (
               <div className="form-group">

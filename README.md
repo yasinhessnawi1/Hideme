@@ -34,6 +34,9 @@ The application is built as a Single Page Application (SPA) using React and Type
 -   **Text Search**: Search for text patterns or keywords within documents, with results highlighted and navigable.
 -   **Redaction**: Tools to select and mark areas for redaction, with the potential to apply these redactions permanently (likely requires backend processing).
 -   **Customizable Settings**: User-specific settings for application behavior, entity definitions, ban lists, and search patterns.
+-   **Multi-language Support**: Internationalization capabilities with support for English and Norwegian languages, with an easily extendable framework for adding more languages.
+-   **Document History**: Storage and retrieval of document redaction history, allowing users to revisit and apply previous redaction mappings to documents.
+-   **Encryption and Decryption**: Client-side encryption and decryption of sensitive document data using AES-GCM algorithm, ensuring secure transmission with the backend.
 -   **Theming**: Support for light/dark mode.
 -   **Responsive Design**: UI adapts to different screen sizes (implied by use of modern web tech).
 
@@ -44,13 +47,20 @@ The application follows a component-based architecture typical of React applicat
 **Frontend:**
 
 -   **Framework/Library**: React 19+ with TypeScript
--   **Build Tool**: Vite
--   **Routing**: `react-router-dom` v6
--   **PDF Rendering**: `react-pdf` (which uses PDF.js)
--   **State Management**: React Context API (extensively used), potentially supplemented by a dedicated library like Zustand or Redux Toolkit for specific stores (e.g., `HighlightStore`). Custom hooks (`useAuth`, `useSettings`, etc.) encapsulate stateful logic.
--   **Styling**: CSS Modules, standard CSS (`src/styles/`). UI components likely from a library like `shadcn/ui` or similar (inferred from structure and common practices, though not explicitly listed in `package.json` analysis).
--   **Icons**: `lucide-react`
--   **API Communication**: `axios` (inferred from `node_modules`, managed via `apiClient.ts` and `apiService.ts`).
+-   **Build Tool**: Vite 6.1.1+
+-   **Routing**: `react-router-dom` v7
+-   **PDF Rendering**: `react-pdf` v9.2.1 (which uses PDF.js v4.10.38)
+-   **PDF Manipulation**: `pdf-lib` v1.17.1
+-   **State Management**: React Context API (extensively used), potentially supplemented by a dedicated library like Zustand or Redux Toolkit for specific stores (e.g., `HighlightStore`). Custom hooks (`useAuth`, `useSettings`, `useBanList`, `useEntityDefinitions`, `useSearchPatterns`, `useUserProfile`) encapsulate stateful logic.
+-   **Styling**: CSS Modules, standard CSS (`src/styles/`)
+-   **UI Components**: Custom components with design system principles
+-   **Animation**: `framer-motion` v12.6.3, `motion` v12.4.7
+-   **Icons**: `lucide-react` v0.475.0, `react-icons` v5.5.0
+-   **Virtual Scrolling**: `react-window` v1.8.11, `react-intersection-observer` v9.16.0
+-   **API Communication**: `axios` v1.8.4 (managed via `apiClient.ts` and `apiService.ts`)
+-   **Internationalization**: Custom i18n implementation supporting multiple languages (currently English and Norwegian)
+-   **Data Storage**: IndexedDB via `idb` v8.0.2 for client-side storage
+-   **Encryption**: Web Crypto API for secure client-side encryption
 
 **Backend :**
 -   The API interactions are managed through services like `authService.ts`, `userService.ts`, `apiService.ts`.
@@ -59,7 +69,7 @@ The application follows a component-based architecture typical of React applicat
 
 -   **Context Providers**: Centralized state management for different application domains (User, Theme, File, PDF Viewer, etc.). See `src/contexts/`.
 -   **Custom Hooks**: Reusable logic extraction, often interacting with contexts or services. See `src/hooks/`.
--   **Services**: Encapsulate API calls and specific business logic (e.g., `ScrollManagerService`, `BatchSearchService`). See `src/services/`.
+-   **Services**: Encapsulate API calls and specific business logic (e.g., `ScrollManagerService`, `BatchSearchService`, `BatchEncryptionService`). See `src/services/`.
 -   **Managers**: Orchestrate complex workflows involving multiple components or services (e.g., `AutoProcessManager`, `EntityHighlightProcessor`). See `src/managers/`.
 -   **Modularity**: Code is organized by feature (e.g., components/pdf, contexts/PDFViewerContext) or type (hooks, services, managers).
 -   **Asynchronous Operations**: Heavy reliance on Promises and async/await for handling API calls and PDF.js worker interactions.
@@ -71,17 +81,43 @@ src/
 ├── App.tsx                 # Main application component, context provider setup
 ├── main.tsx                # Application entry point, React DOM rendering, PDF.js worker setup
 ├── assets/                 # Static assets like images, videos
-├── components/             # Reusable UI components (common, forms, pdf, settings, static)
+├── components/             # Reusable UI components
+│   ├── common/             # Common UI components used throughout the app
+│   ├── forms/              # Form components and controls
+│   ├── pdf/                # PDF-specific components
+│   │   ├── highlighters/   # Components for highlighting text in PDFs
+│   │   ├── pdf-page-components/ # PDF page-level components (like HistoryViewer)
+│   │   └── pdf-viewer-components/ # PDF viewer components
+│   ├── settings/           # Settings-related components
+│   │   └── tabs/           # Tab components for settings sections
+│   └── static/             # Static content components
 ├── contexts/               # React Context providers and consumers
 ├── hooks/                  # Custom React hooks for stateful logic
+│   ├── auth/               # Authentication-related hooks
+│   ├── general/            # General utility hooks (including useDocumentHistory)
+│   └── settings/           # Settings management hooks
 ├── managers/               # Classes/functions orchestrating complex processes
 ├── pages/                  # Top-level page components corresponding to routes
+│   ├── dynamic-pages/      # Pages with dynamic content
+│   └── static-pages/       # Static content pages
 ├── routes/                 # Routing configuration (AppRouter, ProtectedRoute)
-├── services/               # API clients, business logic services
-├── store/                  # State management stores (e.g., HighlightStore)
+├── services/               # Services for business logic and API interactions
+│   ├── api-services/       # API client services (including BatchEncryptionService)
+│   ├── client-services/    # Browser-side services
+│   ├── database-backend-services/ # Database integration services
+│   └── processing-backend-services/ # Backend processing services
+├── store/                  # State management stores
 ├── styles/                 # CSS files (global, modules, components)
+│   ├── components/         # Component-specific styles
+│   └── modules/            # Feature module styles
+│       ├── common/         # Common styles
+│       ├── landing/        # Landing page styles
+│       ├── login/          # Authentication page styles
+│       └── pdf/            # PDF-related styles (including HistoryViewer.css)
 ├── types/                  # TypeScript type definitions
 └── utils/                  # Utility functions
+    └── i18n/               # Internationalization utilities
+        └── translations/   # Translation files for different languages (en.ts, no.ts)
 ```
 
 ## Installation and Setup
@@ -114,7 +150,9 @@ This will create a `dist` directory with optimized static assets ready for deplo
     *   **Detection**: Run entity detection (manually or automatically based on settings) and view results.
     *   **Search**: Enter search queries to find text within the document.
     *   **Redact**: Use redaction tools to mark areas for removal.
+    *   **History**: View document history and reload previous redaction mappings.
 5.  **Manage Settings**: Navigate to `/user/settings` (via Navbar/User menu) to configure application behavior, manage ban lists, entity definitions, search patterns, or change your password/delete your account.
+6.  **Change Language**: Switch between supported languages (English, Norwegian) via the language selector.
 
 
 
@@ -326,18 +364,23 @@ This section outlines various scenarios and use cases for the Hideme application
 | FEAT-002    | Filter/Interact Entities     | Clicks on an entity type or specific entity in the detection sidebar           | Filters results, scrolls PDF view to the entity location, highlights the entity.                                                                | `EntityDetectionSidebar`, `HighlightStore`, `ScrollManagerService`, `PDFViewerContainer`                                                                                         |
 | FEAT-003    | Perform Text Search          | Selects 'Search' tab, enters query, clicks 'Search'                            | Sends search query to backend or performs client-side search, displays results in sidebar, highlights occurrences in PDF.                         | `SearchSidebar`, `BatchSearchService` (likely), `HighlightStore`, `SearchHighlightProcessor`, `PDFViewerContainer`, `HighlightLayer`                                              |
 | FEAT-004    | Navigate Search Results      | Clicks on a search result in the sidebar                                       | Scrolls PDF view to the result location, highlights the specific occurrence.                                                                    | `SearchSidebar`, `HighlightStore`, `ScrollManagerService`, `PDFViewerContainer`                                                                                                  |
-| FEAT-005    | Select Area for Redaction  | Selects 'Redact' tab, uses redaction tool to draw boxes over content           | Redaction areas are marked visually on the PDF viewer.                                                                                          | `RedactionSidebar`, `EditProvider`, `PDFViewerContainer`, potentially custom drawing layer                                                                                       |
-| FEAT-006    | Apply Redactions           | Clicks 'Apply Redactions' or 'Save Redacted PDF'                               | Sends redaction coordinates and PDF data to backend, generates a new redacted PDF, offers download or updates view. (Needs verification)          | `RedactionSidebar`, `EditProvider`, `apiService` (potentially), `redactionUtils`                                                                                                 |
-| FEAT-007    | Auto-Process PDF           | Uploads PDF with auto-processing enabled in settings                           | Triggers entity detection (and potentially other processes) automatically after upload.                                                         | `FileContext`, `AutoProcessProvider`, `AutoProcessManager`, `apiService`, `ProcessingStateService`                                                                               |
+| FEAT-005    | Select Area for Redaction    | Selects 'Redact' tab, uses redaction tool to draw boxes over content           | Redaction areas are marked visually on the PDF viewer.                                                                                          | `RedactionSidebar`, `EditProvider`, `PDFViewerContainer`, potentially custom drawing layer                                                                                       |
+| FEAT-006    | Apply Redactions             | Clicks 'Apply Redactions' or 'Save Redacted PDF'                               | Sends redaction coordinates and PDF data to backend, generates a new redacted PDF, offers download or updates view. (Needs verification)          | `RedactionSidebar`, `EditProvider`, `apiService` (potentially), `redactionUtils`                                                                                                 |
+| FEAT-007    | Auto-Process PDF             | Uploads PDF with auto-processing enabled in settings                           | Triggers entity detection (and potentially other processes) automatically after upload.                                                         | `FileContext`, `AutoProcessProvider`, `AutoProcessManager`, `apiService`, `ProcessingStateService`                                                                               |
+| FEAT-008    | View Document History        | Selects 'History' tab in the sidebar                                           | Displays a list of documents with saved redaction mappings, allowing the user to apply previous redactions.                                     | `HistoryViewer`, `useDocumentHistory`, `apiClient`                                                                                                                              |
+| FEAT-009    | Apply Redaction from History | Clicks on a document in the history list                                       | Loads the selected redaction mapping and applies it to the current document if available.                                                       | `HistoryViewer`, `useDocumentHistory`, `HighlightStore`, `EditProvider`                                                                                                         |
+| FEAT-010    | Delete Document History      | Clicks delete button on a history item                                         | Confirms deletion, removes the history item if confirmed.                                                                                       | `HistoryViewer`, `useDocumentHistory`, `useNotification`                                                                                                                        |
+| FEAT-011    | Encrypt/Decrypt PDF Data     | Sends or receives sensitive PDF data to/from the backend                       | Automatically encrypts data before sending to the backend and decrypts data received from the backend using AES-GCM algorithm.                   | `BatchEncryptionService`, `encryptionUtils`, Web Crypto API                                                                                                                      |
 
 ### Settings Management
 
 | Use Case ID | Scenario                     | User Action(s)                                                                 | System Response                                                                                                                                 | Key Components Involved                                                                                                                                                            |
 | :---------- | :--------------------------- | :----------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SETT-001    | Update General Settings      | Navigates to `/user/settings`, changes a setting (e.g., theme, auto-process), saves | Updates setting via API, shows success message, application behavior changes accordingly (e.g., theme updates).                                 | `UserSettingsPage`, `useSettings`, `useUserContext`, `userService`, `apiClient`, `ThemeProvider`, `AutoProcessProvider`                                                              |
-| SETT-002    | Add Word to Ban List       | Goes to Ban List settings, adds a word, saves                                  | Word is added via API, success message shown, future redactions/detections might use the updated list.                                          | `UserSettingsPage` (specific section), `useBanList`, `useUserContext`, `userService`, `apiClient`                                                                                  |
+| SETT-002    | Add Word to Ban List         | Goes to Ban List settings, adds a word, saves                                  | Word is added via API, success message shown, future redactions/detections might use the updated list.                                          | `UserSettingsPage` (specific section), `useBanList`, `useUserContext`, `userService`, `apiClient`                                                                                  |
 | SETT-003    | Manage Entity Definitions    | Goes to Entity Definition settings, adds/removes/modifies entities for a method, saves | Updates definitions via API, success message shown, future entity detection uses updated definitions.                                             | `UserSettingsPage` (specific section), `useEntityDefinitions`, `useUserContext`, `userService`, `apiClient`                                                                        |
 | SETT-004    | Create Search Pattern        | Goes to Search Pattern settings, defines a new pattern (e.g., regex), saves      | Creates pattern via API, success message shown, pattern becomes available for batch search or redaction.                                        | `UserSettingsPage` (specific section), `useSearchPatterns`, `useUserContext`, `userService`, `apiClient`                                                                           |
+| SETT-005    | Change Language              | Selects a different language from the language selector                       | Updates language preference, saves to localStorage, UI text updates to selected language.                                                        | Language selector component, `useLanguage` hook, i18n translations                                                                                                                |
 
 ### Error and Edge Cases
 
@@ -349,6 +392,7 @@ This section outlines various scenarios and use cases for the Hideme application
 | ERR-004     | Large File Processing Timeout| Backend processing (detection, redaction) takes too long                       | Shows persistent processing indicator, potentially offers cancellation, shows timeout error notification if applicable.                         | `EntityDetectionStatusViewer`, `apiService`, `NotificationContext`, potentially cancellation logic                                                                                          |
 | ERR-005     | Concurrent Edits             | Multiple users editing the same document simultaneously (if supported)         | Conflict resolution strategy (e.g., last-write-wins, merge, locking) should be implemented. (Depends on features - likely not applicable here) | N/A (Assumed single-user context based on code structure)                                                                                                                        |
 | ERR-006     | Browser Incompatibility      | User accessing with an old or unsupported browser                              | Application might render incorrectly or features might fail; ideally shows a compatibility warning.                                             | Browser feature detection, potentially polyfills                                                                                                                                 |
+| ERR-007     | Encryption/Decryption Failure| Invalid key, corrupted data during encryption/decryption                      | Catches and logs errors, provides user-friendly error messages, potentially falls back to unencrypted operation if possible.                   | `BatchEncryptionService`, `encryptionUtils`, `NotificationContext`                                                                                                               |
 
 
 

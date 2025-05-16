@@ -21,8 +21,6 @@ interface HighlightLayerFactoryProps {
  */
 const HighlightLayerFactory: React.FC<HighlightLayerFactoryProps> = ({
                                                                          pageNumber,
-                                                                         viewport,
-                                                                         textContent,
                                                                          pageSize,
                                                                          fileKey,
                                                                          containerRef
