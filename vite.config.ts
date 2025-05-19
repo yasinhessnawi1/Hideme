@@ -35,10 +35,9 @@ export default defineConfig({
         setupFiles: './setup.ts',
         coverage: {
             provider: 'v8',
+            reporter: ['text', 'html'],
+            all: true,
             include: ['src/**/*.{js,jsx,ts,tsx}'],
-            exclude: ['src/**/*.d.ts', '**/node_modules/**'],
-            reporter: ['text', 'html', 'json'],
-            reportsDirectory: './coverage'
-        },
+        }
     }
 });

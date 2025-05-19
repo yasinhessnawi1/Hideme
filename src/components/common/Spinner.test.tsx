@@ -19,7 +19,7 @@ vi.mock('../../contexts/LanguageContext', () => ({
 
 // Mock the Lucide-react component
 vi.mock('lucide-react', () => ({
-  Loader2: ({ size, className, 'aria-label': ariaLabel }) => (
+  Loader2: ({ size, className, 'aria-label': ariaLabel }: { size?: number; className?: string; 'aria-label'?: string }) => (
     <div 
       data-testid="loader-icon" 
       data-size={size}

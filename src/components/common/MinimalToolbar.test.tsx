@@ -55,7 +55,7 @@ vi.mock('./ToolbarSettingsMenu', () => ({
 // Mock Toolbar components
 vi.mock('./Toolbar', () => ({
   ...vi.importActual('./Toolbar'),
-  ZoomControls: ({ zoomLevel, setZoomLevel }) => (
+  ZoomControls: ({ zoomLevel, setZoomLevel }: { zoomLevel: number, setZoomLevel: (zoom: number) => void }) => (
     <div data-testid="zoom-controls">
       <span data-testid="zoom-level">{zoomLevel}%</span>
       <button data-testid="zoom-in" onClick={() => setZoomLevel(zoomLevel + 0.2)}>+</button>

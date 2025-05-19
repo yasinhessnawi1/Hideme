@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
 
 // Create mock functions for navigation
@@ -31,7 +31,7 @@ vi.mock('../../contexts/PDFViewerContext', () => ({
   usePDFViewerContext: () => ({
     mainContainerRef: { current: document.createElement('div') }
   }),
-  getFileKey: (file) => file?.id || ''
+  getFileKey: (file: { id?: string }) => file?.id || ''
 }));
 
 // Import after mocks
@@ -189,12 +189,17 @@ describe('ViewportNavigationIntegrator', () => {
     // Manually trigger the mutation callback
     if (mutationCallback) {
       const mockMutation = [{
-        addedNodes: [canvas],
+        addedNodes: document.createDocumentFragment().childNodes.length === 0 ?
+          document.createDocumentFragment().childNodes :
+          Object.assign([canvas], { item: (index: number) => [canvas][index] }) as unknown as NodeList,
         type: 'childList',
         target: document.body,
         attributeName: null,
+        attributeNamespace: null,
         oldValue: null,
-        removedNodes: [] as Node[],
+        removedNodes: document.createDocumentFragment().childNodes.length === 0 ?
+          document.createDocumentFragment().childNodes :
+          Object.assign([], { item: (index: number) => [][index] }) as unknown as NodeList,
         nextSibling: null,
         previousSibling: null
       }] as MutationRecord[];

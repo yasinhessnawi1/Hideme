@@ -18,7 +18,7 @@ vi.mock('lucide-react', () => ({
 
 // Mock common components
 vi.mock('../../common/LoadingWrapper', () => ({
-  default: ({ children, isLoading, fallback }) => (
+  default: ({ children, isLoading, fallback }: { children: React.ReactNode; isLoading: boolean; fallback: React.ReactNode }) => (
     isLoading ? <div data-testid="mock-loading-wrapper">{fallback}</div> : children
   )
 }));

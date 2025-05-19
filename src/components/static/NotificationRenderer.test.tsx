@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach,afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 // Import modules before mocking them
 import * as NotificationContext from '../../contexts/NotificationContext';
@@ -36,6 +36,41 @@ describe('NotificationRenderer', () => {
       removeToast: vi.fn(),
       confirmation: null,
       closeConfirmation: vi.fn(),
+      notify: function (options: {
+        type: NotificationContext.NotificationType;
+        message: string;
+        duration?: number;
+        position?: NotificationContext.NotificationPosition;
+      }): string {
+        throw new Error('Function not implemented.');
+      },
+      clearToasts: function (): void {
+        throw new Error('Function not implemented.');
+      },
+      confirm: function (options: {
+        type: NotificationContext.ConfirmationType;
+        title: string;
+        message: string;
+        confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+        cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+        additionalButtons?: NotificationContext.ConfirmationButton[];
+      }): Promise<boolean> {
+        throw new Error('Function not implemented.');
+      },
+      confirmWithText: function (options: {
+        type: NotificationContext.ConfirmationType;
+        title: string;
+        message: string;
+        confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+        cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+        additionalButtons?: NotificationContext.ConfirmationButton[];
+        inputLabel?: string;
+        inputPlaceholder?: string;
+        inputDefaultValue?: string;
+        inputType?: string;
+      }): Promise<string> {
+        throw new Error('Function not implemented.');
+      }
     });
   });
 
@@ -57,9 +92,48 @@ describe('NotificationRenderer', () => {
       // Setup mock with a success toast
       vi.spyOn(NotificationContext, 'useNotification').mockReturnValue({
         toasts: [
-          { id: '1', type: 'success', message: 'Success message', position: 'top-right' }
+          {id: '1', type: 'success', message: 'Success message', position: 'top-right'}
         ],
         removeToast: vi.fn(),
+        notify: function (options: {
+          type: NotificationContext.NotificationType;
+          message: string;
+          duration?: number;
+          position?: NotificationContext.NotificationPosition;
+        }): string {
+          throw new Error('Function not implemented.');
+        },
+        clearToasts: function (): void {
+          throw new Error('Function not implemented.');
+        },
+        confirmation: null,
+        confirm: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+        }): Promise<boolean> {
+          throw new Error('Function not implemented.');
+        },
+        confirmWithText: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+          inputLabel?: string;
+          inputPlaceholder?: string;
+          inputDefaultValue?: string;
+          inputType?: string;
+        }): Promise<string> {
+          throw new Error('Function not implemented.');
+        },
+        closeConfirmation: function (): void {
+          throw new Error('Function not implemented.');
+        }
       });
       
       render(<ToastContainer />);
@@ -73,10 +147,49 @@ describe('NotificationRenderer', () => {
       // Mock multiple toasts at different positions
       vi.spyOn(NotificationContext, 'useNotification').mockReturnValue({
         toasts: [
-          { id: '1', type: 'success', message: 'Top Right', position: 'top-right' },
-          { id: '2', type: 'error', message: 'Top Left', position: 'top-left' }
+          {id: '1', type: 'success', message: 'Top Right', position: 'top-right'},
+          {id: '2', type: 'error', message: 'Top Left', position: 'top-left'}
         ],
         removeToast: vi.fn(),
+        notify: function (options: {
+          type: NotificationContext.NotificationType;
+          message: string;
+          duration?: number;
+          position?: NotificationContext.NotificationPosition;
+        }): string {
+          throw new Error('Function not implemented.');
+        },
+        clearToasts: function (): void {
+          throw new Error('Function not implemented.');
+        },
+        confirmation: null,
+        confirm: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+        }): Promise<boolean> {
+          throw new Error('Function not implemented.');
+        },
+        confirmWithText: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+          inputLabel?: string;
+          inputPlaceholder?: string;
+          inputDefaultValue?: string;
+          inputType?: string;
+        }): Promise<string> {
+          throw new Error('Function not implemented.');
+        },
+        closeConfirmation: function (): void {
+          throw new Error('Function not implemented.');
+        }
       });
       
       render(<ToastContainer />);
@@ -98,9 +211,48 @@ describe('NotificationRenderer', () => {
       // Setup mock with a toast and removal function
       vi.spyOn(NotificationContext, 'useNotification').mockReturnValue({
         toasts: [
-          { id: '1', type: 'info', message: 'Info message', position: 'top-right' }
+          {id: '1', type: 'info', message: 'Info message', position: 'top-right'}
         ],
         removeToast: mockRemoveToast,
+        notify: function (options: {
+          type: NotificationContext.NotificationType;
+          message: string;
+          duration?: number;
+          position?: NotificationContext.NotificationPosition;
+        }): string {
+          throw new Error('Function not implemented.');
+        },
+        clearToasts: function (): void {
+          throw new Error('Function not implemented.');
+        },
+        confirmation: null,
+        confirm: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+        }): Promise<boolean> {
+          throw new Error('Function not implemented.');
+        },
+        confirmWithText: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+          inputLabel?: string;
+          inputPlaceholder?: string;
+          inputDefaultValue?: string;
+          inputType?: string;
+        }): Promise<string> {
+          throw new Error('Function not implemented.');
+        },
+        closeConfirmation: function (): void {
+          throw new Error('Function not implemented.');
+        }
       });
       
       render(<ToastContainer />);
@@ -120,12 +272,51 @@ describe('NotificationRenderer', () => {
       // Setup mock with different toast types
       vi.spyOn(NotificationContext, 'useNotification').mockReturnValue({
         toasts: [
-          { id: '1', type: 'success', message: 'Success', position: 'top-right' },
-          { id: '2', type: 'error', message: 'Error', position: 'top-right' },
-          { id: '3', type: 'info', message: 'Info', position: 'top-right' },
-          { id: '4', type: 'warning', message: 'Warning', position: 'top-right' }
+          {id: '1', type: 'success', message: 'Success', position: 'top-right'},
+          {id: '2', type: 'error', message: 'Error', position: 'top-right'},
+          {id: '3', type: 'info', message: 'Info', position: 'top-right'},
+          {id: '4', type: 'warning', message: 'Warning', position: 'top-right'}
         ],
         removeToast: vi.fn(),
+        notify: function (options: {
+          type: NotificationContext.NotificationType;
+          message: string;
+          duration?: number;
+          position?: NotificationContext.NotificationPosition;
+        }): string {
+          throw new Error('Function not implemented.');
+        },
+        clearToasts: function (): void {
+          throw new Error('Function not implemented.');
+        },
+        confirmation: null,
+        confirm: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+        }): Promise<boolean> {
+          throw new Error('Function not implemented.');
+        },
+        confirmWithText: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+          inputLabel?: string;
+          inputPlaceholder?: string;
+          inputDefaultValue?: string;
+          inputType?: string;
+        }): Promise<string> {
+          throw new Error('Function not implemented.');
+        },
+        closeConfirmation: function (): void {
+          throw new Error('Function not implemented.');
+        }
       });
       
       render(<ToastContainer />);
@@ -142,6 +333,45 @@ describe('NotificationRenderer', () => {
       vi.spyOn(NotificationContext, 'useNotification').mockReturnValue({
         confirmation: null,
         closeConfirmation: vi.fn(),
+        toasts: [],
+        notify: function (options: {
+          type: NotificationContext.NotificationType;
+          message: string;
+          duration?: number;
+          position?: NotificationContext.NotificationPosition;
+        }): string {
+          throw new Error('Function not implemented.');
+        },
+        removeToast: function (id: string): void {
+          throw new Error('Function not implemented.');
+        },
+        clearToasts: function (): void {
+          throw new Error('Function not implemented.');
+        },
+        confirm: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+        }): Promise<boolean> {
+          throw new Error('Function not implemented.');
+        },
+        confirmWithText: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+          inputLabel?: string;
+          inputPlaceholder?: string;
+          inputDefaultValue?: string;
+          inputType?: string;
+        }): Promise<string> {
+          throw new Error('Function not implemented.');
+        }
       });
       
       render(<ConfirmationDialog />);
@@ -155,10 +385,50 @@ describe('NotificationRenderer', () => {
           title: 'Confirm Action',
           message: 'Are you sure?',
           type: 'info',
-          confirmButton: { label: 'Yes', onClick: vi.fn() },
-          cancelButton: { label: 'No', onClick: vi.fn() },
+          confirmButton: {label: 'Yes', onClick: vi.fn()},
+          cancelButton: {label: 'No', onClick: vi.fn()},
+          id: ''
         },
         closeConfirmation: vi.fn(),
+        toasts: [],
+        notify: function (options: {
+          type: NotificationContext.NotificationType;
+          message: string;
+          duration?: number;
+          position?: NotificationContext.NotificationPosition;
+        }): string {
+          throw new Error('Function not implemented.');
+        },
+        removeToast: function (id: string): void {
+          throw new Error('Function not implemented.');
+        },
+        clearToasts: function (): void {
+          throw new Error('Function not implemented.');
+        },
+        confirm: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+        }): Promise<boolean> {
+          throw new Error('Function not implemented.');
+        },
+        confirmWithText: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+          inputLabel?: string;
+          inputPlaceholder?: string;
+          inputDefaultValue?: string;
+          inputType?: string;
+        }): Promise<string> {
+          throw new Error('Function not implemented.');
+        }
       });
       
       render(<ConfirmationDialog />);
@@ -180,10 +450,50 @@ describe('NotificationRenderer', () => {
           title: 'Confirm Action',
           message: 'Are you sure?',
           type: 'info',
-          confirmButton: { label: 'Yes', onClick: mockConfirmFn },
-          cancelButton: { label: 'No', onClick: vi.fn() },
+          confirmButton: {label: 'Yes', onClick: mockConfirmFn},
+          cancelButton: {label: 'No', onClick: vi.fn()},
+          id: ''
         },
         closeConfirmation: mockCloseConfirmation,
+        toasts: [],
+        notify: function (options: {
+          type: NotificationContext.NotificationType;
+          message: string;
+          duration?: number;
+          position?: NotificationContext.NotificationPosition;
+        }): string {
+          throw new Error('Function not implemented.');
+        },
+        removeToast: function (id: string): void {
+          throw new Error('Function not implemented.');
+        },
+        clearToasts: function (): void {
+          throw new Error('Function not implemented.');
+        },
+        confirm: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+        }): Promise<boolean> {
+          throw new Error('Function not implemented.');
+        },
+        confirmWithText: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+          inputLabel?: string;
+          inputPlaceholder?: string;
+          inputDefaultValue?: string;
+          inputType?: string;
+        }): Promise<string> {
+          throw new Error('Function not implemented.');
+        }
       });
       
       render(<ConfirmationDialog />);
@@ -209,10 +519,50 @@ describe('NotificationRenderer', () => {
           inputPlaceholder: 'Enter value here',
           inputDefaultValue: '',
           onInputChange: mockInputChangeFn,
-          confirmButton: { label: 'Submit', onClick: vi.fn() },
-          cancelButton: { label: 'Cancel', onClick: vi.fn() },
+          confirmButton: {label: 'Submit', onClick: vi.fn()},
+          cancelButton: {label: 'Cancel', onClick: vi.fn()},
+          id: ''
         },
         closeConfirmation: vi.fn(),
+        toasts: [],
+        notify: function (options: {
+          type: NotificationContext.NotificationType;
+          message: string;
+          duration?: number;
+          position?: NotificationContext.NotificationPosition;
+        }): string {
+          throw new Error('Function not implemented.');
+        },
+        removeToast: function (id: string): void {
+          throw new Error('Function not implemented.');
+        },
+        clearToasts: function (): void {
+          throw new Error('Function not implemented.');
+        },
+        confirm: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+        }): Promise<boolean> {
+          throw new Error('Function not implemented.');
+        },
+        confirmWithText: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+          inputLabel?: string;
+          inputPlaceholder?: string;
+          inputDefaultValue?: string;
+          inputType?: string;
+        }): Promise<string> {
+          throw new Error('Function not implemented.');
+        }
       });
       
       render(<ConfirmationDialog />);
@@ -236,10 +586,50 @@ describe('NotificationRenderer', () => {
           title: 'Confirm Action',
           message: 'Are you sure?',
           type: 'info',
-          confirmButton: { label: 'Yes', onClick: vi.fn() },
-          cancelButton: { label: 'No', onClick: vi.fn() },
+          confirmButton: {label: 'Yes', onClick: vi.fn()},
+          cancelButton: {label: 'No', onClick: vi.fn()},
+          id: ''
         },
         closeConfirmation: mockCloseConfirmation,
+        toasts: [],
+        notify: function (options: {
+          type: NotificationContext.NotificationType;
+          message: string;
+          duration?: number;
+          position?: NotificationContext.NotificationPosition;
+        }): string {
+          throw new Error('Function not implemented.');
+        },
+        removeToast: function (id: string): void {
+          throw new Error('Function not implemented.');
+        },
+        clearToasts: function (): void {
+          throw new Error('Function not implemented.');
+        },
+        confirm: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+        }): Promise<boolean> {
+          throw new Error('Function not implemented.');
+        },
+        confirmWithText: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+          inputLabel?: string;
+          inputPlaceholder?: string;
+          inputDefaultValue?: string;
+          inputType?: string;
+        }): Promise<string> {
+          throw new Error('Function not implemented.');
+        }
       });
       
       render(<ConfirmationDialog />);
@@ -261,9 +651,49 @@ describe('NotificationRenderer', () => {
           title: 'Confirm Action',
           message: 'Are you sure?',
           type: 'info',
-          confirmButton: { label: 'Yes', onClick: vi.fn() },
+          confirmButton: {label: 'Yes', onClick: vi.fn()},
+          id: ''
         },
         closeConfirmation: mockCloseConfirmation,
+        toasts: [],
+        notify: function (options: {
+          type: NotificationContext.NotificationType;
+          message: string;
+          duration?: number;
+          position?: NotificationContext.NotificationPosition;
+        }): string {
+          throw new Error('Function not implemented.');
+        },
+        removeToast: function (id: string): void {
+          throw new Error('Function not implemented.');
+        },
+        clearToasts: function (): void {
+          throw new Error('Function not implemented.');
+        },
+        confirm: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+        }): Promise<boolean> {
+          throw new Error('Function not implemented.');
+        },
+        confirmWithText: function (options: {
+          type: NotificationContext.ConfirmationType;
+          title: string;
+          message: string;
+          confirmButton?: Partial<NotificationContext.ConfirmationButton>;
+          cancelButton?: Partial<NotificationContext.ConfirmationButton>;
+          additionalButtons?: NotificationContext.ConfirmationButton[];
+          inputLabel?: string;
+          inputPlaceholder?: string;
+          inputDefaultValue?: string;
+          inputType?: string;
+        }): Promise<string> {
+          throw new Error('Function not implemented.');
+        }
       });
       
       render(<ConfirmationDialog />);

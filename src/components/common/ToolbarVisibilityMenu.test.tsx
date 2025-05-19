@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { vi, describe, test, expect, beforeEach } from 'vitest';
+import { vi, describe, test, expect, beforeEach, afterEach } from 'vitest';
 import ToolbarVisibilityMenu from './ToolbarVisibilityMenu';
 
 // Create mock functions first, then reference them in mocks

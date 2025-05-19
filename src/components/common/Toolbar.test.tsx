@@ -1,7 +1,15 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi, describe, test, expect, beforeEach } from 'vitest';
-import { Toolbar, ToolbarButton, ToolbarDropdown, ToolbarSection, ZoomControls } from './Toolbar';
+import {
+  Toolbar,
+  ToolbarButton,
+  ToolbarDropdown,
+  ToolbarDropdownItem,
+  ToolbarSection,
+  ToolbarTranslationKey,
+  ZoomControls
+} from './Toolbar';
 
 // Mock dependencies
 vi.mock('../../contexts/LanguageContext', () => ({
@@ -176,17 +184,17 @@ describe('Toolbar Components', () => {
     const mockOnClick = vi.fn();
     const mockOnChange = vi.fn();
     
-    const dropdownItems = [
+    const dropdownItems: ToolbarDropdownItem[] = [
       {
         id: 'item1',
         type: 'button' as const,
-        label: 'zoomIn',
+        label: 'zoomIn' as ToolbarTranslationKey,
         onClick: mockOnClick
       },
       {
         id: 'item2',
         type: 'checkbox' as const,
-        label: 'fitToPage',
+        label: 'fitToPage' as ToolbarTranslationKey,
         checked: true,
         onChange: mockOnChange
       },

@@ -4,8 +4,13 @@ import { vi, describe, test, expect, beforeEach } from 'vitest';
 import SearchSidebar from './SearchSidebar';
 
 // Mock IntersectionObserver
-class MockIntersectionObserver {
-  constructor(callback) {
+class MockIntersectionObserver implements IntersectionObserver {
+  callback: IntersectionObserverCallback;
+  root: Element | Document | null = null;
+  rootMargin: string = "0px";
+  thresholds: ReadonlyArray<number> = [0];
+
+  constructor(callback: IntersectionObserverCallback) {
     this.callback = callback;
   }
   observe() {
@@ -17,9 +22,12 @@ class MockIntersectionObserver {
   disconnect() {
     return null;
   }
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
 }
 
-window.IntersectionObserver = MockIntersectionObserver;
+window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 // Mock dependencies and components
 vi.mock('lucide-react', () => ({
@@ -35,7 +43,7 @@ vi.mock('lucide-react', () => ({
 
 // Mock the common components
 vi.mock('../../common/LoadingWrapper', () => ({
-  default: ({ children, isLoading, fallback }) => (
+  default: ({ children, isLoading, fallback }: { children: React.ReactNode; isLoading: boolean; fallback: React.ReactNode }) => (
     isLoading ? <div data-testid="mock-loading-wrapper">{fallback}</div> : children
   )
 }));

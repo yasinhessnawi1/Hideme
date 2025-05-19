@@ -48,6 +48,10 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+// Mock states that will be changed for different test cases
+let mockIsAuthenticated = false;
+let mockUser: { username: string; email: string } | null = null;
+
 // Mock user context
 const mockLogout = vi.fn().mockResolvedValue({});
 vi.mock('../../contexts/UserContext', () => ({
@@ -66,10 +70,6 @@ vi.mock('../../contexts/NotificationContext', () => ({
     notify: mockNotify,
   }),
 }));
-
-// Mock states that will be changed for different test cases
-let mockIsAuthenticated = false;
-let mockUser = null;
 
 describe('Navbar', () => {
   beforeEach(() => {
