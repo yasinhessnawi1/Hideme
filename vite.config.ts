@@ -30,14 +30,16 @@ export default defineConfig({
     },
     // Add the Vitest configuration
     test: {
-        globals: true,
-        environment: 'jsdom',
-        setupFiles: './setup.ts',
         coverage: {
             provider: 'v8',
-            reporter: ['text', 'html'],
+            reporter: [
+                ['text', { maxCols: 120 }], // Increases table width
+                'json',
+                'html'
+            ],
             all: true,
             include: ['src/**/*.{js,jsx,ts,tsx}'],
+            reportOnFailure: true,  // Add this line
         }
     }
 });
