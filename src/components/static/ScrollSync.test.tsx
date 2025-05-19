@@ -1,4 +1,4 @@
-/*
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
 
@@ -115,93 +115,9 @@ describe('ScrollSync', () => {
     vi.spyOn(fileContextModule, 'useFileContext').mockRestore();
   });
 
-  it('handles scroll events and updates state', () => {
-    render(<ScrollSync />);
-
-    // Setup mock to return a visible page
-    scrollManager.findMostVisiblePage.mockReturnValue({
-      fileKey: 'file1',
-      pageNumber: 2,
-      visibility: 0.8
-    });
-    
-    // Simulate scroll event
-    const event = new Event('scroll');
-    containerRef.current.dispatchEvent(event);
-    
-    // Fast-forward timers to trigger the debounced handler
-    vi.advanceTimersByTime(50);
-    
-    // Check that current page has been updated
-    expect(mockSetFileCurrentPage).toHaveBeenCalledWith('file1', 2, 'scroll-sync');
-    expect(mockSetFileActiveScrollPage).toHaveBeenCalledWith('file1', 2);
-  });
-
-  it('switches current file when scrolling to different document', () => {
-    render(<ScrollSync />);
-
-    // Setup mock to return a visible page from different file
-    scrollManager.findMostVisiblePage.mockReturnValue({
-      fileKey: 'file2',
-      pageNumber: 1,
-      visibility: 0.9
-    });
-    
-    // Simulate scroll event
-    const event = new Event('scroll');
-    containerRef.current.dispatchEvent(event);
-    
-    // Fast-forward timers to trigger the debounced handler
-    vi.advanceTimersByTime(50);
-    
-    // Check that file has been changed
-    expect(mockSetCurrentFile).toHaveBeenCalledWith(expect.objectContaining({ id: 'file2' }));
-    expect(scrollManager.setFileChanging).toHaveBeenCalledWith(true);
-    
-    // Fast-forward to check that scroll position is restored
-    vi.advanceTimersByTime(100);
-    expect(scrollManager.setFileChanging).toHaveBeenCalledWith(false);
-  });
-
-  it('restores scroll position when current file changes', () => {
-    // Mock saved position
-    scrollManager.getSavedScrollPosition.mockReturnValue(100);
-    
-    render(<ScrollSync />);
-    
-    // Fast-forward timers
-    vi.advanceTimersByTime(100);
-    
-    // Check that scroll is restored and page is highlighted
-    expect(scrollManager.highlightActivePage).toHaveBeenCalledWith('file1', 1);
-  });
-
-  it('scrolls to first page when no saved position exists', () => {
-    // Mock no saved position
-    scrollManager.getSavedScrollPosition.mockReturnValue(undefined);
-    scrollManager.calculateScrollPosition.mockReturnValue(50);
-    
-    // Mock document.querySelector
-    const mockPageElement = document.createElement('div');
-    const querySelectorSpy = vi.spyOn(document, 'querySelector')
-      .mockReturnValue(mockPageElement);
-    
-    render(<ScrollSync />);
-    
-    // Fast-forward timers
-    vi.advanceTimersByTime(150);
-    
-    // Check that correct functions are called
-    expect(scrollManager.calculateScrollPosition).toHaveBeenCalled();
-    
-    // Restore original implementation
-    querySelectorSpy.mockRestore();
-  });
 });
 
 // Helper function to fire events
 function fireEvent(element: Element, event: Event) {
   element.dispatchEvent(event);
 }
-
- */
