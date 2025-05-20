@@ -4,6 +4,7 @@
 [![Test Coverage](https://img.shields.io/badge/Coverage--%25-brightgreen)]()
 [![React Version](https://img.shields.io/badge/React-19%2B-blue)]()
 [![Vite Version](https://img.shields.io/badge/Vite-6.1.1%2B-blue)]()
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/yasinhessnawi1/Hideme)
 
 **Welcome to the Hideme project!** This document aims to provide a deep dive into the project's architecture, logic, and the thought processes behind its construction. Whether you're looking to contribute, understand the system, or simply curious, this guide should offer valuable insights.
 
