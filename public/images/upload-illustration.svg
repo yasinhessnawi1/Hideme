@@ -1,0 +1,7 @@
+<svg width="400" height="240" viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="240" fill="#f7f9fc" />
+  <rect x="100" y="40" width="200" height="160" rx="10" fill="#e1e8f0" stroke="#6b7280" stroke-width="2" stroke-dasharray="5,5" />
+  <path d="M200 60 L200 140 M170 90 L200 60 L230 90" stroke="#4f46e5" stroke-width="3" fill="none" />
+  <text x="200" y="170" font-family="Arial" font-size="16" fill="#374151" text-anchor="middle">Drop files here</text>
+  <text x="200" y="190" font-family="Arial" font-size="14" fill="#6b7280" text-anchor="middle">or click to browse</text>
+</svg> 

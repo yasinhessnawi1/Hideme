@@ -7,6 +7,7 @@ import { useLoading } from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
 import { useNotification } from "../../../contexts/NotificationContext";
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
 
 export default function SearchSettings() {
     const { t } = useLanguage();
@@ -53,7 +54,7 @@ export default function SearchSettings() {
     useEffect(() => {
         if (userError) {
             notify({
-                message: userError,
+                message: mapBackendErrorToMessage(userError),
                 type: "error",
                 duration: 3000
             });
@@ -104,7 +105,7 @@ export default function SearchSettings() {
             setIsAiSearch(false);
         } catch (err: any) {
             notify({
-                message: err.userMessage || err.message || t('settings', 'failedToAddSearchTerm'),
+                message: mapBackendErrorToMessage(err) || t('settings', 'failedToAddSearchTerm'),
                 type: "error",
                 duration: 3000
             });
@@ -129,7 +130,7 @@ export default function SearchSettings() {
             setSearchTermBeingRemoved(searchPatterns.find(p => p.id === id)?.pattern_text || '');
         } catch (err: any) {
             notify({
-                message: err.userMessage || err.message || t('settings', 'failedToRemoveSearchTerm'),
+                message: mapBackendErrorToMessage(err) || t('settings', 'failedToRemoveSearchTerm'),
                 type: "error",
                 duration: 3000
             });
@@ -169,7 +170,7 @@ export default function SearchSettings() {
                 // State updates via useEffect watching `searchPatterns`
             } catch (err: any) {
                 notify({
-                    message: err.userMessage || err.message || t('settings', 'failedToClearAllSearchTerms'),
+                    message: mapBackendErrorToMessage(err) || t('settings', 'failedToClearAllSearchTerms'),
                     type: "error",
                     duration: 3000
                 });

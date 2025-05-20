@@ -10,6 +10,7 @@
 
 import { useState } from 'react';
 import { UserSettings } from '../../types';
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 
 export interface SettingsExport {
   user_id: number;
@@ -228,7 +229,7 @@ export const useDocument = (): UseDocumentReturn => {
       URL.revokeObjectURL(url);
     } catch (error: any) {
       console.error('Error downloading file:', error);
-      setError(`Failed to download file: ${error.message}`);
+      setError(mapBackendErrorToMessage(error) || `Failed to download file: ${error.message}`);
     }
   };
 
@@ -275,15 +276,15 @@ export const useDocument = (): UseDocumentReturn => {
           resolve(parsed);
         } catch (error: any) {
           setIsLoading(false);
-          setError(`Failed to parse JSON: ${error.message}`);
-          reject(error);
+          setError(mapBackendErrorToMessage(error) || 'Failed to parse JSON');
+          reject(new Error(mapBackendErrorToMessage(error)));
         }
       };
 
       reader.onerror = () => {
         setIsLoading(false);
-        setError('Error reading file');
-        reject(new Error('Error reading file'));
+        setError(mapBackendErrorToMessage('Error reading file'));
+        reject(new Error(mapBackendErrorToMessage('Error reading file')));
       };
 
       reader.readAsText(file);

@@ -4,6 +4,7 @@ import '../../styles/AboutPage.css';
 // @ts-ignore
 import ntnuCampus from '../../assets/ntnu-campus.png';
 import { useLanguage } from '../../contexts/LanguageContext';
+import Footer from '../../components/static/Footer';
 
 
 const NtnuLogo = () => (
@@ -161,6 +162,8 @@ const AboutPage= () => {
                     </p>
                 </section>
             </div>
+
+            <Footer />
         </div>
     );
 };

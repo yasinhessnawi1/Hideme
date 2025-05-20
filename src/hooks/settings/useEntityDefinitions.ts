@@ -15,6 +15,7 @@ import useAuth from '../auth/useAuth';
 import apiClient from '../../services/api-services/apiClient';
 import { ModelEntity, ModelEntityBatch, OptionType } from '../../types';
 import authStateManager from '../../managers/authStateManager';
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 
 export interface UseEntityDefinitionsReturn {
     // Entity definitions state
@@ -112,7 +113,7 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
 
             return entities;
         } catch (error: any) {
-            setError(error.userMessage ?? `Failed to load entities for method ${methodId}`);
+            setError(mapBackendErrorToMessage(error) || `Failed to load entities for method ${methodId}`);
             return null;
         } finally {
             setIsLoading(false);
@@ -160,8 +161,8 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
 
             return newEntities;
         } catch (error: any) {
-            setError(error.userMessage ?? 'Failed to add entity definitions');
-            throw error;
+            setError(mapBackendErrorToMessage(error) || 'Failed to add entity definitions');
+            throw new Error(mapBackendErrorToMessage(error));
         } finally {
             setIsLoading(false);
         }
@@ -207,8 +208,8 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
                 }
             }));
         } catch (error: any) {
-            setError(error.userMessage ?? 'Failed to delete entity definition');
-            throw error;
+            setError(mapBackendErrorToMessage(error) || 'Failed to delete entity definition');
+            throw new Error(mapBackendErrorToMessage(error));
         } finally {
             setIsLoading(false);
         }
@@ -257,8 +258,8 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
                 }
             }));
         } catch (error: any) {
-            setError(error.userMessage ?? `Failed to delete entities for method ${methodId}`);
-            throw error;
+            setError(mapBackendErrorToMessage(error) || `Failed to delete entities for method ${methodId}`);
+            throw new Error(mapBackendErrorToMessage(error));
         } finally {
             setIsLoading(false);
         }
@@ -306,8 +307,8 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
             return await addModelEntities(entityBatch);
 
         } catch (error: any) {
-            setError(error.userMessage ?? `Failed to replace entities for method ${methodId}`);
-            throw error;
+            setError(mapBackendErrorToMessage(error) || `Failed to replace entities for method ${methodId}`);
+            throw new Error(mapBackendErrorToMessage(error));
         } finally {
             setIsLoading(false);
         }
@@ -380,8 +381,8 @@ export const useEntityDefinitions = (): UseEntityDefinitionsReturn => {
             }));
 
         } catch (error: any) {
-            setError(error.userMessage ?? 'Failed to update entity selections');
-            throw error;
+            setError(mapBackendErrorToMessage(error) || 'Failed to update entity selections');
+            throw new Error(mapBackendErrorToMessage(error));
         } finally {
             setIsLoading(false);
         }

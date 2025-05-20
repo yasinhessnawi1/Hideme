@@ -1,5 +1,7 @@
 // src/services/apiService.ts
 
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
+
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
 export interface ApiRequestOptions {
@@ -32,11 +34,13 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
 
         if (!response.ok) {
             let errorMessage: string;
+            const errorData = await response.json();
             try {
-                const errorData = await response.json();
-                errorMessage = errorData.message || `Request failed with status ${response.status}`;
+                const errorPayload = errorData.error || errorData.detail || errorData;
+                errorMessage = mapBackendErrorToMessage(errorPayload);
             } catch {
-                errorMessage = `Request failed with status ${response.status}: ${response.statusText}`;
+                errorMessage = mapBackendErrorToMessage(`Request failed with status $ );
+                }: ${response.statusText}`);
             }
             throw new Error(errorMessage);
         }
@@ -50,6 +54,6 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
         }
     } catch (err: any) {
         console.error('[apiRequest] Error:', err);
-        throw err;
+        throw new Error(mapBackendErrorToMessage(err));
     }
 }

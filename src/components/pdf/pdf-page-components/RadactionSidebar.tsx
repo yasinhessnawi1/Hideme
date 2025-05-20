@@ -17,6 +17,7 @@ import { HighlightType } from '../../../types';
 import { highlightStore } from '../../../store/HighlightStore';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getEntityTranslationKeyAndModel } from '../../../utils/EntityUtils';
+import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
 
 const RedactionSidebar: React.FC = () => {
     const {
@@ -533,7 +534,7 @@ const RedactionSidebar: React.FC = () => {
                 }, 1000);
 
             } catch (processingError: any) {
-                const errorMessage = t('redaction', 'errorProcessingRedactedFiles').replace('{error}', processingError.message);
+                const errorMessage = mapBackendErrorToMessage(processingError);
                 notify({
                     message: errorMessage,
                     type: 'error'
@@ -558,7 +559,7 @@ const RedactionSidebar: React.FC = () => {
             }
 
         } catch (error: any) {
-            const errorMessage = error.message || t('redaction', 'genericRedactionError');
+            const errorMessage = mapBackendErrorToMessage(error);
             notify({
                 message: errorMessage,
                 type: 'error'

@@ -6,6 +6,7 @@ import LoadingWrapper from "../../common/LoadingWrapper";
 import { useNotification } from "../../../contexts/NotificationContext";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
 
 export default function AccountSettings() {
     const { t } = useLanguage();
@@ -76,7 +77,7 @@ export default function AccountSettings() {
             });
         } catch (err: any) {
             notify({
-                message: (err.userMessage ?? err.message) ?? t('errors', 'failedToUpdateProfile'),
+                message: mapBackendErrorToMessage(err) || t('errors', 'failedToUpdateProfile'),
                 type: 'error',
                 duration: 3000
             });
@@ -129,7 +130,7 @@ export default function AccountSettings() {
             setTimeout(() => setPasswordSuccess(false), 3000);
         } catch (err: any) {
             notify({
-                message: (err.userMessage ?? err.message) ?? t('errors', 'failedToChangePassword'),
+                message: mapBackendErrorToMessage(err) || t('errors', 'failedToChangePassword'),
                 type: 'error',
                 duration: 3000
             });
@@ -175,7 +176,7 @@ export default function AccountSettings() {
             });
         } catch (err: any) {
             notify({
-                message: (err.userMessage ?? err.message) ?? t('errors', 'failedToDeleteAccount'),
+                message: mapBackendErrorToMessage(err) || t('errors', 'failedToDeleteAccount'),
                 type: 'error',
                 duration: 3000
             });

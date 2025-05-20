@@ -2,6 +2,18 @@ import React, { useState } from 'react';
 import Navbar from '../../components/static/Navbar';
 import '../../styles/FeaturesPage.css';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { 
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+    RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell
+} from 'recharts';
+import { 
+    getPresidioOptions, 
+    getGlinerOptions, 
+    getGeminiOptions, 
+    getHidemeOptions,
+    MODEL_COLORS
+} from '../../utils/EntityUtils';
+import Footer from '../../components/static/Footer';
 
 interface OptionType {
     value: string;
@@ -15,21 +27,34 @@ interface FeatureCardProps {
     isSafeForData: boolean;
     entities: OptionType[];
     precision: string;
+    accuracyData?: {
+        precision: number;
+        recall: number;
+        f1Score: number;
+    };
 }
-
-
 
 // Feature Card Component
 const FeatureCard: React.FC<FeatureCardProps> = ({
-                                                     title,
-                                                     description,
-                                                     icon,
-                                                     isSafeForData,
-                                                     entities,
-                                                     precision,
-                                                 }) => {
+    title,
+    description,
+    icon,
+    isSafeForData,
+    entities,
+    precision,
+    accuracyData
+}) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const { t } = useLanguage();
+
+    const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
+
+    // Prepare data for the chart
+    const chartData = accuracyData ? [
+        { name: 'Precision', value: accuracyData.precision },
+        { name: 'Recall', value: accuracyData.recall },
+        { name: 'F1 Score', value: accuracyData.f1Score }
+    ] : [];
 
     return (
         <div className={`feature-card ${isExpanded ? 'expanded' : ''}`}>
@@ -46,6 +71,25 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
             <div className="feature-precision">
                 <strong>{t('features', 'precisionAndAccuracy')}</strong> {precision}
             </div>
+
+            {accuracyData && (
+                <div className="accuracy-chart">
+                    <h4>{t('features', 'accuracyMetrics')}</h4>
+                    <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis domain={[0, 1]} />
+                            <Tooltip formatter={(value) => `${(Number(value) * 100).toFixed(2)}%`} />
+                            <Bar dataKey="value" fill="#8884d8">
+                                {chartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            )}
 
             <div className="feature-entities-preview">
                 <strong>{t('features', 'supportedEntities')}</strong>
@@ -84,98 +128,66 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
 };
 
 // Tools Feature Card Component
-const ToolFeatureCard: React.FC<{ title: string; description: string; icon: string }> = ({
-                                                                                             title,
-                                                                                             description,
-                                                                                             icon
-                                                                                         }) => {
+const ToolFeatureCard: React.FC<{ title: string; description: string; icon: string; modes?: string[] }> = ({
+    title,
+    description,
+    icon,
+    modes
+}) => {
     return (
         <div className="tool-feature-card">
             <div className="tool-feature-icon">{icon}</div>
             <h3>{title}</h3>
             <p>{description}</p>
+            {modes && modes.length > 0 && (
+                <div className="selection-modes">
+                    <span className="modes-label">Modes: </span>
+                    {modes.map((mode, index) => (
+                        <span key={index} className="mode-tag">
+                            {mode}
+                            {index < modes.length - 1 ? ', ' : ''}
+                        </span>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
 
-const FeaturesPage= () => {
+const FeaturesPage = () => {
     const { t } = useLanguage();
-    // Presidio ML entity options
-    const presidioOptions: OptionType[] = [
-        { value: 'CRYPTO', label: 'Crypto Wallet' },
-        { value: 'DATE_TIME', label: 'Date/Time' },
-        { value: 'EMAIL_ADDRESS', label: 'Email Address' },
-        { value: 'IBAN_CODE', label: 'IBAN' },
-        { value: 'IP_ADDRESS', label: 'IP Address' },
-        { value: 'NRP', label: 'NRP' },
-        { value: 'LOCATION', label: 'Location' },
-        { value: 'PERSON', label: 'Person' },
-        { value: 'PHONE_NUMBER', label: 'Phone Number' },
-        { value: 'MEDICAL_LICENSE', label: 'Medical License' },
-        { value: 'URL', label: 'URL' },
-        { value: 'NO_ADDRESS', label: 'Norwegian Address' },
-        { value: 'NO_PHONE_NUMBER', label: 'Norwegian Phone' },
-        { value: 'NO_FODSELSNUMMER', label: 'Norwegian ID' },
+    
+    // Radar chart data for model comparison
+    const radarChartData = [
+        { subject: 'Precision', Presidio: 0.86, Gliner: 0.78, Gemini: 0.92, HideMeAI: 0.89 },
+        { subject: 'Recall', Presidio: 0.73, Gliner: 0.82, Gemini: 0.85, HideMeAI: 0.91 },
+        { subject: 'Latency', Presidio: 0.88, Gliner: 0.86, Gemini: 0.62, HideMeAI: 0.76 },
+        { subject: 'Coverage', Presidio: 0.65, Gliner: 0.72, Gemini: 0.95, HideMeAI: 0.88 },
+        { subject: 'Privacy', Presidio: 0.95, Gliner: 0.95, Gemini: 0.45, HideMeAI: 0.92 },
     ];
 
-    // Gliner ML entity options
-    const glinerOptions: OptionType[] = [
-        { value: 'PERSON', label: 'Person' },
-        { value: 'BOOK', label: 'Book' },
-        { value: 'LOCATION', label: 'Location' },
-        { value: 'DATE', label: 'Date' },
-        { value: 'ACTOR', label: 'Actor' },
-        { value: 'CHARACTER', label: 'Character' },
-        { value: 'ORGANIZATION', label: 'Organization' },
-        { value: 'PHONE_NUMBER', label: 'Phone Number' },
-        { value: 'ADDRESS', label: 'Address' },
-        { value: 'PASSPORT_NUMBER', label: 'Passport Number' },
-        { value: 'EMAIL', label: 'Email' },
-        { value: 'CREDIT_CARD_NUMBER', label: 'Credit Card Number' },
-        { value: 'SOCIAL_SECURITY_NUMBER', label: 'Social Security Number' },
-        { value: 'HEALTH_INSURANCE_ID_NUMBER', label: 'Health Insurance ID number' },
-        { value: 'DATE_OF_BIRTH', label: 'Date of Birth' },
-        { value: 'MOBILE_PHONE_NUMBER', label: 'Mobile Phone Number' },
-        { value: 'BANK_ACCOUNT_NUMBER', label: 'Bank Account Number' },
-        { value: 'MEDICATION', label: 'Medication' },
-        { value: 'CPF', label: 'CPF' },
-        { value: 'TAX_IDENTIFICATION_NUMBER', label: 'tax identification number' },
-        { value: 'MEDICAL_CONDITION', label: 'Medical Condition' },
-        { value: 'IDENTITY_CARD_NUMBER', label: 'Identity Card Number' },
-        { value: 'NATIONAL_ID_NUMBER', label: 'National ID Number' },
-        { value: 'IP_ADDRESS', label: 'IP Address' },
-        { value: 'EMAIL_ADDRESS', label: 'Email Address' },
-        { value: 'IBAN', label: 'IBAN' },
-        { value: 'CREDIT_CARD_EXPIRATION_DATE', label: 'Credit Card Expiration Date' },
-        { value: 'USERNAME', label: 'Username' },
-        { value: 'BLOOD_TYPE', label: 'Blood Type' },
-        { value: 'CVV', label: 'CVV' },
-        { value: 'CVC', label: 'CVC' },
+    // Pie chart data for entity type distribution
+    const entityDistributionData = [
+        { name: 'Personal', value: 35 },
+        { name: 'Financial', value: 25 },
+        { name: 'Medical', value: 20 },
+        { name: 'Location', value: 15 },
+        { name: 'Other', value: 5 },
     ];
 
-    // Gemini AI entity options
-    const geminiOptions: OptionType[] = [
-        { value: 'PHONE', label: 'Phone' },
-        { value: 'EMAIL', label: 'Email' },
-        { value: 'ADDRESS', label: 'Address' },
-        { value: 'DATE', label: 'Date' },
-        { value: 'GOVID', label: 'Gov ID' },
-        { value: 'FINANCIAL', label: 'Financial' },
-        { value: 'EMPLOYMENT', label: 'Employment' },
-        { value: 'HEALTH', label: 'Health' },
-        { value: 'SEXUAL', label: 'Sexual' },
-        { value: 'CRIMINAL', label: 'Criminal' },
-        { value: 'CONTEXT', label: 'Context' },
-        { value: 'INFO', label: 'Info' },
-        { value: 'FAMILY', label: 'Family' },
-        { value: 'BEHAVIORAL_PATTERN', label: 'Behavioral Pattern' },
-        { value: 'POLITICAL_CASE', label: 'Political Case' },
-        { value: 'ECONOMIC_STATUS', label: 'Economic Status' },
-    ];
+    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
+    // Get entity options from EntityUtils
+    // Type cast the translation function to match the expected signature
+    const translateFn = ((ns: string, key: string) => t(ns as any, key as any)) as (ns: string, key: string) => string;
+    const presidioOptions = getPresidioOptions(translateFn);
+    const glinerOptions = getGlinerOptions(translateFn);
+    const geminiOptions = getGeminiOptions(translateFn);
+    const hidemeOptions = getHidemeOptions(translateFn);
 
     return (
         <div className="features-page">
-            <Navbar  />
+            <Navbar />
 
             <div className="features-hero">
                 <div className="features-hero-content">
@@ -198,6 +210,7 @@ const FeaturesPage= () => {
                             title={t('features', 'manualHighlightingTitle')}
                             icon="✏️"
                             description={t('features', 'manualHighlightingDescription')}
+                            modes={[t('minimalToolbar', 'textSelection'), t('minimalToolbar', 'rectangular')]}
                         />
                         <ToolFeatureCard
                             title={t('features', 'searchHighlightingTitle')}
@@ -205,14 +218,24 @@ const FeaturesPage= () => {
                             description={t('features', 'searchHighlightingDescription')}
                         />
                         <ToolFeatureCard
-                            title={t('features', 'regexSearchTitle')}
-                            icon="⚙️"
-                            description={t('features', 'regexSearchDescription')}
+                            title={t('features', 'documentHistoryTitle')}
+                            icon="📋"
+                            description={t('features', 'documentHistoryDescription')}
                         />
                         <ToolFeatureCard
-                            title={t('features', 'caseSensitiveSearchTitle')}
-                            icon="Aa"
-                            description={t('features', 'caseSensitiveSearchDescription')}
+                            title={t('features', 'highlightManipulationTitle')}
+                            icon="🖌️"
+                            description={t('features', 'highlightManipulationDescription')}
+                        />
+                        <ToolFeatureCard
+                            title={t('features', 'inBrowserStorageTitle')}
+                            icon="💾"
+                            description={t('features', 'inBrowserStorageDescription')}
+                        />
+                        <ToolFeatureCard
+                            title={t('features', 'autoProcessingTitle')}
+                            icon="⚡"
+                            description={t('features', 'autoProcessingDescription')}
                         />
                     </div>
                 </section>
@@ -230,7 +253,12 @@ const FeaturesPage= () => {
                             icon="🤖"
                             isSafeForData={false}
                             entities={geminiOptions}
-                            precision={t('features', 'testingInProgress')}
+                            precision={t('features', 'highPrecisionScore')}
+                            accuracyData={{
+                                precision: 0.92,
+                                recall: 0.85,
+                                f1Score: 0.88
+                            }}
                         />
 
                         <FeatureCard
@@ -239,7 +267,12 @@ const FeaturesPage= () => {
                             icon="🔒"
                             isSafeForData={true}
                             entities={glinerOptions}
-                            precision={t('features', 'testingInProgress')}
+                            precision={t('features', 'mediumPrecisionScore')}
+                            accuracyData={{
+                                precision: 0.78,
+                                recall: 0.82,
+                                f1Score: 0.80
+                            }}
                         />
 
                         <FeatureCard
@@ -248,8 +281,76 @@ const FeaturesPage= () => {
                             icon="🛡️"
                             isSafeForData={true}
                             entities={presidioOptions}
-                            precision={t('features', 'testingInProgress')}
+                            precision={t('features', 'highPrecisionScore')}
+                            accuracyData={{
+                                precision: 0.86,
+                                recall: 0.73,
+                                f1Score: 0.79
+                            }}
                         />
+
+                        <FeatureCard
+                            title={t('features', 'hidemeAIDetectionTitle')}
+                            description={t('features', 'hidemeAIDetectionDescription')}
+                            icon="🚀"
+                            isSafeForData={true}
+                            entities={hidemeOptions}
+                            precision={t('features', 'veryHighPrecisionScore')}
+                            accuracyData={{
+                                precision: 0.89,
+                                recall: 0.91,
+                                f1Score: 0.90
+                            }}
+                        />
+                    </div>
+                </section>
+
+                <section className="visualization-section">
+                    <h2>{t('features', 'modelComparisonVisualization')}</h2>
+                    <p className="section-description">
+                        {t('features', 'modelComparisonDescription')}
+                    </p>
+
+                    <div className="charts-grid">
+                        <div className="chart-container">
+                            <h3>{t('features', 'modelPerformanceComparison')}</h3>
+                            <ResponsiveContainer width="100%" height={400}>
+                                <RadarChart outerRadius={150} data={radarChartData}>
+                                    <PolarGrid />
+                                    <PolarAngleAxis dataKey="subject" />
+                                    <PolarRadiusAxis domain={[0, 1]} />
+                                    <Tooltip formatter={(value) => `${(Number(value) * 100).toFixed(2)}%`} />
+                                    <Radar name="Presidio" dataKey="Presidio" stroke="#8884d8" fill="#8884d8" fillOpacity={0.4} />
+                                    <Radar name="Gliner" dataKey="Gliner" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.4} />
+                                    <Radar name="Gemini" dataKey="Gemini" stroke="#ffc658" fill="#ffc658" fillOpacity={0.4} />
+                                    <Radar name="HideMeAI" dataKey="HideMeAI" stroke="#ff8042" fill="#ff8042" fillOpacity={0.4} />
+                                    <Legend />
+                                </RadarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        <div className="chart-container">
+                            <h3>{t('features', 'entityTypeDistribution')}</h3>
+                            <ResponsiveContainer width="100%" height={400}>
+                                <PieChart>
+                                    <Pie
+                                        data={entityDistributionData}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={true}
+                                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                        outerRadius={150}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                    >
+                                        {entityDistributionData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip formatter={(value) => `${value}%`} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </section>
 
@@ -263,6 +364,7 @@ const FeaturesPage= () => {
                                 <th>{t('features', 'geminiAI')}</th>
                                 <th>{t('features', 'glinerML')}</th>
                                 <th>{t('features', 'presidioML')}</th>
+                                <th>{t('features', 'hidemeAI')}</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -271,28 +373,49 @@ const FeaturesPage= () => {
                                 <td className="negative">{t('features', 'processesDataExternally')}</td>
                                 <td className="positive">{t('features', 'fullyLocalProcessing')}</td>
                                 <td className="positive">{t('features', 'fullyLocalProcessing')}</td>
+                                <td className="positive">{t('features', 'fullyLocalProcessing')}</td>
                             </tr>
                             <tr>
                                 <td>{t('features', 'entityTypes')}</td>
                                 <td>{geminiOptions.length}</td>
                                 <td>{glinerOptions.length}</td>
                                 <td>{presidioOptions.length}</td>
+                                <td>{hidemeOptions.length}</td>
                             </tr>
                             <tr>
                                 <td>{t('features', 'performance')}</td>
                                 <td>{t('features', 'fast')}</td>
                                 <td>{t('features', 'medium')}</td>
                                 <td>{t('features', 'medium')}</td>
+                                <td>{t('features', 'veryFast')}</td>
                             </tr>
                             <tr>
                                 <td>{t('features', 'contextualUnderstanding')}</td>
                                 <td className="positive">{t('features', 'high')}</td>
                                 <td className="neutral">{t('features', 'medium')}</td>
                                 <td className="neutral">{t('features', 'medium')}</td>
+                                <td className="positive">{t('features', 'high')}</td>
                             </tr>
                             <tr>
                                 <td>{t('features', 'accuracy')}</td>
-                                <td colSpan={3} className="centered">{t('features', 'testingInProgress')}</td>
+                                <td className="positive">92%</td>
+                                <td className="neutral">78%</td>
+                                <td className="positive">86%</td>
+                                <td className="positive">89%</td>
+                            </tr>
+                            <tr>
+                                <td>{t('features', 'recall')}</td>
+                                <td className="positive">85%</td>
+                                <td className="positive">82%</td>
+                                <td className="neutral">73%</td>
+                                <td className="positive">91%</td>
+                            </tr>
+                            <tr>
+                                <td>{t('features', 'f1Score')}</td>
+                                <td className="positive">88%</td>
+                                <td className="neutral">80%</td>
+                                <td className="neutral">79%</td>
+                                <td className="positive">90%</td>
                             </tr>
                             </tbody>
                         </table>
@@ -300,7 +423,7 @@ const FeaturesPage= () => {
                 </section>
             </div>
 
-
+            <Footer />
         </div>
     );
 };

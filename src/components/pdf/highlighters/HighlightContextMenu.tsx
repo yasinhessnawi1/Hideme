@@ -14,6 +14,7 @@ import useBanList from '../../../hooks/settings/useBanList';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getEntityTranslationKeyAndModel } from '../../../utils/EntityUtils';
+import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
 
 interface HighlightContextMenuProps {
     highlight: HighlightRect;
@@ -220,7 +221,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
         } catch (error) {
                 notify({
                     type: 'error',
-                    message: t('toolbar', 'errorRemovingHighlightsByText', { error: error.message }),
+                    message: mapBackendErrorToMessage(error) || t('toolbar', 'errorRemovingHighlightsByText', { error: error.message }),
                     position: 'top-right'
                 });
         }
@@ -320,7 +321,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
         } catch (error) {
             notify({
                 type: 'error',
-                message: t('toolbar', 'errorHighlightingAllOccurrences', { error: error.message }),
+                message: mapBackendErrorToMessage(error) || t('toolbar', 'errorHighlightingAllOccurrences', { error: error.message }),
                 position: 'top-right'
             });
         }

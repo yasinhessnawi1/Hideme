@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import apiClient from '../../services/api-services/apiClient';
 import { useAuth } from '../auth/useAuth';
 import {RedactionMapping} from "../../types";
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 
 export interface DocumentHistoryItem {
   id: number;
@@ -68,7 +69,7 @@ export const useDocumentHistory = () => {
         throw new Error('Failed to fetch documents');
       }
     } catch (err: any) {
-      const errorMessage = err.message || 'An error occurred while fetching documents';
+      const errorMessage = mapBackendErrorToMessage(err) || 'An error occurred while fetching documents';
       console.error('[useDocumentHistory] Error fetching documents:', errorMessage);
       setError(errorMessage);
       return [];
@@ -102,7 +103,7 @@ export const useDocumentHistory = () => {
         throw new Error('Failed to save document');
       }
     } catch (err: any) {
-      const errorMessage = err.message || 'An error occurred while saving document';
+      const errorMessage = mapBackendErrorToMessage(err) || 'An error occurred while saving document';
       console.error('[useDocumentHistory] Error saving document:', errorMessage);
       setError(errorMessage);
       return null;
@@ -130,7 +131,7 @@ export const useDocumentHistory = () => {
         throw new Error('Failed to fetch document');
       }
     } catch (err: any) {
-      const errorMessage = err.message || 'An error occurred while fetching document';
+      const errorMessage = mapBackendErrorToMessage(err) || 'An error occurred while fetching document';
       console.error('[useDocumentHistory] Error fetching document:', errorMessage);
       setError(errorMessage);
       return null;
@@ -159,7 +160,7 @@ export const useDocumentHistory = () => {
 
       return true;
     } catch (err: any) {
-      const errorMessage = err.message || 'An error occurred while deleting document';
+      const errorMessage = mapBackendErrorToMessage(err) || 'An error occurred while deleting document';
       console.error('[useDocumentHistory] Error deleting document:', errorMessage);
       setError(errorMessage);
       return false;

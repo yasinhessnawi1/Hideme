@@ -19,6 +19,7 @@ import { EntityHighlightProcessor } from '../../../managers/EntityHighlightProce
 import { ManualHighlightProcessor } from '../../../managers/ManualHighlightProcessor';
 import { SearchHighlightProcessor } from '../../../managers/SearchHighlightProcessor';
 import { HighlightType } from '../../../types';
+import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
 
 // Define interfaces for the redaction schema structure
 interface BoundingBox {
@@ -390,7 +391,7 @@ const HistoryViewer: React.FC = () => {
         } catch (err) {
             console.error('Error loading redaction history:', err);
             notify({
-                message: t('redaction', 'couldNotLoadRedactionHistory').replace('{file}', document.hashed_name),
+                message: mapBackendErrorToMessage(err) || t('redaction', 'couldNotLoadRedactionHistory').replace('{file}', document.hashed_name),
                 type: 'error',
                 duration: 4000
             });

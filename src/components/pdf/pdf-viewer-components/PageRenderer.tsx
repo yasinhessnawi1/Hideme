@@ -10,6 +10,7 @@ import { useViewportSize } from '../../../hooks/general/useViewportSize';
 import scrollManager from '../../../services/client-services/ScrollManagerService';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
 
 interface PageRendererProps {
     pageNumber: number;
@@ -153,7 +154,7 @@ const PageRenderer: React.FC<PageRendererProps> = ({
             }, 100);
         } catch (err) {
             notify({
-                message: t('pageRenderer', 'errorLoadingPage').replace('{error}', String(err)),
+                message: mapBackendErrorToMessage(err) || t('pageRenderer', 'errorLoadingPage').replace('{error}', String(err)),
                 type: 'error',
                 duration: 3000
             });

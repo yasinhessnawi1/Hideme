@@ -7,6 +7,7 @@ import Navbar from '../../components/static/Navbar';
 import authService from '../../services/database-backend-services/authService';
 import '../../styles/modules/login/LoginPage.css';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 
 const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -37,7 +38,7 @@ const ForgotPasswordPage: React.FC = () => {
       });
     } catch (error: any) {
       notify({
-        message: error.message || t('resetPassword', 'failedToSendResetLink'),
+        message: mapBackendErrorToMessage(error) || t('resetPassword', 'failedToSendResetLink'),
         type: 'error',
         duration: 3000
       });

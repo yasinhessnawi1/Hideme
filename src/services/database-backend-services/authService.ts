@@ -19,6 +19,7 @@ import {
     APIKeyCreationRequest
 } from '../../types';
 import {ApiKey} from "../api-services/batchEncryptionService";
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 
 // Export all types for backward compatibility
 export type {
@@ -72,7 +73,7 @@ const authService = {
         // Validate token exists before saving
         if (!response.data.data.access_token) {
             console.error('[authService] Login successful but no token returned from server');
-            throw new Error('Login failed: No token received');
+            throw new Error(mapBackendErrorToMessage('Login failed: No token received'));
         }
 
         // Save token to localStorage
@@ -117,7 +118,7 @@ const authService = {
         const currentToken = authService.getToken();
         if (!currentToken) {
             console.warn('[authService] refreshToken called with no token');
-            throw new Error('No token to refresh');
+            throw new Error(mapBackendErrorToMessage('No token to refresh'));
         }
 
         const response = await apiClient.post<RefreshResponse>('/auth/refresh');
@@ -141,7 +142,7 @@ const authService = {
         const token = authService.getToken();
         if (!token) {
             console.warn('[authService] getCurrentUser called with no token');
-            throw new Error('No token available');
+            throw new Error(mapBackendErrorToMessage('No token available'));
         }
 
         const response = await apiClient.get<TokenVerification>('/users/me');
@@ -191,7 +192,7 @@ const authService = {
                 error: error.response?.data || error.message
             });
 
-            throw error;
+            throw new Error(mapBackendErrorToMessage(error));
         }
     },
 

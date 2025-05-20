@@ -6,6 +6,7 @@ import { createRedactionRequest } from "../../utils/redactionUtils";
 import JSZip from 'jszip';
 import batchEncryptionService from '../api-services/batchEncryptionService';
 import authService from '../database-backend-services/authService';
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 
 // Base API URL - ensure this is consistent across services
 const API_BASE_URL = 'https://api.hidemeai.com';
@@ -248,7 +249,14 @@ export async function batchRedactPdfs(
         if (!response.ok) {
             const errorText = await response.text();
             console.error('[BatchApiService] Redaction failed:', errorText);
-            throw new Error(`Batch redaction failed: ${errorText}`);
+            let errorPayload;
+            try {
+                const parsed = JSON.parse(errorText);
+                errorPayload = parsed.error || parsed.detail || parsed;
+            } catch {
+                errorPayload = errorText;
+            }
+            throw new Error(mapBackendErrorToMessage(errorPayload));
         }
 
         // Log response headers for debugging
@@ -281,7 +289,14 @@ export async function batchRedactPdfs(
                 // If not JSON, try to get as text
                 const text = await response.text();
                 console.error('[BatchApiService] Response is not JSON:', text.substring(0, 200));
-                throw new Error('Unexpected response format from server');
+                let errorPayload;
+                try {
+                    const parsed = JSON.parse(text);
+                    errorPayload = parsed.error || parsed.detail || parsed;
+                } catch {
+                    errorPayload = text;
+                }
+                throw new Error(mapBackendErrorToMessage(errorPayload));
             });
         }
 
@@ -361,7 +376,7 @@ export async function batchRedactPdfs(
                 }
             } catch (error) {
                 console.error('[BatchApiService] Error processing decrypted data:', error);
-                throw new Error(`Failed to process ZIP data: ${error.message}`);
+                throw new Error(mapBackendErrorToMessage(error));
             }
         } else {
             // Direct response
@@ -420,9 +435,23 @@ async function processRedactionZip(zipBlob: Blob, originalFiles: File[]): Promis
                     try {
                         const jsonError = JSON.parse(errorText);
                         console.error('[processRedactionZip] JSON error object:', jsonError);
-                        throw new Error(jsonError.detail || 'Server returned error object instead of ZIP file');
+                        let errorPayload;
+                        try {
+                            errorPayload = jsonError.error || jsonError.detail || jsonError;
+                        } catch {
+                            errorPayload = errorText;
+                        }
+                        throw new Error(mapBackendErrorToMessage(errorPayload));
                     } catch (e) {
                         // Not valid JSON - continue with normal error
+                        let errorPayload;
+                        try {
+                            errorPayload = JSON.parse(errorText);
+                            errorPayload = errorPayload.error || errorPayload.detail || errorPayload;
+                        } catch {
+                            errorPayload = errorText;
+                        }
+                        throw new Error(mapBackendErrorToMessage(errorPayload));
                     }
                 } catch (e) {
                     // Unable to read as text
@@ -519,13 +548,33 @@ async function processRedactionZip(zipBlob: Blob, originalFiles: File[]): Promis
                     if (text.trim().startsWith('{') && text.trim().endsWith('}')) {
                         try {
                             const errorJson = JSON.parse(text);
-                            throw new Error(`Server returned error: ${errorJson.detail || JSON.stringify(errorJson)}`);
+                            let errorPayload;
+                            try {
+                                errorPayload = errorJson.error || errorJson.detail || errorJson;
+                            } catch {
+                                errorPayload = text;
+                            }
+                            throw new Error(mapBackendErrorToMessage(errorPayload));
                         } catch (e) {
                             // Not valid JSON
-                            throw new Error(`Server returned error: ${text}`);
+                            let errorPayload;
+                            try {
+                                errorPayload = JSON.parse(text);
+                                errorPayload = errorPayload.error || errorPayload.detail || errorPayload;
+                            } catch {
+                                errorPayload = text;
+                            }
+                            throw new Error(mapBackendErrorToMessage(errorPayload));
                         }
                     } else {
-                        throw new Error(`Server returned error instead of ZIP: ${text}`);
+                        let errorPayload;
+                        try {
+                            errorPayload = JSON.parse(text);
+                            errorPayload = errorPayload.error || errorPayload.detail || errorPayload;
+                        } catch {
+                            errorPayload = text;
+                        }
+                        throw new Error(mapBackendErrorToMessage(errorPayload));
                     }
                 } catch (e) {
                     if (e.message.includes('Server returned error')) {
@@ -535,7 +584,7 @@ async function processRedactionZip(zipBlob: Blob, originalFiles: File[]): Promis
                 }
             }
 
-            throw new Error(`Failed to process redacted files: ${error.message}`);
+            throw new Error(mapBackendErrorToMessage(error));
         }
     } catch (error) {
         console.error('Error processing redaction ZIP file:', error);
@@ -550,13 +599,26 @@ async function processRedactionZip(zipBlob: Blob, originalFiles: File[]): Promis
                 if (text.trim().startsWith('{') && text.trim().endsWith('}')) {
                     try {
                         const errorJson = JSON.parse(text);
-                        throw new Error(`Server returned error: ${errorJson.detail || JSON.stringify(errorJson)}`);
+                        let errorPayload;
+                        try {
+                            errorPayload = errorJson.error || errorJson.detail || errorJson;
+                        } catch {
+                            errorPayload = text;
+                        }
+                        throw new Error(mapBackendErrorToMessage(errorPayload));
                     } catch (e) {
                         // Not valid JSON
-                        throw new Error(`Server returned error: ${text}`);
+                        let errorPayload;
+                        try {
+                            errorPayload = JSON.parse(text);
+                            errorPayload = errorPayload.error || errorPayload.detail || errorPayload;
+                        } catch {
+                            errorPayload = text;
+                        }
+                        throw new Error(mapBackendErrorToMessage(errorPayload));
                     }
                 } else {
-                    throw new Error(`Server returned error instead of ZIP: ${text}`);
+                    throw new Error(mapBackendErrorToMessage(text));
                 }
             } catch (e) {
                 if (e.message.includes('Server returned error')) {
@@ -566,7 +628,7 @@ async function processRedactionZip(zipBlob: Blob, originalFiles: File[]): Promis
             }
         }
 
-        throw new Error(`Failed to process redacted files: ${error.message}`);
+        throw new Error(mapBackendErrorToMessage(error));
     }
 }
 

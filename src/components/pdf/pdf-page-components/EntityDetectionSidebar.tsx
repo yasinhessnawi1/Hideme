@@ -32,6 +32,7 @@ import { useNotification } from '../../../contexts/NotificationContext';
 import { useAuth } from '../../../hooks/auth/useAuth';
 import { useFileSummary } from '../../../contexts/FileSummaryContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
 
 /**
  * EntityDetectionSidebar component
@@ -297,7 +298,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 } catch (error: any) {
                     notify({
                         type: 'error',
-                        message: t('entityDetection', 'errorProcessingHighlights').replace('{fileKey}', fileKey).replace('{error}', error.message),
+                        message: mapBackendErrorToMessage(error),
                         position: 'bottom-left'
                     });
                     processingStateService.completeProcessing(fileKey, false);
@@ -312,7 +313,7 @@ const EntityDetectionSidebar: React.FC = () => {
         } catch (err: any) {
             notify({
                 type: 'error',
-                message: t('entityDetection', 'detectionError').replace('{error}', err.message),
+                message: mapBackendErrorToMessage(err),
                 position: 'top-right'
             });
 
@@ -488,7 +489,7 @@ const EntityDetectionSidebar: React.FC = () => {
             } catch (err) {
                 notify({
                     type: 'error',
-                    message: 'Error loading entities: ' + err.message,
+                    message: mapBackendErrorToMessage(err),
                     position: 'top-right'
                 });
             }

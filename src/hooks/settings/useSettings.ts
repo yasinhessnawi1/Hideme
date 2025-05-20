@@ -19,6 +19,7 @@ import authStateManager from '../../managers/authStateManager';
 import { SettingsExport } from './useDocument';
 import authService from '../../services/database-backend-services/authService';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 
 export interface UseSettingsReturn {
     // User settings state
@@ -99,13 +100,13 @@ export const useSettings = (): UseSettingsReturn => {
 
             return userSettings;
         } catch (error: any) {
-            setError(error.userMessage ?? 'Failed to load settings');
+            setError(mapBackendErrorToMessage(error) || t('errors', 'failedToLoadSettings'));
             return null;
         } finally {
             setIsLoading(false);
             fetchInProgressRef.current = false;
         }
-    }, [settings, clearError, isInitialized]);
+    }, [settings, clearError, isInitialized, t]);
 
     /**
      * Update user settings
@@ -134,8 +135,8 @@ export const useSettings = (): UseSettingsReturn => {
 
             return updatedSettings;
         } catch (error: any) {
-            setError(error.userMessage ?? t('errors', 'failedToUpdateSettings'));
-            throw error;
+            setError(mapBackendErrorToMessage(error) || t('errors', 'failedToUpdateSettings'));
+            throw new Error(mapBackendErrorToMessage(error));
         } finally {
             setIsLoading(false);
         }
@@ -239,7 +240,7 @@ export const useSettings = (): UseSettingsReturn => {
 
         } catch (error: any) {
             console.error('Failed to export settings:', error);
-            setError(error.userMessage ?? 'Failed to export settings');
+            setError(mapBackendErrorToMessage(error) || 'Failed to export settings');
         } finally {
             setIsLoading(false);
         }
@@ -313,7 +314,7 @@ export const useSettings = (): UseSettingsReturn => {
             return updatedSettings;
         } catch (error: any) {
             console.error('Failed to import settings:', error);
-            setError(error.userMessage ?? 'Failed to import settings');
+            setError(mapBackendErrorToMessage(error) || 'Failed to import settings');
 
             // Dispatch event for failed import
             window.dispatchEvent(new CustomEvent('settings-import-completed', {

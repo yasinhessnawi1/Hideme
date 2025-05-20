@@ -23,6 +23,7 @@ import { User } from '../../types';
 import authStateManager from '../../managers/authStateManager';
 import authService from '../../services/database-backend-services/authService';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 
 export interface UseUserProfileReturn {
     // User state (from auth hook)
@@ -91,12 +92,12 @@ export const useUserProfile = (): UseUserProfileReturn => {
             const response = await apiClient.get<{ data: User }>('/users/me');
             return response.data.data;
         } catch (error: any) {
-            setError(error.userMessage ?? t('errors', 'failedToLoadUserProfile'));
+            setError(mapBackendErrorToMessage(error) || 'Failed to load user profile');
             return null;
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticatedOrCached, clearError, t]);
+    }, [isAuthenticatedOrCached, clearError]);
 
     /**
      * Update user profile information
@@ -118,8 +119,8 @@ export const useUserProfile = (): UseUserProfileReturn => {
 
             return response.data;
         } catch (error: any) {
-            setError(error.userMessage ?? 'Failed to update profile');
-            throw error;
+            setError(mapBackendErrorToMessage(error) || 'Failed to update user profile');
+            throw new Error(mapBackendErrorToMessage(error));
         } finally {
             setIsLoading(false);
         }
@@ -140,8 +141,8 @@ export const useUserProfile = (): UseUserProfileReturn => {
         try {
             await userService.changePassword(data);
         } catch (error: any) {
-            setError(error.userMessage ?? 'Failed to change password');
-            throw error;
+            setError(mapBackendErrorToMessage(error) || 'Failed to change password');
+            throw new Error(mapBackendErrorToMessage(error));
         } finally {
             setIsLoading(false);
         }
@@ -169,8 +170,8 @@ export const useUserProfile = (): UseUserProfileReturn => {
             localStorage.clear();
             window.location.reload();
         } catch (error: any) {
-            setError(error.userMessage ?? 'Failed to delete account');
-            throw error;
+            setError(mapBackendErrorToMessage(error) || 'Failed to delete account');
+            throw new Error(mapBackendErrorToMessage(error));
         } finally {
             setIsLoading(false);
         }
@@ -192,7 +193,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
             const response = await apiClient.get<ActiveSession[]>('/users/me/sessions');
             return response.data;
         } catch (error: any) {
-            setError(error.userMessage ?? 'Failed to get active sessions');
+            setError(mapBackendErrorToMessage(error) || 'Failed to fetch active sessions');
             return [];
         } finally {
             setIsLoading(false);
@@ -217,8 +218,8 @@ export const useUserProfile = (): UseUserProfileReturn => {
             // Invalidate sessions cache
             apiClient.clearCacheEntry('/users/me/sessions');
         } catch (error: any) {
-            setError(error.userMessage ?? 'Failed to invalidate session');
-            throw error;
+            setError(mapBackendErrorToMessage(error) || 'Failed to invalidate session');
+            throw new Error(mapBackendErrorToMessage(error));
         } finally {
             setIsLoading(false);
         }

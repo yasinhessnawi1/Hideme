@@ -11,6 +11,7 @@
 import apiCache from './apiCacheService';
 import authService from '../database-backend-services/authService';
 import { AxiosRequestConfig } from 'axios';
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 
 // Configure TTL (time-to-live) for different endpoint groups
 const TTL_CONFIG = {
@@ -88,6 +89,18 @@ const apiClient = {
             ttl: getTtlForUrl(url),
             forceRefresh,
             headers: config.headers
+        }).then((res: any) => {
+            const isSuccess = res.data.success === true || res.data.success === "true";
+            if (!isSuccess) {
+                console.log('[apiClient] Error:', res.data);
+                const errorPayload = res.data.error || res.data.detail || res.data;
+                
+                throw new Error(mapBackendErrorToMessage(errorPayload));
+            }
+            return res;
+        })
+        .catch((err: any) => {
+            throw new Error(mapBackendErrorToMessage(err));
         });
     },
 
@@ -113,7 +126,17 @@ const apiClient = {
             apiCache.clearCacheEntry(basePath, 'GET');
         }
 
-        return result;
+        return result.then((res: any) => {
+            const isSuccess = res.data.success === true || res.data.success === "true";
+            if (!isSuccess) {
+                const errorPayload = res.data.error || res.data.detail || res.data;
+                throw new Error(mapBackendErrorToMessage(errorPayload));
+            }
+            return res;
+        })
+        .catch((err: any) => {
+            throw new Error(mapBackendErrorToMessage(err));
+        });
     },
 
     /**
@@ -134,7 +157,17 @@ const apiClient = {
         apiCache.clearCacheEntry(url, 'GET');
         apiCache.clearCacheEntry(basePath, 'GET');
 
-        return result;
+        return result.then((res: any) => {
+            const isSuccess = res.data.success === true || res.data.success === "true";
+            if (!isSuccess) {
+                const errorPayload = res.data.error || res.data.detail || res.data;
+                throw new Error(mapBackendErrorToMessage(errorPayload));
+            }
+            return res;
+        })
+        .catch((err: any) => {
+            throw new Error(mapBackendErrorToMessage(err));
+        });
     },
 
     /**
@@ -155,7 +188,17 @@ const apiClient = {
         apiCache.clearCacheEntry(url, 'GET');
         apiCache.clearCacheEntry(basePath, 'GET');
 
-        return result;
+        return result.then((res: any) => {
+            const isSuccess = res.data.success === true || res.data.success === "true";
+            if (!isSuccess) {
+                const errorPayload = res.data.error || res.data.detail || res.data;
+                throw new Error(mapBackendErrorToMessage(errorPayload));
+            }
+            return res;
+        })
+        .catch((err: any) => {
+            throw new Error(mapBackendErrorToMessage(err));
+        });
     },
 
     // Utility methods for cache management

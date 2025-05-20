@@ -11,6 +11,7 @@ import authStateManager from '../../managers/authStateManager';
 import apiClient from '../api-services/apiClient';
 import authService from './authService';
 import { User } from './authService';
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 
 /**
  * User profile update data
@@ -101,7 +102,7 @@ const userService = {
                 error: error.response?.data || error.message
             });
 
-            throw error;
+            throw new Error(mapBackendErrorToMessage(error));
         }
     },
 
@@ -145,7 +146,7 @@ const userService = {
                 error: error.response?.data || error.message
             });
 
-            throw error;
+            throw new Error(mapBackendErrorToMessage(error));
         }
     },
 
@@ -179,7 +180,7 @@ const userService = {
                 error: error.response?.data || error.message
             });
 
-            throw error;
+            throw new Error(mapBackendErrorToMessage(error));
         }
     },
 
@@ -220,7 +221,7 @@ const userService = {
                 error: error.response?.data || error.message
             });
 
-            throw error;
+            throw new Error(mapBackendErrorToMessage(error));
         }
     },
 
@@ -257,7 +258,7 @@ const userService = {
                 error: error.response?.data || error.message
             });
 
-            throw error;
+            throw new Error(mapBackendErrorToMessage(error));
         }
     },
 
@@ -294,7 +295,7 @@ const userService = {
                 error: error.response?.data || error.message
             });
 
-            throw error;
+            throw new Error(mapBackendErrorToMessage(error));
         }
     },
 
@@ -327,7 +328,7 @@ const userService = {
                 error: error.response?.data || error.message
             });
 
-            throw error;
+            throw new Error(mapBackendErrorToMessage(error));
         }
     },
 
@@ -365,7 +366,7 @@ const userService = {
                 error: error.response?.data || error.message
             });
 
-            throw error;
+            throw new Error(mapBackendErrorToMessage(error));
         }
     }
 };

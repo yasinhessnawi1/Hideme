@@ -14,6 +14,7 @@
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import authService from '../database-backend-services/authService';
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 export const API_URL = 'https://goapi.hidemeai.com/api';
 //export const API_URL = 'http://localhost:8080/api';
 
@@ -44,41 +45,8 @@ const DEFAULT_TTL = 5 * 60 * 1000;
  * @returns {string} User-friendly error message
  */
 const getUserFriendlyErrorMessage = (error: any): string => {
-    // Extract response data if available
-    const responseData = error.response?.data;
-    const statusCode = error.response?.status;
-
-    // If the API returned a specific error message, use it
-    if (responseData?.message) {
-        return responseData.message;
-    }
-
-    // Handle common status codes with friendly messages
-    switch (statusCode) {
-        case 400:
-            return "The information you provided was invalid. Please check your entries and try again.";
-        case 401:
-            return "Your session has expired or you're not authorized. Please log in again.";
-        case 403:
-            return "You don't have permission to access this resource.";
-        case 404:
-            return "The requested information couldn't be found. Please try again later.";
-        case 422:
-            return "The provided information couldn't be processed. Please check your entries.";
-        case 429:
-            return "You've made too many requests. Please wait a moment and try again.";
-        case 500:
-        case 502:
-        case 503:
-        case 504:
-            return "We're experiencing technical difficulties. Please try again later.";
-        default:
-            // If API is completely unreachable
-            if (!error.response) {
-                return "Unable to connect to the server. Please check your internet connection and try again.";
-            }
-            return "Something went wrong. Please try again later.";
-    }
+    // Use the shared error mapping utility for all error mapping
+    return mapBackendErrorToMessage(error.response?.data?.error || error.response?.data?.detail || error);
 };
 
 class ApiCacheService {

@@ -17,6 +17,7 @@ import { useLoading } from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
 import { useNotification } from "../../../contexts/NotificationContext";
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
 
 
 export default function EntitySettings() {
@@ -77,7 +78,7 @@ export default function EntitySettings() {
                             await getModelEntities(method.id);
                         } catch (error) {
                             notify({
-                                message: t('entityDetection', 'detectionError') + (method.name ? ` (${method.name})` : ''),
+                                message: mapBackendErrorToMessage(error) || t('entityDetection', 'detectionError') + (method.name ? ` (${method.name})` : ''),
                                 type: 'error',
                                 duration: 3000
                             });
@@ -88,7 +89,7 @@ export default function EntitySettings() {
             } catch (error) {
                 console.error('[EntitySettings] Error loading entity data:', error);
                 notify({
-                    message: t('errors', 'failedToLoadSettings'),
+                    message: mapBackendErrorToMessage(error) || t('errors', 'failedToLoadSettings'),
                     type: 'error',
                     duration: 3000
                 });
@@ -240,7 +241,7 @@ export default function EntitySettings() {
             });
         } catch (err: any) {
             notify({
-                message: t('entityDetection', 'errorSavingSettings') + (err?.message ? `: ${err.message}` : ''),
+                message: t('entityDetection', 'errorSavingSettings') + (err?.message ? `: ${mapBackendErrorToMessage(err)}` : ''),
                 type: 'error',
                 duration: 3000
             });

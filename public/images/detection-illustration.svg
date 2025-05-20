@@ -1,0 +1,23 @@
+<svg width="400" height="240" viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="240" fill="#f0f9ff" />
+  <rect x="80" y="40" width="240" height="160" rx="4" fill="#ffffff" stroke="#6b7280" stroke-width="1" />
+  
+  <!-- Document lines -->
+  <line x1="100" y1="70" x2="300" y2="70" stroke="#e5e7eb" stroke-width="2" />
+  <line x1="100" y1="90" x2="300" y2="90" stroke="#e5e7eb" stroke-width="2" />
+  <line x1="100" y1="110" x2="300" y2="110" stroke="#e5e7eb" stroke-width="2" />
+  <line x1="100" y1="130" x2="300" y2="130" stroke="#e5e7eb" stroke-width="2" />
+  <line x1="100" y1="150" x2="300" y2="150" stroke="#e5e7eb" stroke-width="2" />
+  <line x1="100" y1="170" x2="300" y2="170" stroke="#e5e7eb" stroke-width="2" />
+  
+  <!-- Highlighted entities -->
+  <rect x="120" y="65" width="60" height="12" rx="2" fill="#fef3c7" stroke="#f59e0b" stroke-width="1" />
+  <rect x="220" y="85" width="40" height="12" rx="2" fill="#dcfce7" stroke="#10b981" stroke-width="1" />
+  <rect x="150" y="125" width="80" height="12" rx="2" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" />
+  <rect x="110" y="165" width="50" height="12" rx="2" fill="#fce7f3" stroke="#ec4899" stroke-width="1" />
+  
+  <!-- Magnifying glass -->
+  <circle cx="300" cy="60" r="30" fill="none" stroke="#4f46e5" stroke-width="2" />
+  <line x1="320" y1="80" x2="335" y2="95" stroke="#4f46e5" stroke-width="3" />
+  <circle cx="300" cy="60" r="15" fill="#e0e7ff" fill-opacity="0.5" />
+</svg> 

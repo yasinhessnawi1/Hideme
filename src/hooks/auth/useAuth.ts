@@ -18,6 +18,7 @@ import authStateManager from '../../managers/authStateManager';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 
 export interface UseAuthReturn {
     // Authentication state
@@ -389,9 +390,12 @@ export const useAuth = (): UseAuthReturn => {
             apiClient.clearCache();
         } catch (err: any) {
             console.error("[useAuth] Login error:", err);
-            const errorMessage = err.userMessage ?? "Login failed. Please check your credentials.";
+            let errorMessage = t('auth', 'loginFailed');
+            if (err) {
+                errorMessage = mapBackendErrorToMessage(err) || errorMessage;
+            }
             setError(errorMessage);
-            throw err;
+            throw new Error(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -424,13 +428,16 @@ export const useAuth = (): UseAuthReturn => {
             await login(username, password);
         } catch (err: any) {
             console.error("[useAuth] Registration error:", err);
-            const errorMessage = err.userMessage ?? t('errors', 'registrationFailed');
+            let errorMessage = t('errors', 'registrationFailed');
+            if (err) {
+                errorMessage = mapBackendErrorToMessage(err) || errorMessage;
+            }
             notify({
                 message: errorMessage,
                 type: 'error',
                 duration: 3000
             });
-            throw err;
+            throw new Error(errorMessage);
         } finally {
             setIsLoading(false);
         }

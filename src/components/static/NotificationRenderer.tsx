@@ -31,7 +31,12 @@ const AnimatedToast: React.FC<{
                 {toast.type === 'info' && <Info size={18} />}
                 {toast.type === 'warning' && <AlertTriangle size={18} />}
             </div>
-            <div className="toast-content">{toast.message}</div>
+            <div className="toast-content">
+                {toast.message}
+                {toast.count && toast.count > 1 && (
+                    <span className="toast-count"> x{toast.count}</span>
+                )}
+            </div>
             <button
                 className="toast-close"
                 onClick={handleRemove}

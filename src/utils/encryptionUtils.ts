@@ -1,4 +1,3 @@
-// src/utils/encryptionUtils.ts
 /**
  * Utility functions for encrypting and decrypting data for API communication
  */

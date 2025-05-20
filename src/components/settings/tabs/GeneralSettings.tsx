@@ -11,6 +11,7 @@ import { useNotification } from "../../../contexts/NotificationContext";
 import { useLoading } from "../../../contexts/LoadingContext";
 import { useLanguage } from "../../../contexts/LanguageContext";
 import { AVAILABLE_LANGUAGES, Language } from "../../../utils/i18n"; // Import Language type and AVAILABLE_LANGUAGES
+import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
 
 export default function GeneralSettings() {
     const {
@@ -190,7 +191,7 @@ export default function GeneralSettings() {
                 duration: 3000
             });
         } catch (err: any) {
-            const message = err.userMessage || err.message || t('errors', 'failedToUpdateSettings');
+            const message = mapBackendErrorToMessage(err) || t('errors', 'failedToUpdateSettings');
             notify({
                 message: message,
                 type: "error",
@@ -237,7 +238,7 @@ export default function GeneralSettings() {
         } catch (error: any) {
             console.error('Error exporting settings:', error);
             notify({
-                message: error.message || t('notifications', 'exportFailed'),
+                message: mapBackendErrorToMessage(error) || t('notifications', 'exportFailed'),
                 type: "error",
                 duration: 5000
             });

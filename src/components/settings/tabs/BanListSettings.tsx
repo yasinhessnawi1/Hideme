@@ -5,6 +5,7 @@ import { useLoading } from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
 import { useNotification } from "../../../contexts/NotificationContext";
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
 
 export default function BanListSettings() {
     const { t } = useLanguage();
@@ -47,7 +48,7 @@ export default function BanListSettings() {
     useEffect(() => {
         if (userError) {
             notify({
-                message: userError,
+                message: mapBackendErrorToMessage(userError),
                 type: 'error',
                 duration: 3000
             });
@@ -84,7 +85,7 @@ export default function BanListSettings() {
             setNewBannedWord("");
         } catch (err: any) {
             notify({
-                message: (err.userMessage ?? err.message) ?? t('banlist', 'failedToAddBannedWord'),
+                message: mapBackendErrorToMessage(err) || t('banlist', 'failedToAddBannedWord'),
                 type: 'error',
                 duration: 3000
             });
@@ -103,7 +104,7 @@ export default function BanListSettings() {
             setTermBeingRemoved(wordToRemove);
         } catch (err: any) {
             notify({
-                message: (err.userMessage ?? err.message) ?? t('banlist', 'failedToRemoveBannedWord'),
+                message: mapBackendErrorToMessage(err) || t('banlist', 'failedToRemoveBannedWord'),
                 type: 'error',
                 duration: 3000
             });
@@ -135,7 +136,7 @@ export default function BanListSettings() {
             }
         } catch (err: any) {
             notify({
-                message: (err.userMessage ?? err.message) ?? t('banlist', 'failedToClearIgnoredWordsList'),
+                message: mapBackendErrorToMessage(err) || t('banlist', 'failedToClearIgnoredWordsList'),
                 type: 'error',
                 duration: 3000
             });

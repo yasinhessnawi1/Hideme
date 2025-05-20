@@ -13,6 +13,7 @@ export interface ToastNotification {
     message: string;
     duration?: number; // Duration in ms, defaults to 5000
     position?: NotificationPosition;
+    count?: number;
 }
 
 // Confirmation types
@@ -82,57 +83,137 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
+// Utility to create a stable hash from a string
+function hashString(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash.toString(36);
+}
+
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { t } = useLanguage();
     const [toasts, setToasts] = useState<ToastNotification[]>([]);
     const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
     const toastTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
     const confirmResolvers = useRef<Map<string, { resolve: (value: any) => void }>>(new Map());
+    const recentNotifications = useRef<Map<string, { id: string; timestamp: number }>>(new Map());
+    const DEDUPE_WINDOW_MS = 3000; // Deduplicate identical notifications within 3 seconds
 
     // Toast methods
     const removeToast = useCallback((id: string) => {
-        setToasts(prev => prev.filter(toast => toast.id !== id));
-
-        // Clear the timeout if it exists
-        if (toastTimeouts.current.has(id)) {
-            clearTimeout(toastTimeouts.current.get(id));
-            toastTimeouts.current.delete(id);
-        }
+        setToasts(prev => {
+            const toast = prev.find(t => t.id === id);
+            
+            if (!toast) return prev;
+            
+            if (toast.count && toast.count > 1) {
+                // If count > 1, just decrement the count
+                return prev.map(t => t.id === id ? { ...t, count: t.count! - 1 } : t);
+            } else {
+                // When removing the toast completely, clean up the timeout
+                if (toastTimeouts.current.has(id)) {
+                    clearTimeout(toastTimeouts.current.get(id));
+                    toastTimeouts.current.delete(id);
+                }
+                
+                // Find and remove any signatures pointing to this id
+                Array.from(recentNotifications.current.entries()).forEach(([key, data]) => {
+                    if (data.id === id) {
+                        recentNotifications.current.delete(key);
+                    }
+                });
+                
+                return prev.filter(t => t.id !== id);
+            }
+        });
     }, []);
 
     const notify = useCallback(({
-                                    type,
-                                    message,
-                                    duration = 5000,
-                                    position = 'top-right'
-                                }: {
+        type,
+        message,
+        duration = 5000,
+        position = 'top-right'
+    }: {
         type: NotificationType;
         message: string;
         duration?: number;
         position?: NotificationPosition;
     }) => {
-        const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-        setToasts(prev => [...prev, { id, type, message, duration, position }]);
-
-        // Auto-remove notification after duration
-        if (duration !== Infinity && duration > 0) {
-            const timeout = setTimeout(() => {
-                removeToast(id);
-            }, duration);
-
-            toastTimeouts.current.set(id, timeout);
+        // Create a stable signature for this notification
+        const signature = hashString(`${type}:${message}:${position}`);
+        const now = Date.now();
+        
+        // Clean up old notification records first (those older than the dedupe window)
+        Array.from(recentNotifications.current.entries()).forEach(([key, data]) => {
+            if (now - data.timestamp > DEDUPE_WINDOW_MS) {
+                recentNotifications.current.delete(key);
+            }
+        });
+        
+        // Check if we have a recent identical notification
+        if (recentNotifications.current.has(signature)) {
+            const existingData = recentNotifications.current.get(signature)!;
+            const existingId = existingData.id;
+            
+            // Update the timestamp to extend the deduplication window
+            recentNotifications.current.set(signature, {
+                id: existingId,
+                timestamp: now
+            });
+            
+            // Increment the count of the existing notification
+            setToasts(prev => 
+                prev.map(toast => 
+                    toast.id === existingId
+                        ? { ...toast, count: (toast.count || 1) + 1 }
+                        : toast
+                )
+            );
+            
+            return existingId;
+        } else {
+            // Create a new notification with a unique ID
+            const newId = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            
+            // Add it to our tracking map
+            recentNotifications.current.set(signature, {
+                id: newId,
+                timestamp: now
+            });
+            
+            // Add the new toast to state
+            setToasts(prev => [
+                ...prev, 
+                { id: newId, type, message, duration, position, count: 1 }
+            ]);
+            
+            // Set auto-removal timeout
+            if (duration !== Infinity && duration > 0) {
+                const timeout = setTimeout(() => {
+                    removeToast(newId);
+                }, duration);
+                
+                toastTimeouts.current.set(newId, timeout);
+            }
+            
+            return newId;
         }
-
-        return id;
-    }, [removeToast]);
+    }, []);
 
     const clearToasts = useCallback(() => {
+        // Clear the toast state
         setToasts([]);
-
+        
         // Clear all timeouts
         toastTimeouts.current.forEach(timeout => clearTimeout(timeout));
         toastTimeouts.current.clear();
+        
+        // Clear notification tracking
+        recentNotifications.current.clear();
     }, []);
 
     // Confirmation methods

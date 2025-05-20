@@ -39,7 +39,7 @@
 }
 
 .hero-description {
-    color: var(--muted);
+    color: var(--muted-background);
     font-size: 1.25rem;
     margin-bottom: 2rem;
     max-width: 32rem;

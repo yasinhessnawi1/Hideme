@@ -1,6 +1,7 @@
 // src/services/batchEncryptionService.ts
 import { encryptData, decryptData, deriveKey, base64UrlDecode } from '../../utils/encryptionUtils';
 import authService from '../database-backend-services/authService';
+import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 
 /**
  * API key interface
@@ -46,7 +47,7 @@ export class BatchEncryptionService {
             console.log('[BatchEncryptionService] Initialized successfully');
         } catch (error) {
             console.error('[BatchEncryptionService] Initialization failed:', error);
-            throw error;
+            throw new Error(mapBackendErrorToMessage(error));
         }
     }
 
@@ -184,7 +185,7 @@ export class BatchEncryptionService {
                 encryptedData?.length > 100 ?
                 `${encryptedData.substring(0, 50)}...${encryptedData.substring(encryptedData.length - 50)}` :
                 encryptedData);
-            throw new Error(`Decryption failed: ${error.message}`);
+            throw new Error(mapBackendErrorToMessage(error));
         }
     }
 
