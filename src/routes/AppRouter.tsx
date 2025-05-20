@@ -19,6 +19,7 @@ import UserSettingsPage from "../pages/dynamic-pages/SettingsPage";
 import ProtectedRoute from './ProtectedRoute';
 import { useUserContext } from '../contexts/UserContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import MiroPage from "../pages/static-pages/Miro";
 
 /**
  * Main router component that defines all application routes
@@ -116,6 +117,7 @@ const AppRouter = (): JSX.Element => {
             <Route path="/how-to" element={<HowToPage />} />
             <Route path="/features" element={<FeaturesPage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/miro" element={<MiroPage />} />
 
             {/* Fallback route */}
             <Route path="*" element={<Navigate to="/" replace />} />

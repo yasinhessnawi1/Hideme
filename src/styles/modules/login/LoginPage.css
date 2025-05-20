@@ -181,7 +181,7 @@ LOGIN PAGE STYLES
 
 /* Forgot password */
 .forgot-password {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   color: var(--muted-foreground);
   text-decoration: underline;
   transition: color 0.2s ease;
