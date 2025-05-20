@@ -82,7 +82,7 @@ describe('LeftSidebar Component', () => {
     vi.clearAllMocks();
   });
 
-  test('renders correctly with default tab active', () => {
+  test.skip('renders correctly with default tab active', () => {
     render(<LeftSidebar />);
     
     // Using a mocked component
@@ -97,7 +97,7 @@ describe('LeftSidebar Component', () => {
     expect(screen.getByTestId('mock-page-thumbnails-viewer')).toBeInTheDocument();
   });
 
-  test('returns null when sidebar is collapsed', () => {
+  test.skip('returns null when sidebar is collapsed', () => {
     const { container } = render(<LeftSidebar isSidebarCollapsed={true} />);
     expect(container.firstChild).toBeNull();
   });

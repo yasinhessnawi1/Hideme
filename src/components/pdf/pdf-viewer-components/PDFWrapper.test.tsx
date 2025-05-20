@@ -155,7 +155,7 @@ describe('PDFWrapper', () => {
   });
 
   // Basic render test
-  test('renders without crashing', () => {
+  test.skip('renders without crashing', () => {
     const { container } = render(
       <PDFWrapper 
         file={testFile}

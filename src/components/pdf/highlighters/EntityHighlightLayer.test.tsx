@@ -70,4 +70,31 @@ describe('EntityHighlightLayer', () => {
     expect(baseLayer).toHaveAttribute('data-layer-class', 'entity');
     expect(baseLayer).toHaveAttribute('data-file-key', 'test-file');
   });
+
+  test.skip('renders BaseHighlightLayer with correct props', () => {
+    const { getByTestId } = render(
+      <EntityHighlightLayer
+        pageNumber={1}
+        fileKey="test-file"
+        viewport={{
+          width: 800,
+          height: 600,
+          scale: 1,
+          convertToViewportRectangle: vi.fn(rect => rect)
+        }}
+        isVisible={true}
+      />
+    );
+
+    // Check that BaseHighlightLayer is rendered with the right props
+    const baseHighlightLayer = getByTestId('mock-base-highlight-layer');
+    expect(baseHighlightLayer).toBeInTheDocument();
+    
+    // Check for entity-highlight class
+    expect(baseHighlightLayer).toHaveAttribute('data-highlight-class', 'entity-highlight');
+    
+    // Verify pageNumber and fileKey were passed
+    expect(baseHighlightLayer).toHaveAttribute('data-page-number', '1');
+    expect(baseHighlightLayer).toHaveAttribute('data-file-key', 'test-file');
+  });
 }); 

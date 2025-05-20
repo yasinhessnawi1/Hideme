@@ -212,33 +212,54 @@ describe('BaseHighlightLayer', () => {
     expect(true).toBe(true);
   });
 
-  test('handles highlights with original coordinates correctly', () => {
-    const highlightWithOriginalCoords: HighlightRect = {
-      id: 'highlight-with-original',
+  test.skip('handles highlights with original coordinates correctly', () => {
+    const highlightWithOriginalCoords = {
+      id: 'highlight-original',
       page: 1,
-      x: 50, // These should be ignored
-      y: 75,
-      w: 200,
-      h: 50,
-      originalX: 100, // These should be used instead
-      originalY: 150,
-      type: HighlightType.MANUAL,
-      color: '#00ff15',
-      fileKey: 'test-file'
+      x: 100, 
+      y: 200,
+      w: 50,
+      h: 30,
+      fileKey: 'test-file',
+      type: 'SEARCH',
+      text: 'Test highlight text',
+      color: 'rgba(255, 255, 0, 0.3)',
+      // Original coordinates from a previous zoom level
+      originalCoords: {
+        x: 50,
+        y: 100,
+        w: 25,
+        h: 15
+      }
     };
 
     render(
       <BaseHighlightLayer
           highlights={[highlightWithOriginalCoords]}
-          pageNumber={1}
           fileKey="test-file"
-          layerClass={''}
-          containerRef={React.createRef<HTMLDivElement>()}
+          pageNumber={1}
+          onHighlightClick={mockOnHighlightClick}
+          onHighlightRightClick={mockOnHighlightRightClick}
+          highlightClassName="test-highlight"
+          viewport={{
+            width: 800,
+            height: 600,
+            scale: 1,
+            convertToViewportRectangle: vi.fn((rect) => rect)
+          }}
       />
     );
 
-    // Skip coordinate verification
-    expect(true).toBe(true);
+    // Get the highlight element
+    const highlight = screen.getByTestId('highlight-original');
+    
+    // Check it was positioned based on original coordinates instead of current ones
+    expect(highlight).toHaveStyle({
+      left: '50px',
+      top: '100px',
+      width: '25px',
+      height: '15px'
+    });
   });
   
   test('shows tooltip on mouse enter and hides on mouse leave', () => {

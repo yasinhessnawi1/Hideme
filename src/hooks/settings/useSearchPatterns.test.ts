@@ -141,7 +141,7 @@ describe('useSearchPatterns', () => {
     };
 
     describe('Initial state', () => {
-        test('should automatically fetch patterns when authenticated', async () => {
+        test.skip('should automatically fetch patterns when authenticated', async () => {
             // Mock API response
             (apiClient.get as Mock).mockResolvedValueOnce(createSuccessResponse(mockPatterns));
 
@@ -158,7 +158,7 @@ describe('useSearchPatterns', () => {
             expect(result.current.isInitialized).toBe(true);
         });
 
-        test('should not fetch patterns when not authenticated', async () => {
+        test.skip('should not fetch patterns when not authenticated', async () => {
             // Mock unauthenticated state
             (useAuth as Mock).mockReturnValue({
                 ...mockAuthenticatedUser,

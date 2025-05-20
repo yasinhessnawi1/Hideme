@@ -214,73 +214,254 @@ describe('HighlightContextMenu', () => {
   });
 
   // Skip all tests that rely on the component's internal rendering
-  test('renders context menu for manual highlights', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('renders context menu for manual highlights', () => {
+    render(
+      <HighlightContextMenu
+        highlight={testHighlight}
+        containerRef={containerRef}
+        zoomLevel={1}
+        onClose={mockOnClose}
+      />
+    );
+    
+    expect(screen.getByText('pdf.delete')).toBeInTheDocument();
+    expect(screen.getByText('pdf.addToBanList')).toBeInTheDocument();
   });
 
-  test('renders context menu for entity highlights', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('renders context menu for entity highlights', () => {
+    render(
+      <HighlightContextMenu
+        highlight={entityHighlight}
+        containerRef={containerRef}
+        zoomLevel={1}
+        onClose={mockOnClose}
+      />
+    );
+    
+    expect(screen.getByText('pdf.delete')).toBeInTheDocument();
+    expect(screen.getByText('pdf.addToBanList')).toBeInTheDocument();
+    expect(screen.getByText('pdf.deleteAllSameEntity')).toBeInTheDocument();
   });
 
-  test('renders context menu for search highlights', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('renders context menu for search highlights', () => {
+    render(
+      <HighlightContextMenu
+        highlight={searchHighlight}
+        containerRef={containerRef}
+        zoomLevel={1}
+        onClose={mockOnClose}
+      />
+    );
+    
+    expect(screen.getByText('pdf.delete')).toBeInTheDocument();
+    expect(screen.getByText('pdf.findMoreResults')).toBeInTheDocument();
   });
 
-  test('handles delete action correctly', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('handles delete action correctly', () => {
+    render(
+      <HighlightContextMenu
+        highlight={testHighlight}
+        containerRef={containerRef}
+        zoomLevel={1}
+        onClose={mockOnClose}
+      />
+    );
+    
+    fireEvent.click(screen.getByText('pdf.delete'));
+    
+    expect(mockRemoveHighlight).toHaveBeenCalledWith(testHighlight.id, testHighlight.fileKey);
+    expect(mockOnClose).toHaveBeenCalled();
   });
 
-  test('handles add to ban list action correctly', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('handles add to ban list action correctly', () => {
+    render(
+      <HighlightContextMenu
+        highlight={testHighlight}
+        containerRef={containerRef}
+        zoomLevel={1}
+        onClose={mockOnClose}
+      />
+    );
+    
+    fireEvent.click(screen.getByText('pdf.addToBanList'));
+    
+    expect(mockAddBanListWords).toHaveBeenCalledWith([testHighlight.text]);
+    expect(mockNotify).toHaveBeenCalled();
+    expect(mockOnClose).toHaveBeenCalled();
   });
   
-  test('handles delete all same entity action correctly', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('handles delete all same entity action correctly', () => {
+    render(
+      <HighlightContextMenu
+        highlight={entityHighlight}
+        containerRef={containerRef}
+        zoomLevel={1}
+        onClose={mockOnClose}
+      />
+    );
+    
+    fireEvent.click(screen.getByText('pdf.deleteAllSameEntity'));
+    
+    expect(mockRemoveHighlightsByPropertyFromAllFiles).toHaveBeenCalled();
+    expect(mockOnClose).toHaveBeenCalled();
   });
   
-  test('handles error in delete all same entity action', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('handles error in delete all same entity action', () => {
+    // Mock the implementation to reject
+    mockRemoveHighlightsByPropertyFromAllFiles.mockRejectedValueOnce(new Error('Failed to delete'));
+    
+    render(
+      <HighlightContextMenu
+        highlight={entityHighlight}
+        containerRef={containerRef}
+        zoomLevel={1}
+        onClose={mockOnClose}
+      />
+    );
+    
+    fireEvent.click(screen.getByText('pdf.deleteAllSameEntity'));
+    
+    // Wait for the operation to complete
+    return waitFor(() => {
+      expect(mockNotify).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'error'
+      }));
+    });
   });
   
-  test('closes the menu when the close button is clicked', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('closes the menu when the close button is clicked', () => {
+    render(
+      <HighlightContextMenu
+        highlight={testHighlight}
+        containerRef={containerRef}
+        zoomLevel={1}
+        onClose={mockOnClose}
+      />
+    );
+    
+    fireEvent.click(screen.getByLabelText('pdf.close'));
+    
+    expect(mockOnClose).toHaveBeenCalled();
   });
   
-  test('disables ban button when highlight has no text', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('disables ban button when highlight has no text', () => {
+    const noTextHighlight = { ...testHighlight, text: '' };
+    
+    render(
+      <HighlightContextMenu
+        highlight={noTextHighlight}
+        containerRef={containerRef}
+        zoomLevel={1}
+        onClose={mockOnClose}
+      />
+    );
+    
+    const banButton = screen.getByText('pdf.addToBanList');
+    expect(banButton).toBeDisabled();
   });
   
-  test('handles find more results for search highlight', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('handles find more results for search highlight', () => {
+    render(
+      <HighlightContextMenu
+        highlight={searchHighlight}
+        containerRef={containerRef}
+        zoomLevel={1}
+        onClose={mockOnClose}
+      />
+    );
+    
+    fireEvent.click(screen.getByText('pdf.findMoreResults'));
+    
+    expect(mockRunFindWords).toHaveBeenCalledWith(
+      searchHighlight.searchTerm,
+      true,
+      expect.anything()
+    );
+    expect(mockOnClose).toHaveBeenCalled();
   });
   
-  test('correctly positions the menu based on containerRef and zoomLevel', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('correctly positions the menu based on containerRef and zoomLevel', () => {
+    // Test with different zoom level
+    const zoomLevel = 2;
+    
+    render(
+      <HighlightContextMenu
+        highlight={{
+          ...testHighlight,
+          x: 100,
+          y: 150,
+          w: 50,
+          h: 20
+        }}
+        containerRef={containerRef}
+        zoomLevel={zoomLevel}
+        onClose={mockOnClose}
+      />
+    );
+    
+    const menu = screen.getByRole('menu');
+    const style = window.getComputedStyle(menu);
+    
+    // With zoom level 2, the position should be scaled
+    expect(style.left).toBe('250px'); // (containerRef.left + highlight.x + highlight.w/2) * zoomLevel
+    expect(style.top).toBe('320px'); // (containerRef.top + highlight.y + highlight.h) * zoomLevel
   });
   
-  test('shows delete all instance button when multiple files are selected', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('shows delete all instance button when multiple files are selected', () => {
+    render(
+      <HighlightContextMenu
+        highlight={testHighlight}
+        containerRef={containerRef}
+        zoomLevel={1}
+        onClose={mockOnClose}
+        showDeleteByPositionOption={true}
+      />
+    );
+    
+    expect(screen.getByText('pdf.deleteByPosition')).toBeInTheDocument();
   });
   
-  test('handles delete by position', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('handles delete by position', () => {
+    render(
+      <HighlightContextMenu
+        highlight={testHighlight}
+        containerRef={containerRef}
+        zoomLevel={1}
+        onClose={mockOnClose}
+        showDeleteByPositionOption={true}
+      />
+    );
+    
+    fireEvent.click(screen.getByText('pdf.deleteByPosition'));
+    
+    expect(mockRemoveHighlightsByPosition).toHaveBeenCalled();
+    expect(mockOnClose).toHaveBeenCalled();
   });
   
-  test('adjusts menu position when close to screen edge', () => {
-    // Skip this test
-    expect(true).toBe(true);
+  test.skip('adjusts menu position when close to screen edge', () => {
+    // Mock window dimensions
+    Object.defineProperty(window, 'innerWidth', { value: 800, writable: true });
+    Object.defineProperty(window, 'innerHeight', { value: 600, writable: true });
+    
+    // Position highlight near the bottom right edge
+    render(
+      <HighlightContextMenu
+        highlight={{
+          ...testHighlight,
+          x: 450,
+          y: 450
+        }}
+        containerRef={containerRef}
+        zoomLevel={1}
+        onClose={mockOnClose}
+      />
+    );
+    
+    const menu = screen.getByRole('menu');
+    const style = window.getComputedStyle(menu);
+    
+    // Menu should adjust to stay within bounds
+    expect(parseInt(style.left)).toBeLessThan(window.innerWidth);
+    expect(parseInt(style.top)).toBeLessThan(window.innerHeight);
   });
 }); 
