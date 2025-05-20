@@ -28,8 +28,12 @@
     //   "@components/*": ["components/*"]
     // }
   },
-  "include": ["src",
-    "src/types/*.ts", "src/types/*.d.ts"
+  "include": [
+    "src",
+    "src/types/*.ts",
+    "src/types/*.d.ts",
+    "node_modules/vitest/globals.d.ts",
+    "setup.ts"
   ],
   "exclude": ["node_modules", "dist"]
 }
