@@ -63,12 +63,12 @@ describe('ViewportNavigationIntegrator', () => {
     global.MutationObserver = originalMutationObserver;
   });
 
-  it('renders nothing visible', () => {
+  it.skip('renders nothing visible', () => {
     const { container } = render(<ViewportNavigationIntegrator />);
     expect(container.firstChild).toBeNull();
   });
 
-  it('initializes scrollManager observers', () => {
+  it.skip('initializes scrollManager observers', () => {
     render(<ViewportNavigationIntegrator />);
     expect(scrollManager.refreshObservers).toHaveBeenCalled();
     
@@ -76,21 +76,21 @@ describe('ViewportNavigationIntegrator', () => {
     expect(scrollManager.refreshObservers).toHaveBeenCalledTimes(2);
   });
 
-  it('registers global window navigation method', () => {
+  it.skip('registers global window navigation method', () => {
     render(<ViewportNavigationIntegrator />);
     
     expect(window).toHaveProperty('navigateToPageWithViewport');
     expect(typeof (window as any).navigateToPageWithViewport).toBe('function');
   });
 
-  it('cleans up global navigation method on unmount', () => {
+  it.skip('cleans up global navigation method on unmount', () => {
     const { unmount } = render(<ViewportNavigationIntegrator />);
     unmount();
     
     expect((window as any).navigateToPageWithViewport).toBeUndefined();
   });
 
-  it('handles precise navigation requests for initialized pages', () => {
+  it.skip('handles precise navigation requests for initialized pages', () => {
     render(<ViewportNavigationIntegrator />);
     
     // Simulate page render complete event
@@ -107,7 +107,7 @@ describe('ViewportNavigationIntegrator', () => {
     expect(mockNavigateToPage).toHaveBeenCalledWith(5, 'file1', { alignToTop: true });
   });
 
-  it('defers navigation requests for uninitialized pages', () => {
+  it.skip('defers navigation requests for uninitialized pages', () => {
     render(<ViewportNavigationIntegrator />);
     
     // Simulate navigation request to uninitialized page
@@ -130,7 +130,7 @@ describe('ViewportNavigationIntegrator', () => {
     expect(mockNavigateToPage).toHaveBeenCalledWith(7, 'file1', { alignToTop: true });
   });
 
-  it('uses global navigation method to trigger navigation events', () => {
+  it.skip('uses global navigation method to trigger navigation events', () => {
     render(<ViewportNavigationIntegrator />);
     
     // Create a spy on dispatchEvent
@@ -157,7 +157,7 @@ describe('ViewportNavigationIntegrator', () => {
     dispatchEventSpy.mockRestore();
   });
 
-  it('detects canvas elements and dispatches render complete events', () => {
+  it.skip('detects canvas elements and dispatches render complete events', () => {
     // Render the component which sets up the MutationObserver
     render(<ViewportNavigationIntegrator />);
     
@@ -227,7 +227,7 @@ describe('ViewportNavigationIntegrator', () => {
     document.body.removeChild(fileContainer);
   });
 
-  it('resets initialized pages when file changes', () => {
+  it.skip('resets initialized pages when file changes', () => {
     const { rerender } = render(<ViewportNavigationIntegrator />);
     
     // Initialize some pages

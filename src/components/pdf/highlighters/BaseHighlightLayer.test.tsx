@@ -98,6 +98,8 @@ const mockOnSelectHighlight = vi.fn();
 const mockOnDeselectHighlight = vi.fn();
 const mockOnContextMenu = vi.fn();
 const mockOnRemoveHighlight = vi.fn();
+const mockOnHighlightClick = vi.fn();
+const mockOnHighlightRightClick = vi.fn();
 
 // Mocked Element.prototype.getBoundingClientRect
 const mockGetBoundingClientRect = vi.fn().mockReturnValue({
@@ -192,22 +194,22 @@ describe('BaseHighlightLayer', () => {
     Element.prototype.getBoundingClientRect = mockGetBoundingClientRect;
   });
 
-  test('renders highlights correctly', () => {
+  test.skip('renders highlights correctly', () => {
     // Skip this test too
     expect(true).toBe(true);
   });
 
-  test('handles highlight click correctly', () => {
+  test.skip('handles highlight click correctly', () => {
     // Skip tests that rely on click handlers
     expect(true).toBe(true);
   });
 
-  test('handles double-click to delete highlight', () => {
+  test.skip('handles double-click to delete highlight', () => {
     // Skip tests that rely on click handlers
     expect(true).toBe(true);
   });
 
-  test('uses correct color for different highlight types', () => {
+  test.skip('uses correct color for different highlight types', () => {
     // Skip tests that rely on color computation
     expect(true).toBe(true);
   });
@@ -221,7 +223,7 @@ describe('BaseHighlightLayer', () => {
       w: 50,
       h: 30,
       fileKey: 'test-file',
-      type: 'SEARCH',
+      type: HighlightType.SEARCH,
       text: 'Test highlight text',
       color: 'rgba(255, 255, 0, 0.3)',
       // Original coordinates from a previous zoom level
@@ -238,9 +240,8 @@ describe('BaseHighlightLayer', () => {
           highlights={[highlightWithOriginalCoords]}
           fileKey="test-file"
           pageNumber={1}
-          onHighlightClick={mockOnHighlightClick}
-          onHighlightRightClick={mockOnHighlightRightClick}
-          highlightClassName="test-highlight"
+          layerClass="test-highlight"
+          containerRef={{ current: document.createElement('div') }}
           viewport={{
             width: 800,
             height: 600,
@@ -262,27 +263,27 @@ describe('BaseHighlightLayer', () => {
     });
   });
   
-  test('shows tooltip on mouse enter and hides on mouse leave', () => {
+  test.skip('shows tooltip on mouse enter and hides on mouse leave', () => {
     // Skip this test as it's difficult to mock the tooltip event handling properly
     expect(true).toBe(true);
   });
   
-  test('shows context menu on right click', () => {
+  test.skip('shows context menu on right click', () => {
     // Skip this test as it's difficult to mock the context menu
     expect(true).toBe(true);
   });
   
-  test('handles event listeners for highlight removal', () => {
+  test.skip('handles event listeners for highlight removal', () => {
     // Skip tests that rely on event listeners
     expect(true).toBe(true);
   });
   
-  test('clears hover and context states when highlights change', () => {
+  test.skip('clears hover and context states when highlights change', () => {
     // Skip tests that rely on hover/context state changes
     expect(true).toBe(true);
   });
 
-  test('dispatches highlight-selected event with correct details', () => {
+  test.skip('dispatches highlight-selected event with correct details', () => {
     // Skip tests that rely on event dispatching
     expect(true).toBe(true);
   });

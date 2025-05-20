@@ -10,6 +10,7 @@ import {
 
 // Mock isUint8Array function since it's not directly exported
 const isUint8Array = (data: any): boolean => {
+    if (data === null || data === undefined) return false;
     return data && data.constructor && data.constructor.name === 'Uint8Array';
 };
 
@@ -95,6 +96,15 @@ describe('encryptionUtils', () => {
     });
 
     describe('isUint8Array', () => {
+        it('should correctly identify Uint8Array', () => {
+            expect(isUint8Array(new Uint8Array([1, 2, 3]))).toBe(true);
+            expect(isUint8Array('string')).toBe(false);
+            expect(isUint8Array(null)).toBe(false);
+            expect(isUint8Array(undefined)).toBe(false);
+            expect(isUint8Array({})).toBe(false);
+            expect(isUint8Array([])).toBe(false);
+            expect(isUint8Array(new Int8Array([1, 2, 3]))).toBe(false);
+        });
     });
 
     describe('encryptData', () => {

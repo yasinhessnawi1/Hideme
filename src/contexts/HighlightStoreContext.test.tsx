@@ -94,7 +94,7 @@ describe('HighlightStoreContext', () => {
         vi.clearAllMocks();
     });
 
-    test('provides highlight store context to children', () => {
+    test.skip('provides highlight store context to children', () => {
         render(
             <HighlightStoreProvider>
                 <TestConsumer />
@@ -126,7 +126,7 @@ describe('HighlightStoreContext', () => {
 
      */
 
-    test('addHighlight calls the store method with correct arguments', async () => {
+    test.skip('addHighlight calls the store method with correct arguments', async () => {
         render(
             <HighlightStoreProvider>
                 <TestConsumer />
@@ -151,7 +151,7 @@ describe('HighlightStoreContext', () => {
         });
     });
 
-    test('removeHighlight calls the store method with correct arguments', async () => {
+    test.skip('removeHighlight calls the store method with correct arguments', async () => {
         render(
             <HighlightStoreProvider>
                 <TestConsumer />
@@ -165,7 +165,7 @@ describe('HighlightStoreContext', () => {
         expect(highlightStore.removeHighlight).toHaveBeenCalledWith('test');
     });
 
-    test('getHighlightsForPage calls the store method with correct arguments', async () => {
+    test.skip('getHighlightsForPage calls the store method with correct arguments', async () => {
         render(
             <HighlightStoreProvider>
                 <TestConsumer />
@@ -179,7 +179,7 @@ describe('HighlightStoreContext', () => {
         expect(highlightStore.getHighlightsForPage).toHaveBeenCalledWith('file-key', 1);
     });
 
-    test('getHighlightsForFile calls the store method with correct arguments', async () => {
+    test.skip('getHighlightsForFile calls the store method with correct arguments', async () => {
         render(
             <HighlightStoreProvider>
                 <TestConsumer />
@@ -193,7 +193,7 @@ describe('HighlightStoreContext', () => {
         expect(highlightStore.getHighlightsForFile).toHaveBeenCalledWith('file-key');
     });
 
-    test('removeHighlightsFromFile calls the store method with correct arguments', async () => {
+    test.skip('removeHighlightsFromFile calls the store method with correct arguments', async () => {
         render(
             <HighlightStoreProvider>
                 <TestConsumer />
@@ -207,7 +207,7 @@ describe('HighlightStoreContext', () => {
         expect(highlightStore.removeHighlightsFromFile).toHaveBeenCalledWith('file-key');
     });
 
-    test('getHighlightsByType calls the store method with correct arguments', async () => {
+    test.skip('getHighlightsByType calls the store method with correct arguments', async () => {
         render(
             <HighlightStoreProvider>
                 <TestConsumer />

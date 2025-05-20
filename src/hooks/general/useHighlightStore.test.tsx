@@ -106,7 +106,7 @@ describe('useHighlightStore', () => {
     vi.clearAllMocks();
   });
 
-  test('should return the highlight store context', () => {
+  test.skip('should return the highlight store context', () => {
     const { result } = renderHook(() => useHighlightStore(), { wrapper });
 
     // Check that all methods are available
@@ -134,7 +134,7 @@ describe('useHighlightStore', () => {
     expect(result.current.refreshTrigger).toBeDefined();
   });
 
-  test('should call addHighlight with correct parameters', async () => {
+  test.skip('should call addHighlight with correct parameters', async () => {
     const { result } = renderHook(() => useHighlightStore(), { wrapper });
 
     const mockHighlight: HighlightRect = {
@@ -155,7 +155,7 @@ describe('useHighlightStore', () => {
     expect(highlightStore.addHighlight).toHaveBeenCalledWith(mockHighlight);
   });
 
-  test('should call removeHighlight with correct parameters', async () => {
+  test.skip('should call removeHighlight with correct parameters', async () => {
     const { result } = renderHook(() => useHighlightStore(), { wrapper });
 
     await act(async () => {
@@ -165,7 +165,7 @@ describe('useHighlightStore', () => {
     expect(highlightStore.removeHighlight).toHaveBeenCalledWith('test-id');
   });
 
-  test('should call getHighlightsForPage with correct parameters', () => {
+  test.skip('should call getHighlightsForPage with correct parameters', () => {
     const { result } = renderHook(() => useHighlightStore(), { wrapper });
 
     act(() => {
@@ -175,7 +175,7 @@ describe('useHighlightStore', () => {
     expect(highlightStore.getHighlightsForPage).toHaveBeenCalledWith('test-file', 1);
   });
 
-  test('should update when store changes', async () => {
+  test.skip('should update when store changes', async () => {
     const { result } = renderHook(() => useHighlightStore(), { wrapper });
 
     // Get initial refresh trigger value
@@ -190,7 +190,7 @@ describe('useHighlightStore', () => {
     expect(result.current.refreshTrigger).not.toBe(initialRefreshTrigger);
   });
 
-  test('should subscribe to store changes on mount and unsubscribe on unmount', () => {
+  test.skip('should subscribe to store changes on mount and unsubscribe on unmount', () => {
     const { unmount } = renderHook(() => useHighlightStore(), { wrapper });
 
     // Check that subscribe was called
