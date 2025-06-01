@@ -199,7 +199,7 @@ export default function EntitySettings() {
 
     // --- Save Changes ---
     const handleSaveChanges = useCallback(async () => {
-            startLoading('setting.entity');
+        startLoading('setting.entity');
         notify({
             message: t('settings', 'saving'),
             type: 'info',
@@ -214,7 +214,7 @@ export default function EntitySettings() {
             const geminiEntitiesToSave = entitiesToOptions(selectedGemini, geminiOptions);
             const hidemeEntitiesToSave = entitiesToOptions(selectedHideme, hidemeOptions);
 
-            // Use the shared hook to save entity settings
+            // Use the shared hook to save entity settings - this won't throw errors anymore
             await replaceModelEntities(METHOD_ID_MAP.presidio, presidioEntitiesToSave);
             await replaceModelEntities(METHOD_ID_MAP.gliner, glinerEntitiesToSave);
             await replaceModelEntities(METHOD_ID_MAP.gemini, geminiEntitiesToSave);
@@ -234,18 +234,27 @@ export default function EntitySettings() {
                 }
             }));
 
-            notify({
-                message: t('entityDetection', 'settingsSaved'),
-                type: 'success',
-                duration: 3000
-            });
+            // Check if there was an error set during any of the operations
+            if (saveError) {
+                notify({
+                    message: t('entityDetection', 'settingsSavedWithWarnings') + `: ${saveError}`,
+                    type: 'warning',
+                    duration: 5000
+                });
+            } else {
+                notify({
+                    message: t('entityDetection', 'settingsSaved'),
+                    type: 'success',
+                    duration: 3000
+                });
+            }
         } catch (err: any) {
+            console.error("Error saving entity settings:", err);
             notify({
                 message: t('entityDetection', 'errorSavingSettings') + (err?.message ? `: ${mapBackendErrorToMessage(err)}` : ''),
                 type: 'error',
                 duration: 3000
             });
-            console.error("Error saving entity settings:", err);
         } finally {
             stopLoading('setting.entity');
         }
@@ -258,7 +267,8 @@ export default function EntitySettings() {
         clearError,
         startLoading,
         stopLoading,
-        entitiesToOptions
+        entitiesToOptions,
+        saveError
     ]);
 
     // UI components
