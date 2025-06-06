@@ -22,6 +22,12 @@
     // OutDir
     "outDir": "dist", // or "build" if you prefer
 
+    // PWA Types
+    "types": [
+      "vite/client",
+      "vite-plugin-pwa/client"
+    ]
+
     // BaseUrl / Paths (Optional)
     // "baseUrl": "./src",
     // "paths": {
@@ -32,6 +38,7 @@
     "src",
     "src/types/*.ts",
     "src/types/*.d.ts",
+    "src/types/**/*",
     "node_modules/vitest/globals.d.ts",
     "setup.ts"
   ],

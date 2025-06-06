@@ -5,8 +5,8 @@
  * where needed. It integrates with the authentication context to determine user state
  * and handles redirects for authenticated and unauthenticated routes.
  */
-import React, { JSX, useEffect, useState } from 'react'
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import React, {JSX, useEffect, useState} from 'react'
+import {Navigate, Route, Routes} from 'react-router-dom'
 import LandingPage from '../pages/static-pages/LandingPage'
 import LoginPage from '../pages/dynamic-pages/LoginPage'
 import ForgotPasswordPage from '../pages/dynamic-pages/ForgotPasswordPage'
@@ -17,8 +17,9 @@ import FeaturesPage from "../pages/static-pages/FeaturesPage";
 import AboutPage from "../pages/static-pages/AboutPage";
 import UserSettingsPage from "../pages/dynamic-pages/SettingsPage";
 import ProtectedRoute from './ProtectedRoute';
-import { useUserContext } from '../contexts/UserContext';
-import { useLanguage } from '../contexts/LanguageContext';
+import MobileRestrictedRoute from './MobileRestrictedRoute';
+import {useUserContext} from '../contexts/UserContext';
+import {useLanguage} from '../contexts/LanguageContext';
 import MiroPage from "../pages/static-pages/Miro";
 
 /**
@@ -28,6 +29,7 @@ import MiroPage from "../pages/static-pages/Miro";
  * - Public routes that are always accessible
  * - Authentication routes with redirects when already logged in
  * - Protected routes that require authentication
+ * - Mobile-restricted routes for desktop-only features
  * - Fallback route for unmatched paths
  *
  * @returns {JSX.Element} The configured router component
@@ -93,12 +95,14 @@ const AppRouter = (): JSX.Element => {
                 }
             />
 
-            {/* Protected route that requires authentication */}
+            {/* Protected route that requires authentication and desktop access */}
             <Route
                 path="/playground"
                 element={
                     <ProtectedRoute>
-                        <PDFViewerPage />
+                        <MobileRestrictedRoute feature="PDF editing and redaction features">
+                            <PDFViewerPage/>
+                        </MobileRestrictedRoute>
                     </ProtectedRoute>
                 }
             />

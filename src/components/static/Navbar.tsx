@@ -1,16 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import {Link, redirect, useNavigate} from 'react-router-dom'
-import { Menu, LogOut, Settings } from 'lucide-react'
+import React, {useEffect, useRef, useState} from 'react'
+import {motion} from 'framer-motion'
+import {Link, useNavigate} from 'react-router-dom'
+import {LogOut, Menu, Settings} from 'lucide-react'
 import "../../styles/components/Navbar.css"
 import "../../styles/components/LanguageSwitcher.css"
-import { Button } from "../common"
+import {Button} from "../common"
 import LanguageSwitcher from '../common/LanguageSwitcher'
 
 import TrueFocus from './TrueFocus';
 import {useUserContext} from "../../contexts/UserContext";
-import { useNotification } from "../../contexts/NotificationContext";
-import { useLanguage } from '../../contexts/LanguageContext';
+import {useNotification} from "../../contexts/NotificationContext";
+import {useLanguage} from '../../contexts/LanguageContext';
+import {useMobileDetection} from '../../hooks/useMobileDetection';
 
 
 export default function Navbar() {
@@ -18,6 +19,7 @@ export default function Navbar() {
     const { isAuthenticated, logout , user , isLoading } = useUserContext()
     const { notify } = useNotification();
     const { t } = useLanguage();
+    const {isMobile} = useMobileDetection();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -54,6 +56,17 @@ export default function Navbar() {
         }
     }
 
+    const handlePlaygroundClick = (e: React.MouseEvent) => {
+        if (isMobile) {
+            e.preventDefault()
+            notify({
+                message: 'Playground requires desktop access. Please use a computer or laptop.',
+                type: 'warning',
+                duration: 5000
+            });
+        }
+    }
+
     return (
         <motion.nav initial={{ y: -100 }} animate={{ y: 0 }} className="navbar">
             <Link to="/"  className="logo">
@@ -73,7 +86,15 @@ export default function Navbar() {
                 <NavLink to="/how-to">{t('common', 'howItWorks')}</NavLink>
                 <NavLink to="/about">{t('common', 'about')}</NavLink>
                 {isAuthenticated && user ? (
-                    <NavLink to="/playground">{t('common', 'playground')}</NavLink>
+                    <NavLink
+                        to="/playground"
+                        onClick={handlePlaygroundClick}
+                        className={isMobile ? 'mobile-restricted' : ''}
+                        title={isMobile ? 'Desktop access required' : ''}
+                    >
+                        {t('common', 'playground')}
+                        {isMobile && <span style={{marginLeft: '4px', fontSize: '12px'}}>💻</span>}
+                    </NavLink>
                 ) : null}
             </div>
 
@@ -144,9 +165,15 @@ export default function Navbar() {
     )
 }
 
-function NavLink({ to, children }: Readonly<{ to: string; children: React.ReactNode }>) {
+function NavLink({to, children, onClick, className, title}: Readonly<{
+    to: string;
+    children: React.ReactNode;
+    onClick?: (e: React.MouseEvent) => void;
+    className?: string;
+    title?: string;
+}>) {
     return (
-        <Link to={to} className="nav-link">
+        <Link to={to} className={`nav-link ${className || ''}`} onClick={onClick} title={title}>
             {children}
         </Link>
     )
