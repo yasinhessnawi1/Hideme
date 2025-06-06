@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { IconType } from 'react-icons';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {FaUndo} from 'react-icons/fa';
 import '../../styles/modules/pdf/Toolbar.css';
-import { useLanguage } from '../../contexts/LanguageContext';
+import {useLanguage} from '../../contexts/LanguageContext';
 
 export type ToolbarSectionAlignment = 'left' | 'center' | 'right';
 
@@ -292,7 +292,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
       <ToolbarButton
         label={"fitToPage"}
         title={"fitToPage"}
-        icon={<></>}
+        icon={<FaUndo/>}
         onClick={handleZoomReset}
       />
     </>

@@ -12,9 +12,10 @@
  * - Supports forced refresh when needed
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, {AxiosInstance, AxiosRequestConfig, AxiosResponse} from 'axios';
 import authService from '../database-backend-services/authService';
-import { mapBackendErrorToMessage } from '../../utils/errorUtils';
+import {mapBackendErrorToMessage} from '../../utils/errorUtils';
+
 export const API_URL = 'https://goapi.hidemeai.com/api';
 //export const API_URL = 'http://localhost:8080/api';
 
@@ -120,53 +121,53 @@ class ApiCacheService {
                         data: error.response?.data
                     });
                 }
-                /*
-                // If error is 401 Unauthorized and we haven't tried to refresh yet
-                if (error.response?.status === 401 && !originalRequest._retry) {
-                    if (this.debugMode) {
-                        console.log(`[ApiCache] Token expired, attempting to refresh for ${originalRequest.url}`);
-                    }
 
-                    originalRequest._retry = true;
+                // Handle 401 (Unauthorized) and 429 (Too Many Requests) by logging out the user
+                if (error.response?.status === 401 || error.response?.status === 429) {
+                    if (this.debugMode) {
+                        console.warn(`[ApiCache] Received ${error.response.status} status, logging out user`);
+                    }
 
                     try {
-                        // Try to refresh the token
-                        const refreshResponse = await authService.refreshToken();
-                        const newToken = refreshResponse.data.access_token;
-
-                        if (!newToken) {
-                            throw new Error('Refresh token request did not return a new token');
-                        }
-
-                        // Set the new token in the header
-                        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-
-                        if (this.debugMode) {
-                            console.log(`[ApiCache] Token refreshed successfully, retrying ${originalRequest.url}`);
-                        }
-
-                        // Retry the original request with the new token
-                        return this.client(originalRequest);
-                    } catch (refreshError) {
-                        if (this.debugMode) {
-                            console.error('[ApiCache] Token refresh failed:', refreshError);
-                        }
-
-                        // If refresh fails, redirect to login page with expired flag
+                        // Clear authentication state
                         authService.clearToken();
-                        // Redirect can be handled by the app's router instead of direct window.location
-                        // window.location.href = '/login?expired=true';
+
+                        // Clear the entire cache to remove any stale data
+                        this.clearCache();
+
+                        // Cancel all pending requests
+                        this.cancelAllRequests();
+
+                        // Clear any additional stored state (localStorage, sessionStorage)
+                        localStorage.clear();
+                        
+                        if (this.debugMode) {
+                            console.log(`[ApiCache] User logged out due to ${error.response.status} status`);
+                        }
 
                         // Dispatch a custom event that the app can listen for
-                        window.dispatchEvent(new CustomEvent('auth:session-expired', {
-                            detail: { originalUrl: originalRequest?.url }
+                        const eventType = error.response.status === 401 ? 'auth:session-expired' : 'auth:too-many-requests';
+                        window.dispatchEvent(new CustomEvent(eventType, {
+                            detail: {
+                                originalUrl: originalRequest?.url,
+                                status: error.response.status,
+                                message: error.response.status === 401
+                                    ? 'Your session has expired. Please log in again.'
+                                    : 'Too many requests. Please log in again.'
+                            }
                         }));
 
-                        return Promise.reject(error);
+                        // For immediate redirect (can be disabled if app handles the event)
+                        setTimeout(() => {
+                            if (window.location.pathname !== '/login' && !window.location.pathname.includes('/auth')) {
+                                window.location.href = '/login?expired=true';
+                            }
+                        }, 100);
+
+                    } catch (logoutError) {
+                        console.error('[ApiCache] Error during forced logout:', logoutError);
                     }
                 }
-
-                 */
 
                 return Promise.reject(error);
             }

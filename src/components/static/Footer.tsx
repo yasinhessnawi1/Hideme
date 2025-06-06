@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useLanguage } from '../../contexts/LanguageContext';
+import React, {useEffect, useState} from 'react';
+import {useLanguage} from '../../contexts/LanguageContext';
 import '../../styles/components/Footer.css';
-import { Link } from 'react-router-dom';
+import {Link} from 'react-router-dom';
 
 const Footer = () => {
   const { t } = useLanguage();
@@ -27,7 +27,7 @@ const Footer = () => {
           <ul className="footer-links">
             <li><Link to="/">{t('common', 'hideMe')}</Link></li>
             <li><Link to="/features">{t('common', 'features')}</Link></li>
-            <li><Link to="/how-it-works">{t('common', 'howItWorks')}</Link></li>
+              <li><Link to="/how-to">{t('common', 'howItWorks')}</Link></li>
             <li><Link to="/about">{t('common', 'about')}</Link></li>
           </ul>
         </div>

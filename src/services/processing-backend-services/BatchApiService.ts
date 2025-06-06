@@ -1,12 +1,12 @@
 // Modified BatchApiService.ts
-import { apiRequest } from '../api-services/apiService';
-import { RedactionMapping } from '../../types';
-import { getFileKey } from '../../contexts/PDFViewerContext';
-import { createRedactionRequest } from "../../utils/redactionUtils";
+import {apiRequest} from '../api-services/apiService';
+import {RedactionMapping} from '../../types';
+import {getFileKey} from '../../contexts/PDFViewerContext';
+import {createRedactionRequest} from "../../utils/redactionUtils";
 import JSZip from 'jszip';
 import batchEncryptionService from '../api-services/batchEncryptionService';
 import authService from '../database-backend-services/authService';
-import { mapBackendErrorToMessage } from '../../utils/errorUtils';
+import {mapBackendErrorToMessage} from '../../utils/errorUtils';
 
 // Base API URL - ensure this is consistent across services
 const API_BASE_URL = 'https://api.hidemeai.com';
@@ -247,6 +247,46 @@ export async function batchRedactPdfs(
         });
 
         if (!response.ok) {
+            // Handle 401 (Unauthorized) and 429 (Too Many Requests) by logging out the user
+            if (response.status === 401 || response.status === 429) {
+                console.warn(`[BatchApiService] Received ${response.status} status, logging out user`);
+
+                try {
+                    // Import authService for logout (we'll need to add the import at the top)
+                    const {default: authService} = await import('../database-backend-services/authService');
+
+                    // Clear authentication state
+                    authService.clearToken();
+
+                    // Clear any additional stored state
+                    localStorage.clear();
+
+                    console.log(`[BatchApiService] User logged out due to ${response.status} status`);
+
+                    // Dispatch a custom event that the app can listen for
+                    const eventType = response.status === 401 ? 'auth:session-expired' : 'auth:too-many-requests';
+                    window.dispatchEvent(new CustomEvent(eventType, {
+                        detail: {
+                            originalUrl: `${API_BASE_URL}/batch/redact`,
+                            status: response.status,
+                            message: response.status === 401
+                                ? 'Your session has expired. Please log in again.'
+                                : 'Too many requests. Please log in again.'
+                        }
+                    }));
+
+                    // For immediate redirect (can be disabled if app handles the event)
+                    setTimeout(() => {
+                        if (window.location.pathname !== '/login' && !window.location.pathname.includes('/auth')) {
+                            window.location.href = '/login?expired=true';
+                        }
+                    }, 100);
+
+                } catch (logoutError) {
+                    console.error('[BatchApiService] Error during forced logout:', logoutError);
+                }
+            }
+
             const errorText = await response.text();
             console.error('[BatchApiService] Redaction failed:', errorText);
             let errorPayload;
