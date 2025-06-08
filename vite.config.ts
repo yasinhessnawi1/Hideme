@@ -29,7 +29,7 @@ export default defineConfig({
             },
             includeAssets: ['favicon.ico', 'app_images/ios/180.png', 'app_images/android/*'],
             manifest: {
-                name: 'Hide Me - PDF Redaction Tool',
+                name: 'Hide Me AI',
                 short_name: 'HideMe',
                 description: 'An advanced PDF redaction and sensitive information removal tool',
                 theme_color: '#ffffff',

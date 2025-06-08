@@ -1,8 +1,8 @@
-import { useCallback, useState, useRef } from 'react';
-import { RedactionMapping } from '../../types';
+import {useCallback, useState, useRef} from 'react';
+import {RedactionMapping} from '../../types';
 import {batchHybridDetect, batchRedactPdfs, findWords} from '../../services/processing-backend-services/BatchApiService';
-import { BatchSearchService } from '../../services/processing-backend-services/BatchSearchService';
-import { getFileKey } from '../../contexts/PDFViewerContext';
+import {BatchSearchService} from '../../services/processing-backend-services/BatchSearchService';
+import {getFileKey} from '../../contexts/PDFViewerContext';
 
 /**
  * Hook for calling PDF-related API endpoints with state management

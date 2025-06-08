@@ -10,7 +10,7 @@
 
 /* Hero Section */
 .features-hero {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #1a1a2e 100%);
     color: white;
     padding: var(--spacing-xxl) 0;
     text-align: center;
@@ -26,7 +26,12 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+    background: linear-gradient(
+        135deg,
+        rgba(255,255,255,0.05) 0%,
+        rgba(255,255,255,0.1) 50%,
+        rgba(255,255,255,0.05) 100%
+    );
     pointer-events: none;
 }
 
@@ -43,7 +48,10 @@
     font-weight: var(--font-weight-bold);
     margin-bottom: var(--spacing-md);
     animation: fadeIn 0.8s ease-out;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    color: white;
+    position: relative;
+    z-index: 2;
 }
 
 .features-hero p {
@@ -51,10 +59,13 @@
     line-height: 1.6;
     margin-bottom: var(--spacing-lg);
     animation: fadeIn 1s ease-out;
-    opacity: 0.9;
+    color: rgba(255,255,255,0.9);
     max-width: 700px;
     margin-left: auto;
     margin-right: auto;
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
 @keyframes fadeIn {
@@ -117,15 +128,59 @@
     line-height: 1.6;
 }
 
+/* Tool Categories */
+.tools-categories {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xxl);
+}
+
+.tools-category {
+    animation: categoryFadeIn 0.8s ease-out;
+}
+
+@keyframes categoryFadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.tools-category h3 {
+    font-size: 1.75rem;
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--spacing-lg);
+    text-align: center;
+    color: var(--primary);
+    position: relative;
+    padding-bottom: var(--spacing-sm);
+}
+
+.tools-category h3::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+    border-radius: 3px;
+}
+
 /* Tools Grid */
 .tools-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: var(--spacing-lg);
-    margin-top: var(--spacing-xl);
+    margin-top: var(--spacing-md);
 }
 
 @media (min-width: 1024px) {
+    .tools-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1200px) {
     .tools-grid {
         grid-template-columns: repeat(3, 1fr);
     }

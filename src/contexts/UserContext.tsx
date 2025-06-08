@@ -1,6 +1,7 @@
 import React, {createContext, useContext, useMemo, useEffect} from 'react';
 import {useAuth} from '../hooks/auth/useAuth';
 import {useSettings} from '../hooks/settings/useSettings';
+import {useAutoLogout} from '../hooks/useAutoLogout';
 import {
     AccountDeletion,
     BanListWithWords,
@@ -106,6 +107,9 @@ const UserContextProvider: React.FC<{ children: React.ReactNode }> = ({children}
         //user context
         setUser, setIsAuthenticated, setIsLoading, setError,
     } = useAuth();
+
+    // Initialize auto-logout functionality
+    useAutoLogout();
 
     const {
         settings,

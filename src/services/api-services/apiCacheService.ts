@@ -122,6 +122,80 @@ class ApiCacheService {
                     });
                 }
 
+                // Check for CORS errors (these typically don't have a response status)
+                if (!error.response && error.message) {
+                    const isCorsError = error.message.includes('CORS') || 
+                                       error.message.includes('Cross-Origin') ||
+                                       error.message.includes('cors') ||
+                                       error.message.includes('cross-origin') ||
+                                       error.code === 'ERR_NETWORK' ||
+                                       (error.message.includes('Network Error') && originalRequest?.url?.includes('/auth/'));
+
+                    if (isCorsError) {
+                        if (this.debugMode) {
+                            console.warn('[ApiCache] CORS error detected, logging out user');
+                        }
+
+                        try {
+                            // Clear authentication state
+                            authService.clearToken();
+
+                            // Clear the entire cache to remove any stale data
+                            this.clearCache();
+
+                            // Cancel all pending requests
+                            this.cancelAllRequests();
+
+                            // Clear only specific auth-related localStorage items
+                            localStorage.removeItem('user_data');
+                            localStorage.removeItem('access_token');
+                            localStorage.removeItem('auth_state');
+
+                            if (this.debugMode) {
+                                console.log('[ApiCache] User logged out due to CORS error');
+                            }
+
+                            // Dispatch CORS error event
+                            window.dispatchEvent(new CustomEvent('auth:cors-error', {
+                                detail: {
+                                    originalUrl: originalRequest?.url,
+                                    message: 'CORS error detected. Please log in again.',
+                                    error: error.message,
+                                    timestamp: Date.now()
+                                }
+                            }));
+
+                            // Also dispatch network error event for additional handling
+                            window.dispatchEvent(new CustomEvent('auth:network-error', {
+                                detail: {
+                                    originalUrl: originalRequest?.url,
+                                    message: error.message,
+                                    error: error.message,
+                                    timestamp: Date.now()
+                                }
+                            }));
+
+                            // For immediate redirect
+                            setTimeout(() => {
+                                if (window.location.pathname !== '/login' && !window.location.pathname.includes('/auth')) {
+                                    window.location.href = '/login?cors=true';
+                                }
+                            }, 100);
+
+                        } catch (logoutError) {
+                            console.error('[ApiCache] Error during CORS-triggered logout:', logoutError);
+                            // Even if logout fails, ensure we redirect to login
+                            setTimeout(() => {
+                                if (window.location.pathname !== '/login' && !window.location.pathname.includes('/auth')) {
+                                    window.location.href = '/login?error=true';
+                                }
+                            }, 100);
+                        }
+
+                        return Promise.reject(error);
+                    }
+                }
+
                 // Handle 401 (Unauthorized) and 429 (Too Many Requests) by logging out the user
                 if (error.response?.status === 401 || error.response?.status === 429) {
                     if (this.debugMode) {
@@ -138,34 +212,54 @@ class ApiCacheService {
                         // Cancel all pending requests
                         this.cancelAllRequests();
 
-                        // Clear any additional stored state (localStorage, sessionStorage)
-                        localStorage.clear();
+                        // Clear only specific auth-related localStorage items instead of clearing everything
+                        localStorage.removeItem('user_data');
+                        localStorage.removeItem('access_token');
+                        localStorage.removeItem('auth_state');
                         
                         if (this.debugMode) {
                             console.log(`[ApiCache] User logged out due to ${error.response.status} status`);
                         }
 
-                        // Dispatch a custom event that the app can listen for
+                        // Dispatch multiple custom events for redundancy
                         const eventType = error.response.status === 401 ? 'auth:session-expired' : 'auth:too-many-requests';
-                        window.dispatchEvent(new CustomEvent(eventType, {
+                        const eventDetail = {
+                            originalUrl: originalRequest?.url,
+                            status: error.response.status,
+                            message: error.response.status === 401
+                                ? 'Your session has expired. Please log in again.'
+                                : 'Too many requests. Please log in again.',
+                            timestamp: Date.now()
+                        };
+
+                        // Dispatch the specific event
+                        window.dispatchEvent(new CustomEvent(eventType, { detail: eventDetail }));
+                        
+                        // Also dispatch a general axios error event for the useAutoLogout hook
+                        window.dispatchEvent(new CustomEvent('auth:axios-error', { 
                             detail: {
-                                originalUrl: originalRequest?.url,
-                                status: error.response.status,
-                                message: error.response.status === 401
-                                    ? 'Your session has expired. Please log in again.'
-                                    : 'Too many requests. Please log in again.'
+                                ...eventDetail,
+                                config: originalRequest,
+                                response: error.response
                             }
                         }));
 
                         // For immediate redirect (can be disabled if app handles the event)
                         setTimeout(() => {
                             if (window.location.pathname !== '/login' && !window.location.pathname.includes('/auth')) {
-                                window.location.href = '/login?expired=true';
+                                const targetPath = error.response.status === 429 ? '/login?ratelimited=true' : '/login?expired=true';
+                                window.location.href = targetPath;
                             }
                         }, 100);
 
                     } catch (logoutError) {
                         console.error('[ApiCache] Error during forced logout:', logoutError);
+                        // Even if logout fails, ensure we redirect to login
+                        setTimeout(() => {
+                            if (window.location.pathname !== '/login' && !window.location.pathname.includes('/auth')) {
+                                window.location.href = '/login?error=true';
+                            }
+                        }, 100);
                     }
                 }
 

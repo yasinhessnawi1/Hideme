@@ -115,11 +115,17 @@ const WorkflowExplainer = ({ sections }: { sections: WorkflowSectionData[] }) =>
 
 const HowToPage = () => {
     const { t } = useLanguage();
+    const [feedbackGiven, setFeedbackGiven] = useState<'yes' | 'no' | null>(null);
     
     // Helper function to get translation or fallback
     const getTranslation = (key: string, fallback: string): string => {
         // Type assertion to handle any keys
         return t('howto', key as any) || fallback;
+    };
+
+    // Handle feedback submission
+    const handleFeedback = (feedback: 'yes' | 'no') => {
+        setFeedbackGiven(feedback);
     };
     
     // Define the workflow sections
@@ -330,13 +336,14 @@ const HowToPage = () => {
         <div className="how-to-page">
             <Navbar />
 
-            <div className="how-to-container">
-                <div className="how-to-header">
+            <div className="how-to-hero">
+                <div className="how-to-hero-content">
                     <h1>{t('howto', 'howToRedactTitle')}</h1>
-                    <p className="how-to-description">
-                        {t('howto', 'howToRedactDescription')}
-                    </p>
+                    <p>{t('howto', 'howToRedactDescription')}</p>
                 </div>
+            </div>
+
+            <div className="how-to-container">
 
                 <div className="workflow-section">
                     <h2>{getTranslation('workflowTitle', 'How HideMeAI Works')}</h2>
@@ -363,6 +370,12 @@ const HowToPage = () => {
                                 icon={feature.icon}
                             />
                         ))}
+                    </div>
+
+                    <div className="view-more-features">
+                        <a href="/features" className="view-more-button">
+                            View All Features
+                        </a>
                     </div>
                 </div>
 
@@ -396,11 +409,43 @@ const HowToPage = () => {
                 </div>
                 
                 <div className="how-to-feedback">
-                    <h2>{t('howto', 'wasThisGuideHelpful')}</h2>
-                    <div className="feedback-buttons">
-                        <button className="feedback-button">👍 {t('howto', 'yes')}</button>
-                        <button className="feedback-button">👎 {t('howto', 'no')}</button>
-                    </div>
+                    {!feedbackGiven ? (
+                        <>
+                            <h2>{t('howto', 'wasThisGuideHelpful')}</h2>
+                            <div className="feedback-buttons">
+                                <button 
+                                    className="feedback-button" 
+                                    onClick={() => handleFeedback('yes')}
+                                >
+                                    👍 {t('howto', 'yes')}
+                                </button>
+                                <button 
+                                    className="feedback-button" 
+                                    onClick={() => handleFeedback('no')}
+                                >
+                                    👎 {t('howto', 'no')}
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="feedback-thank-you">
+                            <div className="thank-you-icon">
+                                {feedbackGiven === 'yes' ? '🎉' : '💭'}
+                            </div>
+                            <h2>
+                                {feedbackGiven === 'yes' 
+                                    ? getTranslation('thankYouPositive', 'Thank you for your positive feedback!')
+                                    : getTranslation('thankYouNegative', 'Thank you for your feedback!')
+                                }
+                            </h2>
+                            <p>
+                                {feedbackGiven === 'yes'
+                                    ? getTranslation('positiveMessage', 'We\'re glad this guide was helpful to you.')
+                                    : getTranslation('negativeMessage', 'We appreciate your input and will work to improve this guide.')
+                                }
+                            </p>
+                        </div>
+                    )}
                 </div>
                
             </div>

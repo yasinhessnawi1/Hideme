@@ -7,6 +7,63 @@
     flex-direction: column;
 }
 
+/* Hero Section */
+.how-to-hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #1a1a2e 100%);
+    color: white;
+    padding: var(--spacing-xxl) 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+.how-to-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        135deg,
+        rgba(255,255,255,0.05) 0%,
+        rgba(255,255,255,0.1) 50%,
+        rgba(255,255,255,0.05) 100%
+    );
+    pointer-events: none;
+}
+
+.how-to-hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-md);
+    position: relative;
+    z-index: 1;
+}
+
+.how-to-hero h1 {
+    font-size: 3rem;
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--spacing-md);
+    animation: fadeIn 0.8s ease-out;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    color: white;
+    position: relative;
+    z-index: 2;
+}
+
+.how-to-hero p {
+    font-size: var(--font-size-lg);
+    line-height: 1.6;
+    margin-bottom: var(--spacing-lg);
+    animation: fadeIn 1s ease-out;
+    color: rgba(255,255,255,0.9);
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
 .how-to-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -14,25 +71,7 @@
     width: 100%;
 }
 
-.how-to-header {
-    margin-bottom: var(--spacing-xl);
-    animation: fadeIn 0.6s ease-out;
-}
 
-.how-to-header h1 {
-    font-size: 2.5rem;
-    font-weight: var(--font-weight-bold);
-    color: var(--foreground);
-    margin-bottom: var(--spacing-md);
-    line-height: 1.2;
-}
-
-.how-to-description {
-    font-size: var(--font-size-lg);
-    color: var(--muted-foreground);
-    max-width: 800px;
-    line-height: 1.6;
-}
 
 /* Workflow Section */
 .workflow-section,
@@ -236,6 +275,43 @@
     grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
     gap: var(--spacing-lg);
     margin-top: var(--spacing-xl);
+}
+
+.view-more-features {
+    text-align: center;
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-lg);
+}
+
+.view-more-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: white;
+    text-decoration: none;
+    padding: 0.875rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.view-more-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -3px rgba(37, 99, 235, 0.3);
+    text-decoration: none;
+    color: white;
+}
+
+.view-more-button::after {
+    content: '→';
+    transition: transform 0.3s ease;
+}
+
+.view-more-button:hover::after {
+    transform: translateX(4px);
 }
 
 .feature-walkthrough {
@@ -476,6 +552,47 @@
     color: var(--primary-foreground);
 }
 
+.feedback-thank-you {
+    text-align: center;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.thank-you-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+    animation: bounceIn 0.6s ease-out;
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.feedback-thank-you h2 {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.feedback-thank-you p {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-md);
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
 /* Animation Keyframes */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
@@ -498,8 +615,12 @@
         padding: var(--spacing-lg);
     }
 
-    .how-to-header h1 {
-        font-size: 2rem;
+    .how-to-hero h1 {
+        font-size: 2.25rem;
+    }
+
+    .how-to-hero p {
+        font-size: var(--font-size-md);
     }
 
     .resource-cards {
@@ -521,8 +642,8 @@
         padding: var(--spacing-md);
     }
 
-    .how-to-header h1 {
-        font-size: 1.75rem;
+    .how-to-hero h1 {
+        font-size: 2rem;
     }
 
     .feedback-buttons {

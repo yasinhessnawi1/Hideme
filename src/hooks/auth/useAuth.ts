@@ -344,78 +344,8 @@ export const useAuth = (): UseAuthReturn => {
         };
     }, [isAuthenticated]);
 
-    /**
-     * Listen for forced logout events from API interceptor
-     */
-    useEffect(() => {
-        const handleSessionExpired = (event: CustomEvent) => {
-            console.log("[useAuth] Handling session expired event:", event.detail);
-
-            // Clear authentication state
-            setUser(null);
-            setIsAuthenticated(false);
-            setIsLoading(false);
-
-            // Clear stored data
-            localStorage.removeItem('user_data');
-            authStateManager.clearState();
-
-            // Reset verification tracking
-            verificationRef.current.completed = false;
-            verificationRef.current.lastVerified = 0;
-
-            // Show notification
-            notify({
-                message: event.detail.message || t('auth', 'sessionExpired'),
-                type: 'error',
-                duration: 5000
-            });
-
-            // Navigate to login if not already there
-            if (window.location.pathname !== '/login' && !window.location.pathname.includes('/auth')) {
-                navigate('/login?expired=true');
-            }
-        };
-
-        const handleTooManyRequests = (event: CustomEvent) => {
-            console.log("[useAuth] Handling too many requests event:", event.detail);
-
-            // Clear authentication state
-            setUser(null);
-            setIsAuthenticated(false);
-            setIsLoading(false);
-
-            // Clear stored data
-            localStorage.removeItem('user_data');
-            authStateManager.clearState();
-
-            // Reset verification tracking
-            verificationRef.current.completed = false;
-            verificationRef.current.lastVerified = 0;
-
-            // Show notification
-            notify({
-                message: event.detail.message || t('auth', 'sessionExpired'),
-                type: 'error',
-                duration: 5000
-            });
-
-            // Navigate to login if not already there
-            if (window.location.pathname !== '/login' && !window.location.pathname.includes('/auth')) {
-                navigate('/login?ratelimited=true');
-            }
-        };
-
-        // Add event listeners
-        window.addEventListener('auth:session-expired', handleSessionExpired as EventListener);
-        window.addEventListener('auth:too-many-requests', handleTooManyRequests as EventListener);
-
-        // Cleanup on unmount
-        return () => {
-            window.removeEventListener('auth:session-expired', handleSessionExpired as EventListener);
-            window.removeEventListener('auth:too-many-requests', handleTooManyRequests as EventListener);
-        };
-    }, [navigate, notify, t]);
+    // Note: Session expired and too many requests events are now handled by useAutoLogout hook
+    // This avoids duplicate event handling and provides a centralized logout mechanism
 
     /**
      * Log in with username/email and password

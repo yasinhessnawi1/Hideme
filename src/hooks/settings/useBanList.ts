@@ -9,10 +9,10 @@
  * This hook depends on the auth hook for authentication state.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import {useState, useCallback, useEffect, useRef} from 'react';
 import useAuth from '../auth/useAuth';
 import apiClient from '../../services/api-services/apiClient';
-import { BanListWithWords } from '../../types';
+import {BanListWithWords} from '../../types';
 import authStateManager from '../../managers/authStateManager';
 
 export interface UseBanListReturn {

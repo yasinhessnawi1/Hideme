@@ -91,6 +91,48 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
         }
     } catch (err: any) {
         console.error('[apiRequest] Error:', err);
+        
+        // Check for network/CORS errors that might indicate auth issues
+        if (err.message && (err.message.includes('fetch') || err.message.includes('NetworkError') || 
+                           err.message.includes('CORS') || err.message.includes('Cross-Origin'))) {
+            console.warn('[apiService] Network/CORS error detected, potentially logging out user');
+            
+            // Only log out for auth-related endpoints to avoid false positives
+            if (url.includes('/auth/') || url.includes('/verify') || url.includes('/refresh')) {
+                try {
+                    // Clear authentication state
+                    authService.clearToken();
+
+                    // Clear only specific auth-related localStorage items
+                    localStorage.removeItem('user_data');
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('auth_state');
+
+                    console.log('[apiService] User logged out due to network/CORS error on auth endpoint');
+
+                    // Dispatch CORS error event
+                    window.dispatchEvent(new CustomEvent('auth:cors-error', {
+                        detail: {
+                            originalUrl: url,
+                            message: 'Network/CORS error detected. Please log in again.',
+                            error: err.message,
+                            timestamp: Date.now()
+                        }
+                    }));
+
+                    // For immediate redirect
+                    setTimeout(() => {
+                        if (window.location.pathname !== '/login' && !window.location.pathname.includes('/auth')) {
+                            window.location.href = '/login?cors=true';
+                        }
+                    }, 100);
+
+                } catch (logoutError) {
+                    console.error('[apiService] Error during CORS-triggered logout:', logoutError);
+                }
+            }
+        }
+        
         throw new Error(mapBackendErrorToMessage(err));
     }
 }

@@ -11,15 +11,15 @@
  * This hook depends on the auth hook for authentication state.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import {useState, useCallback, useEffect, useRef} from 'react';
 import useAuth from '../auth/useAuth';
 import apiClient from '../../services/api-services/apiClient';
-import { UserSettings, UserSettingsUpdate } from '../../types';
+import {UserSettings, UserSettingsUpdate} from '../../types';
 import authStateManager from '../../managers/authStateManager';
-import { SettingsExport } from './useDocument';
+import {SettingsExport} from './useDocument';
 import authService from '../../services/database-backend-services/authService';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { mapBackendErrorToMessage } from '../../utils/errorUtils';
+import {useLanguage} from '../../contexts/LanguageContext';
+import {mapBackendErrorToMessage} from '../../utils/errorUtils';
 
 export interface UseSettingsReturn {
     // User settings state

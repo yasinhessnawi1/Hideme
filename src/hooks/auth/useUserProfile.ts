@@ -10,7 +10,7 @@
  * This hook depends on the core authentication hook for user state.
  */
 
-import { useState, useCallback } from 'react';
+import {useState, useCallback} from 'react';
 import useAuth from './useAuth';
 import userService, {
     UserUpdate,
@@ -19,11 +19,11 @@ import userService, {
     ActiveSession
 } from '../../services/database-backend-services/userService';
 import apiClient from '../../services/api-services/apiClient';
-import { User } from '../../types';
+import {User} from '../../types';
 import authStateManager from '../../managers/authStateManager';
 import authService from '../../services/database-backend-services/authService';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { mapBackendErrorToMessage } from '../../utils/errorUtils';
+import {useLanguage} from '../../contexts/LanguageContext';
+import {mapBackendErrorToMessage} from '../../utils/errorUtils';
 
 export interface UseUserProfileReturn {
     // User state (from auth hook)

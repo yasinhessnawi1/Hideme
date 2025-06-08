@@ -10,12 +10,12 @@
  * This hook depends on the auth hook for authentication state.
  */
 
-import { useState, useCallback, useRef } from 'react';
+import {useState, useCallback, useRef} from 'react';
 import useAuth from '../auth/useAuth';
 import apiClient from '../../services/api-services/apiClient';
-import { ModelEntity, ModelEntityBatch, OptionType } from '../../types';
+import {ModelEntity, ModelEntityBatch, OptionType} from '../../types';
 import authStateManager from '../../managers/authStateManager';
-import { mapBackendErrorToMessage } from '../../utils/errorUtils';
+import {mapBackendErrorToMessage} from '../../utils/errorUtils';
 
 export interface UseEntityDefinitionsReturn {
     // Entity definitions state

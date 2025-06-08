@@ -205,38 +205,138 @@ const FeaturesPage = () => {
                         {t('features', 'toolsSectionDescription')}
                     </p>
 
-                    <div className="tools-grid">
-                        <ToolFeatureCard
-                            title={t('features', 'manualHighlightingTitle')}
-                            icon="✏️"
-                            description={t('features', 'manualHighlightingDescription')}
-                            modes={[t('minimalToolbar', 'textSelection'), t('minimalToolbar', 'rectangular')]}
-                        />
-                        <ToolFeatureCard
-                            title={t('features', 'searchHighlightingTitle')}
-                            icon="🔍"
-                            description={t('features', 'searchHighlightingDescription')}
-                        />
-                        <ToolFeatureCard
-                            title={t('features', 'documentHistoryTitle')}
-                            icon="📋"
-                            description={t('features', 'documentHistoryDescription')}
-                        />
-                        <ToolFeatureCard
-                            title={t('features', 'highlightManipulationTitle')}
-                            icon="🖌️"
-                            description={t('features', 'highlightManipulationDescription')}
-                        />
-                        <ToolFeatureCard
-                            title={t('features', 'inBrowserStorageTitle')}
-                            icon="💾"
-                            description={t('features', 'inBrowserStorageDescription')}
-                        />
-                        <ToolFeatureCard
-                            title={t('features', 'autoProcessingTitle')}
-                            icon="⚡"
-                            description={t('features', 'autoProcessingDescription')}
-                        />
+                    <div className="tools-categories">
+                        <div className="tools-category">
+                            <h3>{t('features', 'coreRedactionTools')}</h3>
+                            <div className="tools-grid">
+                                <ToolFeatureCard
+                                    title={t('features', 'manualHighlightingTitle')}
+                                    icon="✏️"
+                                    description={t('features', 'manualHighlightingDescription')}
+                                    modes={['Text Selection', 'Rectangular']}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'searchHighlightingTitle')}
+                                    icon="🔍"
+                                    description={t('features', 'searchHighlightingDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'imageRedactionTitle')}
+                                    icon="🖼️"
+                                    description={t('features', 'imageRedactionDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'highlightManipulationTitle')}
+                                    icon="🖌️"
+                                    description={t('features', 'highlightManipulationDescription')}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="tools-category">
+                            <h3>{t('features', 'documentManagement')}</h3>
+                            <div className="tools-grid">
+                                <ToolFeatureCard
+                                    title={t('features', 'documentHistoryTitle')}
+                                    icon="📋"
+                                    description={t('features', 'documentHistoryDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'thumbnailNavigationTitle')}
+                                    icon="🖼️"
+                                    description={t('features', 'thumbnailNavigationDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'fullscreenViewTitle')}
+                                    icon="🔳"
+                                    description={t('features', 'fullscreenViewDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'fileManipulationTitle')}
+                                    icon="📄"
+                                    description={t('features', 'fileManipulationDescription')}
+                                    modes={['Save', 'Print', 'Select', 'Delete']}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="tools-category">
+                            <h3>{t('features', 'automationAndSettings')}</h3>
+                            <div className="tools-grid">
+                                <ToolFeatureCard
+                                    title={t('features', 'autoProcessingTitle')}
+                                    icon="⚡"
+                                    description={t('features', 'autoProcessingDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'settingsImportExportTitle')}
+                                    icon="⚙️"
+                                    description={t('features', 'settingsImportExportDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'detectionPrecisionTitle')}
+                                    icon="🎯"
+                                    description={t('features', 'detectionPrecisionDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'accountManagementTitle')}
+                                    icon="👤"
+                                    description={t('features', 'accountManagementDescription')}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="tools-category">
+                            <h3>{t('features', 'accuracyOptimization')}</h3>
+                            <div className="tools-grid">
+                                <ToolFeatureCard
+                                    title={t('features', 'ignoreListTitle')}
+                                    icon="🚫"
+                                    description={t('features', 'ignoreListDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'searchWordsTitle')}
+                                    icon="🔎"
+                                    description={t('features', 'searchWordsDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'customEntityRulesTitle')}
+                                    icon="📝"
+                                    description={t('features', 'customEntityRulesDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'confidenceThresholdTitle')}
+                                    icon="📊"
+                                    description={t('features', 'confidenceThresholdDescription')}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="tools-category">
+                            <h3>{t('features', 'privacyAndStorage')}</h3>
+                            <div className="tools-grid">
+                                <ToolFeatureCard
+                                    title={t('features', 'inBrowserStorageTitle')}
+                                    icon="💾"
+                                    description={t('features', 'inBrowserStorageDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'coordinateOnlyHistoryTitle')}
+                                    icon="📍"
+                                    description={t('features', 'coordinateOnlyHistoryDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'optionalDataPersistenceTitle')}
+                                    icon="🔐"
+                                    description={t('features', 'optionalDataPersistenceDescription')}
+                                />
+                                <ToolFeatureCard
+                                    title={t('features', 'localProcessingTitle')}
+                                    icon="🏠"
+                                    description={t('features', 'localProcessingDescription')}
+                                />
+                            </div>
+                        </div>
                     </div>
                 </section>
 
