@@ -2,13 +2,11 @@ import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import './styles/index.css';
-import './styles/components/LanguageSwitcher.css';
 import App from './App';
 import { pdfjs } from 'react-pdf';
 import ErrorBoundary from "./contexts/ErrorBoundary";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { useLanguage } from './contexts/LanguageContext';
 
 // Make sure to set the worker source before rendering the app
 // and use the correct URL format for Vite

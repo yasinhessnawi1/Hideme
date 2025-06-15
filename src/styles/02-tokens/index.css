@@ -1,0 +1,16 @@
+/*
+==============================================
+DESIGN TOKENS - INDEX
+==============================================
+Imports all design tokens in the correct order.
+These tokens form the foundation of the design system.
+*/
+
+/* Import order is important - more fundamental tokens first */
+@import url('./colors.css');
+@import url('./typography.css');
+@import url('./spacing.css');
+@import url('./borders.css');
+@import url('./shadows.css');
+@import url('./transitions.css');
+@import url('./layout.css'); 

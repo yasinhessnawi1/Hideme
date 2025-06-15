@@ -6,9 +6,9 @@ interface LanguageContextType {
   language: Language;
   setLanguage: (language: Language) => void;
   t: <T extends TranslationKey, K extends NestedTranslationKey<T>>(
-    category: T,
-    key: K,
-    params?: Record<string, string | number>
+      category: string,
+      key: string,
+      params?: Record<string, string | number>
   ) => string;
 }
 

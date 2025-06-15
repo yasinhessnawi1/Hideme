@@ -1,0 +1,22 @@
+/*
+==============================================
+PDF FEATURE STYLES
+==============================================
+Main entry point for all PDF-related styles.
+Organized following the new modular architecture.
+*/
+
+/* ========================================
+   CORE PDF STYLES
+   ======================================== */
+@import './core/index.css';
+
+/* ========================================
+   PDF COMPONENTS
+   ======================================== */
+@import './components/index.css';
+
+/* ========================================
+   PDF LAYOUTS
+   ======================================== */
+@import './layouts/index.css'; 

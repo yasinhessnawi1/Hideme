@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import processingStateService, { ProcessingInfo } from '../../../services/client-services/ProcessingStateService';
-import '../../../styles/modules/pdf/AutoProcessingStatus.css';
 import { XCircle, Loader, CheckCircle, AlertTriangle, Icon } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import Tooltip from '../../common/Tooltip';
 
 /**
  * EntityDetectionStatusViewer component
@@ -103,12 +103,16 @@ const EntityDetectionStatusViewer: React.FC = () => {
                     return (
                         <div key={fileKey} className={`processing-status-item ${statusClass}`}>
                             <div className="processing-status-header">
-                                <div className="processing-file-name" title={fileName}>
-                                    <StatusIcon
-                                        size={16}
-                                        className={`processing-status-icon ${statusClass}`}
-                                    />
-                                    {fileName}
+                                <div className="file-name-container">
+                                    <Tooltip content={fileName}>
+                                        <div className="processing-file-name">
+                                            <StatusIcon
+                                                size={16}
+                                                className={`processing-status-icon ${statusClass}`}
+                                            />
+                                            {fileName.length > 24 ? fileName.substring(0, 21) + '...' : fileName}
+                                        </div>
+                                    </Tooltip>
                                 </div>
                                 <button
                                     className="dismiss-status-button"

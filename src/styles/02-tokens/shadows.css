@@ -1,0 +1,108 @@
+/*
+==============================================
+SHADOW DESIGN TOKENS
+==============================================
+Box shadows for depth and elevation in the UI
+*/
+
+:root {
+    /* ========================================
+       SHADOW SCALE
+       ======================================== */
+
+    /* No shadow */
+    --shadow-none: none;
+
+    /* Inner shadows */
+    --shadow-inner: inset 0 2px 4px 0 rgba(var(--raisin-black-rgb), 0.05);
+    --shadow-inner-lg: inset 0 4px 8px 0 rgba(var(--raisin-black-rgb), 0.1);
+
+    /* Small shadows */
+    --shadow-xs: 0 1px 2px 0 rgba(var(--raisin-black-rgb), 0.05);
+    --shadow-sm: 0 1px 3px 0 rgba(var(--raisin-black-rgb), 0.1), 0 1px 2px -1px rgba(var(--raisin-black-rgb), 0.1);
+
+    /* Medium shadows */
+    --shadow-md: 0 4px 6px -1px rgba(var(--raisin-black-rgb), 0.1), 0 2px 4px -2px rgba(var(--raisin-black-rgb), 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(var(--raisin-black-rgb), 0.1), 0 4px 6px -4px rgba(var(--raisin-black-rgb), 0.1);
+
+    /* Large shadows */
+    --shadow-xl: 0 20px 25px -5px rgba(var(--raisin-black-rgb), 0.1), 0 8px 10px -6px rgba(var(--raisin-black-rgb), 0.1);
+    --shadow-2xl: 0 25px 50px -12px rgba(var(--raisin-black-rgb), 0.25);
+
+    /* ========================================
+       COLORED SHADOWS
+       ======================================== */
+
+    /* Primary colored shadows */
+    --shadow-primary: 0 4px 6px -1px rgba(var(--redwood-rgb), 0.1), 0 2px 4px -2px rgba(var(--redwood-rgb), 0.1);
+    --shadow-primary-lg: 0 10px 15px -3px rgba(var(--redwood-rgb), 0.1), 0 4px 6px -4px rgba(var(--redwood-rgb), 0.1);
+
+    /* Secondary colored shadows */
+    --shadow-secondary: 0 4px 6px -1px rgba(var(--eggplant-rgb), 0.1), 0 2px 4px -2px rgba(var(--eggplant-rgb), 0.1);
+
+    /* Status shadows */
+    --shadow-success: 0 4px 6px -1px rgba(16, 185, 129, 0.1), 0 2px 4px -2px rgba(16, 185, 129, 0.1);
+    --shadow-warning: 0 4px 6px -1px rgba(245, 158, 11, 0.1), 0 2px 4px -2px rgba(245, 158, 11, 0.1);
+    --shadow-error: 0 4px 6px -1px rgba(239, 68, 68, 0.1), 0 2px 4px -2px rgba(239, 68, 68, 0.1);
+
+    /* ========================================
+       INTERACTION SHADOWS
+       ======================================== */
+
+    /* Focus shadows */
+    --shadow-focus: 0 0 0 3px rgba(var(--redwood-rgb), 0.1);
+    --shadow-focus-visible: 0 0 0 2px var(--background), 0 0 0 4px var(--focus);
+
+    /* Hover shadows */
+    --shadow-hover: 0 8px 25px -8px rgba(var(--raisin-black-rgb), 0.15);
+
+    /* Active/pressed shadows */
+    --shadow-active: 0 2px 4px -2px rgba(var(--raisin-black-rgb), 0.1);
+
+    /* ========================================
+       COMPONENT-SPECIFIC SHADOWS
+       ======================================== */
+
+    /* Navigation shadows */
+    --shadow-navbar: 0 1px 3px 0 rgba(var(--raisin-black-rgb), 0.1), 0 1px 2px -1px rgba(var(--raisin-black-rgb), 0.1);
+    --shadow-sidebar: 0 4px 6px -1px rgba(var(--raisin-black-rgb), 0.1), 0 2px 4px -2px rgba(var(--raisin-black-rgb), 0.1);
+
+    /* Card shadows */
+    --shadow-card: var(--shadow-sm);
+    --shadow-card-hover: var(--shadow-md);
+
+    /* Dropdown shadows */
+    --shadow-dropdown: 0 10px 15px -3px rgba(var(--raisin-black-rgb), 0.1), 0 4px 6px -4px rgba(var(--raisin-black-rgb), 0.1);
+
+    /* Modal shadows */
+    --shadow-modal: 0 25px 50px -12px rgba(var(--raisin-black-rgb), 0.25);
+
+    /* Tooltip shadows */
+    --shadow-tooltip: 0 4px 6px -1px rgba(var(--raisin-black-rgb), 0.1), 0 2px 4px -2px rgba(var(--raisin-black-rgb), 0.1);
+
+    /* Hero section shadows */
+    --shadow-hero: 0 10px 15px -3px rgba(var(--raisin-black-rgb), 0.1), 0 4px 6px -4px rgba(var(--raisin-black-rgb), 0.1);
+
+    /* Text shadows */
+    --shadow-text-subtle: 0 1px 4px rgba(var(--raisin-black-rgb), 0.3);
+    --shadow-text-hero: 0 2px 8px rgba(var(--raisin-black-rgb), 0.5);
+}
+
+/* ========================================
+   DARK THEME SHADOWS
+   ======================================== */
+
+[data-theme="dark"] {
+    /* Adjust shadow opacity for dark theme */
+    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+
+    /* Component shadows for dark theme */
+    --shadow-navbar: 0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
+    --shadow-dropdown: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+    --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+} 

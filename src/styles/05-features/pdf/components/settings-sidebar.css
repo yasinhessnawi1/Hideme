@@ -1,0 +1,393 @@
+/*
+==============================================
+SETTINGS SIDEBAR STYLES
+==============================================
+Styles for the unified settings sidebar that combines
+visibility controls and color settings
+*/
+
+/* ========================================
+   COMPACT ELEGANT SETTINGS SIDEBAR
+   ======================================== */
+
+.settings-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding: 0;
+    background: transparent;
+}
+
+/* ========================================
+   SETTINGS SECTIONS
+   ======================================== */
+
+.settings-section {
+    background: rgba(var(--card-rgb), 0.90);
+    border: 1px solid rgba(var(--border-rgb), 0.18);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(4px);
+    transition: box-shadow 0.18s, border-color 0.18s;
+    position: relative;
+    overflow: hidden;
+    animation: fadeInUp 0.4s var(--ease-out);
+}
+
+.settings-section:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 16px 0 rgba(var(--primary-rgb), 0.10);
+}
+
+.settings-section-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+    letter-spacing: 0.01em;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    border-bottom: none;
+}
+
+/* ========================================
+   SETTINGS ITEMS
+   ======================================== */
+
+.settings-item {
+    padding: var(--spacing-xs) 0;
+    margin-bottom: var(--spacing-xs);
+    border-bottom: 1px solid rgba(var(--border-rgb), 0.08);
+}
+
+.settings-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.settings-item:first-child {
+    padding-top: 0;
+}
+
+/* ========================================
+   CHECKBOX CONTROLS
+   ======================================== */
+
+.settings-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    font-size: 0.97rem;
+    font-weight: 500;
+    color: var(--foreground);
+    width: 100%;
+    transition: color 0.18s;
+}
+
+.settings-checkbox-label:hover {
+    color: var(--primary);
+}
+
+.settings-checkbox {
+    width: 1rem;
+    height: 1rem;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border);
+    background: var(--background);
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    appearance: none;
+    margin: 0;
+}
+
+.settings-checkbox:checked {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.settings-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--primary-foreground);
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.settings-checkbox:hover,
+.settings-checkbox:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1.5px rgba(var(--primary-rgb), 0.10);
+    outline: none;
+}
+
+/* ========================================
+   RADIO GROUP CONTROLS
+   ======================================== */
+
+.settings-item-label {
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: var(--font-weight-medium, 500);
+    color: var(--foreground, #374151);
+    margin-bottom: var(--spacing-sm);
+}
+
+.settings-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    width: 100%;
+}
+
+.settings-radio-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--background);
+    cursor: pointer;
+    transition: all 0.18s;
+    font-size: 0.97rem;
+    font-weight: 500;
+    color: var(--foreground);
+}
+
+.settings-radio-item:hover {
+    border-color: var(--primary);
+    background: var(--card-hover);
+    box-shadow: 0 1px 4px 0 rgba(var(--primary-rgb), 0.06);
+}
+
+.settings-radio-item.active {
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: 0 2px 8px 0 rgba(var(--primary-rgb), 0.10);
+}
+
+.settings-radio-item svg {
+    flex-shrink: 0;
+    color: inherit;
+}
+
+/* ========================================
+   COLOR CONTROLS
+   ======================================== */
+
+.settings-color-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 0.97rem;
+    font-weight: 500;
+    color: var(--foreground);
+}
+
+.settings-color-input {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    background: transparent;
+    overflow: hidden;
+    transition: all 0.18s;
+    appearance: none;
+    padding: 0;
+}
+
+.settings-color-input:hover,
+.settings-color-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1.5px rgba(var(--primary-rgb), 0.10);
+    transform: scale(1.04);
+    outline: none;
+}
+
+/* ========================================
+   BUTTON CONTROLS
+   ======================================== */
+
+.settings-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-md);
+}
+
+.settings-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-lg);
+    font-size: 0.98rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s;
+    border: 1px solid transparent;
+    text-align: center;
+    min-height: 2rem;
+    box-shadow: 0 1px 6px 0 rgba(var(--primary-rgb), 0.08);
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    color: var(--primary-foreground);
+    margin-top: var(--spacing-xs);
+}
+
+.settings-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.12);
+}
+
+.settings-button:hover {
+    box-shadow: 0 2px 12px 0 rgba(var(--primary-rgb), 0.12);
+    transform: translateY(-1px) scale(1.01);
+}
+
+.settings-button:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+    .settings-sidebar {
+        gap: var(--spacing-sm);
+    }
+
+    .settings-section {
+        padding: var(--spacing-sm);
+    }
+
+    .settings-section-title {
+        font-size: 0.98rem;
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .settings-item {
+        padding: var(--spacing-xxs) 0;
+        margin-bottom: var(--spacing-xxs);
+    }
+
+    .settings-checkbox {
+        width: 0.9rem;
+        height: 0.9rem;
+    }
+
+    .settings-color-input {
+        width: 1.1rem;
+        height: 1.1rem;
+    }
+
+    .settings-button {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        min-height: 1.6rem;
+        font-size: 0.92rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .settings-section {
+        padding: var(--spacing-xxs);
+    }
+
+    .settings-section-title {
+        font-size: 0.92rem;
+    }
+
+    .settings-button {
+        font-size: 0.85rem;
+        padding: var(--spacing-xxs) var(--spacing-xs);
+    }
+}
+
+/* ========================================
+   DARK MODE SUPPORT
+   ======================================== */
+
+[data-theme="dark"] .settings-section {
+    background: rgba(var(--card-rgb), 0.90);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .settings-section:hover {
+    border-color: var(--primary);
+}
+
+[data-theme="dark"] .settings-section-title {
+    color: var(--foreground);
+}
+
+[data-theme="dark"] .settings-checkbox-label {
+    color: var(--foreground);
+}
+
+[data-theme="dark"] .settings-checkbox {
+    border-color: var(--border);
+    background: var(--background);
+}
+
+[data-theme="dark"] .settings-color-label {
+    color: var(--foreground);
+}
+
+[data-theme="dark"] .settings-color-input {
+    border-color: var(--border);
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .settings-checkbox,
+    .settings-color-input,
+    .settings-button,
+    .settings-section {
+        transition: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .settings-section {
+        border-width: 2px;
+    }
+
+    .settings-checkbox {
+        border-width: 2px;
+    }
+
+    .settings-color-input {
+        border-width: 2px;
+    }
+
+    .settings-button {
+        border-width: 2px;
+    }
+} 

@@ -1,0 +1,32 @@
+/*
+==============================================
+PDF COMPONENTS STYLES
+==============================================
+Reusable PDF UI components using semantic tokens
+*/
+
+/* ========================================
+   UI COMPONENTS
+   ======================================== */
+@import './enhanced-toolbar.css';
+@import './highlights.css';
+@import './overlays.css';
+@import './controls.css';
+@import './utilities.css';
+@import './processing-status.css';
+@import './page-thumbnails.css';
+
+/* ========================================
+   SIDEBAR COMPONENTS
+   ======================================== */
+@import './sidebar-shared.css';
+@import './file-storage-settings.css';
+@import './entity-detection-sidebar.css';
+@import './search-sidebar.css';
+@import './redaction-sidebar.css';
+@import './settings-sidebar.css';
+
+/* ========================================
+   UNIFIED SIDEBAR (must be last to override)
+   ======================================== */
+@import './unified-sidebar.css';

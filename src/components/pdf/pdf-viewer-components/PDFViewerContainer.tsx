@@ -1,10 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import { usePDFViewerContext } from '../../../contexts/PDFViewerContext';
 import MultiPDFViewer from './MultiPDFViewer';
-import '../../../styles/modules/pdf/PdfViewer.css';
-import { useFileContext } from '../../../contexts/FileContext';
-import scrollManager from '../../../services/client-services/ScrollManagerService';
-import { Plus } from 'lucide-react';
+
 /**
  * PDFViewerContainer component
  *

@@ -1,0 +1,171 @@
+/*
+==============================================
+THEME TOGGLE COMPONENT
+==============================================
+Button for switching between light and dark themes
+Refactored to use new design tokens
+*/
+
+.theme-toggle {
+    background: none;
+    border: var(--border-interactive);
+    cursor: pointer;
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-full);
+    transition: var(--transition-button);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--surface);
+    color: var(--foreground-muted);
+    width: var(--size-10);
+    height: var(--size-10);
+    position: relative;
+    overflow: hidden;
+}
+
+/* ========================================
+   THEME TOGGLE STATES
+   ======================================== */
+
+.theme-toggle:hover {
+    transform: scale(1.1) rotate(15deg);
+    background-color: var(--surface-hover);
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: var(--shadow-button-hover);
+}
+
+.theme-toggle:active {
+    transform: scale(0.95) rotate(0deg);
+    box-shadow: var(--shadow-button-active);
+}
+
+.theme-toggle:focus-visible {
+    outline: var(--outline-focus);
+    outline-offset: var(--outline-focus-offset);
+}
+
+/* ========================================
+   THEME ICON
+   ======================================== */
+
+.theme-icon {
+    width: var(--size-5);
+    height: var(--size-5);
+    color: inherit;
+    transition: var(--transition-transform);
+    position: relative;
+    z-index: 1;
+}
+
+.theme-toggle:hover .theme-icon {
+    transform: scale(1.1);
+}
+
+/* ========================================
+   THEME VARIANTS
+   ======================================== */
+
+/* Light theme indicator */
+.theme-toggle[data-theme="light"] {
+    background-color: var(--warning-background, rgba(var(--warning-rgb), 0.1));
+    border-color: var(--warning-alpha, rgba(var(--warning-rgb), 0.3));
+    color: var(--warning);
+}
+
+.theme-toggle[data-theme="light"]:hover {
+    background-color: var(--warning);
+    color: var(--warning-foreground);
+    border-color: var(--warning);
+}
+
+/* Dark theme indicator */
+.theme-toggle[data-theme="dark"] {
+    background-color: var(--info-background, rgba(var(--info-rgb), 0.1));
+    border-color: var(--info-alpha, rgba(var(--info-rgb), 0.3));
+    color: var(--info);
+}
+
+.theme-toggle[data-theme="dark"]:hover {
+    background-color: var(--info);
+    color: var(--info-foreground);
+    border-color: var(--info);
+}
+
+/* ========================================
+   THEME TRANSITION EFFECT
+   ======================================== */
+
+.theme-toggle::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: var(--radius-full);
+    background: var(--gradient-primary);
+    transform: translate(-50%, -50%);
+    transition: var(--transition-transform);
+    z-index: 0;
+    opacity: 0;
+}
+
+.theme-toggle:hover::before {
+    width: 100%;
+    height: 100%;
+    opacity: 0.1;
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .theme-toggle {
+        transition: var(--transition-reduced);
+    }
+
+    .theme-toggle:hover {
+        transform: scale(1.05);
+    }
+
+    .theme-toggle:active {
+        transform: scale(0.98);
+    }
+
+    .theme-icon {
+        transition: var(--transition-reduced);
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .theme-toggle {
+        border-width: 2px;
+    }
+
+    .theme-toggle:hover {
+        outline: 2px solid currentColor;
+        outline-offset: 2px;
+    }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+    .theme-toggle {
+        width: var(--size-9);
+        height: var(--size-9);
+        padding: var(--spacing-xs);
+    }
+
+    .theme-icon {
+        width: var(--size-4);
+        height: var(--size-4);
+    }
+} 

@@ -2,7 +2,6 @@ import React from 'react';
 import { useEditContext } from '../../contexts/EditContext';
 import { useHighlightStore } from '../../contexts/HighlightStoreContext';
 import { HighlightType } from '../../types';
-import '../../styles/modules/pdf/Toolbar.css'; // Assuming shared styles
 import { useFileContext } from '../../contexts/FileContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useBatchSearch } from '../../contexts/SearchContext';

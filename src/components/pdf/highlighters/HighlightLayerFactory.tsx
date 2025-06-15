@@ -1,10 +1,10 @@
 import React, {useEffect, useMemo} from 'react';
-import { useHighlightStore } from '../../../hooks/general/useHighlightStore';
+import {useHighlightStore} from '../../../contexts/HighlightStoreContext';
 import { useEditContext } from '../../../contexts/EditContext';
 import EntityHighlightLayer from './EntityHighlightLayer';
 import ManualHighlightLayer from './ManualHighlightLayer';
 import SearchHighlightLayer from './SearchHighlightLayer';
-import { PDFPageViewport, TextContent, HighlightType, ViewportSize } from '../../../types/pdfTypes';
+import {PDFPageViewport, TextContent, HighlightType, ViewportSize} from '../../../types';
 
 interface HighlightLayerFactoryProps {
     pageNumber: number;

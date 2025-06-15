@@ -1,0 +1,150 @@
+/*
+==============================================
+PROCESSING STATUS STYLES
+==============================================
+Real-time processing feedback and status indicators
+for PDF operations using semantic tokens
+*/
+
+/* Main processing status container */
+.processing-status-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    max-width: 350px;
+    background-color: var(--background);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 0.5rem;
+    z-index: 9000;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border: 1px solid var(--border);
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+}
+
+/* Individual status item */
+.processing-status-message {
+    padding: 0.75rem 1rem;
+    margin: 0.5rem 0;
+    border-radius: var(--border-radius-md);
+    background-color: var(--active-bg);
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+    color: var(--foreground);
+    animation: fade-in 0.3s ease-out;
+    border-left: 3px solid var(--primary);
+}
+
+.processing-status-message.success {
+    border-left-color: var(--success);
+    background-color: rgba(var(--success-rgb), 0.1);
+}
+
+.processing-status-message.error {
+    border-left-color: var(--destructive);
+    background-color: rgba(var(--destructive-rgb), 0.1);
+}
+
+.processing-status-message.warning {
+    border-left-color: var(--warning);
+    background-color: rgba(var(--warning-rgb), 0.1);
+}
+
+/* Progress indicators */
+.processing-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-xs);
+}
+
+.processing-progress-bar {
+    flex: 1;
+    height: 4px;
+    background-color: var(--muted);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.processing-progress-fill {
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    will-change: width;
+}
+
+.processing-progress-text {
+    font-size: var(--font-size-xs);
+    color: var(--muted-foreground);
+    white-space: nowrap;
+}
+
+/* Animation for new status messages */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Loading spinner for active operations */
+.processing-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--muted);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: var(--spacing-xs);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Status container states */
+.processing-status-container.hidden {
+    opacity: 0;
+    transform: translateY(100px);
+    pointer-events: none;
+}
+
+.processing-status-container.empty {
+    display: none;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .processing-status-container {
+        bottom: 1rem;
+        right: 1rem;
+        left: 1rem;
+        max-width: none;
+        width: calc(100% - 2rem);
+    }
+
+    .processing-status-message {
+        padding: 0.5rem 0.75rem;
+        font-size: var(--font-size-xs);
+    }
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .processing-status-container {
+    border-color: var(--border);
+    box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .processing-status-message {
+    background-color: var(--card);
+} 

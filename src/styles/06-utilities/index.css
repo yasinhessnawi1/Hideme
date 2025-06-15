@@ -1,0 +1,34 @@
+/*
+==============================================
+UTILITIES LAYER
+==============================================
+Utility classes for common patterns
+*/
+
+@import './layout.css';
+@import './typography.css';
+
+/*
+==============================================
+UTILITIES LAYER INDEX
+==============================================
+Utility classes for quick styling adjustments
+*/
+
+/* Display Utilities */
+/* TODO: Create display utility classes (show/hide, flex, grid, etc.) */
+
+/* Spacing Utilities */
+/* TODO: Create margin and padding utility classes */
+
+/* Color Utilities */
+/* TODO: Create text and background color utility classes */
+
+/* Typography Utilities */
+/* TODO: Create font size, weight, and alignment utility classes */
+
+/* Layout Utilities */
+/* TODO: Create positioning and sizing utility classes */
+
+/* State Utilities */
+/* TODO: Create hover, focus, and active state utility classes */ 

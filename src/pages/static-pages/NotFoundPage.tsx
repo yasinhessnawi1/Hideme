@@ -3,7 +3,6 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/static/Navbar';
 import Footer from '../../components/static/Footer';
-import '../../styles/NotFoundPage.css';
 
 const NotFoundPage = () => {
     const { t } = useLanguage();

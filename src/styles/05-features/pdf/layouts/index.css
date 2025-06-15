@@ -1,0 +1,13 @@
+/*
+==============================================
+PDF LAYOUTS STYLES
+==============================================
+Layout-specific styles for PDF viewing modes and arrangements
+*/
+
+/* ========================================
+   LAYOUT MODES
+   ======================================== */
+@import './fullscreen.css';
+@import './multi-document.css';
+@import './responsive.css'; 

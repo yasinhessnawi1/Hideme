@@ -1,0 +1,498 @@
+/*
+==============================================
+NOTIFICATIONS COMPONENT
+==============================================
+Toast notifications and confirmation dialogs
+Refactored to use new design tokens
+*/
+
+/* ========================================
+   TOAST CONTAINER
+   ======================================== */
+
+.toast-container {
+    position: fixed;
+    z-index: var(--z-toast);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    max-width: 400px;
+    width: 100%;
+    pointer-events: none; /* Allow clicking through container but not toasts */
+}
+
+/* ========================================
+   TOAST POSITIONING
+   ======================================== */
+
+.toast-top-right {
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
+}
+
+.toast-top-left {
+    top: var(--spacing-lg);
+    left: var(--spacing-lg);
+}
+
+.toast-bottom-right {
+    bottom: var(--spacing-lg);
+    right: var(--spacing-lg);
+}
+
+.toast-bottom-left {
+    bottom: var(--spacing-lg);
+    left: var(--spacing-lg);
+}
+
+.toast-top-center {
+    top: var(--spacing-lg);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.toast-bottom-center {
+    bottom: var(--spacing-lg);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* ========================================
+   TOAST BASE STYLES
+   ======================================== */
+
+.toast {
+    display: flex;
+    align-items: flex-start;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-toast);
+    background-color: var(--background);
+    border: var(--border-default);
+    box-shadow: var(--shadow-toast);
+    pointer-events: auto; /* Make toast clickable */
+    max-width: 100%;
+    transition: var(--transition-toast);
+    backdrop-filter: blur(8px);
+    gap: var(--spacing-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+.toast::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--space-1);
+    background: var(--toast-accent-color, var(--primary));
+    border-radius: var(--radius-full);
+}
+
+/* ========================================
+   TOAST ANIMATIONS
+   ======================================== */
+
+.toast-enter {
+    animation: var(--animation-toast-enter);
+}
+
+.toast-exit {
+    animation: var(--animation-toast-exit);
+}
+
+/* ========================================
+   TOAST TYPE VARIANTS
+   ======================================== */
+
+.toast-success {
+    --toast-accent-color: var(--success);
+    border-color: var(--success-alpha, rgba(var(--success-rgb), 0.2));
+    background-color: var(--success-background, rgba(var(--success-rgb), 0.05));
+}
+
+.toast-error {
+    --toast-accent-color: var(--destructive);
+    border-color: var(--destructive-alpha, rgba(var(--destructive-rgb), 0.2));
+    background-color: var(--destructive-background, rgba(var(--destructive-rgb), 0.05));
+}
+
+.toast-info {
+    --toast-accent-color: var(--info);
+    border-color: var(--info-alpha, rgba(var(--info-rgb), 0.2));
+    background-color: var(--info-background, rgba(var(--info-rgb), 0.05));
+}
+
+.toast-warning {
+    --toast-accent-color: var(--warning);
+    border-color: var(--warning-alpha, rgba(var(--warning-rgb), 0.2));
+    background-color: var(--warning-background, rgba(var(--warning-rgb), 0.05));
+}
+
+/* ========================================
+   TOAST ELEMENTS
+   ======================================== */
+
+.toast-icon {
+    margin-right: var(--spacing-sm);
+    flex-shrink: 0;
+    width: var(--size-5);
+    height: var(--size-5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: var(--space-0-5);
+}
+
+.toast-success .toast-icon {
+    color: var(--success);
+}
+
+.toast-error .toast-icon {
+    color: var(--destructive);
+}
+
+.toast-info .toast-icon {
+    color: var(--info);
+}
+
+.toast-warning .toast-icon {
+    color: var(--warning);
+}
+
+.toast-content {
+    flex: 1;
+    font-size: var(--text-body-small-size);
+    color: var(--foreground);
+    line-height: var(--line-height-relaxed);
+}
+
+.toast-title {
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--spacing-xs);
+    color: var(--foreground);
+    font-size: var(--text-body-size);
+}
+
+.toast-description {
+    color: var(--foreground-muted);
+    font-size: var(--text-body-small-size);
+}
+
+.toast-close {
+    background: transparent;
+    border: none;
+    color: var(--foreground-muted);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    margin-left: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    transition: var(--transition-button);
+    width: var(--size-6);
+    height: var(--size-6);
+    margin-top: var(--space-0-5);
+}
+
+.toast-close:hover {
+    color: var(--foreground);
+    background-color: var(--hover);
+    transform: scale(1.1);
+}
+
+.toast-close:focus-visible {
+    outline: var(--outline-focus);
+    outline-offset: var(--outline-focus-offset);
+}
+
+/* ========================================
+   CONFIRMATION DIALOG
+   ======================================== */
+
+.confirmation-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: var(--background-overlay);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal);
+    padding: var(--spacing-lg);
+    animation: var(--animation-fade-in);
+}
+
+.confirmation-dialog {
+    background-color: var(--background);
+    border-radius: var(--radius-modal);
+    width: 100%;
+    max-width: 460px;
+    box-shadow: var(--shadow-modal);
+    animation: var(--animation-scale-in);
+    overflow: hidden;
+    border: var(--border-modal);
+    position: relative;
+}
+
+/* ========================================
+   CONFIRMATION DIALOG SECTIONS
+   ======================================== */
+
+.confirmation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-lg) var(--spacing-xl);
+    border-bottom: var(--border-divider);
+    background-color: var(--surface);
+}
+
+.confirmation-title {
+    font-size: var(--text-h5-size);
+    font-weight: var(--text-h5-weight);
+    margin: 0;
+    color: var(--foreground);
+    line-height: var(--text-h5-line-height);
+}
+
+.confirmation-close {
+    background: transparent;
+    border: none;
+    color: var(--foreground-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-button-sm);
+    width: var(--size-8);
+    height: var(--size-8);
+    transition: var(--transition-button);
+}
+
+.confirmation-close:hover {
+    background-color: var(--hover);
+    color: var(--foreground);
+    transform: scale(1.1);
+}
+
+.confirmation-close:focus-visible {
+    outline: var(--outline-focus);
+    outline-offset: var(--outline-focus-offset);
+}
+
+.confirmation-content {
+    padding: var(--spacing-xl);
+    font-size: var(--text-body-size);
+    color: var(--foreground);
+    line-height: var(--line-height-relaxed);
+}
+
+.confirmation-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg) var(--spacing-xl);
+    border-top: var(--border-divider);
+    background-color: var(--surface);
+    justify-content: flex-end;
+}
+
+/* ========================================
+   CONFIRMATION DIALOG VARIANTS
+   ======================================== */
+
+.confirmation-delete .confirmation-header {
+    background-color: var(--destructive-background, rgba(var(--destructive-rgb), 0.05));
+    border-bottom-color: var(--destructive-alpha, rgba(var(--destructive-rgb), 0.2));
+}
+
+.confirmation-error .confirmation-header {
+    background-color: var(--destructive-background, rgba(var(--destructive-rgb), 0.05));
+    border-bottom-color: var(--destructive-alpha, rgba(var(--destructive-rgb), 0.2));
+}
+
+.confirmation-warning .confirmation-header {
+    background-color: var(--warning-background, rgba(var(--warning-rgb), 0.05));
+    border-bottom-color: var(--warning-alpha, rgba(var(--warning-rgb), 0.2));
+}
+
+.confirmation-info .confirmation-header {
+    background-color: var(--info-background, rgba(var(--info-rgb), 0.05));
+    border-bottom-color: var(--info-alpha, rgba(var(--info-rgb), 0.2));
+}
+
+/* ========================================
+   CONFIRMATION BUTTONS
+   ======================================== */
+
+.confirmation-button {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--radius-button-md);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--text-button-size);
+    cursor: pointer;
+    transition: var(--transition-button);
+    border: var(--border-button);
+    min-height: var(--size-button-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.confirmation-button-primary {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
+}
+
+.confirmation-button-primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+    transform: translateY(calc(var(--space-0-5) * -1));
+    box-shadow: var(--shadow-button-hover);
+}
+
+.confirmation-button-secondary {
+    background-color: var(--surface);
+    color: var(--foreground);
+    border-color: var(--border-default);
+}
+
+.confirmation-button-secondary:hover {
+    background-color: var(--surface-hover);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.confirmation-button-danger {
+    background-color: var(--destructive);
+    color: var(--destructive-foreground);
+    border-color: var(--destructive);
+}
+
+.confirmation-button-danger:hover {
+    background-color: var(--destructive-hover);
+    border-color: var(--destructive-hover);
+    transform: translateY(calc(var(--space-0-5) * -1));
+    box-shadow: var(--shadow-destructive);
+}
+
+.confirmation-button-warning {
+    background-color: var(--warning);
+    color: var(--warning-foreground);
+    border-color: var(--warning);
+}
+
+.confirmation-button-warning:hover {
+    background-color: var(--warning-hover);
+    border-color: var(--warning-hover);
+    transform: translateY(calc(var(--space-0-5) * -1));
+    box-shadow: var(--shadow-warning);
+}
+
+.confirmation-button-success {
+    background-color: var(--success);
+    color: var(--success-foreground);
+    border-color: var(--success);
+}
+
+.confirmation-button-success:hover {
+    background-color: var(--success-hover);
+    border-color: var(--success-hover);
+    transform: translateY(calc(var(--space-0-5) * -1));
+    box-shadow: var(--shadow-success);
+}
+
+.confirmation-button-link {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid transparent;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+}
+
+.confirmation-button-link:hover {
+    text-decoration-color: var(--primary);
+    background-color: var(--hover);
+}
+
+/* ========================================
+   FORM ELEMENTS
+   ======================================== */
+
+.confirmation-input-group {
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.confirmation-input-label {
+    font-size: var(--text-body-small-size);
+    font-weight: var(--font-weight-medium);
+    color: var(--foreground);
+    margin-bottom: var(--spacing-xs);
+}
+
+.confirmation-input {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: var(--border-input);
+    border-radius: var(--radius-input);
+    background-color: var(--background);
+    color: var(--foreground);
+    font-size: var(--text-body-size);
+    transition: var(--transition-input);
+    min-height: var(--size-input-md);
+}
+
+.confirmation-input:focus {
+    outline: var(--outline-focus);
+    outline-offset: var(--outline-focus-offset);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-input-focus);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 640px) {
+    .toast-container {
+        max-width: calc(100vw - var(--spacing-lg));
+        margin: 0 var(--spacing-md);
+    }
+
+    .toast-top-right,
+    .toast-top-left,
+    .toast-top-center {
+        top: var(--spacing-md);
+        left: var(--spacing-md);
+        right: var(--spacing-md);
+        transform: none;
+    }
+
+    .toast-bottom-right,
+    .toast-bottom-left,
+    .toast-bottom-center {
+        bottom: var(--spacing-md);
+        left: var(--spacing-md);
+        right: var(--spacing-md);
+        transform: none;
+    }
+
+    .confirmation-dialog {
+        margin: var(--spacing-md);
+        max-width: calc(100vw - var(--spacing-xl));
+    }
+
+    .confirmation-actions {
+        flex-direction: column-reverse;
+    }
+
+    .confirmation-button {
+        width: 100%;
+    }
+} 

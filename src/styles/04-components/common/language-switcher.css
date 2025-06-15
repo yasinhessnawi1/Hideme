@@ -1,0 +1,253 @@
+/*
+==============================================
+LANGUAGE SWITCHER COMPONENT
+==============================================
+Dropdown for selecting application language
+Refactored to use new design tokens
+*/
+
+.language-switcher {
+    position: relative;
+    display: inline-block;
+}
+
+/* ========================================
+   LANGUAGE BUTTON
+   ======================================== */
+
+.language-button {
+    background: var(--background);
+    border: var(--border-interactive);
+    color: var(--foreground);
+    border-radius: var(--radius-button-lg);
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--text-body-small-size);
+    transition: var(--transition-button);
+    font-weight: var(--font-weight-medium);
+    min-height: var(--size-button-sm);
+    position: relative;
+}
+
+.language-button:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(calc(var(--space-0-5) * -1));
+    box-shadow: var(--shadow-button-hover);
+}
+
+.language-button:focus-visible {
+    outline: var(--outline-focus);
+    outline-offset: var(--outline-focus-offset);
+}
+
+.language-button:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-button-active);
+}
+
+/* Button content */
+.language-button-text {
+    flex: 1;
+    text-align: left;
+}
+
+.language-button-icon {
+    width: var(--size-4);
+    height: var(--size-4);
+    transition: var(--transition-transform);
+    color: var(--foreground-muted);
+}
+
+.language-button[aria-expanded="true"] .language-button-icon {
+    transform: rotate(180deg);
+    color: var(--primary);
+}
+
+/* ========================================
+   LANGUAGE DROPDOWN
+   ======================================== */
+
+.language-dropdown {
+    position: absolute;
+    right: 0;
+    min-width: 140px;
+    background: var(--background);
+    border-radius: var(--radius-dropdown);
+    box-shadow: var(--shadow-dropdown);
+    z-index: var(--z-dropdown);
+    overflow: hidden;
+    animation: var(--animation-scale-in);
+    border: var(--border-dropdown);
+    backdrop-filter: blur(8px);
+}
+
+/* Dropdown positioning variants */
+.language-dropdown.top {
+    bottom: calc(100% + var(--spacing-sm));
+    transform-origin: bottom center;
+}
+
+.language-dropdown.bottom {
+    top: calc(100% + var(--spacing-sm));
+    transform-origin: top center;
+}
+
+/* ========================================
+   DROPDOWN ITEMS
+   ======================================== */
+
+.language-dropdown .dropdown-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition-colors);
+    color: var(--foreground);
+    font-size: var(--text-body-small-size);
+    font-weight: var(--font-weight-medium);
+    gap: var(--spacing-sm);
+    position: relative;
+}
+
+.language-dropdown .dropdown-item:hover {
+    background-color: var(--hover);
+    color: var(--primary);
+}
+
+.language-dropdown .dropdown-item:focus-visible {
+    outline: var(--outline-focus);
+    outline-offset: calc(var(--outline-focus-offset) * -1);
+    background-color: var(--hover);
+}
+
+.language-dropdown .dropdown-item.active {
+    background-color: var(--primary-alpha, rgba(var(--primary-rgb), 0.1));
+    color: var(--primary);
+    font-weight: var(--font-weight-semibold);
+    border-left: var(--space-1) solid var(--primary);
+    padding-left: calc(var(--spacing-md) - var(--space-1));
+}
+
+.language-dropdown .dropdown-item.active::after {
+    content: "";
+    position: absolute;
+    right: var(--spacing-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    width: var(--size-3);
+    height: var(--size-3);
+    background-color: var(--primary);
+    border-radius: var(--radius-full);
+}
+
+/* Item content */
+.dropdown-item-flag {
+    width: var(--size-4);
+    height: var(--size-4);
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+}
+
+.dropdown-item-text {
+    flex: 1;
+}
+
+.dropdown-item-code {
+    font-size: var(--text-caption-size);
+    color: var(--foreground-muted);
+    font-weight: var(--font-weight-regular);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-wide);
+}
+
+.language-dropdown .dropdown-item:hover .dropdown-item-code {
+    color: var(--primary);
+}
+
+/* ========================================
+   SEPARATOR
+   ======================================== */
+
+.language-dropdown .dropdown-separator {
+    height: 1px;
+    background-color: var(--border-divider);
+    margin: var(--spacing-xs) 0;
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .language-button {
+        border-width: 2px;
+    }
+
+    .language-dropdown {
+        border-width: 2px;
+    }
+
+    .language-dropdown .dropdown-item.active {
+        border-left-width: var(--space-1-5);
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .language-dropdown {
+        animation: var(--animation-fade-in);
+    }
+
+    .language-button {
+        transition: var(--transition-reduced);
+    }
+
+    .language-button-icon {
+        transition: var(--transition-reduced);
+    }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+    .language-dropdown {
+        min-width: 120px;
+        right: auto;
+        left: 0;
+    }
+
+    .language-button {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: var(--text-caption-size);
+    }
+
+    .language-dropdown .dropdown-item {
+        padding: var(--spacing-md) var(--spacing-sm);
+    }
+}
+
+/* ========================================
+   KEYBOARD NAVIGATION
+   ======================================== */
+
+.language-dropdown .dropdown-item:focus {
+    background-color: var(--hover);
+    outline: none;
+}
+
+.language-dropdown .dropdown-item[aria-selected="true"] {
+    background-color: var(--primary-alpha, rgba(var(--primary-rgb), 0.1));
+} 

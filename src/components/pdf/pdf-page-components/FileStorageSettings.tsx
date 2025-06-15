@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useFileContext } from '../../../contexts/FileContext';
-import '../../../styles/modules/pdf/StorageSettings.css';
 import { Database, Trash2, HardDrive, AlertTriangle } from 'lucide-react';
 import {useLoading} from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";

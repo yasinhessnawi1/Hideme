@@ -75,31 +75,64 @@ const PageRenderer: React.FC<PageRendererProps> = ({
 
     // Listen for page highlight events
     useEffect(() => {
+        let highlightTimeout: NodeJS.Timeout | null = null;
+        
         const handlePageHighlighted = (event: Event) => {
             const customEvent = event as CustomEvent;
             const { fileKey: eventFileKey, pageNumber: eventPageNumber } = customEvent.detail ?? {};
 
-            // Only process if this event applies to our page
+            // Reduce logging - only log for this specific page
             if (fileKey === eventFileKey && pageNumber === eventPageNumber) {
-                // Update classes directly for immediate visual feedback
-                if (wrapperRef.current) {
-                    wrapperRef.current.classList.add('active');
-
-                    // Add animation highlight
-                    wrapperRef.current.classList.add('just-activated');
-                    setTimeout(() => {
-                        if (wrapperRef.current) {
-                            wrapperRef.current.classList.remove('just-activated');
-                        }
-                    }, 1500);
-                }
+                console.log(`[PageRenderer] Page highlight event received for ${eventFileKey}:${eventPageNumber}, this is ${fileKey}:${pageNumber}`);
             }
+
+            if (!wrapperRef.current) return;
+
+            // Clear any pending highlight timeout
+            if (highlightTimeout) {
+                clearTimeout(highlightTimeout);
+                highlightTimeout = null;
+            }
+
+            // Debounce the highlight changes to prevent flickering
+            highlightTimeout = setTimeout(() => {
+                if (!wrapperRef.current) return;
+
+                // Check if this event applies to our page
+                if (fileKey === eventFileKey && pageNumber === eventPageNumber) {
+                    // This page should be active
+                    if (!wrapperRef.current.classList.contains('active')) {
+                        console.log(`[PageRenderer] Setting page ${pageNumber} as active`);
+                        wrapperRef.current.classList.add('active');
+
+                        // Add animation highlight only if not already present
+                        if (!wrapperRef.current.classList.contains('just-activated')) {
+                            wrapperRef.current.classList.add('just-activated');
+                            setTimeout(() => {
+                                if (wrapperRef.current) {
+                                    wrapperRef.current.classList.remove('just-activated');
+                                }
+                            }, 1500);
+                        }
+                    }
+                } else if (fileKey === eventFileKey) {
+                    // This is the same file but different page - remove active class
+                    if (wrapperRef.current.classList.contains('active')) {
+                        console.log(`[PageRenderer] Removing active from page ${pageNumber}`);
+                        wrapperRef.current.classList.remove('active');
+                        wrapperRef.current.classList.remove('just-activated');
+                    }
+                }
+            }, 50); // 50ms debounce to batch rapid changes
         };
 
         window.addEventListener('page-highlighted', handlePageHighlighted);
 
         return () => {
             window.removeEventListener('page-highlighted', handlePageHighlighted);
+            if (highlightTimeout) {
+                clearTimeout(highlightTimeout);
+            }
         };
     }, [fileKey, pageNumber]);
 
@@ -248,7 +281,7 @@ const PageRenderer: React.FC<PageRendererProps> = ({
                         isEditingMode={isEditingMode}
                         pageSize={viewportSize}
                         fileKey={fileKey}
-                        isActive={isEditingMode && isTextSelectionMode}
+                        isActive={true}
                     />
 
                     <HighlightLayerFactory

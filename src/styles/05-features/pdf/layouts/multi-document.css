@@ -1,0 +1,537 @@
+/*
+==============================================
+PDF MULTI-DOCUMENT LAYOUT STYLES
+==============================================
+Layout for handling multiple PDF documents
+using semantic tokens from the design system
+*/
+
+/* ========================================
+   MULTI-DOCUMENT CONTAINER
+   ======================================== */
+
+.multi-pdf-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-mdxs);
+    width: 100%;
+    min-height: 100vh;
+}
+
+.multi-pdf-header {
+    position: sticky;
+    top: 0;
+    background: var(--background-surface);
+    backdrop-filter: blur(8px);
+    border-bottom: var(--border-default);
+    padding: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: var(--z-sticky);
+    border-radius: var(--radius-card);
+    margin-bottom: var(--spacing-lg);
+}
+
+.multi-pdf-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--foreground);
+    margin: 0;
+}
+
+.multi-pdf-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.multi-pdf-control-button {
+    background: var(--background);
+    border: var(--border-default);
+    color: var(--foreground);
+    cursor: pointer;
+    padding: var(--spacing-button-y) var(--spacing-button-x);
+    border-radius: var(--radius-button);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    transition: all var(--transition-button);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.multi-pdf-control-button:hover {
+    background-color: var(--hover);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.multi-pdf-control-button--primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.multi-pdf-control-button--primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+}
+
+/* ========================================
+   DOCUMENT FILE CONTAINERS
+   ======================================== */
+
+.pdf-file-container {
+    width: 100%;
+    background: var(--background);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: all var(--transition-card);
+    opacity: 1;
+    transform: translateY(0);
+    margin-bottom: var(--spacing-lg);
+    border: var(--border-default);
+    position: relative;
+}
+
+.pdf-file-container:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.pdf-file-container.current {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-primary-lg);
+    transform: translateY(-4px);
+}
+
+.pdf-file-container.open {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.pdf-file-container.closed {
+    opacity: 0.7;
+    transform: translateY(-4px);
+}
+
+.pdf-file-container.selected {
+    border-color: var(--primary);
+    background-color: var(--background-subtle);
+}
+
+/* ========================================
+   FILE HEADERS
+   ======================================== */
+
+.pdf-file-header {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    background: var(--background);
+    backdrop-filter: blur(8px);
+    border-bottom: var(--border-default);
+    padding: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: var(--z-sticky);
+    transition: all var(--transition-colors);
+}
+
+.pdf-file-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.pdf-file-toggle-button {
+    background: none;
+    border: none;
+    color: var(--foreground);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-button);
+    transition: all var(--transition-button);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--space-8);
+    height: var(--space-8);
+}
+
+.pdf-file-toggle-button:hover {
+    background-color: var(--hover);
+    color: var(--primary);
+}
+
+.pdf-file-title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--foreground);
+    margin: 0;
+    line-height: var(--line-height-tight);
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pdf-file-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.pdf-file-action-button {
+    background: var(--background);
+    border: var(--border-default);
+    color: var(--foreground);
+    cursor: pointer;
+    padding: var(--spacing-button-y) var(--spacing-button-x);
+    border-radius: var(--radius-button);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    transition: all var(--transition-button);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.pdf-file-action-button:hover {
+    background-color: var(--hover);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.pdf-file-action-button.selected {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.pdf-file-action-button:focus-visible {
+    outline: var(--outline-focus);
+    outline-offset: var(--outline-focus-offset);
+}
+
+/* ========================================
+   DOCUMENT CONTENT AREA
+   ======================================== */
+
+.pdf-document-container {
+    position: relative;
+    width: 100%;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--spacing-lg);
+    background: var(--background);
+    animation: fadeIn var(--duration-medium) var(--ease-out);
+}
+
+.pdf-document-container.current {
+    background: var(--background);
+}
+
+/* ========================================
+   SEPARATORS
+   ======================================== */
+
+.pdf-file-container:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: calc(var(--spacing-lg) * -1);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 1px;
+    background: var(--background);
+    border-radius: var(--radius-full);
+}
+
+/* ========================================
+   SCROLLING BEHAVIOR
+   ======================================== */
+
+body.is-scrolling .pdf-file-container:not(.current) {
+    opacity: 0.5;
+}
+
+/* ========================================
+   LOADING STATES
+   ======================================== */
+
+.pdf-loading-placeholder {
+    width: 100%;
+    height: 400px;
+    background: var(--background);
+    border-radius: var(--radius-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse var(--duration-slower) infinite;
+}
+
+.pdf-loading-placeholder::after {
+    content: '';
+    width: var(--space-12);
+    height: var(--space-12);
+    border: 3px solid var(--border-subtle);
+    border-top: 3px solid var(--primary);
+    border-radius: var(--radius-full);
+    animation: spin 1s linear infinite;
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(var(--spacing-md));
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+    .multi-pdf-container {
+        padding: var(--spacing-sm);
+        gap: var(--spacing-md);
+    }
+
+    .multi-pdf-header {
+        padding: var(--spacing-sm);
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-sm);
+    }
+
+    .multi-pdf-title {
+        font-size: var(--font-size-lg);
+        text-align: center;
+    }
+
+    .multi-pdf-controls {
+        justify-content: center;
+    }
+
+    .pdf-file-header {
+        padding: var(--spacing-sm);
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-sm);
+    }
+
+    .pdf-file-header-left {
+        justify-content: center;
+    }
+
+    .pdf-file-title {
+        font-size: var(--font-size-base);
+        max-width: 200px;
+        text-align: center;
+    }
+
+    .pdf-file-actions {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .pdf-file-action-button,
+    .multi-pdf-control-button {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: var(--font-size-xs);
+    }
+
+    .pdf-document-container {
+        padding: var(--spacing-md);
+    }
+}
+
+/* ========================================
+   PERFORMANCE OPTIMIZATIONS
+   ======================================== */
+
+/*
+==============================================
+OPEN/CLOSE FILE FUNCTIONALITY
+==============================================
+*/
+
+/* File container states */
+.pdf-file-container.current {
+    border: 2px solid var(--primary);
+    box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.2), var(--shadow-md);
+    z-index: 2;
+}
+
+/* Open file state */
+.pdf-file-container.open {
+    box-shadow: var(--shadow-md);
+}
+
+/* Closed file state */
+.pdf-file-container.closed {
+    max-height: 60px; /* Just enough for the header */
+    overflow: hidden;
+}
+
+/* Selected file state */
+.pdf-file-container.selected {
+    background-color: rgba(var(--primary-rgb), 0.05);
+}
+
+/* Selection button states */
+.pdf-file-action-button.selected {
+    color: var(--primary);
+    background-color: rgba(var(--primary-rgb), 0.1);
+}
+
+/* selection button not selected states */
+.pdf-file-action-button:not(.selected) {
+    color: var(--foreground);
+    background-color: var(--button-hover);
+}
+
+.pdf-file-action-button:not(.selected):first-child {
+    color: var(--foreground);
+    background-color: var(--button-hover);
+    border: 1px dotted var(--muted-foreground);
+}
+
+.pdf-file-action-button:not(.selected):last-of-type:hover {
+    color: var(--destructive);
+}
+
+/* Custom select icon for unselected state */
+.select-file-icon {
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-radius: 2px;
+    display: block;
+}
+
+/* Hover effects */
+.pdf-file-container.closed:hover {
+    border-color: var(--button-border);
+    background-color: var(--dropdown-hover);
+}
+
+/* Focus styles for keyboard navigation */
+.pdf-file-action-button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/*
+==============================================
+MULTI-PDF DISPLAY STYLES
+==============================================
+*/
+
+.multi-pdf-container {
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    width: 100%;
+    contain: style layout;
+
+    /* Optimize for scrolling */
+    transform: translateZ(0);
+
+    /* Create a new formatting context */
+    display: flow-root;
+}
+
+body.is-scrolling .pdf-file-container:not(.current) {
+    visibility: hidden;
+}
+
+.pdf-file-container {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-lg);
+    background-color: var(--background);
+    overflow: hidden;
+    transition: all var(--transition-speed) var(--transition-function);
+    position: relative;
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-sm);
+    will-change: transform;
+    contain: content;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+    isolation: isolate;
+    z-index: 1;
+}
+
+.pdf-file-container:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+/* Add visual separator between PDFs */
+.pdf-file-container:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    left: 10%;
+    width: 80%;
+    height: 1px;
+    background-color: var(--border);
+}
+
+@media (max-width: 768px) {
+    .pdf-file-container {
+        will-change: auto;
+    }
+
+    .pdf-file-container:hover {
+        transform: none;
+    }
+
+    .pdf-file-header {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .pdf-file-actions {
+        gap: var(--spacing-xs);
+    }
+
+    .pdf-file-action-button {
+        width: 24px;
+        height: 24px;
+        padding: 2px;
+    }
+} 

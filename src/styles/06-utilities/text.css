@@ -1,0 +1,567 @@
+/*
+==============================================
+TEXT UTILITIES
+==============================================
+Typography and text-related utility classes using design tokens
+*/
+
+/* ========================================
+   FONT SIZE UTILITIES
+   ======================================== */
+
+.text-xs {
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-tight);
+}
+
+.text-sm {
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-tight);
+}
+
+.text-base {
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-normal);
+}
+
+.text-lg {
+    font-size: var(--font-size-lg);
+    line-height: var(--line-height-normal);
+}
+
+.text-xl {
+    font-size: var(--font-size-xl);
+    line-height: var(--line-height-tight);
+}
+
+.text-2xl {
+    font-size: var(--font-size-2xl);
+    line-height: var(--line-height-tight);
+}
+
+.text-3xl {
+    font-size: var(--font-size-3xl);
+    line-height: var(--line-height-tight);
+}
+
+.text-4xl {
+    font-size: var(--font-size-4xl);
+    line-height: var(--line-height-none);
+}
+
+.text-5xl {
+    font-size: var(--font-size-5xl);
+    line-height: var(--line-height-none);
+}
+
+.text-6xl {
+    font-size: var(--font-size-6xl);
+    line-height: var(--line-height-none);
+}
+
+/* ========================================
+   FONT WEIGHT UTILITIES
+   ======================================== */
+
+.font-thin {
+    font-weight: var(--font-weight-thin);
+}
+
+.font-light {
+    font-weight: var(--font-weight-light);
+}
+
+.font-normal {
+    font-weight: var(--font-weight-regular);
+}
+
+.font-medium {
+    font-weight: var(--font-weight-medium);
+}
+
+.font-semibold {
+    font-weight: var(--font-weight-semibold);
+}
+
+.font-bold {
+    font-weight: var(--font-weight-bold);
+}
+
+.font-extrabold {
+    font-weight: var(--font-weight-extrabold);
+}
+
+.font-black {
+    font-weight: var(--font-weight-black);
+}
+
+/* ========================================
+   FONT FAMILY UTILITIES
+   ======================================== */
+
+.font-sans {
+    font-family: var(--font-family-primary);
+}
+
+.font-serif {
+    font-family: var(--font-family-secondary);
+}
+
+.font-mono {
+    font-family: var(--font-family-mono);
+}
+
+/* ========================================
+   LINE HEIGHT UTILITIES
+   ======================================== */
+
+.leading-none {
+    line-height: var(--line-height-none);
+}
+
+.leading-tight {
+    line-height: var(--line-height-tight);
+}
+
+.leading-snug {
+    line-height: var(--line-height-snug);
+}
+
+.leading-normal {
+    line-height: var(--line-height-normal);
+}
+
+.leading-relaxed {
+    line-height: var(--line-height-relaxed);
+}
+
+.leading-loose {
+    line-height: var(--line-height-loose);
+}
+
+/* ========================================
+   TEXT ALIGNMENT UTILITIES
+   ======================================== */
+
+.text-left {
+    text-align: left;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-justify {
+    text-align: justify;
+}
+
+.text-start {
+    text-align: start;
+}
+
+.text-end {
+    text-align: end;
+}
+
+/* ========================================
+   TEXT COLOR UTILITIES
+   ======================================== */
+
+/* Brand Colors */
+.text-primary {
+    color: var(--primary);
+}
+
+.text-secondary {
+    color: var(--secondary);
+}
+
+.text-accent {
+    color: var(--accent);
+}
+
+/* Semantic Colors */
+.text-foreground {
+    color: var(--foreground);
+}
+
+.text-muted {
+    color: var(--foreground-muted);
+}
+
+.text-muted-foreground {
+    color: var(--foreground-muted);
+}
+
+.text-subtle {
+    color: var(--foreground-subtle);
+}
+
+/* Status Colors */
+.text-success {
+    color: var(--success);
+}
+
+.text-warning {
+    color: var(--warning);
+}
+
+.text-error {
+    color: var(--error);
+}
+
+.text-destructive {
+    color: var(--error);
+}
+
+.text-info {
+    color: var(--info);
+}
+
+/* Brand Color Variations */
+.text-raisin-black {
+    color: var(--raisin-black);
+}
+
+.text-dark-purple {
+    color: var(--dark-purple);
+}
+
+.text-eggplant {
+    color: var(--eggplant);
+}
+
+.text-redwood {
+    color: var(--redwood);
+}
+
+.text-pale-dogwood {
+    color: var(--pale-dogwood);
+}
+
+/* Legacy Color Support */
+.text-space-cadet {
+    color: var(--space-cadet);
+}
+
+.text-federal-blue {
+    color: var(--federal-blue);
+}
+
+.text-zaffre {
+    color: var(--zaffre);
+}
+
+.text-glaucous {
+    color: var(--glaucous);
+}
+
+.text-honeydew {
+    color: var(--honeydew);
+}
+
+/* Utility Colors */
+.text-white {
+    color: white;
+}
+
+.text-black {
+    color: black;
+}
+
+.text-transparent {
+    color: transparent;
+}
+
+.text-current {
+    color: currentColor;
+}
+
+/* Status Color Variations */
+.text-success-dark {
+    color: var(--success-dark);
+}
+
+.text-success-light {
+    color: var(--success-light);
+}
+
+.text-warning-dark {
+    color: var(--warning-dark);
+}
+
+.text-warning-light {
+    color: var(--warning-light);
+}
+
+.text-error-dark {
+    color: var(--error-dark);
+}
+
+.text-error-light {
+    color: var(--error-light);
+}
+
+/* ========================================
+   TEXT DECORATION UTILITIES
+   ======================================== */
+
+.underline {
+    text-decoration: underline;
+}
+
+.overline {
+    text-decoration: overline;
+}
+
+.line-through {
+    text-decoration: line-through;
+}
+
+.no-underline {
+    text-decoration: none;
+}
+
+/* ========================================
+   TEXT TRANSFORM UTILITIES
+   ======================================== */
+
+.uppercase {
+    text-transform: uppercase;
+}
+
+.lowercase {
+    text-transform: lowercase;
+}
+
+.capitalize {
+    text-transform: capitalize;
+}
+
+.normal-case {
+    text-transform: none;
+}
+
+/* ========================================
+   TEXT OVERFLOW UTILITIES
+   ======================================== */
+
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.text-ellipsis {
+    text-overflow: ellipsis;
+}
+
+.text-clip {
+    text-overflow: clip;
+}
+
+/* ========================================
+   WHITE SPACE UTILITIES
+   ======================================== */
+
+.whitespace-normal {
+    white-space: normal;
+}
+
+.whitespace-nowrap {
+    white-space: nowrap;
+}
+
+.whitespace-pre {
+    white-space: pre;
+}
+
+.whitespace-pre-line {
+    white-space: pre-line;
+}
+
+.whitespace-pre-wrap {
+    white-space: pre-wrap;
+}
+
+.whitespace-break-spaces {
+    white-space: break-spaces;
+}
+
+/* ========================================
+   WORD BREAK UTILITIES
+   ======================================== */
+
+.break-normal {
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+.break-words {
+    overflow-wrap: break-word;
+}
+
+.break-all {
+    word-break: break-all;
+}
+
+.break-keep {
+    word-break: keep-all;
+}
+
+/* ========================================
+   HYPHENS UTILITIES
+   ======================================== */
+
+.hyphens-none {
+    hyphens: none;
+}
+
+.hyphens-manual {
+    hyphens: manual;
+}
+
+.hyphens-auto {
+    hyphens: auto;
+}
+
+/* ========================================
+   LETTER SPACING UTILITIES
+   ======================================== */
+
+.tracking-tighter {
+    letter-spacing: -0.05em;
+}
+
+.tracking-tight {
+    letter-spacing: -0.025em;
+}
+
+.tracking-normal {
+    letter-spacing: 0em;
+}
+
+.tracking-wide {
+    letter-spacing: 0.025em;
+}
+
+.tracking-wider {
+    letter-spacing: 0.05em;
+}
+
+.tracking-widest {
+    letter-spacing: 0.1em;
+}
+
+/* ========================================
+   FONT VARIANT UTILITIES
+   ======================================== */
+
+.font-variant-numeric {
+    font-variant-numeric: normal;
+}
+
+.ordinal {
+    font-variant-numeric: ordinal;
+}
+
+.slashed-zero {
+    font-variant-numeric: slashed-zero;
+}
+
+.lining-nums {
+    font-variant-numeric: lining-nums;
+}
+
+.oldstyle-nums {
+    font-variant-numeric: oldstyle-nums;
+}
+
+.proportional-nums {
+    font-variant-numeric: proportional-nums;
+}
+
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
+.diagonal-fractions {
+    font-variant-numeric: diagonal-fractions;
+}
+
+.stacked-fractions {
+    font-variant-numeric: stacked-fractions;
+}
+
+/* ========================================
+   FONT STYLE UTILITIES
+   ======================================== */
+
+.italic {
+    font-style: italic;
+}
+
+.not-italic {
+    font-style: normal;
+}
+
+/* ========================================
+   FONT SMOOTHING UTILITIES
+   ======================================== */
+
+.antialiased {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.subpixel-antialiased {
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
+}
+
+/* ========================================
+   TEXT SELECTION UTILITIES
+   ======================================== */
+
+.select-none {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.select-text {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+.select-all {
+    -webkit-user-select: all;
+    -moz-user-select: all;
+    user-select: all;
+}
+
+.select-auto {
+    -webkit-user-select: auto;
+    -moz-user-select: auto;
+    -ms-user-select: auto;
+    user-select: auto;
+}
+
+/* ========================================
+   DARK THEME TEXT ADJUSTMENTS
+   ======================================== */
+
+[data-theme="dark"] .text-amber-800 {
+    color: var(--warning-light);
+}
+
+[data-theme="dark"] .text-amber-300 {
+    color: var(--warning);
+}

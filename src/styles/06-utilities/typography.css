@@ -1,0 +1,345 @@
+/*
+==============================================
+TYPOGRAPHY UTILITIES
+==============================================
+Text utility classes using design tokens
+*/
+
+/* ========================================
+   TEXT SIZES
+   ======================================== */
+
+.text-display {
+    font-size: var(--text-display-size);
+    font-weight: var(--text-display-weight);
+    line-height: var(--text-display-line-height);
+}
+
+.text-h1 {
+    font-size: var(--text-h1-size);
+    font-weight: var(--text-h1-weight);
+    line-height: var(--text-h1-line-height);
+}
+
+.text-h2 {
+    font-size: var(--text-h2-size);
+    font-weight: var(--text-h2-weight);
+    line-height: var(--text-h2-line-height);
+}
+
+.text-h3 {
+    font-size: var(--text-h3-size);
+    font-weight: var(--text-h3-weight);
+    line-height: var(--text-h3-line-height);
+}
+
+.text-h4 {
+    font-size: var(--text-h4-size);
+    font-weight: var(--text-h4-weight);
+    line-height: var(--text-h4-line-height);
+}
+
+.text-h5 {
+    font-size: var(--text-h5-size);
+    font-weight: var(--text-h5-weight);
+    line-height: var(--text-h5-line-height);
+}
+
+.text-lead {
+    font-size: var(--text-lead-size);
+    font-weight: var(--text-lead-weight);
+    line-height: var(--text-lead-line-height);
+}
+
+.text-body-large {
+    font-size: var(--text-body-large-size);
+    font-weight: var(--text-body-large-weight);
+    line-height: var(--text-body-large-line-height);
+}
+
+.text-body {
+    font-size: var(--text-body-size);
+    font-weight: var(--text-body-weight);
+    line-height: var(--text-body-line-height);
+}
+
+.text-body-small {
+    font-size: var(--text-body-small-size);
+    font-weight: var(--text-body-small-weight);
+    line-height: var(--text-body-small-line-height);
+}
+
+.text-caption {
+    font-size: var(--text-caption-size);
+    font-weight: var(--text-caption-weight);
+    line-height: var(--text-caption-line-height);
+}
+
+.text-button {
+    font-size: var(--text-button-size);
+    font-weight: var(--text-button-weight);
+    line-height: var(--text-button-line-height);
+}
+
+/* ========================================
+   FONT WEIGHTS
+   ======================================== */
+
+.font-thin {
+    font-weight: var(--font-weight-thin);
+}
+
+.font-light {
+    font-weight: var(--font-weight-light);
+}
+
+.font-regular {
+    font-weight: var(--font-weight-regular);
+}
+
+.font-medium {
+    font-weight: var(--font-weight-medium);
+}
+
+.font-semibold {
+    font-weight: var(--font-weight-semibold);
+}
+
+.font-bold {
+    font-weight: var(--font-weight-bold);
+}
+
+.font-black {
+    font-weight: var(--font-weight-black);
+}
+
+/* ========================================
+   FONT FAMILIES
+   ======================================== */
+
+.font-primary {
+    font-family: var(--font-primary);
+}
+
+.font-secondary {
+    font-family: var(--font-secondary);
+}
+
+.font-mono {
+    font-family: var(--font-mono);
+}
+
+/* ========================================
+   TEXT ALIGNMENT
+   ======================================== */
+
+.text-left {
+    text-align: left;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-justify {
+    text-align: justify;
+}
+
+/* ========================================
+   TEXT COLORS
+   ======================================== */
+
+.text-foreground {
+    color: var(--foreground);
+}
+
+.text-foreground-muted {
+    color: var(--foreground-muted);
+}
+
+.text-foreground-subtle {
+    color: var(--foreground-subtle);
+}
+
+.text-primary {
+    color: var(--primary);
+}
+
+.text-primary-foreground {
+    color: var(--primary-foreground);
+}
+
+.text-secondary {
+    color: var(--secondary);
+}
+
+.text-secondary-foreground {
+    color: var(--secondary-foreground);
+}
+
+.text-accent {
+    color: var(--accent);
+}
+
+.text-accent-foreground {
+    color: var(--accent-foreground);
+}
+
+.text-success {
+    color: var(--success);
+}
+
+.text-warning {
+    color: var(--warning);
+}
+
+.text-error {
+    color: var(--error);
+}
+
+.text-info {
+    color: var(--info);
+}
+
+/* ========================================
+   LINE HEIGHTS
+   ======================================== */
+
+.leading-none {
+    line-height: var(--line-height-none);
+}
+
+.leading-tight {
+    line-height: var(--line-height-tight);
+}
+
+.leading-normal {
+    line-height: var(--line-height-normal);
+}
+
+.leading-relaxed {
+    line-height: var(--line-height-relaxed);
+}
+
+.leading-loose {
+    line-height: var(--line-height-loose);
+}
+
+/* ========================================
+   LETTER SPACING
+   ======================================== */
+
+.tracking-tight {
+    letter-spacing: var(--letter-spacing-tight);
+}
+
+.tracking-normal {
+    letter-spacing: var(--letter-spacing-normal);
+}
+
+.tracking-wide {
+    letter-spacing: var(--letter-spacing-wide);
+}
+
+.tracking-wider {
+    letter-spacing: var(--letter-spacing-wider);
+}
+
+/* ========================================
+   TEXT DECORATION
+   ======================================== */
+
+.no-underline {
+    text-decoration: none;
+}
+
+.underline {
+    text-decoration: underline;
+}
+
+.line-through {
+    text-decoration: line-through;
+}
+
+/* ========================================
+   TEXT TRANSFORM
+   ======================================== */
+
+.uppercase {
+    text-transform: uppercase;
+}
+
+.lowercase {
+    text-transform: lowercase;
+}
+
+.capitalize {
+    text-transform: capitalize;
+}
+
+.normal-case {
+    text-transform: none;
+}
+
+/* ========================================
+   TEXT OVERFLOW
+   ======================================== */
+
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.text-clip {
+    text-overflow: clip;
+}
+
+.text-ellipsis {
+    text-overflow: ellipsis;
+}
+
+/* ========================================
+   WHITE SPACE
+   ======================================== */
+
+.whitespace-normal {
+    white-space: normal;
+}
+
+.whitespace-nowrap {
+    white-space: nowrap;
+}
+
+.whitespace-pre {
+    white-space: pre;
+}
+
+.whitespace-pre-line {
+    white-space: pre-line;
+}
+
+.whitespace-pre-wrap {
+    white-space: pre-wrap;
+}
+
+/* ========================================
+   WORD BREAK
+   ======================================== */
+
+.break-normal {
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+.break-words {
+    overflow-wrap: break-word;
+}
+
+.break-all {
+    word-break: break-all;
+} 

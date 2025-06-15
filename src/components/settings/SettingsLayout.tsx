@@ -6,7 +6,6 @@ import AccountSettings from "./tabs/AccountSettings";
 import EntitySettings from "./tabs/EntitySettings";
 import SearchSettings from "./tabs/SearchSettings";
 import BanListSettings from "./tabs/BanListSettings";
-import '../../styles/SettingsPage.css'; // Ensure this path is correct
 import useSettings from "../../hooks/settings/useSettings"; // Ensure this path is correct
 import { useLoading } from "../../contexts/LoadingContext";
 import { useLanguage } from '../../contexts/LanguageContext';

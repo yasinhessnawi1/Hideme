@@ -5,7 +5,6 @@ import { useLoading } from '../../contexts/LoadingContext';
 import LoadingWrapper from '../../components/common/LoadingWrapper';
 import Navbar from '../../components/static/Navbar';
 import authService from '../../services/database-backend-services/authService';
-import '../../styles/modules/login/LoginPage.css';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { mapBackendErrorToMessage } from '../../utils/errorUtils';
 

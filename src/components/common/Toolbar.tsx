@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {FaUndo} from 'react-icons/fa';
-import '../../styles/modules/pdf/Toolbar.css';
 import {useLanguage} from '../../contexts/LanguageContext';
 
 export type ToolbarSectionAlignment = 'left' | 'center' | 'right';

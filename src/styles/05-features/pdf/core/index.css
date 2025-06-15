@@ -1,0 +1,14 @@
+/*
+==============================================
+PDF CORE STYLES
+==============================================
+Essential PDF viewing functionality using semantic tokens
+*/
+
+/* ========================================
+   CORE PDF FUNCTIONALITY
+   ======================================== */
+@import './viewer.css';
+@import './page.css';
+@import './document.css';
+@import './pdf-viewer-layout.css'; 

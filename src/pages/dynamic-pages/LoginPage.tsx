@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import '../../styles/modules/login/LoginPage.css';
 import LoginForm from '../../components/forms/LoginForm';
 // @ts-ignore
 import personalSettingsSVG from '../../assets/undraw_personal-settings_8xv3.svg';

@@ -6,8 +6,6 @@ import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import { usePDFApi } from '../../../hooks/general/usePDFApi';
 import { EntityFileSummary, HighlightType, ModelEntity, OptionType } from '../../../types';
-import '../../../styles/modules/pdf/SettingsSidebar.css';
-import '../../../styles/modules/pdf/EntityDetectionSidebar.css';
 import { ChevronDown, ChevronRight, ChevronUp, Save, Sliders } from 'lucide-react';
 import { usePDFNavigation } from '../../../hooks/general/usePDFNavigation';
 import {
@@ -33,6 +31,7 @@ import { useAuth } from '../../../hooks/auth/useAuth';
 import { useFileSummary } from '../../../contexts/FileSummaryContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
+import Tooltip from '../../common/Tooltip';
 
 /**
  * EntityDetectionSidebar component
@@ -1103,7 +1102,9 @@ const EntityDetectionSidebar: React.FC = () => {
                                         onClick={() => toggleFileSummary(fileSummary.fileKey)}
                                     >
                                         <div className="file-summary-title">
-                                            <span className="file-name">{fileSummary.fileName}</span>
+                                            <Tooltip content={fileSummary.fileName}>
+                                                <span className="file-name">{fileSummary.fileName}</span>
+                                            </Tooltip>
                                             <span className="entity-count-badge">
                                                 {entitiesDetected.total} {t('entityDetection', 'entities')}
                                             </span>

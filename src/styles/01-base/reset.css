@@ -1,0 +1,245 @@
+/*
+==============================================
+CSS RESET & NORMALIZE
+==============================================
+A modern CSS reset that provides consistent baseline styles
+Based on modern-normalize and additional resets for consistency
+*/
+
+/*
+  1. Use a more-intuitive box-sizing model.
+*/
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+/*
+  2. Remove default margin and padding
+*/
+* {
+    margin: 0;
+    padding: 0;
+}
+
+/*
+  3. Prevent mobile browser font size inflation
+*/
+html {
+    -moz-text-size-adjust: none;
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+    /* Smooth scrolling for anchor links */
+    scroll-behavior: smooth;
+}
+
+/*
+  4. Allow percentage-based heights in the application
+*/
+html, body {
+    height: 100%;
+}
+
+/*
+  5. Improve text rendering
+*/
+body {
+    line-height: var(--line-height-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent horizontal scrolling */
+    overflow-x: hidden;
+}
+
+/*
+  6. Improve media defaults
+*/
+img, picture, video, canvas, svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+/*
+  7. Remove built-in form typography styles
+*/
+input, button, textarea, select {
+    font: inherit;
+    font-weight: var(--font-weight-me);
+    color: inherit;
+}
+
+/*
+  8. Avoid text overflows
+*/
+p, h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: break-word;
+    /* Prevent orphans in text */
+    orphans: 3;
+    widows: 3;
+}
+
+/*
+  9. Create a root stacking context
+*/
+#root, #__next {
+    isolation: isolate;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/*
+  10. Improve table defaults
+*/
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+}
+
+/*
+  11. Reset list styles where appropriate
+*/
+ul, ol {
+    list-style: none;
+}
+
+/* Restore list styles for content areas */
+article ul,
+article ol,
+.content ul,
+.content ol {
+    list-style: revert;
+    margin-left: var(--space-6);
+}
+
+/*
+  12. Button and link resets
+*/
+button {
+    cursor: pointer;
+    background: none;
+    border: none;
+    outline: none;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Restore underlines for content areas */
+article a,
+.content a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-decoration-color: var(--primary);
+    text-underline-offset: 0.2em;
+}
+
+/*
+  13. Form element resets
+*/
+input, textarea, select {
+    background: transparent;
+    border: none;
+    outline: none;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/*
+  14. Remove default button styles in Safari
+*/
+button, input[type="submit"], input[type="reset"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/*
+  15. Improve focus handling
+*/
+:focus {
+    outline: none;
+}
+
+:focus-visible {
+    outline: var(--outline-focus);
+    outline-offset: var(--outline-focus-offset);
+}
+
+/*
+  16. Improve selection appearance
+*/
+::selection {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+}
+
+/*
+  17. Remove summary arrow in WebKit
+*/
+summary {
+    list-style: none;
+}
+
+summary::-webkit-details-marker {
+    display: none;
+}
+
+/*
+  18. Improve hr element
+*/
+hr {
+    border: none;
+    border-top: var(--border-divider);
+    margin: var(--space-4) 0;
+}
+
+/*
+  19. Improve code element
+*/
+code, pre, kbd, samp {
+    font-family: var(--font-family-mono);
+    font-size: 0.9em;
+}
+
+/*
+  20. Accessibility improvements
+*/
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --border: currentColor;
+        --border-subtle: currentColor;
+    }
+}
+
+/* Forced colors mode (Windows High Contrast) */
+@media (forced-colors: active) {
+    :root {
+        --background: Canvas;
+        --foreground: CanvasText;
+        --border: ButtonBorder;
+        --primary: Highlight;
+        --primary-foreground: HighlightText;
+    }
+} 

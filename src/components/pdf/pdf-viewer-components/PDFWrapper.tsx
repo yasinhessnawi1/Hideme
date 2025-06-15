@@ -3,7 +3,6 @@ import { Document } from 'react-pdf';
 import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey, usePDFViewerContext } from '../../../contexts/PDFViewerContext';
 import PageRenderer from './PageRenderer';
-import '../../../styles/modules/pdf/PdfViewer.css';
 import scrollManager from '../../../services/client-services/ScrollManagerService';
 import { useInView } from 'react-intersection-observer';
 import { useNotification } from '../../../contexts/NotificationContext';

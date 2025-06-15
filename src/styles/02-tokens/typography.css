@@ -1,0 +1,177 @@
+/*
+==============================================
+TYPOGRAPHY DESIGN TOKENS
+==============================================
+Font families, sizes, weights, line heights, and semantic text styles
+*/
+
+:root {
+    /* ========================================
+       FONT FAMILIES
+       ======================================== */
+
+    /* Primary font stack for UI text */
+    --font-family-primary: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+
+    /* Secondary font for headings and special content */
+    --font-family-secondary: "Georgia", "Times New Roman", serif;
+
+    /* Monospace font for code */
+    --font-family-mono: "Fira Code", "Monaco", "Consolas", "Ubuntu Mono", monospace;
+
+    /* ========================================
+       FONT SIZES - T-SHIRT SIZING
+       ======================================== */
+
+    /* Base scale */
+    --font-size-xs: 0.75rem; /* 12px */
+    --font-size-sm: 0.875rem; /* 14px */
+    --font-size-base: 1rem; /* 16px */
+    --font-size-lg: 1.125rem; /* 18px */
+    --font-size-xl: 1.25rem; /* 20px */
+    --font-size-2xl: 1.5rem; /* 24px */
+    --font-size-3xl: 1.875rem; /* 30px */
+    --font-size-4xl: 2.25rem; /* 36px */
+    --font-size-5xl: 3rem; /* 48px */
+    --font-size-6xl: 3.75rem; /* 60px */
+
+    /* ========================================
+       FONT WEIGHTS
+       ======================================== */
+
+    --font-weight-thin: 100;
+    --font-weight-light: 300;
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --font-weight-extrabold: 800;
+    --font-weight-black: 900;
+
+    /* ========================================
+       LINE HEIGHTS
+       ======================================== */
+
+    --line-height-none: 1;
+    --line-height-tight: 1.25;
+    --line-height-snug: 1.375;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.625;
+    --line-height-loose: 2;
+
+    /* ========================================
+       SEMANTIC TEXT STYLES
+       ======================================== */
+
+    /* Display text for heroes and major headlines */
+    --text-display-size: var(--font-size-6xl);
+    --text-display-weight: var(--font-weight-extrabold);
+    --text-display-line-height: var(--line-height-tight);
+
+    /* Headings */
+    --text-h1-size: var(--font-size-5xl);
+    --text-h1-weight: var(--font-weight-bold);
+    --text-h1-line-height: var(--line-height-tight);
+
+    --text-h2-size: var(--font-size-4xl);
+    --text-h2-weight: var(--font-weight-bold);
+    --text-h2-line-height: var(--line-height-snug);
+
+    --text-h3-size: var(--font-size-3xl);
+    --text-h3-weight: var(--font-weight-semibold);
+    --text-h3-line-height: var(--line-height-snug);
+
+    --text-h4-size: var(--font-size-2xl);
+    --text-h4-weight: var(--font-weight-semibold);
+    --text-h4-line-height: var(--line-height-normal);
+
+    --text-h5-size: var(--font-size-xl);
+    --text-h5-weight: var(--font-weight-medium);
+    --text-h5-line-height: var(--line-height-normal);
+
+    --text-h6-size: var(--font-size-lg);
+    --text-h6-weight: var(--font-weight-medium);
+    --text-h6-line-height: var(--line-height-normal);
+
+    /* Body text */
+    --text-body-size: var(--font-size-base);
+    --text-body-weight: var(--font-weight-regular);
+    --text-body-line-height: var(--line-height-relaxed);
+
+    --text-body-large-size: var(--font-size-lg);
+    --text-body-large-weight: var(--font-weight-regular);
+    --text-body-large-line-height: var(--line-height-relaxed);
+
+    /* Lead text for important descriptions */
+    --text-lead-size: var(--font-size-xl);
+    --text-lead-weight: var(--font-weight-regular);
+    --text-lead-line-height: var(--line-height-relaxed);
+
+    --text-body-small-size: var(--font-size-sm);
+    --text-body-small-weight: var(--font-weight-regular);
+    --text-body-small-line-height: var(--line-height-normal);
+
+    /* Captions and metadata */
+    --text-caption-size: var(--font-size-xs);
+    --text-caption-weight: var(--font-weight-regular);
+    --text-caption-line-height: var(--line-height-normal);
+
+    /* Button text */
+    --text-button-size: var(--font-size-sm);
+    --text-button-weight: var(--font-weight-medium);
+    --text-button-line-height: var(--line-height-none);
+
+    --text-button-large-size: var(--font-size-base);
+    --text-button-large-weight: var(--font-weight-medium);
+    --text-button-large-line-height: var(--line-height-none);
+
+    /* Label text */
+    --text-label-size: var(--font-size-sm);
+    --text-label-weight: var(--font-weight-medium);
+    --text-label-line-height: var(--line-height-normal);
+
+    /* Code text */
+    --text-code-size: var(--font-size-sm);
+    --text-code-weight: var(--font-weight-regular);
+    --text-code-line-height: var(--line-height-relaxed);
+    --text-code-family: var(--font-family-mono);
+
+    /* ========================================
+       LETTER SPACING
+       ======================================== */
+
+    --letter-spacing-tighter: -0.05em;
+    --letter-spacing-tight: -0.025em;
+    --letter-spacing-normal: 0;
+    --letter-spacing-wide: 0.025em;
+    --letter-spacing-wider: 0.05em;
+    --letter-spacing-widest: 0.1em;
+
+    /* ========================================
+       TEXT TRANSFORM
+       ======================================== */
+
+    --text-transform-none: none;
+    --text-transform-uppercase: uppercase;
+    --text-transform-lowercase: lowercase;
+    --text-transform-capitalize: capitalize;
+
+    /* ========================================
+       RESPONSIVE HERO TYPOGRAPHY
+       ======================================== */
+
+    /* Hero title responsive sizing */
+    --hero-title-size-mobile: var(--font-size-4xl); /* 36px */
+    --hero-title-size-tablet: var(--font-size-6xl); /* 60px */
+    --hero-title-size-desktop: 4.5rem; /* 72px */
+
+    /* Hero description sizing */
+    --hero-description-size: var(--font-size-xl); /* 20px */
+
+    /* Section heading sizes */
+    --section-title-size: 2.5rem; /* 40px */
+    --section-subtitle-size: var(--font-size-3xl); /* 30px */
+
+    /* Font size aliases for features page */
+    --font-size-md: var(--font-size-base); /* 16px */
+} 

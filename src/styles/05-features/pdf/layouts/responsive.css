@@ -1,0 +1,367 @@
+/*
+==============================================
+PDF RESPONSIVE LAYOUT STYLES
+==============================================
+Responsive design adaptations for PDF viewer
+using semantic tokens from the design system
+*/
+
+/* ========================================
+   MOBILE FIRST APPROACH
+   ======================================== */
+
+/* Base styles are mobile-first, these are enhancements */
+
+/* ========================================
+   MOBILE SPECIFIC STYLES (< 768px)
+   ======================================== */
+
+@media (max-width: 767px) {
+    /* Viewer container adjustments */
+    .pdf-viewer-container {
+        padding: var(--spacing-sm);
+        gap: var(--spacing-sm);
+    }
+
+    /* Page wrapper spacing */
+    .pdf-page-wrapper {
+        margin: var(--spacing-md);
+        max-width: calc(100vw - var(--spacing-lg));
+    }
+
+    /* Toolbar mobile layout */
+    .pdf-toolbar {
+        padding: var(--spacing-sm);
+        gap: var(--spacing-xs);
+        flex-wrap: wrap;
+        min-height: auto;
+    }
+
+    .pdf-toolbar-center {
+        order: 3;
+        flex: 100%;
+        margin-top: var(--spacing-sm);
+        justify-content: space-between;
+    }
+
+    /* Sidebar mobile adjustments */
+    .pdf-sidebar {
+        width: 100vw;
+        transform: translateX(-100vw);
+    }
+
+    .pdf-sidebar--right {
+        transform: translateX(100vw);
+    }
+
+    .pdf-sidebar.open {
+        transform: translateX(0);
+    }
+
+    /* Touch-friendly button sizes */
+    .pdf-toolbar-button,
+    .pdf-sidebar-close,
+    .pdf-file-action-button {
+        min-height: var(--space-11);
+        min-width: var(--space-11);
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    /* Hide complex controls on mobile */
+    .pdf-zoom-controls .pdf-zoom-display {
+        display: none;
+    }
+
+    /* Stack controls vertically */
+    .pdf-toolbar-group {
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    /* Fullscreen mobile optimization */
+    .pdf-fullscreen-content {
+        padding: var(--spacing-xs);
+    }
+
+    .pdf-fullscreen-page {
+        max-width: 98vw;
+        max-height: 85vh;
+    }
+
+    /* Processing overlays */
+    .processing-status-container {
+        left: var(--spacing-xs);
+        right: var(--spacing-xs);
+        bottom: var(--spacing-xs);
+        max-width: none;
+    }
+}
+
+/* ========================================
+   TABLET STYLES (768px - 1023px)
+   ======================================== */
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    /* Viewer adjustments for tablet */
+    .pdf-viewer-container {
+        padding: 0 var(--spacing-xs);
+    }
+
+    /* Sidebar adjustments */
+    .pdf-sidebar {
+        width: var(--sidebar-width-compact);
+    }
+
+    /* Toolbar layout for tablet */
+    .pdf-toolbar {
+        padding: var(--spacing-md);
+        gap: var(--spacing-sm);
+    }
+
+    /* Page sizing for tablet */
+    .pdf-page-wrapper {
+        max-width: calc(100vw - var(--spacing-xl));
+    }
+
+    /* Multi-document layout for tablet */
+    .multi-pdf-header {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    /* Thumbnail sizing */
+    .pdf-thumbnail-image {
+        aspect-ratio: var(--aspect-photo);
+        max-width: 120px;
+    }
+}
+
+/* ========================================
+   DESKTOP STYLES (1024px+)
+   ======================================== */
+
+@media (min-width: 1024px) {
+    /* Enhanced spacing for desktop */
+    .pdf-viewer-container {
+        padding: var(--spacing-md) var(--spacing-lg);
+    }
+
+    /* Full sidebar width */
+    .pdf-sidebar {
+        width: var(--sidebar-width);
+    }
+
+    /* Larger pages for desktop */
+    .pdf-page-wrapper {
+        max-width: none;
+    }
+
+    /* Enhanced toolbar for desktop */
+    .pdf-toolbar {
+        padding: 0 var(--spacing-lg);
+    }
+
+    /* Better thumbnail sizing */
+    .pdf-thumbnail-image {
+        max-width: 160px;
+    }
+
+    /* Desktop-specific hover effects */
+    .pdf-page-wrapper:hover {
+        transform: translateY(-4px);
+    }
+}
+
+/* ========================================
+   LARGE DESKTOP STYLES (1280px+)
+   ======================================== */
+
+@media (min-width: 1280px) {
+    /* Larger sidebar for large screens */
+    .pdf-sidebar {
+        width: var(--sidebar-width-large);
+    }
+
+    /* Enhanced spacing */
+    .pdf-viewer-container {
+        padding: 0 var(--spacing-xl);
+    }
+
+    /* Better fullscreen experience */
+    .pdf-fullscreen-content .pdf-document-container {
+        max-width: 1200px;
+    }
+
+    /* Larger thumbnails */
+    .pdf-thumbnail-image {
+        max-width: 200px;
+    }
+}
+
+/* ========================================
+   LANDSCAPE MOBILE (PHONE ROTATION)
+   ======================================== */
+
+@media (max-width: 767px) and (orientation: landscape) {
+    /* Adjust for landscape mobile */
+    .pdf-viewer-container {
+        padding: var(--spacing-xs);
+    }
+
+    .pdf-toolbar {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        min-height: var(--header-height-compact);
+    }
+
+    .pdf-page-wrapper {
+        margin: var(--spacing-sm) auto;
+        max-width: calc(100vw - var(--spacing-md));
+    }
+
+    /* Compact sidebar in landscape */
+    .pdf-sidebar {
+        width: var(--sidebar-width-compact);
+    }
+
+    /* Hide some controls to save space */
+    .pdf-fullscreen-navigation {
+        bottom: var(--spacing-xs);
+        padding: var(--spacing-xs);
+    }
+
+    .pdf-fullscreen-zoom-controls {
+        right: var(--spacing-xs);
+    }
+}
+
+/* ========================================
+   HIGH DPI DISPLAYS
+   ======================================== */
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    /* Enhanced rendering for high DPI */
+    .pdf-page-wrapper {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+
+    .react-pdf__Page canvas {
+        image-rendering: -webkit-optimize-contrast;
+    }
+
+    /* Thinner borders on high DPI */
+    .pdf-sidebar,
+    .pdf-toolbar {
+        border-width: 0.5px;
+    }
+}
+
+/* ========================================
+   TOUCH DEVICES
+   ======================================== */
+
+@media (hover: none) and (pointer: coarse) {
+    /* Touch-specific optimizations */
+    .pdf-toolbar-button,
+    .pdf-sidebar-item,
+    .pdf-file-action-button {
+        min-height: var(--space-11);
+        padding: var(--spacing-sm);
+    }
+
+    /* Remove hover effects for touch */
+    .pdf-page-wrapper:hover {
+        transform: none;
+        box-shadow: var(--shadow-md);
+    }
+
+    .pdf-thumbnail-image:hover {
+        transform: none;
+    }
+
+    /* Enhanced touch targets */
+    .pdf-sidebar-close,
+    .pdf-fullscreen-close-button {
+        min-width: var(--space-12);
+        min-height: var(--space-12);
+    }
+
+    /* Scroll indicators */
+    .pdf-viewer-container,
+    .pdf-sidebar-content {
+        scrollbar-width: auto;
+    }
+}
+
+/* ========================================
+   REDUCED MOTION
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    /* Disable animations */
+    .pdf-page-wrapper,
+    .pdf-file-container,
+    .pdf-toolbar-button,
+    .pdf-sidebar-item {
+        transition: none;
+    }
+
+    .pdf-page-wrapper:hover,
+    .pdf-file-container:hover {
+        transform: none;
+    }
+
+    /* Disable complex animations */
+    .processing-spinner,
+    .pdf-loading-placeholder::after {
+        animation: none;
+    }
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+
+@media print {
+    /* Hide UI elements when printing */
+    .pdf-toolbar,
+    .pdf-sidebar,
+    .pdf-fullscreen-navigation,
+    .pdf-fullscreen-zoom-controls,
+    .processing-status-container {
+        display: none !important;
+    }
+
+    /* Optimize for print */
+    .pdf-viewer-container {
+        padding: 0;
+        background: white;
+    }
+
+    .pdf-page-wrapper {
+        margin: 0;
+        box-shadow: none;
+        border: none;
+        break-inside: avoid;
+    }
+
+    .react-pdf__Page canvas {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+}
+
+/* ========================================
+   CONTAINER QUERIES (Future Enhancement)
+   ======================================== */
+
+/* Note: Container queries would be ideal for component-level responsive design
+   but browser support is still limited. Consider implementing when support improves. */
+
+/* Example for future implementation:
+@container pdf-viewer (max-width: 400px) {
+  .pdf-toolbar {
+    flex-direction: column;
+  }
+}
+*/ 

@@ -3,7 +3,6 @@ import Navbar from '../../components/static/Navbar'
 import Hero from '../../components/static/Hero'
 import FeaturesPreview from '../../components/static/FeaturesPreview'
 import Footer from '../../components/static/Footer'
-import '../../styles/modules/landing/LandingPage.css'
 
 
 const LandingPage = () => {

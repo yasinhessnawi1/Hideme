@@ -1,6 +1,5 @@
 import React from 'react';
 import Spinner from './Spinner';
-import '../../styles/components/LoadingWrapper.css';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface LoadingWrapperProps {

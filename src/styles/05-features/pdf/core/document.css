@@ -1,0 +1,439 @@
+/*
+==============================================
+PDF DOCUMENT CORE STYLES
+==============================================
+Document container and multi-document handling
+using semantic tokens from the design system
+*/
+
+/* ========================================
+   DOCUMENT CONTAINER
+   ======================================== */
+
+.react-pdf__Document {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding-bottom: var(--spacing-2xl);
+    position: relative;
+}
+
+.pdf-pages-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding-bottom: var(--spacing-2xl);
+    position: relative;
+}
+
+.pdf-document {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding-bottom: var(--spacing-md);
+}
+
+.pdf-document-container {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeIn var(--duration-medium) var(--ease-out);
+}
+
+/* ========================================
+   DRAGGABLE CONTAINER
+   ======================================== */
+
+.pdf-document-draggable-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform var(--duration-immediate) var(--ease-out);
+    will-change: transform;
+}
+
+.pdf-document-container.dragging .pdf-document-draggable-container {
+    transition: none;
+}
+
+.pdf-page-draggable-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform var(--duration-normal) var(--ease-out);
+    will-change: transform;
+}
+
+.pdf-page-wrapper.dragging .pdf-page-draggable-container {
+    transition: none;
+}
+
+/* ========================================
+   ZOOM STATE
+   ======================================== */
+
+.pdf-document-container.zoomed {
+    min-width: fit-content;
+    min-height: fit-content;
+    cursor: grab;
+}
+
+.pdf-document-container.zoomed.dragging {
+    cursor: grabbing;
+}
+
+.pdf-document-container.zoomed .react-pdf__Page__textContent {
+    pointer-events: auto;
+}
+
+.pdf-document-container.zoomed .pdf-page {
+    cursor: grab;
+}
+
+.pdf-document-container.zoomed .react-pdf__Page__textContent ::selection {
+    background: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+}
+
+/* ========================================
+   DRAGGING STATE
+   ======================================== */
+
+.pdf-page-wrapper.dragging,
+.pdf-document-container.dragging {
+    user-select: none;
+    cursor: grabbing !important;
+}
+
+.pdf-page-wrapper.dragging * {
+    pointer-events: none;
+}
+
+/* ========================================
+   FILE HEADER
+   ======================================== */
+
+.pdf-file-header {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    background: var(--background);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: var(--spacing-md) var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+    transition: all var(--transition-speed) var(--transition-function);
+}
+
+.pdf-file-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex: 1;
+    min-width: 0; /* Allow flex item to shrink below min-content size */
+}
+
+.pdf-file-toggle-button {
+    background: none;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: all var(--transition-speed) var(--transition-function);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xs);
+    border-radius: var(--border-radius-sm);
+    margin-right: var(--spacing-xs);
+}
+
+.pdf-file-toggle-button:hover {
+    color: var(--primary);
+    background-color: var(--button-hover);
+}
+
+.pdf-file-title {
+    margin: 0;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-medium);
+    color: var(--foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0; /* Allow truncation to work with flexbox */
+}
+
+.pdf-file-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
+}
+
+.pdf-file-action-button {
+    background: none;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: all var(--transition-speed) var(--transition-function);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xs);
+    border-radius: var(--border-radius-sm);
+    width: 28px;
+    height: 28px;
+}
+
+.pdf-file-action-button:hover {
+    color: var(--primary);
+    background-color: var(--button-hover);
+}
+
+.pdf-file-action-button.selected {
+    color: var(--primary);
+    background-color: rgba(var(--primary-rgb), 0.1);
+}
+
+.pdf-file-action-button:focus-visible {
+    outline: var(--outline-focus);
+    outline-offset: var(--outline-focus-offset);
+}
+
+/* ========================================
+   FILE CONTAINER
+   ======================================== */
+
+.pdf-file-container {
+    width: 100%;
+    background: var(--background);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: all var(--transition-card);
+    opacity: 1;
+    transform: translateY(0);
+    margin-bottom: var(--spacing-lg);
+    border: var(--border-default);
+}
+
+.pdf-file-container:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.pdf-file-container.current {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-lg);
+}
+
+.pdf-file-container.open {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.pdf-file-container.closed {
+    opacity: 0.7;
+    transform: translateY(-4px);
+}
+
+.pdf-file-container.selected {
+    border-color: var(--primary);
+    background-color: var(--background-subtle);
+}
+
+/* Transitions for opening/closing */
+.pdf-document-container {
+    animation: fadeIn var(--transition-speed) var(--transition-function);
+    transform-origin: top center;
+}
+
+/* Loading placeholder when file is opening */
+.pdf-loading-placeholder {
+    min-height: 300px;
+    background-color: var(--background);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    position: relative;
+    animation: pulse 2s infinite;
+}
+
+.pdf-loading-placeholder::after {
+    content: "";
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid var(--primary);
+    border-top-color: transparent;
+    animation: spinner 1s linear infinite;
+}
+
+@keyframes spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(var(--spacing-md));
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes activePagePulse {
+    0% {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.8), var(--shadow-lg);
+    }
+    50% {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.4), var(--shadow-lg);
+    }
+    100% {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.8), var(--shadow-lg);
+    }
+}
+
+.pdf-page-wrapper.just-activated {
+    animation: activePagePulse 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+/*
+==============================================
+IMPROVED PDF SELECTION STYLES
+==============================================
+Styles for precise text and rectangle selection in PDF viewer
+*/
+
+/* Rectangle Selection Mode */
+.page-overlay.rectangle-mode {
+    cursor: crosshair;
+}
+
+.react-pdf__Page__textContent *::selection {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+/* Hide browser's default blue selection */
+.react-pdf__Page__textContent.text-selection-enabled ::selection {
+    background-color: transparent !important;
+    color: inherit !important;
+}
+
+/* Ensure text is still selectable */
+.react-pdf__Page__textContent.text-selection-enabled {
+    cursor: text !important;
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+}
+
+/* Container for highlight spans */
+.text-selection-highlight-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 999;
+    overflow: visible;
+}
+
+/* Individual highlight spans */
+.text-selection-highlight-span {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 1px;
+    will-change: transform, opacity;
+    box-sizing: border-box;
+}
+
+
+.pdf-page-wrapper.text-selection-mode:hover::before,
+.pdf-page-wrapper.rectangle-mode:hover::before {
+    opacity: 0.8;
+}
+
+/* Selection overlay */
+.selection-overlay {
+    position: absolute;
+    pointer-events: none;
+    z-index: 50;
+    border: 1px solid rgba(39, 171, 111, 0.6);
+    background-color: rgba(39, 171, 111, 0.3);
+    border-radius: 2px;
+}
+
+.react-pdf__Page__annotations section {
+    position: absolute;
+    transform-origin: 0 0;
+}
+
+.react-pdf__Page__annotations .linkAnnotation {
+    position: absolute;
+    cursor: pointer;
+    border: 1px dashed transparent;
+    border-radius: 2px;
+    pointer-events: auto;
+}
+
+.react-pdf__Page__annotations .linkAnnotation:hover {
+    border-color: rgba(0, 0, 255, 0.2);
+    box-shadow: 0 0 3px rgba(0, 0, 255, 0.2);
+}
+
+/* Hide unusual link annotations that just cause confusion */
+.react-pdf__Page__annotations [data-annotation-id=""] {
+    display: none;
+}
+
+/* Make sure annotation links don't interfere with text selection */
+.react-pdf__Page__annotations .linkAnnotation.active {
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .pdf-file-header {
+        padding: var(--spacing-sm);
+    }
+
+    .pdf-file-title {
+        font-size: var(--font-size-base);
+        max-width: 200px;
+    }
+
+    .pdf-file-actions {
+        gap: var(--spacing-xs);
+    }
+
+    .pdf-file-action-button {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: var(--font-size-xs);
+    }
+} 

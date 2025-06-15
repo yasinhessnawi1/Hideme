@@ -1,0 +1,804 @@
+/*
+==============================================
+GRID SYSTEM
+==============================================
+Modern CSS Grid system with responsive behavior
+Using design tokens for consistent spacing
+*/
+
+/* ========================================
+   BASE GRID
+   ======================================== */
+
+.grid {
+    display: grid;
+    gap: var(--grid-gap);
+}
+
+/* ========================================
+   GRID COLUMNS
+   ======================================== */
+
+/* Auto-fit grids */
+.grid-auto-fit {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.grid-auto-fit-sm {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.grid-auto-fit-lg {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+/* Auto-fill grids */
+.grid-auto-fill {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+/* Fixed column grids */
+.grid-cols-1 {
+    grid-template-columns: repeat(1, 1fr);
+}
+
+.grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.grid-cols-5 {
+    grid-template-columns: repeat(5, 1fr);
+}
+
+.grid-cols-6 {
+    grid-template-columns: repeat(6, 1fr);
+}
+
+.grid-cols-7 {
+    grid-template-columns: repeat(7, 1fr);
+}
+
+.grid-cols-8 {
+    grid-template-columns: repeat(8, 1fr);
+}
+
+.grid-cols-9 {
+    grid-template-columns: repeat(9, 1fr);
+}
+
+.grid-cols-10 {
+    grid-template-columns: repeat(10, 1fr);
+}
+
+.grid-cols-11 {
+    grid-template-columns: repeat(11, 1fr);
+}
+
+.grid-cols-12 {
+    grid-template-columns: repeat(12, 1fr);
+}
+
+/* Fractional columns */
+.grid-cols-none {
+    grid-template-columns: none;
+}
+
+.grid-cols-subgrid {
+    grid-template-columns: subgrid;
+}
+
+/* ========================================
+   GRID ROWS
+   ======================================== */
+
+.grid-rows-1 {
+    grid-template-rows: repeat(1, 1fr);
+}
+
+.grid-rows-2 {
+    grid-template-rows: repeat(2, 1fr);
+}
+
+.grid-rows-3 {
+    grid-template-rows: repeat(3, 1fr);
+}
+
+.grid-rows-4 {
+    grid-template-rows: repeat(4, 1fr);
+}
+
+.grid-rows-5 {
+    grid-template-rows: repeat(5, 1fr);
+}
+
+.grid-rows-6 {
+    grid-template-rows: repeat(6, 1fr);
+}
+
+.grid-rows-none {
+    grid-template-rows: none;
+}
+
+.grid-rows-subgrid {
+    grid-template-rows: subgrid;
+}
+
+/* ========================================
+   GRID GAPS
+   ======================================== */
+
+.gap-0 {
+    gap: var(--space-0);
+}
+
+.gap-1 {
+    gap: var(--space-1);
+}
+
+.gap-2 {
+    gap: var(--space-2);
+}
+
+.gap-3 {
+    gap: var(--space-3);
+}
+
+.gap-4 {
+    gap: var(--space-4);
+}
+
+.gap-5 {
+    gap: var(--space-5);
+}
+
+.gap-6 {
+    gap: var(--space-6);
+}
+
+.gap-8 {
+    gap: var(--space-8);
+}
+
+.gap-10 {
+    gap: var(--space-10);
+}
+
+.gap-12 {
+    gap: var(--space-12);
+}
+
+.gap-16 {
+    gap: var(--space-16);
+}
+
+.gap-20 {
+    gap: var(--space-20);
+}
+
+.gap-24 {
+    gap: var(--space-24);
+}
+
+/* Semantic gaps */
+.gap-xs {
+    gap: var(--spacing-xs);
+}
+
+.gap-sm {
+    gap: var(--spacing-sm);
+}
+
+.gap-md {
+    gap: var(--spacing-md);
+}
+
+.gap-lg {
+    gap: var(--spacing-lg);
+}
+
+.gap-xl {
+    gap: var(--spacing-xl);
+}
+
+.gap-2xl {
+    gap: var(--spacing-2xl);
+}
+
+/* Row gaps */
+.gap-y-0 {
+    row-gap: var(--space-0);
+}
+
+.gap-y-1 {
+    row-gap: var(--space-1);
+}
+
+.gap-y-2 {
+    row-gap: var(--space-2);
+}
+
+.gap-y-3 {
+    row-gap: var(--space-3);
+}
+
+.gap-y-4 {
+    row-gap: var(--space-4);
+}
+
+.gap-y-5 {
+    row-gap: var(--space-5);
+}
+
+.gap-y-6 {
+    row-gap: var(--space-6);
+}
+
+.gap-y-8 {
+    row-gap: var(--space-8);
+}
+
+/* Column gaps */
+.gap-x-0 {
+    column-gap: var(--space-0);
+}
+
+.gap-x-1 {
+    column-gap: var(--space-1);
+}
+
+.gap-x-2 {
+    column-gap: var(--space-2);
+}
+
+.gap-x-3 {
+    column-gap: var(--space-3);
+}
+
+.gap-x-4 {
+    column-gap: var(--space-4);
+}
+
+.gap-x-5 {
+    column-gap: var(--space-5);
+}
+
+.gap-x-6 {
+    column-gap: var(--space-6);
+}
+
+.gap-x-8 {
+    column-gap: var(--space-8);
+}
+
+/* ========================================
+   GRID ITEM POSITIONING
+   ======================================== */
+
+/* Column spanning */
+.col-auto {
+    grid-column: auto;
+}
+
+.col-span-1 {
+    grid-column: span 1 / span 1;
+}
+
+.col-span-2 {
+    grid-column: span 2 / span 2;
+}
+
+.col-span-3 {
+    grid-column: span 3 / span 3;
+}
+
+.col-span-4 {
+    grid-column: span 4 / span 4;
+}
+
+.col-span-5 {
+    grid-column: span 5 / span 5;
+}
+
+.col-span-6 {
+    grid-column: span 6 / span 6;
+}
+
+.col-span-7 {
+    grid-column: span 7 / span 7;
+}
+
+.col-span-8 {
+    grid-column: span 8 / span 8;
+}
+
+.col-span-9 {
+    grid-column: span 9 / span 9;
+}
+
+.col-span-10 {
+    grid-column: span 10 / span 10;
+}
+
+.col-span-11 {
+    grid-column: span 11 / span 11;
+}
+
+.col-span-12 {
+    grid-column: span 12 / span 12;
+}
+
+.col-span-full {
+    grid-column: 1 / -1;
+}
+
+/* Column starting positions */
+.col-start-1 {
+    grid-column-start: 1;
+}
+
+.col-start-2 {
+    grid-column-start: 2;
+}
+
+.col-start-3 {
+    grid-column-start: 3;
+}
+
+.col-start-4 {
+    grid-column-start: 4;
+}
+
+.col-start-5 {
+    grid-column-start: 5;
+}
+
+.col-start-6 {
+    grid-column-start: 6;
+}
+
+.col-start-7 {
+    grid-column-start: 7;
+}
+
+.col-start-8 {
+    grid-column-start: 8;
+}
+
+.col-start-9 {
+    grid-column-start: 9;
+}
+
+.col-start-10 {
+    grid-column-start: 10;
+}
+
+.col-start-11 {
+    grid-column-start: 11;
+}
+
+.col-start-12 {
+    grid-column-start: 12;
+}
+
+.col-start-13 {
+    grid-column-start: 13;
+}
+
+.col-start-auto {
+    grid-column-start: auto;
+}
+
+/* Column ending positions */
+.col-end-1 {
+    grid-column-end: 1;
+}
+
+.col-end-2 {
+    grid-column-end: 2;
+}
+
+.col-end-3 {
+    grid-column-end: 3;
+}
+
+.col-end-4 {
+    grid-column-end: 4;
+}
+
+.col-end-5 {
+    grid-column-end: 5;
+}
+
+.col-end-6 {
+    grid-column-end: 6;
+}
+
+.col-end-7 {
+    grid-column-end: 7;
+}
+
+.col-end-8 {
+    grid-column-end: 8;
+}
+
+.col-end-9 {
+    grid-column-end: 9;
+}
+
+.col-end-10 {
+    grid-column-end: 10;
+}
+
+.col-end-11 {
+    grid-column-end: 11;
+}
+
+.col-end-12 {
+    grid-column-end: 12;
+}
+
+.col-end-13 {
+    grid-column-end: 13;
+}
+
+.col-end-auto {
+    grid-column-end: auto;
+}
+
+/* Row spanning */
+.row-auto {
+    grid-row: auto;
+}
+
+.row-span-1 {
+    grid-row: span 1 / span 1;
+}
+
+.row-span-2 {
+    grid-row: span 2 / span 2;
+}
+
+.row-span-3 {
+    grid-row: span 3 / span 3;
+}
+
+.row-span-4 {
+    grid-row: span 4 / span 4;
+}
+
+.row-span-5 {
+    grid-row: span 5 / span 5;
+}
+
+.row-span-6 {
+    grid-row: span 6 / span 6;
+}
+
+.row-span-full {
+    grid-row: 1 / -1;
+}
+
+/* ========================================
+   GRID ALIGNMENT
+   ======================================== */
+
+/* Justify items (horizontal alignment of items) */
+.justify-items-start {
+    justify-items: start;
+}
+
+.justify-items-end {
+    justify-items: end;
+}
+
+.justify-items-center {
+    justify-items: center;
+}
+
+.justify-items-stretch {
+    justify-items: stretch;
+}
+
+/* Align items (vertical alignment of items) */
+.align-items-start {
+    align-items: start;
+}
+
+.align-items-end {
+    align-items: end;
+}
+
+.align-items-center {
+    align-items: center;
+}
+
+.align-items-stretch {
+    align-items: stretch;
+}
+
+/* Justify content (horizontal alignment of grid) */
+.justify-content-start {
+    justify-content: start;
+}
+
+.justify-content-end {
+    justify-content: end;
+}
+
+.justify-content-center {
+    justify-content: center;
+}
+
+.justify-content-between {
+    justify-content: space-between;
+}
+
+.justify-content-around {
+    justify-content: space-around;
+}
+
+.justify-content-evenly {
+    justify-content: space-evenly;
+}
+
+.justify-content-stretch {
+    justify-content: stretch;
+}
+
+/* Align content (vertical alignment of grid) */
+.align-content-start {
+    align-content: start;
+}
+
+.align-content-end {
+    align-content: end;
+}
+
+.align-content-center {
+    align-content: center;
+}
+
+.align-content-between {
+    align-content: space-between;
+}
+
+.align-content-around {
+    align-content: space-around;
+}
+
+.align-content-evenly {
+    align-content: space-evenly;
+}
+
+.align-content-stretch {
+    align-content: stretch;
+}
+
+/* Place content (shorthand) */
+.place-content-start {
+    place-content: start;
+}
+
+.place-content-end {
+    place-content: end;
+}
+
+.place-content-center {
+    place-content: center;
+}
+
+.place-content-between {
+    place-content: space-between;
+}
+
+.place-content-around {
+    place-content: space-around;
+}
+
+.place-content-evenly {
+    place-content: space-evenly;
+}
+
+.place-content-stretch {
+    place-content: stretch;
+}
+
+/* Individual item alignment */
+.justify-self-auto {
+    justify-self: auto;
+}
+
+.justify-self-start {
+    justify-self: start;
+}
+
+.justify-self-end {
+    justify-self: end;
+}
+
+.justify-self-center {
+    justify-self: center;
+}
+
+.justify-self-stretch {
+    justify-self: stretch;
+}
+
+.align-self-auto {
+    align-self: auto;
+}
+
+.align-self-start {
+    align-self: start;
+}
+
+.align-self-end {
+    align-self: end;
+}
+
+.align-self-center {
+    align-self: center;
+}
+
+.align-self-stretch {
+    align-self: stretch;
+}
+
+/* ========================================
+   RESPONSIVE GRID
+   ======================================== */
+
+@media (max-width: 640px) {
+    .grid-auto-fit,
+    .grid-auto-fit-sm,
+    .grid-auto-fit-lg,
+    .grid-auto-fill {
+        grid-template-columns: 1fr;
+    }
+
+    .sm\:grid-cols-1 {
+        grid-template-columns: repeat(1, 1fr);
+    }
+
+    .sm\:grid-cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sm\:grid-cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 640px) {
+    .sm\:grid-cols-1 {
+        grid-template-columns: repeat(1, 1fr);
+    }
+
+    .sm\:grid-cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sm\:grid-cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .sm\:grid-cols-4 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .sm\:grid-cols-5 {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    .sm\:grid-cols-6 {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+
+@media (min-width: 768px) {
+    .md\:grid-cols-1 {
+        grid-template-columns: repeat(1, 1fr);
+    }
+
+    .md\:grid-cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .md\:grid-cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .md\:grid-cols-4 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .md\:grid-cols-5 {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    .md\:grid-cols-6 {
+        grid-template-columns: repeat(6, 1fr);
+    }
+
+    .md\:grid-cols-8 {
+        grid-template-columns: repeat(8, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .lg\:grid-cols-1 {
+        grid-template-columns: repeat(1, 1fr);
+    }
+
+    .lg\:grid-cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .lg\:grid-cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .lg\:grid-cols-4 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .lg\:grid-cols-5 {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    .lg\:grid-cols-6 {
+        grid-template-columns: repeat(6, 1fr);
+    }
+
+    .lg\:grid-cols-8 {
+        grid-template-columns: repeat(8, 1fr);
+    }
+
+    .lg\:grid-cols-10 {
+        grid-template-columns: repeat(10, 1fr);
+    }
+
+    .lg\:grid-cols-12 {
+        grid-template-columns: repeat(12, 1fr);
+    }
+}
+
+/* ========================================
+   COMMON GRID PATTERNS
+   ======================================== */
+
+/* Sidebar layout */
+.grid-sidebar {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr;
+    gap: var(--grid-gap);
+}
+
+/* Header-main-footer layout */
+.grid-layout {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: 100vh;
+}
+
+/* Two column responsive */
+.grid-two-col {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--grid-gap);
+}
+
+/* Three column responsive */
+.grid-three-col {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--grid-gap);
+} 

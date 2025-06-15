@@ -1,6 +1,5 @@
 import React from 'react';
 import { useEditContext } from '../../contexts/EditContext';
-import '../../styles/modules/pdf/Toolbar.css'; // Assuming shared styles
 import { useNotification } from '../../contexts/NotificationContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 

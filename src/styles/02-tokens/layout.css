@@ -1,0 +1,193 @@
+/*
+==============================================
+LAYOUT DESIGN TOKENS
+==============================================
+Container sizes, breakpoints, grid systems, and layout dimensions
+*/
+
+:root {
+    /* ========================================
+       BREAKPOINTS
+       ======================================== */
+
+    --breakpoint-xs: 480px;
+    --breakpoint-sm: 640px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1024px;
+    --breakpoint-xl: 1280px;
+    --breakpoint-2xl: 1536px;
+
+    /* ========================================
+       CONTAINER SIZES
+       ======================================== */
+
+    --container-xs: 100%;
+    --container-sm: 640px;
+    --container-md: 768px;
+    --container-lg: 1024px;
+    --container-xl: 1280px;
+    --container-2xl: 1536px;
+
+    /* Max container widths */
+    --container-max-xs: var(--container-xs);
+    --container-max-sm: var(--container-sm);
+    --container-max-md: var(--container-md);
+    --container-max-lg: var(--container-lg);
+    --container-max-xl: var(--container-xl);
+    --container-max-2xl: var(--container-2xl);
+
+    /* ========================================
+       GRID SYSTEM
+       ======================================== */
+
+    /* Grid columns */
+    --grid-columns: 12;
+    --grid-columns-sm: 4;
+    --grid-columns-md: 8;
+    --grid-columns-lg: 12;
+
+    /* Grid gaps */
+    --grid-gap: var(--space-4); /* 16px */
+    --grid-gap-sm: var(--space-2); /* 8px */
+    --grid-gap-md: var(--space-4); /* 16px */
+    --grid-gap-lg: var(--space-6); /* 24px */
+    --grid-gap-xl: var(--space-8); /* 32px */
+
+    /* ========================================
+       COMPONENT DIMENSIONS
+       ======================================== */
+
+    /* Header heights */
+    --header-height: 4rem; /* 64px */
+    --header-height-compact: 3rem; /* 48px */
+    --header-height-large: 5rem; /* 80px */
+
+    /* Sidebar widths */
+    --sidebar-width: 16rem; /* 256px */
+    --sidebar-width-compact: 12rem; /* 192px */
+    --sidebar-width-large: 20rem; /* 320px */
+    --sidebar-width-collapsed: 4rem; /* 64px */
+
+    /* Right sidebar width (legacy support) */
+    --right-sidebar-width: var(--sidebar-width-large); /* 320px */
+
+    /* Sidebar header height (legacy support) */
+    --sidebar-header-height: 3.75rem; /* 60px */
+
+    /* Footer heights */
+    --footer-height: 4rem; /* 64px */
+    --footer-height-compact: 3rem; /* 48px */
+
+    /* ========================================
+       CONTENT AREAS
+       ======================================== */
+
+    /* Main content area */
+    --content-max-width: 65ch; /* Optimal reading width */
+    --content-max-width-wide: 80ch; /* Wide content */
+    --content-max-width-narrow: 50ch; /* Narrow content */
+
+    /* Article widths */
+    --article-width: var(--content-max-width);
+    --article-width-wide: var(--content-max-width-wide);
+
+    /* ========================================
+       Z-INDEX SCALE
+       ======================================== */
+
+    --z-base: 0;
+    --z-dropdown: 1000;
+    --z-sticky: 1010;
+    --z-fixed: 1020;
+    --z-modal-backdrop: 1030;
+    --z-modal: 1040;
+    --z-popover: 1050;
+    --z-tooltip: 1060;
+    --z-toast: 1070;
+    --z-maximum: 2147483647;
+
+    /* ========================================
+       ASPECT RATIOS
+       ======================================== */
+
+    --aspect-square: 1 / 1;
+    --aspect-video: 16 / 9;
+    --aspect-video-wide: 21 / 9;
+    --aspect-photo: 4 / 3;
+    --aspect-portrait: 3 / 4;
+    --aspect-golden: 1.618 / 1;
+
+    /* ========================================
+       SIZING SCALE
+       ======================================== */
+
+    /* Width scale */
+    --size-0: 0px;
+    --size-1: 0.25rem; /* 4px */
+    --size-2: 0.5rem; /* 8px */
+    --size-3: 0.75rem; /* 12px */
+    --size-4: 1rem; /* 16px */
+    --size-5: 1.25rem; /* 20px */
+    --size-6: 1.5rem; /* 24px */
+    --size-7: 1.75rem; /* 28px */
+    --size-8: 2rem; /* 32px */
+    --size-9: 2.25rem; /* 36px */
+    --size-10: 2.5rem; /* 40px */
+    --size-11: 2.75rem; /* 44px */
+    --size-12: 3rem; /* 48px */
+    --size-14: 3.5rem; /* 56px */
+    --size-16: 4rem; /* 64px */
+    --size-20: 5rem; /* 80px */
+    --size-24: 6rem; /* 96px */
+    --size-28: 7rem; /* 112px */
+    --size-32: 8rem; /* 128px */
+    --size-36: 9rem; /* 144px */
+    --size-40: 10rem; /* 160px */
+    --size-44: 11rem; /* 176px */
+    --size-48: 12rem; /* 192px */
+    --size-52: 13rem; /* 208px */
+    --size-56: 14rem; /* 224px */
+    --size-60: 15rem; /* 240px */
+    --size-64: 16rem; /* 256px */
+    --size-72: 18rem; /* 288px */
+    --size-80: 20rem; /* 320px */
+    --size-96: 24rem; /* 384px */
+
+    /* Fractional sizes */
+    --size-1-2: 50%;
+    --size-1-3: 33.333333%;
+    --size-2-3: 66.666667%;
+    --size-1-4: 25%;
+    --size-2-4: 50%;
+    --size-3-4: 75%;
+    --size-1-5: 20%;
+    --size-2-5: 40%;
+    --size-3-5: 60%;
+    --size-4-5: 80%;
+    --size-1-6: 16.666667%;
+    --size-2-6: 33.333333%;
+    --size-3-6: 50%;
+    --size-4-6: 66.666667%;
+    --size-5-6: 83.333333%;
+    --size-full: 100%;
+
+    /* Viewport sizes */
+    --size-screen: 100vw;
+    --size-min: min-content;
+    --size-max: max-content;
+    --size-fit: fit-content;
+
+    /* ========================================
+       RESPONSIVE UTILITIES
+       ======================================== */
+
+    /* Safe area insets for mobile devices */
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-right: env(safe-area-inset-right, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-inset-left: env(safe-area-inset-left, 0px);
+
+    /* Scroll margins */
+    --scroll-margin: var(--space-4);
+    --scroll-margin-top: var(--header-height);
+} 

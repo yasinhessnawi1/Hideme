@@ -1,6 +1,5 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
-import '../../styles/components/LoadingWrapper.css'; // Use the same CSS file
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface SpinnerProps {

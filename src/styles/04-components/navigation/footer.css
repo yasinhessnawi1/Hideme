@@ -1,0 +1,274 @@
+/*
+==============================================
+FOOTER COMPONENT
+==============================================
+Site footer with contact information, links, and legal info
+Refactored to use new design tokens
+*/
+
+.site-footer {
+    background: var(--background);
+    color: var(--foreground-muted);
+    padding: var(--spacing-5xl) 0 var(--spacing-lg);
+    margin-top: var(--spacing-section);
+    border-top: var(--border-divider);
+    position: relative;
+}
+
+.site-footer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--gradient-accent);
+    opacity: 0.3;
+}
+
+/* ========================================
+   FOOTER CONTENT STRUCTURE
+   ======================================== */
+
+.footer-container {
+    max-width: var(--container-xl);
+    margin: 0 auto;
+    padding: 0 var(--spacing-container);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-2xl);
+}
+
+.footer-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.footer-heading {
+    color: var(--foreground);
+    font-size: var(--text-h5-size);
+    font-weight: var(--text-h5-weight);
+    margin-bottom: var(--spacing-lg);
+    line-height: var(--text-h5-line-height);
+}
+
+.footer-description {
+    line-height: var(--line-height-relaxed);
+    margin-bottom: var(--spacing-lg);
+    color: var(--foreground-muted);
+    font-size: var(--text-body-size);
+}
+
+/* ========================================
+   FOOTER LINKS
+   ======================================== */
+
+.footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.footer-links li {
+    margin-bottom: 0;
+}
+
+.footer-links a {
+    color: var(--foreground-muted);
+    text-decoration: none;
+    transition: var(--transition-link);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--text-body-size);
+    display: inline-block;
+    padding: var(--spacing-xs) 0;
+    border-radius: var(--radius-sm);
+    position: relative;
+}
+
+.footer-links a:hover {
+    color: var(--primary);
+    transform: translateX(var(--space-1));
+}
+
+.footer-links a::before {
+    content: "";
+    position: absolute;
+    left: calc(var(--space-2) * -1);
+    top: 50%;
+    transform: translateY(-50%) scaleX(0);
+    width: var(--space-1);
+    height: var(--space-1);
+    background-color: var(--primary);
+    border-radius: var(--radius-full);
+    transition: var(--transition-transform);
+    transform-origin: center;
+}
+
+.footer-links a:hover::before {
+    transform: translateY(-50%) scaleX(1);
+}
+
+/* ========================================
+   CONTACT LINKS
+   ======================================== */
+
+.footer-contact-link {
+    color: var(--foreground-muted);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+    transition: var(--transition-link);
+    font-size: var(--text-body-size);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    margin: calc(var(--spacing-sm) * -1);
+}
+
+.footer-contact-link:hover {
+    color: var(--primary);
+    background-color: var(--hover);
+    text-decoration: none;
+}
+
+/* ========================================
+   SOCIAL LINKS
+   ======================================== */
+
+.social-links {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+    flex-wrap: wrap;
+}
+
+.social-link {
+    color: var(--foreground-muted);
+    transition: var(--transition-button);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    border: var(--border-interactive);
+    background-color: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-10);
+    height: var(--size-10);
+    text-decoration: none;
+}
+
+.social-link:hover {
+    color: var(--primary);
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    transform: translateY(calc(var(--space-1) * -1));
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary);
+}
+
+.social-link:focus-visible {
+    outline: var(--outline-focus);
+    outline-offset: var(--outline-focus-offset);
+}
+
+.social-link svg {
+    width: var(--size-5);
+    height: var(--size-5);
+    transition: var(--transition-transform);
+}
+
+.social-link:hover svg {
+    transform: scale(1.1);
+}
+
+/* ========================================
+   FOOTER BOTTOM
+   ======================================== */
+
+.footer-bottom {
+    max-width: var(--container-xl);
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-container) 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    border-top: var(--border-divider);
+    margin-top: var(--spacing-xl);
+    position: relative;
+}
+
+.copyright {
+    margin-bottom: var(--spacing-lg);
+    color: var(--foreground-muted);
+    font-size: var(--text-body-small-size);
+    font-weight: var(--font-weight-regular);
+}
+
+/* ========================================
+   LEGAL LINKS
+   ======================================== */
+
+.footer-legal-links {
+    display: flex;
+    gap: var(--spacing-lg);
+    flex-wrap: wrap;
+}
+
+.footer-legal-links a {
+    color: var(--foreground-muted);
+    text-decoration: none;
+    font-size: var(--text-body-small-size);
+    transition: var(--transition-link);
+    font-weight: var(--font-weight-medium);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+}
+
+.footer-legal-links a:hover {
+    color: var(--primary);
+    background-color: var(--hover);
+    border-color: var(--border-subtle);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+    .footer-container {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-xl);
+        padding: 0 var(--spacing-lg);
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+        padding: var(--spacing-lg);
+        gap: var(--spacing-md);
+    }
+
+    .footer-legal-links {
+        margin-top: 0;
+        justify-content: center;
+        gap: var(--spacing-md);
+    }
+
+    .social-links {
+        justify-content: center;
+        gap: var(--spacing-sm);
+    }
+
+    .footer-section {
+        text-align: center;
+    }
+
+    .footer-links {
+        align-items: center;
+    }
+} 

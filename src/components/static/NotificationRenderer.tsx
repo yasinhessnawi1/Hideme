@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { useNotification, ToastNotification, NotificationPosition } from '../../contexts/NotificationContext';
 import { AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
 import { useLanguage } from '../../utils/i18n';
-import '../../styles/components/Notifications.css';
 
 // Animation component for smooth transitions
 const AnimatedToast: React.FC<{

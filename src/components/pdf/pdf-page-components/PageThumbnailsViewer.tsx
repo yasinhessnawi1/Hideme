@@ -3,11 +3,11 @@ import { Document, Page } from 'react-pdf';
 import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey, usePDFViewerContext } from '../../../contexts/PDFViewerContext';
 import { FaChevronUp, FaChevronDown, FaFile } from 'react-icons/fa';
-import '../../../styles/modules/pdf/PageThumbnails.css';
 import usePDFNavigation from "../../../hooks/general/usePDFNavigation";
 import { ChevronRight } from 'lucide-react';
 import { ChevronDown } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import Tooltip from '../../common/Tooltip';
 
 interface PageThumbnailsProps {
     isSidebarCollapsed?: boolean;
@@ -475,7 +475,10 @@ const PageThumbnailsViewer: React.FC<PageThumbnailsProps> = ({ isSidebarCollapse
                                 >
                                     <div className="file-info">
                                         <FaFile className="file-icon" />
-                                        <span className="file-name">{file.name}</span>
+                                        <Tooltip content={file.name}>
+                                            <span
+                                                className="file-name">{file.name.length > 24 ? file.name.substring(0, 21) + '...' : file.name}</span>
+                                        </Tooltip>
                                     </div>
                                     <div className="expansion-indicator">
                                         {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}

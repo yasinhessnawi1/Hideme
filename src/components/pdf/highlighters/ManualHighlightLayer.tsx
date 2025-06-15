@@ -1,6 +1,6 @@
 import React from 'react';
 import BaseHighlightLayer from './BaseHighlightLayer';
-import { HighlightRect } from '../../../types/pdfTypes';
+import {HighlightRect} from '../../../types';
 
 interface ManualHighlightLayerProps {
     pageNumber: number;

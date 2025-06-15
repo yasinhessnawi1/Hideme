@@ -2,12 +2,11 @@
 // Let's update the renderedHighlights calculation in BaseHighlightLayer.tsx
 
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {useHighlightStore} from '../../../hooks/general/useHighlightStore';
+import {useHighlightStore} from '../../../contexts/HighlightStoreContext';
 import {useEditContext} from '../../../contexts/EditContext';
 import {usePDFViewerContext} from '../../../contexts/PDFViewerContext';
 import HighlightContextMenu from './HighlightContextMenu';
-import '../../../styles/modules/pdf/HighlightLayer.css';
-import {HighlightRect, HighlightType} from '../../../types/pdfTypes';
+import {HighlightRect, HighlightType} from '../../../types';
 import { getEntityTranslationKeyAndModel } from '../../../utils/EntityUtils';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { TranslationKey, NestedTranslationKey } from '../../../utils/i18n/translations';

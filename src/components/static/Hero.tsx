@@ -1,10 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { FileText, Sparkles } from "lucide-react"
 import { FloatingPaper } from "./FloatingPaper"
-import "../../styles/modules/landing/Hero.css"
-import {Button} from "../common/Button";
 import React from "react";
 import { useLanguage } from "../../contexts/LanguageContext";
 
@@ -22,7 +19,7 @@ export default function Hero() {
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                         <h1 className="hero-title">
                             {t('landing', 'transformTitle')}
-                            <span className="highlight"> {t('landing', 'safeOnes')}</span>
+                            <span className="highlight-safe"> {t('landing', 'safeOnes')}</span>
                         </h1>
                     </motion.div>
 

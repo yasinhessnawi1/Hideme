@@ -1,0 +1,156 @@
+/*
+==============================================
+SPACING DESIGN TOKENS
+==============================================
+Consistent spacing scale for margins, padding, and gaps
+Based on a 4px base unit for perfect pixel alignment
+*/
+
+:root {
+    /* ========================================
+       BASE SPACING SCALE
+       ======================================== */
+
+    /* Base unit: 4px */
+    --space-0: 0;
+    --space-px: 1px;
+    --space-0-5: 0.125rem; /* 2px */
+    --space-1: 0.25rem; /* 4px */
+    --space-1-5: 0.375rem; /* 6px */
+    --space-2: 0.5rem; /* 8px */
+    --space-2-5: 0.625rem; /* 10px */
+    --space-3: 0.75rem; /* 12px */
+    --space-3-5: 0.875rem; /* 14px */
+    --space-4: 1rem; /* 16px */
+    --space-5: 1.25rem; /* 20px */
+    --space-6: 1.5rem; /* 24px */
+    --space-7: 1.75rem; /* 28px */
+    --space-8: 2rem; /* 32px */
+    --space-9: 2.25rem; /* 36px */
+    --space-10: 2.5rem; /* 40px */
+    --space-11: 2.75rem; /* 44px */
+    --space-12: 3rem; /* 48px */
+    --space-14: 3.5rem; /* 56px */
+    --space-16: 4rem; /* 64px */
+    --space-18: 4.5rem; /* 72px */
+    --space-20: 5rem; /* 80px */
+    --space-24: 6rem; /* 96px */
+    --space-28: 7rem; /* 112px */
+    --space-32: 8rem; /* 128px */
+    --space-36: 9rem; /* 144px */
+    --space-40: 10rem; /* 160px */
+    --space-44: 11rem; /* 176px */
+    --space-48: 12rem; /* 192px */
+    --space-52: 13rem; /* 208px */
+    --space-56: 14rem; /* 224px */
+    --space-60: 15rem; /* 240px */
+    --space-64: 16rem; /* 256px */
+    --space-72: 18rem; /* 288px */
+    --space-80: 20rem; /* 320px */
+    --space-96: 24rem; /* 384px */
+
+    /* ========================================
+       SEMANTIC SPACING
+       ======================================== */
+
+    /* Component spacing */
+    --spacing-xs: var(--space-1); /* 4px */
+    --spacing-sm: var(--space-2); /* 8px */
+    --spacing-md: var(--space-4); /* 16px */
+    --spacing-lg: var(--space-6); /* 24px */
+    --spacing-xl: var(--space-8); /* 32px */
+    --spacing-2xl: var(--space-12); /* 48px */
+    --spacing-3xl: var(--space-16); /* 64px */
+    --spacing-4xl: var(--space-20); /* 80px */
+    --spacing-5xl: var(--space-24); /* 96px */
+
+    /* Layout spacing */
+    --spacing-section: var(--space-24); /* 96px - Between page sections */
+    --spacing-section-y: var(--space-20); /* 80px - Vertical section padding */
+    --spacing-container: var(--space-6); /* 24px - Container padding */
+    --spacing-component: var(--space-4); /* 16px - Between components */
+    --spacing-element: var(--space-2); /* 8px - Between related elements */
+
+    /* Container max-widths */
+    --container-sm: 640px;
+    --container-md: 768px;
+    --container-lg: 1024px;
+    --container-xl: 1200px;
+    --container-2xl: 1400px;
+
+    /* Hero-specific spacing */
+    --hero-text-max-width: 48rem; /* 768px */
+    --hero-description-max-width: 32rem; /* 512px */
+
+    /* ========================================
+       LEGACY SPACING ALIASES
+       ======================================== */
+
+    /* Legacy support for existing styles */
+    --spacing-xxl: var(--spacing-3xl);
+
+    /* Border radius aliases for features page */
+    --border-radius-sm: var(--radius-sm);
+    --border-radius-md: var(--radius-md);
+    --border-radius-lg: var(--radius-lg);
+
+    /* ========================================
+       COMPONENT-SPECIFIC SPACING
+       ======================================== */
+
+    /* Button spacing */
+    --spacing-button-x: var(--space-4); /* 16px horizontal padding */
+    --spacing-button-y: var(--space-2); /* 8px vertical padding */
+    --spacing-button-large-x: var(--space-6); /* 24px horizontal padding */
+    --spacing-button-large-y: var(--space-3); /* 12px vertical padding */
+
+    /* Form spacing */
+    --spacing-input-x: var(--space-3); /* 12px input horizontal padding */
+    --spacing-input-y: var(--space-2); /* 8px input vertical padding */
+    --spacing-form-group: var(--space-4); /* 16px between form groups */
+    --spacing-label: var(--space-1); /* 4px label to input gap */
+
+    /* Card spacing */
+    --spacing-card: var(--space-6); /* 24px card padding */
+    --spacing-card-compact: var(--space-4); /* 16px compact card padding */
+
+    /* Navigation spacing */
+    --spacing-nav-item: var(--space-4); /* 16px nav item padding */
+    --spacing-nav-gap: var(--space-2); /* 8px between nav items */
+
+    /* ========================================
+       NEGATIVE SPACING
+       ======================================== */
+
+    /* For overlapping elements and pull techniques */
+    --space-negative-1: calc(var(--space-1) * -1);
+    --space-negative-2: calc(var(--space-2) * -1);
+    --space-negative-3: calc(var(--space-3) * -1);
+    --space-negative-4: calc(var(--space-4) * -1);
+    --space-negative-6: calc(var(--space-6) * -1);
+    --space-negative-8: calc(var(--space-8) * -1);
+    --space-negative-12: calc(var(--space-12) * -1);
+    --space-negative-16: calc(var(--space-16) * -1);
+
+    /* ========================================
+       RESPONSIVE SPACING MULTIPLIERS
+       ======================================== */
+
+    /* For responsive design - multiply base spacing */
+    --spacing-multiplier-mobile: 0.75; /* 75% spacing on mobile */
+    --spacing-multiplier-tablet: 0.875; /* 87.5% spacing on tablet */
+    --spacing-multiplier-desktop: 1; /* 100% spacing on desktop */
+    --spacing-multiplier-large: 1.125; /* 112.5% spacing on large screens */
+
+    /* ========================================
+       ICON SIZES
+       ======================================== */
+
+    /* Icon size variables */
+    --icon-size-xs: var(--space-3); /* 12px */
+    --icon-size-sm: var(--space-4); /* 16px */
+    --icon-size-md: var(--space-5); /* 20px */
+    --icon-size-lg: var(--space-6); /* 24px */
+    --icon-size-xl: var(--space-7); /* 28px */
+    --icon-size-2xl: var(--space-8); /* 32px */
+} 

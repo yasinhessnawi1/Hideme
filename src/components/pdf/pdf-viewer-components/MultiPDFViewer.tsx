@@ -7,6 +7,7 @@ import FileUploader from "../pdf-page-components/FileUploader";
 import { ChevronDown, ChevronUp, Maximize, Check, X } from 'lucide-react';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import Tooltip from '../../common/Tooltip';
 
 /**
  * Component that renders a list of PDF files with open/close functionality
@@ -197,7 +198,11 @@ const MultiPDFViewer: React.FC = () => {
                                         >
                                             {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                                         </button>
-                                        <h3 className="pdf-file-title">{file.name}</h3>
+                                        <div className="file-name-container">
+                                            <Tooltip content={file.name}>
+                                                <h3 className="pdf-file-title">{file.name.length > 32 ? file.name.substring(0, 29) + '...' : file.name}</h3>
+                                            </Tooltip>
+                                        </div>
                                     </div>
 
                                     {/* Ensure all action buttons are in the same container */}

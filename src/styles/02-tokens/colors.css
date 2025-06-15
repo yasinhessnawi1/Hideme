@@ -1,0 +1,301 @@
+/*
+==============================================
+COLOR DESIGN TOKENS
+==============================================
+Comprehensive color system for the application
+Following a semantic naming convention for maintainability
+*/
+
+/* ========================================
+   BRAND PALETTE - PRIMARY COLORS
+   ======================================== */
+
+:root {
+    /* Core Brand Colors - Original Theme */
+    --raisin-black: #1a1423;
+    --dark-purple: #372549;
+    --eggplant: #774c60;
+    --redwood: #b75d69;
+    --pale-dogwood: #eacdc2;
+
+    /* Legacy color names for backward compatibility */
+    --space-cadet: var(--raisin-black);
+    --federal-blue: var(--dark-purple);
+    --zaffre: var(--eggplant);
+    --glaucous: var(--redwood);
+    --honeydew: var(--pale-dogwood);
+
+    /* ========================================
+       COLOR FORMATS - RGB & HSL
+       ======================================== */
+
+    /* RGB Values */
+    --raisin-black-rgb: 26, 20, 35;
+    --dark-purple-rgb: 55, 37, 73;
+    --eggplant-rgb: 119, 76, 96;
+    --redwood-rgb: 183, 93, 105;
+    --pale-dogwood-rgb: 234, 205, 194;
+
+    /* Legacy RGB names */
+    --space-cadet-rgb: var(--raisin-black-rgb);
+    --federal-blue-rgb: var(--dark-purple-rgb);
+    --zaffre-rgb: var(--eggplant-rgb);
+    --glaucous-rgb: var(--redwood-rgb);
+    --honeydew-rgb: var(--pale-dogwood-rgb);
+
+    /* HSL Values */
+    --raisin-black-hsl: 264, 27%, 11%;
+    --dark-purple-hsl: 270, 33%, 22%;
+    --eggplant-hsl: 332, 22%, 38%;
+    --redwood-hsl: 352, 38%, 54%;
+    --pale-dogwood-hsl: 17, 49%, 84%;
+
+    /* Legacy HSL names */
+    --space-cadet-hsl: var(--raisin-black-hsl);
+    --federal-blue-hsl: var(--dark-purple-hsl);
+    --zaffre-hsl: var(--eggplant-hsl);
+    --glaucous-hsl: var(--redwood-hsl);
+    --honeydew-hsl: var(--pale-dogwood-hsl);
+
+    /* ========================================
+       SEMANTIC COLOR ASSIGNMENTS - LIGHT THEME
+       ======================================== */
+
+    /* Backgrounds */
+    --background: var(--pale-dogwood);
+    --background-subtle: rgba(var(--pale-dogwood-rgb), 0.6);
+    --background-surface: rgba(var(--pale-dogwood-rgb), 0.8);
+    --background-overlay: rgba(var(--raisin-black-rgb), 0.5);
+
+    /* Text */
+    --foreground: var(--raisin-black);
+    --foreground-muted: var(--dark-purple);
+    --foreground-subtle: var(--eggplant);
+
+    /* Primary Actions */
+    --primary: var(--eggplant);
+    --primary-hover: var(--redwood);
+    --primary-active: var(--dark-purple);
+    --primary-foreground: var(--pale-dogwood);
+
+    /* Secondary Actions */
+    --secondary: var(--redwood);
+    --secondary-hover: var(--eggplant);
+    --secondary-active: var(--dark-purple);
+    --secondary-foreground: var(--pale-dogwood);
+
+    /* Accent */
+    --accent: var(--dark-purple);
+    --accent-hover: var(--eggplant);
+    --accent-foreground: var(--pale-dogwood);
+
+    /* Borders */
+    --border: rgba(var(--eggplant-rgb), 0.3);
+    --border-subtle: rgba(var(--redwood-rgb), 0.2);
+    --border-strong: var(--eggplant);
+
+    /* States */
+    --muted: rgba(var(--redwood-rgb), 0.1);
+    --hover: rgba(var(--redwood-rgb), 0.1);
+    --active: rgba(var(--eggplant-rgb), 0.15);
+    --disabled: rgba(var(--eggplant-rgb), 0.5);
+    --focus: var(--redwood);
+
+    /* Card & Surface */
+    --card: rgba(var(--pale-dogwood-rgb), 0.8);
+    --card-hover: rgba(var(--pale-dogwood-rgb), 0.9);
+    --surface: rgba(var(--pale-dogwood-rgb), 0.9);
+    --surface-hover: var(--pale-dogwood);
+
+    /* ========================================
+       FUNCTIONAL COLORS
+       ======================================== */
+
+    /* Status Colors */
+    --success: #10b981;
+    --success-light: #6ee7b7;
+    --success-dark: #065f46;
+    --success-hover: #059669;
+    --success-rgb: 16, 185, 129;
+
+    --warning: #f59e0b;
+    --warning-light: #fcd34d;
+    --warning-dark: #92400e;
+    --warning-hover: #d97706;
+    --warning-rgb: 245, 158, 11;
+
+    --error: #ef4444;
+    --error-light: #fca5a5;
+    --error-dark: #991b1b;
+    --error-hover: #dc2626;
+    --error-rgb: 239, 68, 68;
+
+    --info: var(--eggplant);
+    --info-light: rgba(var(--eggplant-rgb), 0.3);
+    --info-dark: var(--dark-purple);
+
+    /* ========================================
+       GRADIENTS
+       ======================================== */
+
+    /* Primary Gradients */
+    --gradient-primary: linear-gradient(135deg, var(--raisin-black), var(--dark-purple), var(--eggplant));
+    --gradient-secondary: linear-gradient(45deg, var(--eggplant), var(--redwood), var(--pale-dogwood));
+    --gradient-accent: linear-gradient(90deg, var(--dark-purple), var(--eggplant));
+
+    /* Directional Gradients */
+    --gradient-to-top: linear-gradient(0deg, var(--raisin-black), var(--dark-purple), var(--eggplant), var(--redwood), var(--pale-dogwood));
+    --gradient-to-right: linear-gradient(90deg, var(--raisin-black), var(--dark-purple), var(--eggplant), var(--redwood), var(--pale-dogwood));
+    --gradient-to-bottom: linear-gradient(180deg, var(--raisin-black), var(--dark-purple), var(--eggplant), var(--redwood), var(--pale-dogwood));
+    --gradient-to-left: linear-gradient(270deg, var(--raisin-black), var(--dark-purple), var(--eggplant), var(--redwood), var(--pale-dogwood));
+
+    /* Radial Gradient */
+    --gradient-radial: radial-gradient(circle, var(--raisin-black), var(--dark-purple), var(--eggplant), var(--redwood), var(--pale-dogwood));
+
+    /* Hero Section Variables */
+    --hero-overlay: linear-gradient(135deg, rgba(var(--pale-dogwood-rgb), 0.05), rgba(var(--pale-dogwood-rgb), 0.1), rgba(var(--pale-dogwood-rgb), 0.05));
+    --gradient-overlay: var(--hero-overlay); /* Alias for consistency */
+    --hero-text-shadow: 0 2px 8px rgba(var(--raisin-black-rgb), 0.5);
+    --hero-text-shadow-light: 0 1px 4px rgba(var(--raisin-black-rgb), 0.3);
+
+    /* Features Section Backgrounds */
+    --features-background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    --features-background-dark: linear-gradient(135deg, var(--raisin-black) 0%, var(--dark-purple) 100%);
+
+    /* Card Backgrounds */
+    --card-background: var(--pale-dogwood);
+    --card-background-dark: var(--dark-purple);
+
+    /* Modern Blue Gradients for Features */
+    --gradient-blue: linear-gradient(135deg, #2563eb, #7c3aed);
+    --gradient-blue-to-purple: linear-gradient(90deg, #2563eb, #7c3aed);
+    --gradient-purple-light: linear-gradient(90deg, #7c3aed, #a855f7);
+
+    /* Text Colors for Light Background */
+    --text-slate-900: #1e293b;
+    --text-slate-600: #64748b;
+    --text-slate-500: #64748b;
+    --text-blue-600: #2563eb;
+
+    /* Border Colors */
+    --border-slate-200: #e2e8f0;
+    --border-purple-200: #ddd6fe;
+
+    /* Modern Highlight Gradient */
+    --highlight-gradient: linear-gradient(to right, #a855f7, #ec4899);
+
+    /* Features Hero Gradients */
+    --features-hero-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #1a1a2e 100%);
+    --features-hero-overlay: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 100%);
+
+    /* Status and accent colors */
+    --accent-muted: rgba(var(--eggplant-rgb), 0.1);
+    --primary-light: rgba(var(--eggplant-rgb), 0.3);
+    --primary-dark: var(--dark-purple);
+    --primary-hover: var(--redwood);
+    --muted-foreground: var(--foreground-muted);
+    --secondary-foreground: var(--primary-foreground);
+}
+
+/* ========================================
+   DARK THEME
+   ======================================== */
+
+[data-theme="dark"] {
+    /* Backgrounds */
+    --background: var(--raisin-black);
+    --background-subtle: rgba(var(--dark-purple-rgb), 0.6);
+    --background-surface: rgba(var(--dark-purple-rgb), 0.8);
+    --background-overlay: rgba(var(--pale-dogwood-rgb), 0.1);
+
+    /* Text */
+    --foreground: var(--pale-dogwood);
+    --foreground-muted: var(--redwood);
+    --foreground-subtle: #d1d5db;
+
+    /* Primary Actions */
+    --primary: var(--redwood);
+    --primary-hover: var(--eggplant);
+    --primary-active: var(--pale-dogwood);
+
+    /* Secondary Actions */
+    --secondary: var(--dark-purple);
+    --secondary-hover: var(--eggplant);
+    --secondary-active: var(--redwood);
+
+    /* Borders */
+    --border: rgba(var(--eggplant-rgb), 0.4);
+    --border-subtle: rgba(var(--redwood-rgb), 0.3);
+    --border-strong: var(--redwood);
+
+    /* States */
+    --muted: rgba(var(--eggplant-rgb), 0.2);
+    --hover: rgba(var(--eggplant-rgb), 0.15);
+    --active: rgba(var(--redwood-rgb), 0.2);
+    --disabled: rgba(var(--pale-dogwood-rgb), 0.3);
+
+    /* Card & Surface */
+    --card: rgba(var(--dark-purple-rgb), 0.8);
+    --card-hover: rgba(var(--dark-purple-rgb), 0.9);
+    --surface: rgba(var(--dark-purple-rgb), 0.9);
+    --surface-hover: var(--dark-purple);
+
+    /* Hero Section Variables - Dark Theme */
+    --hero-overlay: linear-gradient(135deg, rgba(var(--dark-purple-rgb), 0.1), rgba(var(--eggplant-rgb), 0.1), rgba(var(--dark-purple-rgb), 0.1));
+    --gradient-overlay: var(--hero-overlay); /* Alias for consistency */
+    --hero-text-shadow: 0 2px 8px rgba(var(--raisin-black-rgb), 0.8);
+    --hero-text-shadow-light: 0 1px 4px rgba(var(--raisin-black-rgb), 0.5);
+
+    /* ========================================
+       PDF VIEWER SEMANTIC TOKENS - DARK THEME
+       ======================================== */
+
+    /* PDF Viewer Color Tokens */
+    --pdf-background: var(--raisin-black);
+    --pdf-surface: var(--dark-purple);
+    --pdf-text: var(--pale-dogwood);
+    --pdf-border: rgba(var(--eggplant-rgb), 0.3);
+    --pdf-hover: rgba(var(--redwood-rgb), 0.1);
+    --pdf-active: var(--redwood);
+    --pdf-selection: rgba(var(--redwood-rgb), 0.3);
+    --pdf-highlight: var(--redwood);
+    --pdf-shadow: rgba(var(--raisin-black-rgb), 0.5);
+}
+
+/* ========================================
+   PDF VIEWER SEMANTIC TOKENS - LIGHT THEME
+   ======================================== */
+
+:root {
+    /* Light Theme Additions for PDF Viewer */
+
+    /* Toolbar */
+    --toolbar-bg: var(--background);
+    --toolbar-border: var(--border);
+    --toolbar-shadow: var(--shadow-sm);
+
+    /* Buttons */
+    --button-bg: rgba(var(--raisin-black-rgb), 0.03);
+    --button-border: var(--border);
+    --button-hover: rgba(var(--raisin-black-rgb), 0.05);
+    --button-active: rgba(var(--raisin-black-rgb), 0.08);
+    --button-text: var(--foreground);
+    --button-active-text: var(--primary);
+
+    /* Active States */
+    --active-bg: rgba(var(--eggplant-rgb), 0.1);
+    --active-border: var(--primary);
+    --active-text: var(--primary);
+
+    /* Dropdowns */
+    --dropdown-bg: var(--background);
+    --dropdown-border: var(--border);
+    --dropdown-shadow: var(--shadow-md);
+    --dropdown-hover: rgba(var(--raisin-black-rgb), 0.03);
+
+    /* PDF Specific */
+    --viewer-bg: var(--surface);
+    --sidebar-bg: var(--background);
+    --sidebar-border: var(--border);
+    --upload-bg: var(--surface);
+} 

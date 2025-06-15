@@ -1,0 +1,180 @@
+/*
+==============================================
+TRANSITION & ANIMATION DESIGN TOKENS
+==============================================
+Consistent timing and easing for smooth interactions
+*/
+
+:root {
+    /* ========================================
+       TIMING FUNCTIONS
+       ======================================== */
+
+    /* Standard easing curves */
+    --ease-linear: linear;
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Custom easing curves */
+    --ease-back-in: cubic-bezier(0.36, 0, 0.66, -0.56);
+    --ease-back-out: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-back-in-out: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+
+    /* Bounce easing */
+    --ease-bounce-in: cubic-bezier(0.6, -0.28, 0.735, 0.045);
+    --ease-bounce-out: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --ease-bounce-in-out: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* ========================================
+       DURATION SCALE
+       ======================================== */
+
+    /* Micro interactions */
+    --duration-instant: 0ms;
+    --duration-immediate: 50ms;
+    --duration-fast: 100ms;
+
+    /* Standard interactions */
+    --duration-normal: 150ms;
+    --duration-medium: 200ms;
+    --duration-slow: 300ms;
+
+    /* Complex transitions */
+    --duration-slower: 500ms;
+    --duration-slowest: 750ms;
+
+    /* ========================================
+       SEMANTIC TRANSITIONS
+       ======================================== */
+
+    /* Color transitions */
+    --transition-colors: color var(--duration-normal) var(--ease-out),
+    background-color var(--duration-normal) var(--ease-out),
+    border-color var(--duration-normal) var(--ease-out);
+
+    /* Transform transitions */
+    --transition-transform: transform var(--duration-normal) var(--ease-out);
+
+    /* Opacity transitions */
+    --transition-opacity: opacity var(--duration-normal) var(--ease-out);
+
+    /* All properties transition */
+    --transition-all: all var(--duration-normal) var(--ease-out);
+
+    /* ========================================
+       COMPONENT-SPECIFIC TRANSITIONS
+       ======================================== */
+
+    /* Button transitions */
+    --transition-button: background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+
+    /* Input transitions */
+    --transition-input: border-color var(--duration-normal) var(--ease-out),
+    box-shadow var(--duration-normal) var(--ease-out),
+    background-color var(--duration-normal) var(--ease-out);
+
+    /* Link transitions */
+    --transition-link: color var(--duration-fast) var(--ease-out),
+    text-decoration-color var(--duration-fast) var(--ease-out);
+
+    /* Card transitions */
+    --transition-card: box-shadow var(--duration-medium) var(--ease-out),
+    transform var(--duration-medium) var(--ease-out);
+
+    /* Modal transitions */
+    --transition-modal: opacity var(--duration-medium) var(--ease-out),
+    transform var(--duration-medium) var(--ease-out);
+
+    /* Dropdown transitions */
+    --transition-dropdown: opacity var(--duration-normal) var(--ease-out),
+    transform var(--duration-normal) var(--ease-out);
+
+    /* ========================================
+       KEYFRAME ANIMATIONS
+       ======================================== */
+
+    /* Fade animations */
+    --animation-fade-in: fadeIn var(--duration-medium) var(--ease-out) forwards;
+    --animation-fade-out: fadeOut var(--duration-medium) var(--ease-out) forwards;
+
+    /* Slide animations */
+    --animation-slide-in: slideIn var(--duration-medium) var(--ease-out) forwards;
+    --animation-slide-out: slideOut var(--duration-medium) var(--ease-out) forwards;
+
+    /* Scale animations */
+    --animation-scale-in: scaleIn var(--duration-medium) var(--ease-back-out) forwards;
+    --animation-scale-out: scaleOut var(--duration-normal) var(--ease-back-in) forwards;
+
+    /* Bounce animation */
+    --animation-bounce: bounce var(--duration-slower) var(--ease-bounce-out) infinite;
+
+    /* Float animation */
+    --animation-float: float 6s var(--ease-in-out) infinite;
+
+    /* Pulse animation */
+    --animation-pulse: pulse 2s var(--ease-in-out) infinite;
+
+    /* Spin animation */
+    --animation-spin: spin 1s var(--ease-linear) infinite;
+
+    /* Ripple animation */
+    --animation-ripple: ripple 0.6s var(--ease-out);
+
+    /* ========================================
+       DELAY SCALE
+       ======================================== */
+
+    --delay-none: 0ms;
+    --delay-short: 75ms;
+    --delay-medium: 150ms;
+    --delay-long: 300ms;
+    --delay-longer: 500ms;
+
+    /* ========================================
+       STAGGER DELAYS
+       ======================================== */
+
+    /* For staggered list animations */
+    --stagger-1: calc(var(--delay-short) * 1);
+    --stagger-2: calc(var(--delay-short) * 2);
+    --stagger-3: calc(var(--delay-short) * 3);
+    --stagger-4: calc(var(--delay-short) * 4);
+    --stagger-5: calc(var(--delay-short) * 5);
+
+    /* ========================================
+       REDUCED MOTION SUPPORT
+       ======================================== */
+
+    /* Override for users who prefer reduced motion */
+    --duration-reduced: 1ms;
+    --transition-reduced: none;
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --duration-immediate: var(--duration-reduced);
+        --duration-fast: var(--duration-reduced);
+        --duration-normal: var(--duration-reduced);
+        --duration-medium: var(--duration-reduced);
+        --duration-slow: var(--duration-reduced);
+        --duration-slower: var(--duration-reduced);
+        --duration-slowest: var(--duration-reduced);
+
+        --transition-colors: var(--transition-reduced);
+        --transition-transform: var(--transition-reduced);
+        --transition-opacity: var(--transition-reduced);
+        --transition-all: var(--transition-reduced);
+        --transition-button: var(--transition-reduced);
+        --transition-input: var(--transition-reduced);
+        --transition-link: var(--transition-reduced);
+        --transition-card: var(--transition-reduced);
+        --transition-modal: var(--transition-reduced);
+        --transition-dropdown: var(--transition-reduced);
+    }
+} 

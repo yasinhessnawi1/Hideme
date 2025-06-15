@@ -1,6 +1,5 @@
 import React from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
-import '../../styles/components/FeaturesPreview.css';
 
 interface ToolPreviewCardProps {
     title: string;

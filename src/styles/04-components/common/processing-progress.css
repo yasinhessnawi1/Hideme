@@ -1,0 +1,234 @@
+/*
+==============================================
+PROCESSING PROGRESS COMPONENT
+==============================================
+Progress indicators for tracking file processing tasks
+Refactored to use new design tokens
+*/
+
+.processing-progress-container {
+    position: relative;
+    width: 100%;
+    margin: var(--spacing-xs) 0;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background-color: var(--surface-subtle);
+    transition: var(--transition-colors);
+}
+
+/* ========================================
+   PROGRESS BAR CONTAINER
+   ======================================== */
+
+.progress-container {
+    position: relative;
+    height: var(--size-2);
+    width: 100%;
+    background-color: var(--surface-subtle);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    box-shadow: var(--shadow-inset);
+}
+
+/* ========================================
+   PROGRESS BAR
+   ======================================== */
+
+.progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-sm);
+    transition: var(--transition-width);
+    box-shadow: var(--shadow-progress);
+    will-change: width;
+    transform: translateZ(0);
+}
+
+/* ========================================
+   PROGRESS LABEL
+   ======================================== */
+
+.processing-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: var(--text-body-small-size);
+    color: var(--foreground);
+    margin-bottom: var(--spacing-xs);
+    padding: 0 var(--spacing-xs);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+}
+
+/* ========================================
+   STATUS-BASED STYLING
+   ======================================== */
+
+.progress-processing .progress-bar {
+    background: var(--gradient-primary);
+    animation: progress-pulse var(--duration-slow) infinite;
+}
+
+.progress-success .progress-bar {
+    background: var(--gradient-success);
+}
+
+.progress-error .progress-bar {
+    background: var(--gradient-error);
+}
+
+.progress-warning .progress-bar {
+    background: var(--gradient-warning);
+}
+
+/* ========================================
+   LABEL STATUS COLORS
+   ======================================== */
+
+.progress-processing .processing-label {
+    color: var(--primary);
+}
+
+.progress-success .processing-label {
+    color: var(--success);
+}
+
+.progress-error .processing-label {
+    color: var(--error);
+}
+
+.progress-warning .processing-label {
+    color: var(--warning);
+}
+
+/* ========================================
+   CANCEL BUTTON
+   ======================================== */
+
+.cancel-processing-button {
+    position: absolute;
+    right: var(--spacing-xs);
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--foreground-muted);
+    font-size: var(--text-caption-size);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    opacity: 0.7;
+    transition: var(--transition-colors);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cancel-processing-button:hover {
+    opacity: 1;
+    background-color: var(--error);
+    color: var(--error-foreground);
+}
+
+.cancel-processing-button:focus {
+    outline: var(--border-focus);
+    outline-offset: var(--space-0-5);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes progress-pulse {
+    0% {
+        opacity: 0.8;
+        background-position: 0% 50%;
+    }
+    50% {
+        opacity: 1;
+        background-position: 100% 50%;
+    }
+    100% {
+        opacity: 0.8;
+        background-position: 0% 50%;
+    }
+}
+
+.progress-bar[aria-valuenow="99"] {
+    animation: final-progress-pulse var(--duration-normal) infinite;
+}
+
+@keyframes final-progress-pulse {
+    0% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.7;
+    }
+}
+
+/* ========================================
+   PROGRESS VARIANTS
+   ======================================== */
+
+.progress-container.progress-thin {
+    height: var(--space-1);
+}
+
+.progress-container.progress-thick {
+    height: var(--size-3);
+}
+
+.progress-container.progress-xl {
+    height: var(--size-4);
+}
+
+/* ========================================
+   INDETERMINATE PROGRESS
+   ======================================== */
+
+.progress-indeterminate .progress-bar {
+    width: 30%;
+    background: var(--gradient-primary);
+    animation: progress-indeterminate var(--duration-slow) infinite linear;
+}
+
+@keyframes progress-indeterminate {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(400%);
+    }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+    .processing-progress-container {
+        margin: var(--spacing-xs) 0;
+    }
+
+    .progress-container {
+        height: var(--space-1-5);
+    }
+
+    .processing-label {
+        font-size: var(--text-caption-size);
+        padding: 0 var(--spacing-xs);
+    }
+
+    .cancel-processing-button {
+        padding: var(--spacing-xs);
+        font-size: var(--text-caption-size);
+    }
+} 

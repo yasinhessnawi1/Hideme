@@ -1,0 +1,26 @@
+/*
+==============================================
+COMPONENTS LAYER
+==============================================
+Component-specific styles organized by category
+*/
+
+/* Navigation components */
+@import './navigation/navbar.css';
+@import './navigation/footer.css';
+
+/* Button components */
+@import './buttons/shimmer-button.css';
+
+/* Form Components */
+@import './forms/index.css';
+
+/* Feedback components */
+@import './feedback/notifications.css';
+
+/* Common components */
+@import './common/theme-toggle.css';
+@import './common/language-switcher.css';
+@import './common/loading-wrapper.css';
+@import './common/true-focus.css';
+@import './common/processing-progress.css'; 

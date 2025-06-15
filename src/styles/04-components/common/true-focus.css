@@ -1,0 +1,216 @@
+/*
+==============================================
+TRUE FOCUS COMPONENT
+==============================================
+Animated focus frame for word highlighting
+Refactored to use new design tokens
+*/
+
+/* ========================================
+   FOCUS CONTAINER
+   ======================================== */
+
+.focus-container {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    padding: var(--spacing-sm);
+}
+
+/* ========================================
+   FOCUS WORDS
+   ======================================== */
+
+.focus-word {
+    position: relative;
+    font-size: var(--text-h3-size);
+    font-weight: var(--text-h1-weight);
+    line-height: var(--text-h1-line-height);
+    cursor: pointer;
+    transition: var(--transition-focus);
+    color: var(--foreground);
+    user-select: none;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-md);
+}
+
+.focus-word:hover {
+    color: var(--primary);
+    background-color: var(--hover);
+    transform: scale(1.02);
+}
+
+.focus-word.active {
+    filter: blur(0);
+    color: var(--primary);
+    background-color: var(--primary-alpha, rgba(var(--primary-rgb), 0.1));
+    transform: scale(1.05);
+    text-shadow: var(--shadow-text-focus);
+}
+
+.focus-word.inactive {
+    filter: blur(1px);
+    opacity: 0.5;
+    color: var(--foreground-muted);
+}
+
+/* ========================================
+   FOCUS FRAME
+   ======================================== */
+
+.focus-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    box-sizing: content-box;
+    border: none;
+    z-index: var(--z-focus-frame);
+    transition: var(--transition-focus-frame);
+}
+
+/* ========================================
+   FRAME CORNERS
+   ======================================== */
+
+.corner {
+    position: absolute;
+    width: var(--size-4);
+    height: var(--size-4);
+    border: var(--space-0-5) solid var(--primary);
+    border-radius: var(--radius-sm);
+    transition: var(--transition-corner);
+    background-color: var(--primary-alpha, rgba(var(--primary-rgb), 0.1));
+    backdrop-filter: blur(2px);
+}
+
+.corner::before {
+    content: "";
+    position: absolute;
+    inset: calc(var(--space-1) * -1);
+    border: 1px solid var(--primary-alpha, rgba(var(--primary-rgb), 0.3));
+    border-radius: var(--radius-sm);
+    background: var(--gradient-primary);
+    opacity: 0.1;
+    animation: var(--animation-glow);
+}
+
+/* Corner positioning */
+.top-left {
+    top: calc(var(--space-0-5) * -1);
+    left: calc(var(--space-2) * -1);
+    border-right: none;
+    border-bottom: none;
+}
+
+.top-right {
+    top: calc(var(--space-0-5) * -1);
+    right: calc(var(--space-1-5) * -1);
+    border-left: none;
+    border-bottom: none;
+}
+
+.bottom-left {
+    bottom: calc(var(--space-0-5) * -1);
+    left: calc(var(--space-2) * -1);
+    border-right: none;
+    border-top: none;
+}
+
+.bottom-right {
+    bottom: calc(var(--space-0-5) * -1);
+    right: calc(var(--space-1-5) * -1);
+    border-left: none;
+    border-top: none;
+}
+
+/* ========================================
+   FRAME ANIMATIONS
+   ======================================== */
+
+.focus-frame.active .corner {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-focus-corner);
+}
+
+.focus-frame.active .corner::before {
+    opacity: 0.3;
+    animation: var(--animation-glow);
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .focus-word {
+        transition: var(--transition-reduced);
+    }
+
+    .focus-word:hover,
+    .focus-word.active {
+        transform: none;
+    }
+
+    .corner {
+        transition: var(--transition-reduced);
+    }
+
+    .corner::before {
+        animation: none;
+    }
+
+    .focus-frame.active .corner {
+        transform: none;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .corner {
+        border-width: var(--space-1);
+        background-color: transparent;
+    }
+
+    .corner::before {
+        display: none;
+    }
+
+    .focus-word.active {
+        outline: var(--space-0-5) solid var(--primary);
+        outline-offset: var(--space-1);
+    }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+    .focus-container {
+        gap: var(--spacing-md);
+        padding: var(--spacing-lg);
+    }
+
+    .focus-word {
+        font-size: var(--text-h2-size);
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    .corner {
+        width: var(--size-3);
+        height: var(--size-3);
+        border-width: var(--space-px-2);
+    }
+}
+
+@media (max-width: 480px) {
+    .focus-word {
+        font-size: var(--text-h3-size);
+    }
+
+    .focus-container {
+        gap: var(--spacing-sm);
+    }
+} 

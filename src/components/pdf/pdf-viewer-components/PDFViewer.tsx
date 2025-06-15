@@ -1,8 +1,5 @@
-import React, { useRef, useCallback, useEffect } from 'react';
-import { useFileContext } from '../../../contexts/FileContext';
+import React, {useEffect} from 'react';
 import PDFViewerContainer from './PDFViewerContainer';
-import { Plus } from 'lucide-react';
-import '../../../styles/modules/pdf/PdfViewer.css';
 import EntityDetectionStatusViewer from "../pdf-page-components/EntityDetectionStatusViewer";
 import ScrollSync from '../../static/ScrollSync';
 import ViewportNavigationIntegrator from '../../static/ViewportNavigationIntegrator';

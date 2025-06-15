@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useEditContext } from '../../../contexts/EditContext';
 import { ManualHighlightProcessor } from '../../../managers/ManualHighlightProcessor';
-import { PDFPageViewport, ViewportSize, HighlightCreationMode } from '../../../types/pdfTypes';
+import {PDFPageViewport, ViewportSize, HighlightCreationMode} from '../../../types';
 
 interface TextSelectionHighlighterProps {
     pageNumber: number;

@@ -1,0 +1,24 @@
+/*
+==============================================
+FEATURES LAYER
+==============================================
+Feature-specific styles organized by domain
+*/
+
+/* Landing features */
+@import './landing/landing-page.css';
+
+/* Static pages */
+@import './static-pages/about-page.css';
+@import './static-pages/features-page.css';
+@import './static-pages/how-to-page.css';
+@import './static-pages/settings-page.css';
+
+/* Authentication features */
+@import './auth/login-page.css';
+
+/* PDF Features */
+@import './pdf/index.css';
+
+/* Settings Features */
+/* TODO: Migrate settings styles from legacy structure */ 

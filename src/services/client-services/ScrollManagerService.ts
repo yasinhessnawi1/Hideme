@@ -61,6 +61,12 @@ class ScrollManagerService {
     private mostVisiblePage: VisibilityResult = { fileKey: null, pageNumber: null, visibilityRatio: 0 };
     private visibilityThreshold = 0.5;
 
+    // Track currently active page to prevent unnecessary re-highlighting
+    private currentlyActivePage: { fileKey: string | null, pageNumber: number | null } = {
+        fileKey: null,
+        pageNumber: null
+    };
+
     // Event listeners
     private scrollListeners = new Map<string, ((pageNumber: number, fileKey: string, source: string) => void)[]>();
 
@@ -122,21 +128,37 @@ class ScrollManagerService {
         // Create a new intersection observer for precise visibility tracking
         this.visibilityObserver = new IntersectionObserver(
             (entries) => {
-                // Process all entries from this batch
                 entries.forEach(entry => {
-                    const pageElement = entry.target as HTMLElement;
-                    const pageNumber = parseInt(pageElement.getAttribute('data-page-number') || '0', 10);
-                    const fileKey = this.getFileKeyFromElement(pageElement);
+                    const element = entry.target as HTMLElement;
+                    const pageNumber = parseInt(element.getAttribute('data-page-number') || '0');
+                    const fileKey = this.getFileKeyFromElement(element);
 
-                    if (!fileKey || !pageNumber) return;
-
-                    // Store the visibility ratio for this page
-                    const pageKey = `${fileKey}-${pageNumber}`;
-                    this.pageVisibilityMap.set(pageKey, entry.intersectionRatio);
+                    if (!pageNumber || !fileKey) return;
 
                     // Only process if visibility is high enough to consider it "in view"
                     if (entry.intersectionRatio > 0.5) {
-                        console.log(`[ScrollManager] Page ${pageNumber} of ${fileKey} is visible (${Math.round(entry.intersectionRatio * 100)}%)`);
+                        // Check if we're in fullscreen mode for context-aware logging
+                        const isFullscreen = document.querySelector('.modern-fullscreen-overlay') !== null;
+
+                        // Reduce logging based on context
+                        const visibilityPercent = Math.round(entry.intersectionRatio * 100);
+                        let shouldLog = false;
+
+                        if (isFullscreen) {
+                            // More aggressive filtering for fullscreen
+                            shouldLog = visibilityPercent % 20 === 0 || // Log every 20% increment
+                                entry.intersectionRatio > 0.8 || // Log high visibility
+                                entry.intersectionRatio < 0.6;   // Log when dropping below threshold
+                        } else {
+                            // More responsive logging for main viewer
+                            shouldLog = visibilityPercent % 10 === 0 || // Log every 10% increment
+                                entry.intersectionRatio > 0.7 || // Log high visibility
+                                entry.intersectionRatio < 0.6;   // Log when dropping below threshold
+                        }
+
+                        if (shouldLog) {
+                            console.log(`[ScrollManager] Page ${pageNumber} of ${fileKey} is visible (${visibilityPercent}%)`);
+                        }
 
                         // Don't trigger events if we're programmatically scrolling
                         if (!this.isScrolling && !this.isFileChanging) {
@@ -172,54 +194,187 @@ class ScrollManagerService {
         }));
     }
     private handlePageBecameVisible(fileKey: string, pageNumber: number, visibilityRatio: number): void {
-        // Skip if we're already processing this page
-        if (this.activeEventSources.has(`visibility-${fileKey}-${pageNumber}`)) {
+        // Create a unique key for this page visibility event
+        const eventKey = `visibility-${fileKey}-${pageNumber}`;
+
+        // Skip if we're already processing this page or if it was recently processed
+        if (this.activeEventSources.has(eventKey)) {
             return;
         }
 
+        // Check if we're in fullscreen mode
+        const isFullscreen = document.querySelector('.modern-fullscreen-overlay') !== null;
+
+        // Debounce rapid visibility changes for the same page
+        const throttleKey = `throttle-${eventKey}`;
+        if (this.eventThrottleTimers.has(throttleKey)) {
+            clearTimeout(this.eventThrottleTimers.get(throttleKey)!);
+        }
+
+        // Use different debounce timing based on context
+        const debounceTime = isFullscreen ? 150 : 50; // More responsive for main viewer
+
+        // Set a throttle timer to prevent rapid-fire events
+        const throttleTimer = setTimeout(() => {
+            this.processPageVisibilityChange(fileKey, pageNumber, visibilityRatio, eventKey, isFullscreen);
+            this.eventThrottleTimers.delete(throttleKey);
+        }, debounceTime);
+
+        this.eventThrottleTimers.set(throttleKey, throttleTimer);
+    }
+
+    private processPageVisibilityChange(fileKey: string, pageNumber: number, visibilityRatio: number, eventKey: string, isFullscreen: boolean = false): void {
         try {
             // Track that we're handling this event
-            this.activeEventSources.add(`visibility-${fileKey}-${pageNumber}`);
+            this.activeEventSources.add(eventKey);
 
             // First, check if this is the most visible page
             const maxVisibility = this.findMostVisiblePage();
 
-            // Only proceed if this is the most visible page or very clearly visible
+            // Adjust logging and thresholds based on context
+            const logThreshold = isFullscreen ? 0.7 : 0.6; // Lower threshold for main viewer
+            const shouldLog = visibilityRatio > logThreshold ||
+                (maxVisibility.fileKey === fileKey && maxVisibility.pageNumber === pageNumber);
+
+            if (shouldLog) {
+                console.log(`[ScrollManager] Page ${pageNumber} visible (${(visibilityRatio * 100).toFixed(1)}%), max visible: ${maxVisibility.pageNumber} (${(maxVisibility.visibilityRatio * 100).toFixed(1)}%)`);
+            }
+
+            // Use different activation thresholds based on context
+            const activationThreshold = isFullscreen ? 0.8 : 0.6; // More sensitive for main viewer
+
+            // Only proceed if this is the most visible page or clearly visible
             if (
                 (maxVisibility.fileKey === fileKey && maxVisibility.pageNumber === pageNumber) ||
-                visibilityRatio > 0.8
+                visibilityRatio > activationThreshold
             ) {
+                // Check if this page is already active to prevent flickering
+                if (this.currentlyActivePage.fileKey === fileKey && this.currentlyActivePage.pageNumber === pageNumber) {
+                    // For main viewer, be more lenient about visibility changes
+                    const visibilityChangeThreshold = isFullscreen ? 0.1 : 0.2;
+                    if (Math.abs(visibilityRatio - (this.pageVisibilityMap.get(`${fileKey}-${pageNumber}`) || 0)) > visibilityChangeThreshold) {
+                        console.log(`[ScrollManager] Page ${pageNumber} is already active, skipping highlight`);
+                    }
+                    // Update visibility tracking
+                    this.pageVisibilityMap.set(`${fileKey}-${pageNumber}`, visibilityRatio);
+                    return;
+                }
+
+                console.log(`[ScrollManager] Page ${pageNumber} should become active - highlighting it`);
+
+                // Update currently active page tracking
+                this.currentlyActivePage = {fileKey, pageNumber};
+                this.pageVisibilityMap.set(`${fileKey}-${pageNumber}`, visibilityRatio);
+
+                // Use different debouncing strategies based on context
+                if (isFullscreen) {
+                    // More aggressive debouncing for fullscreen
+                    this.highlightActivePageDebounced(fileKey, pageNumber, 'visibility-detection');
+                } else {
+                    // More responsive for main viewer
+                    this.highlightActivePage(fileKey, pageNumber, 'visibility-detection');
+                }
+
                 // Check if file needs to change
                 this.handlePotentialFileChange(fileKey);
 
-                // Dispatch page change event
-                window.dispatchEvent(new CustomEvent('pdf-page-changed', {
-                    detail: {
-                        fileKey,
-                        pageNumber,
-                        source: 'scroll-visibility-detection',
-                        visibilityRatio,
-                        timestamp: Date.now()
-                    }
-                }));
-
-                // Also dispatch an internal event for visibility tracking
-                window.dispatchEvent(new CustomEvent('page-visibility-changed', {
-                    detail: {
-                        fileKey,
-                        pageNumber,
-                        visibilityRatio,
-                        timestamp: Date.now()
-                    }
-                }));
+                // Dispatch page change event with context-aware throttling
+                if (isFullscreen) {
+                    this.dispatchPageChangeEventThrottled(pageNumber, fileKey, 'scroll-visibility-detection');
+                } else {
+                    // Direct dispatch for main viewer
+                    this.dispatchPageChangeEventDirect(pageNumber, fileKey, 'scroll-visibility-detection');
+                }
             }
         } finally {
-            // Clear after a short delay
+            // Use different cleanup timing based on context
+            const cleanupDelay = isFullscreen ? 500 : 200; // Faster cleanup for main viewer
             setTimeout(() => {
-                this.activeEventSources.delete(`visibility-${fileKey}-${pageNumber}`);
-            }, 250); // Longer delay to prevent rapid changes
+                this.activeEventSources.delete(eventKey);
+            }, cleanupDelay);
         }
     }
+
+    // Direct dispatch for main viewer (no throttling)
+    private dispatchPageChangeEventDirect(pageNumber: number, fileKey: string, source: string): void {
+        // Dispatch page change event immediately
+        window.dispatchEvent(new CustomEvent('pdf-page-changed', {
+            detail: {
+                fileKey,
+                pageNumber,
+                source,
+                visibilityRatio: this.pageVisibilityMap.get(`${fileKey}-${pageNumber}`) || 0,
+                timestamp: Date.now()
+            }
+        }));
+
+        // Also dispatch an internal event for visibility tracking
+        window.dispatchEvent(new CustomEvent('page-visibility-changed', {
+            detail: {
+                fileKey,
+                pageNumber,
+                visibilityRatio: this.pageVisibilityMap.get(`${fileKey}-${pageNumber}`) || 0,
+                timestamp: Date.now()
+            }
+        }));
+    }
+
+    // Debounced version of highlightActivePage
+    private highlightActivePageDebounced(fileKey: string, pageNumber: number, source: string): void {
+        const highlightKey = `highlight-${fileKey}-${pageNumber}`;
+
+        // Clear any existing highlight timer for this page
+        if (this.eventThrottleTimers.has(highlightKey)) {
+            clearTimeout(this.eventThrottleTimers.get(highlightKey)!);
+        }
+
+        // Set a new timer
+        const timer = setTimeout(() => {
+            this.highlightActivePage(fileKey, pageNumber, source);
+            this.eventThrottleTimers.delete(highlightKey);
+        }, 100); // Short delay to batch rapid changes
+
+        this.eventThrottleTimers.set(highlightKey, timer);
+    }
+
+    // Throttled version of dispatchPageChangeEvent
+    private dispatchPageChangeEventThrottled(pageNumber: number, fileKey: string, source: string): void {
+        const eventKey = `page-change-${fileKey}-${pageNumber}`;
+
+        // Clear any existing timer for this event
+        if (this.eventThrottleTimers.has(eventKey)) {
+            clearTimeout(this.eventThrottleTimers.get(eventKey)!);
+        }
+
+        // Set a new timer
+        const timer = setTimeout(() => {
+            // Dispatch page change event
+            window.dispatchEvent(new CustomEvent('pdf-page-changed', {
+                detail: {
+                    fileKey,
+                    pageNumber,
+                    source,
+                    visibilityRatio: this.pageVisibilityMap.get(`${fileKey}-${pageNumber}`) || 0,
+                    timestamp: Date.now()
+                }
+            }));
+
+            // Also dispatch an internal event for visibility tracking
+            window.dispatchEvent(new CustomEvent('page-visibility-changed', {
+                detail: {
+                    fileKey,
+                    pageNumber,
+                    visibilityRatio: this.pageVisibilityMap.get(`${fileKey}-${pageNumber}`) || 0,
+                    timestamp: Date.now()
+                }
+            }));
+
+            this.eventThrottleTimers.delete(eventKey);
+        }, 200); // Longer delay for page change events
+
+        this.eventThrottleTimers.set(eventKey, timer);
+    }
+
     private getFileKeyFromElement(element: HTMLElement): string | null {
         // Try to find the file container parent
         const fileContainer = element.closest('[data-file-key]');
@@ -263,12 +418,23 @@ class ScrollManagerService {
                     observerInfo.isVisible = entry.isIntersecting;
                     observerInfo.visibilityRatio = entry.intersectionRatio;
 
-                    // If this is more visible than our current most visible page, update
-                    if (
-                        entry.isIntersecting &&
+                    // Check if this should be the new most visible page
+                    const shouldBecomeActive = entry.isIntersecting && 
                         entry.intersectionRatio > this.visibilityThreshold &&
-                        entry.intersectionRatio > this.mostVisiblePage.visibilityRatio
-                    ) {
+                        (
+                            // Either this page is more visible than the current most visible
+                            entry.intersectionRatio > this.mostVisiblePage.visibilityRatio ||
+                            // Or this is a different page than the current most visible and has good visibility
+                            (this.mostVisiblePage.pageNumber !== observerInfo.pageNumber && entry.intersectionRatio > 0.6) ||
+                            // Or there's no current most visible page
+                            !this.mostVisiblePage.pageNumber
+                        );
+
+                    console.log(`[ScrollManager] Page ${observerInfo.pageNumber} visibility: ${(entry.intersectionRatio * 100).toFixed(1)}%, shouldBecomeActive: ${shouldBecomeActive}, current most visible: ${this.mostVisiblePage.pageNumber} (${(this.mostVisiblePage.visibilityRatio * 100).toFixed(1)}%)`);
+
+                    if (shouldBecomeActive) {
+                        // Update the most visible page
+                        const previousMostVisible = this.mostVisiblePage.pageNumber;
                         this.mostVisiblePage = {
                             fileKey: observerInfo.fileKey,
                             pageNumber: observerInfo.pageNumber,
@@ -277,6 +443,11 @@ class ScrollManagerService {
 
                         // Only dispatch event if we're not currently scrolling programmatically
                         if (!this.isScrolling && !this.isFileChanging) {
+                            console.log(`[ScrollManager] Page changed from ${previousMostVisible} to ${observerInfo.pageNumber}`);
+
+                            // Highlight this page as active
+                            this.highlightActivePage(observerInfo.fileKey, observerInfo.pageNumber, 'visibility-observer');
+                            
                             // Dispatch custom events for page and file changes
                             this.dispatchPageChangeEvent(observerInfo.pageNumber, observerInfo.fileKey);
                         }
@@ -713,16 +884,24 @@ class ScrollManagerService {
      */
     public highlightActivePage(fileKey: string, pageNumber: number, source: string = 'scroll-manager'): void {
         try {
+            console.log(`[ScrollManager] Highlighting page ${pageNumber} in file ${fileKey} from source: ${source}`);
+
+            // Update currently active page tracking
+            this.currentlyActivePage = {fileKey, pageNumber};
+
             // Remove active class from all pages in this file
             const filePages = document.querySelectorAll(
                 `.pdf-file-container[data-file-key="${fileKey}"] .pdf-page-wrapper`
             );
+
+            console.log(`[ScrollManager] Found ${filePages.length} pages in file ${fileKey}`);
 
             filePages.forEach(page => page.classList.remove('active'));
 
             // Find the target page and add active class
             const pageElement = this.findPageElement(fileKey, pageNumber);
             if (pageElement) {
+                console.log(`[ScrollManager] Found target page element, adding active class`);
                 pageElement.classList.add('active');
 
                 // Add animation for visual feedback
@@ -731,10 +910,23 @@ class ScrollManagerService {
                     pageElement.classList.remove('just-activated');
                 }, 1500);
 
-                // Only dispatch event if the source is not from a component that will receive this event
+                // Dispatch the page-highlighted event that PageRenderer listens to
+                console.log(`[ScrollManager] Dispatching page-highlighted event`);
+                window.dispatchEvent(new CustomEvent('page-highlighted', {
+                    detail: {
+                        fileKey,
+                        pageNumber,
+                        source,
+                        timestamp: Date.now()
+                    }
+                }));
+
+                // Only dispatch the generic page change event if the source is not from a component that will receive this event
                 if (!this.isScrolling && source !== 'pdf-context') {
                     this.dispatchPageChangeEvent(pageNumber, fileKey, source);
                 }
+            } else {
+                console.warn(`[ScrollManager] Could not find page element for ${fileKey}:${pageNumber}`);
             }
         } catch (error) {
             console.error('[ScrollManager] Error highlighting active page:', error);
@@ -814,9 +1006,14 @@ class ScrollManagerService {
                 maxVisibility = visibilityRatio;
 
                 // Parse the page key back into fileKey and pageNumber
-                const [fileKey, pageNum] = pageKey.split('-');
-                maxFileKey = fileKey;
-                maxPageNumber = parseInt(pageNum, 10);
+                // Split on the last dash to handle file keys that contain dashes
+                const lastDashIndex = pageKey.lastIndexOf('-');
+                if (lastDashIndex !== -1) {
+                    const fileKey = pageKey.substring(0, lastDashIndex);
+                    const pageNum = pageKey.substring(lastDashIndex + 1);
+                    maxFileKey = fileKey;
+                    maxPageNumber = parseInt(pageNum, 10);
+                }
             }
         }
 

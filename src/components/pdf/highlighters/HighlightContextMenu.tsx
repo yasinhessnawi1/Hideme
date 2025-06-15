@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Ban, Highlighter, Trash2, X } from 'lucide-react';
-import { useHighlightStore } from '../../../hooks/general/useHighlightStore';
+import {useHighlightStore} from '../../../contexts/HighlightStoreContext';
 import {HighlightCreationMode, HighlightRect, HighlightType} from '../../../types';
 import { useFileContext } from '../../../contexts/FileContext';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
 import { usePDFApi } from '../../../hooks/general/usePDFApi';
 import { SearchHighlightProcessor } from '../../../managers/SearchHighlightProcessor';
-import '../../../styles/modules/pdf/HighlightContextMenu.css';
 import {SearchResult} from "../../../services/processing-backend-services/BatchSearchService";
 import {getCorrectedBoundingBox} from "../../../utils/utilities";
 import { useNotification } from '../../../contexts/NotificationContext';

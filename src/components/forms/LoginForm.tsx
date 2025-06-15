@@ -12,7 +12,6 @@ import React, {JSX} from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useUserContext } from '../../contexts/UserContext';
 import { useLoading } from '../../contexts/LoadingContext';
-import LoadingWrapper from "../common/LoadingWrapper";
 import { useNotification } from '../../contexts/NotificationContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 

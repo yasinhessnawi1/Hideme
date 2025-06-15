@@ -1,6 +1,7 @@
 import LoadingWrapper from "../../common/LoadingWrapper";
-import { useHighlightStore } from '../../../hooks/general/useHighlightStore';
+import {useHighlightStore} from '../../../contexts/HighlightStoreContext';
 import { useFileSummary } from '../../../contexts/FileSummaryContext';
+import Tooltip from '../../common/Tooltip';
 
 declare global {
     interface Window {
@@ -13,8 +14,6 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useFileContext} from '../../../contexts/FileContext';
 import {getFileKey} from '../../../contexts/PDFViewerContext';
 import {useBatchSearch} from '../../../contexts/SearchContext';
-import '../../../styles/modules/pdf/SettingsSidebar.css';
-import '../../../styles/modules/pdf/SearchSidebar.css';
 import {AlertTriangle, CheckCircle, ChevronDown, ChevronRight, ChevronUp, Save, Search, XCircle} from 'lucide-react';
 import {usePDFNavigation} from '../../../hooks/general/usePDFNavigation';
 import useSearchPatterns from "../../../hooks/settings/useSearchPatterns";
@@ -883,7 +882,9 @@ const SearchSidebar: React.FC = () => {
                                             onClick={() => toggleSearchSummaryExpansion(fileKey)}
                                         >
                                             <div className="file-summary-title">
-                                                <span className="file-name">{fileName}</span>
+                                                <Tooltip content={fileName}>
+                                                    <span className="file-name">{fileName}</span>
+                                                </Tooltip>
                                                 <span className="result-count-badge">
                                                     {matchCount} {t('pdf', 'matches')}
                                                 </span>

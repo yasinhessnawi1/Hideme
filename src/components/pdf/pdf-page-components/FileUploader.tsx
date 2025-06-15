@@ -1,7 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Upload, Plus } from 'lucide-react';
 import { useFileContext } from '../../../contexts/FileContext';
-import '../../../styles/modules/pdf/PDFViewerPage.css';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 

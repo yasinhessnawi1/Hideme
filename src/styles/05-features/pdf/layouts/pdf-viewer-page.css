@@ -1,0 +1,316 @@
+/*
+==============================================
+PDF VIEWER PAGE LAYOUT
+==============================================
+Main page layout for the PDF viewer interface
+*/
+
+/* Import unified sidebar styles */
+@import '../components/unified-sidebar.css';
+
+/* ========================================
+   PAGE CONTAINER
+   ======================================== */
+
+.pdf-viewer-page {
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--background);
+    color: var(--foreground);
+    position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border, #d1d5db) transparent;
+}
+
+/* ========================================
+   HEADER SECTION
+   ======================================== */
+
+.viewer-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--background);
+    border-bottom: var(--border-default);
+    box-shadow: var(--shadow-header);
+}
+
+/* ========================================
+   CONTENT LAYOUT
+   ======================================== */
+
+.viewer-content {
+    display: flex;
+    flex: 1;
+    height: calc(100vh - var(--header-height, 60px));
+    overflow: hidden;
+    position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border, #d1d5db) transparent;
+}
+
+/* Main content area adjustments for unified sidebar */
+.main-content {
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    background: var(--surface);
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Margin will be handled dynamically via React component styles */
+    min-width: 300px; /* Ensure minimum content width */
+}
+
+/* Enhanced scrollbar styling for main content */
+.main-content::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.main-content::-webkit-scrollbar-track {
+    background: var(--background);
+    border-radius: 6px;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+    background-color: var(--button-border);
+    border-radius: 6px;
+    border: 2px solid var(--background);
+    transition: background-color 0.3s ease;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+    background-color: var(--primary);
+}
+
+.main-content::-webkit-scrollbar-corner {
+    background: var(--background);
+}
+
+/* Firefox scrollbar styling */
+.main-content {
+    scrollbar-width: thin;
+    scrollbar-color: var(--button-border) var(--background);
+}
+
+/* Remove hardcoded sidebar width handling - now managed by React state */
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 1200px) {
+    .main-content {
+        min-width: 250px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .main-content {
+        margin-left: 0 !important; /* Override dynamic margin on tablets */
+    }
+
+    /* Hide sidebar on smaller screens by default */
+    .pdf-sidebar.unified-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .pdf-sidebar.unified-sidebar:not(.collapsed) {
+        transform: translateX(0);
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+    }
+}
+
+@media (max-width: 768px) {
+    .viewer-content {
+        flex-direction: column;
+    }
+
+    .main-content {
+        height: 100%;
+        margin: 0 !important;
+        min-width: auto;
+    }
+
+    /* Full overlay sidebar on mobile */
+    .pdf-sidebar.unified-sidebar {
+        position: fixed !important;
+        top: calc(var(--header-height, 60px) + 4rem) !important;
+        left: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: calc(100vh - calc(var(--header-height, 60px) + 4rem)) !important;
+        z-index: 1050 !important;
+        transform: translateX(-100%);
+    }
+
+    .pdf-sidebar.unified-sidebar:not(.collapsed) {
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 480px) {
+    .pdf-sidebar.unified-sidebar {
+        width: 100vw !important;
+        min-width: 100vw !important;
+        max-width: 100vw !important;
+    }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .main-content,
+    .pdf-sidebar {
+        transition: none;
+    }
+}
+
+/* Focus management */
+.main-content:focus-within {
+    outline: none;
+}
+
+/* ========================================
+   INTEGRATION WITH EXISTING STYLES
+   ======================================== */
+
+/* Ensure smooth transitions between old and new sidebar systems */
+.pdf-viewer-page .left-sidebar {
+    display: none !important; /* Hide old left sidebar completely */
+}
+
+/* Override any conflicting z-index values */
+.pdf-viewer-page .pdf-sidebar {
+    z-index: 1000 !important;
+    position: fixed !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+.pdf-viewer-page .viewer-header {
+    z-index: 1001;
+}
+
+/* ========================================
+   SMOOTH TRANSITIONS
+   ======================================== */
+
+/* Enhanced transition for main content when not resizing */
+.main-content:not(.no-transition) {
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Disable transitions during active resize to prevent lag */
+.pdf-viewer-page:has(.pdf-sidebar.unified-sidebar.resizing) .main-content {
+    transition: none;
+}
+
+/* ========================================
+   OVERLAY MODE FOR MOBILE
+   ======================================== */
+
+/* Backdrop for mobile overlay */
+@media (max-width: 1024px) {
+    .pdf-viewer-page::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .pdf-viewer-page:has(.pdf-sidebar.unified-sidebar:not(.collapsed))::before {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+/* ========================================
+   PERFORMANCE OPTIMIZATIONS
+   ======================================== */
+
+/* Enable hardware acceleration for smooth animations */
+.main-content,
+.pdf-sidebar.unified-sidebar {
+    will-change: transform, margin-left;
+    transform: translateZ(0); /* Force hardware acceleration */
+}
+
+/* Remove will-change when not transitioning to save memory */
+.main-content:not(:hover):not(:focus-within),
+.pdf-sidebar.unified-sidebar:not(.resizing):not(:hover) {
+    will-change: auto;
+}
+
+/* ========================================
+   DARK MODE SCROLLBAR SUPPORT
+   ======================================== */
+
+[data-theme="dark"] .main-content::-webkit-scrollbar-track {
+    background: var(--background);
+}
+
+[data-theme="dark"] .main-content::-webkit-scrollbar-thumb {
+    background-color: var(--border, #374151);
+    border: 2px solid var(--background);
+}
+
+[data-theme="dark"] .main-content::-webkit-scrollbar-thumb:hover {
+    background-color: var(--primary);
+}
+
+[data-theme="dark"] .main-content::-webkit-scrollbar-corner {
+    background: var(--background);
+}
+
+[data-theme="dark"] .main-content {
+    scrollbar-color: var(--border, #374151) var(--background);
+}
+
+/* ========================================
+   MAIN CONTENT CHILD SCROLLBARS
+   ======================================== */
+
+/* Ensure PDF viewer container inherits or maintains scrollbar styling */
+.main-content .pdf-viewer-container::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.main-content .pdf-viewer-container::-webkit-scrollbar-track {
+    background: var(--background);
+    border-radius: 6px;
+}
+
+.main-content .pdf-viewer-container::-webkit-scrollbar-thumb {
+    background-color: var(--button-border);
+    border-radius: 6px;
+    border: 2px solid var(--background);
+    transition: background-color 0.3s ease;
+}
+
+.main-content .pdf-viewer-container::-webkit-scrollbar-thumb:hover {
+    background-color: var(--primary);
+}
+
+/* Dark mode for PDF viewer container scrollbars */
+[data-theme="dark"] .main-content .pdf-viewer-container::-webkit-scrollbar-thumb {
+    background-color: var(--border, #374151);
+}
+
+[data-theme="dark"] .main-content .pdf-viewer-container::-webkit-scrollbar-thumb:hover {
+    background-color: var(--primary);
+} 

@@ -6,18 +6,15 @@ import { usePDFApi } from '../../../hooks/general/usePDFApi';
 import { useDocumentHistory } from '../../../hooks/general/useDocumentHistory';
 import { createFullRedactionMapping, getRedactionStatistics, processRedactedFiles } from '../../../utils/redactionUtils';
 import { getFileKey } from '../../../contexts/PDFViewerContext';
-import '../../../styles/modules/pdf/SettingsSidebar.css';
-import '../../../styles/modules/pdf/RedactionSidebar.css';
-import { AlertCircle, Check, Loader2 } from 'lucide-react';
 import {useLoading} from "../../../contexts/LoadingContext";
 import LoadingWrapper from '../../common/LoadingWrapper';
 import { useNotification } from '../../../contexts/NotificationContext';
-import { ConfirmationType } from '../../../contexts/NotificationContext';
 import { HighlightType } from '../../../types';
 import { highlightStore } from '../../../store/HighlightStore';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getEntityTranslationKeyAndModel } from '../../../utils/EntityUtils';
 import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
+import Tooltip from '../../common/Tooltip';
 
 const RedactionSidebar: React.FC = () => {
     const {
@@ -842,9 +839,11 @@ const RedactionSidebar: React.FC = () => {
                                 <div className="stat-breakdown">
                                     {Object.entries(stats.byFile).map(([fileName, count]) => (
                                         <div key={fileName} className="stat-row">
-                                            <span className="file-name" title={fileName}>
-                                                {fileName.length > 25 ? fileName.substring(0, 22) + '...' : fileName}
-                                            </span>
+                                            <Tooltip content={fileName}>
+                                                <span className="file-name">
+                                                    {fileName.length > 25 ? fileName.substring(0, 22) + '...' : fileName}
+                                                </span>
+                                            </Tooltip>
                                             <span className="entity-count">{count}</span>
                                         </div>
                                     ))}

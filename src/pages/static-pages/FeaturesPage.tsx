@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import Navbar from '../../components/static/Navbar';
-import '../../styles/FeaturesPage.css';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,

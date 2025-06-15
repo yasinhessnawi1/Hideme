@@ -1,0 +1,154 @@
+/*
+==============================================
+LAYOUT CONTAINERS
+==============================================
+Container classes for responsive layouts
+Using design tokens for consistent sizing
+*/
+
+/* ========================================
+   BASE CONTAINER
+   ======================================== */
+
+.container {
+    max-width: var(--container-xl);
+    margin: 0 auto;
+    padding: 0 var(--spacing-container);
+    width: 100%;
+}
+
+/* ========================================
+   RESPONSIVE CONTAINERS
+   ======================================== */
+
+.container-xs {
+    max-width: var(--container-xs);
+    margin: 0 auto;
+    padding: 0 var(--spacing-container);
+}
+
+.container-sm {
+    max-width: var(--container-sm);
+    margin: 0 auto;
+    padding: 0 var(--spacing-container);
+}
+
+.container-md {
+    max-width: var(--container-md);
+    margin: 0 auto;
+    padding: 0 var(--spacing-container);
+}
+
+.container-lg {
+    max-width: var(--container-lg);
+    margin: 0 auto;
+    padding: 0 var(--spacing-container);
+}
+
+.container-xl {
+    max-width: var(--container-xl);
+    margin: 0 auto;
+    padding: 0 var(--spacing-container);
+}
+
+.container-2xl {
+    max-width: var(--container-2xl);
+    margin: 0 auto;
+    padding: 0 var(--spacing-container);
+}
+
+/* ========================================
+   FLUID CONTAINER
+   ======================================== */
+
+.container-fluid {
+    width: 100%;
+    padding: 0 var(--spacing-container);
+}
+
+/* ========================================
+   CONTENT CONTAINERS
+   ======================================== */
+
+/* Optimal reading width for content */
+.container-content {
+    max-width: var(--content-max-width);
+    margin: 0 auto;
+    padding: 0 var(--spacing-container);
+}
+
+.container-content-wide {
+    max-width: var(--content-max-width-wide);
+    margin: 0 auto;
+    padding: 0 var(--spacing-container);
+}
+
+.container-content-narrow {
+    max-width: var(--content-max-width-narrow);
+    margin: 0 auto;
+    padding: 0 var(--spacing-container);
+}
+
+/* ========================================
+   RESPONSIVE BEHAVIOR
+   ======================================== */
+
+/* Responsive padding adjustments */
+@media (max-width: 640px) {
+    .container,
+    .container-xs,
+    .container-sm,
+    .container-md,
+    .container-lg,
+    .container-xl,
+    .container-2xl,
+    .container-fluid,
+    .container-content,
+    .container-content-wide,
+    .container-content-narrow {
+        padding: 0 var(--space-4);
+    }
+}
+
+@media (min-width: 640px) and (max-width: 768px) {
+    .container,
+    .container-sm,
+    .container-md,
+    .container-lg,
+    .container-xl,
+    .container-2xl,
+    .container-fluid,
+    .container-content,
+    .container-content-wide,
+    .container-content-narrow {
+        padding: 0 var(--space-6);
+    }
+}
+
+/* ========================================
+   CONTAINER MODIFIERS
+   ======================================== */
+
+/* No padding container */
+.container-no-padding {
+    padding: 0;
+}
+
+/* Custom spacing containers */
+.container-tight {
+    padding: 0 var(--space-2);
+}
+
+.container-loose {
+    padding: 0 var(--space-8);
+}
+
+/* ========================================
+   SAFE AREA SUPPORT
+   ======================================== */
+
+/* Support for devices with safe areas (iPhone X+) */
+.container-safe {
+    padding-left: max(var(--spacing-container), var(--safe-area-inset-left));
+    padding-right: max(var(--spacing-container), var(--safe-area-inset-right));
+} 

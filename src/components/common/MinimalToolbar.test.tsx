@@ -12,9 +12,6 @@ const mockNotify = vi.fn();
 // Mock state for different test cases
 let mockIsEditingMode = false;
 let mockHighlightingMode = HighlightCreationMode.TEXT_SELECTION;
-let mockShowManualHighlights = true;
-let mockShowSearchHighlights = true; 
-let mockShowEntityHighlights = true;
 
 // Mock dependencies
 vi.mock('../../contexts/EditContext', () => ({
@@ -22,10 +19,7 @@ vi.mock('../../contexts/EditContext', () => ({
     setIsEditingMode: mockSetIsEditingMode,
     setHighlightingMode: mockSetHighlightingMode,
     isEditingMode: mockIsEditingMode,
-    highlightingMode: mockHighlightingMode,
-    showManualHighlights: mockShowManualHighlights,
-    showSearchHighlights: mockShowSearchHighlights,
-    showEntityHighlights: mockShowEntityHighlights
+      highlightingMode: mockHighlightingMode
   })
 }));
 
@@ -43,14 +37,7 @@ vi.mock('../../contexts/LanguageContext', () => ({
   })
 }));
 
-// Mock sub-components
-vi.mock('./ToolbarVisibilityMenu', () => ({
-  default: () => <div data-testid="toolbar-visibility-menu">ToolbarVisibilityMenu</div>
-}));
-
-vi.mock('./ToolbarSettingsMenu', () => ({
-  default: () => <div data-testid="toolbar-settings-menu">ToolbarSettingsMenu</div>
-}));
+// Sub-components have been moved to the unified sidebar
 
 // Mock Toolbar components
 vi.mock('./Toolbar', () => ({
@@ -66,12 +53,9 @@ vi.mock('./Toolbar', () => ({
 
 // Mock react-icons
 vi.mock('react-icons/fa', () => ({
-  FaCog: () => <div data-testid="icon-settings">Settings Icon</div>,
   FaDrawPolygon: () => <div data-testid="icon-draw-polygon">Draw Polygon Icon</div>,
   FaFont: () => <div data-testid="icon-font">Font Icon</div>,
-  FaHighlighter: () => <div data-testid="icon-highlighter">Highlighter Icon</div>,
-  FaRegEye: () => <div data-testid="icon-eye">Eye Icon</div>,
-  FaRegEyeSlash: () => <div data-testid="icon-eye-slash">Eye Slash Icon</div>
+    FaHighlighter: () => <div data-testid="icon-highlighter">Highlighter Icon</div>
 }));
 
 vi.mock('react-icons/ci', () => ({
@@ -86,9 +70,6 @@ describe('MinimalToolbar', () => {
     // Reset mock states to default values
     mockIsEditingMode = false;
     mockHighlightingMode = HighlightCreationMode.TEXT_SELECTION;
-    mockShowManualHighlights = true;
-    mockShowSearchHighlights = true;
-    mockShowEntityHighlights = true;
   });
 
   // Test basic rendering
@@ -138,31 +119,7 @@ describe('MinimalToolbar', () => {
     expect(screen.getByText('minimalToolbar.area')).toBeInTheDocument();
   });
 
-  // Test visibility toggle button (with eye icon)
-  test.skip('renders visibility toggle with eye icon when all highlights are visible', () => {
-    render(<MinimalToolbar zoomLevel={1.0} setZoomLevel={mockSetZoomLevel} />);
-    
-    expect(screen.getByTestId('icon-eye')).toBeInTheDocument();
-    expect(screen.getByText('minimalToolbar.show')).toBeInTheDocument();
-  });
-
-  // Test visibility toggle button (with eye-slash icon)
-  test.skip('renders visibility toggle with eye-slash icon when some highlights are hidden', () => {
-    // Set mock state for this test
-    mockShowManualHighlights = false;
-    
-    render(<MinimalToolbar zoomLevel={1.0} setZoomLevel={mockSetZoomLevel} />);
-    
-    expect(screen.getByTestId('icon-eye-slash')).toBeInTheDocument();
-  });
-
-  // Test settings button
-  test.skip('renders settings button with cog icon', () => {
-    render(<MinimalToolbar zoomLevel={1.0} setZoomLevel={mockSetZoomLevel} />);
-    
-    expect(screen.getByTestId('icon-settings')).toBeInTheDocument();
-    expect(screen.getByText('minimalToolbar.settings')).toBeInTheDocument();
-  });
+    // Settings and visibility controls have been moved to the unified sidebar
 
   // Test edit menu toggle
   test.skip('shows edit menu when edit button is clicked', () => {
@@ -178,29 +135,7 @@ describe('MinimalToolbar', () => {
     expect(screen.getByText('minimalToolbar.textSelection')).toBeInTheDocument();
   });
 
-  // Test visibility menu toggle
-  test.skip('shows visibility menu when visibility button is clicked', () => {
-    render(<MinimalToolbar zoomLevel={1.0} setZoomLevel={mockSetZoomLevel} />);
-    
-    // Get visibility button and click it
-    const visibilityButton = screen.getByText('minimalToolbar.show').closest('button');
-    fireEvent.click(visibilityButton!);
-    
-    // Check that visibility menu is shown
-    expect(screen.getByTestId('toolbar-visibility-menu')).toBeInTheDocument();
-  });
-
-  // Test settings menu toggle
-  test.skip('shows settings menu when settings button is clicked', () => {
-    render(<MinimalToolbar zoomLevel={1.0} setZoomLevel={mockSetZoomLevel} />);
-    
-    // Get settings button and click it
-    const settingsButton = screen.getByText('minimalToolbar.settings').closest('button');
-    fireEvent.click(settingsButton!);
-    
-    // Check that settings menu is shown
-    expect(screen.getByTestId('toolbar-settings-menu')).toBeInTheDocument();
-  });
+    // Visibility and settings menus have been moved to the unified sidebar
 
   // Test rectangular highlight mode selection
   test.skip('sets rectangular highlighting mode when selected', () => {

@@ -12,13 +12,13 @@ import {
     Printer,
     X
 } from 'lucide-react';
-import '../../../styles/modules/pdf/FileSelector.css';
 import { usePDFNavigation } from '../../../hooks/general/usePDFNavigation';
 import { getFileKey } from "../../../contexts/PDFViewerContext";
 import scrollManager from '../../../services/client-services/ScrollManagerService';
 import FileStorageSettings from './FileStorageSettings';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import Tooltip from '../../common/Tooltip';
 
 interface FileSelectorProps {
     className?: string;
@@ -415,74 +415,72 @@ const FileViewer: React.FC<FileSelectorProps> = ({ className }) => {
     const allSelected = selectedFiles.length === files.length && files.length > 0;
 
     return (
-        <div className={`file-selector-container ${className ?? ''}`}>
-            <div className="advanced-settings">
-                    <FileStorageSettings />
-                </div>
             <div className={`file-selector ${className ?? ''}`}>
                 <div className="file-selector-header">
                     <div className="file-selector-title-area">
-                        <h3 className="file-selector-title">{t('pdf', 'files')} ({files.length})</h3>
-                        {files.length > 0 && (
-                            <div className="select-all-control">
-                                <button
-                                    className="select-all-button"
-                                    onClick={handleSelectAll}
-                                    title={allSelected ? t('pdf', 'deselectAll') : t('pdf', 'selectAll')}
-                                    aria-label={allSelected ? t('pdf', 'deselectAllFiles') : t('pdf', 'selectAllFiles')}
-                                >
-                                    {allSelected ? (
-                                        <CheckSquare size={16} className="icon-check-all"/>
-                                    ) : someSelected ? (
-                                        <div className="icon-some-selected">
+                        <div className="file-selector-title-group">
+                            <h3 className="file-selector-title">{t('pdf', 'files')} ({files.length})</h3>
+                            {files.length > 0 && (
+                                <div className="select-all-control">
+                                    <button
+                                        className="select-all-button"
+                                        onClick={handleSelectAll}
+                                        title={allSelected ? t('pdf', 'deselectAll') : t('pdf', 'selectAll')}
+                                        aria-label={allSelected ? t('pdf', 'deselectAllFiles') : t('pdf', 'selectAllFiles')}
+                                    >
+                                        {allSelected ? (
+                                            <CheckSquare size={16} className="icon-check-all"/>
+                                        ) : someSelected ? (
+                                            <div className="icon-some-selected">
+                                                <Square size={16}/>
+                                                <div className="partial-check"></div>
+                                            </div>
+                                        ) : (
                                             <Square size={16}/>
-                                            <div className="partial-check"></div>
-                                        </div>
-                                    ) : (
-                                        <Square size={16}/>
-                                    )}
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
 
-                    <div className="file-actions-toolbar">
-                        {selectedFiles.length > 0 && (
-                            <>
-                                <button
-                                    className="file-action-toolbar-button delete-button"
-                                    onClick={handleDeleteSelected}
-                                    title={t('pdf', 'deleteSelectedFiles')}
-                                    aria-label={t('pdf', 'deleteSelectedFiles')}
-                                >
-                                    <Trash2 size={16}/>
-                                </button>
-                                <button
-                                    className="file-action-toolbar-button download-button"
-                                    onClick={handleDownloadFiles}
-                                    title={t('pdf', 'downloadSelectedFiles')}
-                                    aria-label={t('pdf', 'downloadSelectedFiles')}
-                                >
-                                    <Download size={16}/>
-                                </button>
-                                <button
-                                    className="file-action-toolbar-button print-button"
-                                    onClick={handlePrintFiles}
-                                    title={t('pdf', 'printSelectedFiles')}
-                                    aria-label={t('pdf', 'printSelectedFiles')}
-                                >
-                                    <Printer size={16}/>
-                                </button>
-                            </>
-                        )}
-                        <button
-                            className="add-files-button"
-                            onClick={handleAddFiles}
-                            title={t('pdf', 'addMoreFiles')}
-                            aria-label={t('pdf', 'addMoreFiles')}
-                        >
-                            <Plus size={16}/>
-                        </button>
+                        <div className="file-actions-toolbar">
+                            {selectedFiles.length > 0 && (
+                                <>
+                                    <button
+                                        className="file-action-toolbar-button delete-button"
+                                        onClick={handleDeleteSelected}
+                                        title={t('pdf', 'deleteSelectedFiles')}
+                                        aria-label={t('pdf', 'deleteSelectedFiles')}
+                                    >
+                                        <Trash2 size={16}/>
+                                    </button>
+                                    <button
+                                        className="file-action-toolbar-button download-button"
+                                        onClick={handleDownloadFiles}
+                                        title={t('pdf', 'downloadSelectedFiles')}
+                                        aria-label={t('pdf', 'downloadSelectedFiles')}
+                                    >
+                                        <Download size={16}/>
+                                    </button>
+                                    <button
+                                        className="file-action-toolbar-button print-button"
+                                        onClick={handlePrintFiles}
+                                        title={t('pdf', 'printSelectedFiles')}
+                                        aria-label={t('pdf', 'printSelectedFiles')}
+                                    >
+                                        <Printer size={16}/>
+                                    </button>
+                                </>
+                            )}
+                            <button
+                                className="add-files-button"
+                                onClick={handleAddFiles}
+                                title={t('pdf', 'addMoreFiles')}
+                                aria-label={t('pdf', 'addMoreFiles')}
+                            >
+                                <Plus size={16}/>
+                            </button>
+                        </div>
                     </div>
 
                     <input
@@ -555,10 +553,24 @@ const FileViewer: React.FC<FileSelectorProps> = ({ className }) => {
                                     <div className="file-info">
                                         <FileIcon size={18} className="file-icon"/>
                                         <div className="file-details">
-                                            <div className="file-name-container">
-                                                <span className="file-name">
-                                                    {file.name.length > 10 ? file.name.substring(0, 10) + '...' : file.name}
-                                                </span>
+                                            <div style={{
+                                                position: 'relative',
+                                                zIndex: 10,
+                                                pointerEvents: 'auto'
+                                            }}>
+                                                <Tooltip content={file.name}>
+                                                    <span
+                                                        className="file-name"
+                                                        style={{
+                                                            position: 'relative',
+                                                            zIndex: 11,
+                                                            pointerEvents: 'auto',
+                                                            display: 'inline-block'
+                                                        }}
+                                                    >
+                                                        {file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name}
+                                                    </span>
+                                                </Tooltip>
                                             </div>
                                             <span className="file-size">{(file.size / 1024).toFixed(1)} KB</span>
                                         </div>
@@ -578,14 +590,13 @@ const FileViewer: React.FC<FileSelectorProps> = ({ className }) => {
                                             </>
                                         )}
                                     </div>
-                                    <div className="tooltip">{file.name}</div>
                                 </div>
                             );
                         })}
                     </div>
                 )}
             </div>
-        </div>
+
     );
 };
 

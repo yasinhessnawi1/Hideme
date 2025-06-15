@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import Navbar from '../../components/static/Navbar'; // Import your Navbar component
 import Footer from '../../components/static/Footer'; // Import the Footer component
-import '../../styles/HowToPage.css'; // Import your styles
 import { useLanguage } from '../../contexts/LanguageContext';
+
 
 // Feature walkthrough component
 const FeatureWalkthrough = ({ 

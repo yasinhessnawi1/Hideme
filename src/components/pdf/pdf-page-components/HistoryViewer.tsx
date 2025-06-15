@@ -14,12 +14,11 @@ import {
     FileText,
     Database
 } from 'lucide-react';
-import '../../../styles/modules/pdf/HistoryViewer.css';
 import { EntityHighlightProcessor } from '../../../managers/EntityHighlightProcessor';
 import { ManualHighlightProcessor } from '../../../managers/ManualHighlightProcessor';
 import { SearchHighlightProcessor } from '../../../managers/SearchHighlightProcessor';
-import { HighlightType } from '../../../types';
 import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
+import Tooltip from '../../common/Tooltip';
 
 // Define interfaces for the redaction schema structure
 interface BoundingBox {
@@ -510,7 +509,11 @@ const HistoryViewer: React.FC = () => {
                                     </div>
                                     <div className="document-details">
                                         <div className="document-name">
-                                            <span className="doc-name-text">{document.hashed_name}</span>
+                                            <Tooltip content={document.hashed_name}>
+                                                <span className="doc-name-text">
+                                                    {document.hashed_name.length > 24 ? document.hashed_name.substring(0, 21) + '...' : document.hashed_name}
+                                                </span>
+                                            </Tooltip>
                                             {!hasMatchingFile && (
                                                 <span className="unavailable-badge">
                                                     {t('redaction', 'notUploaded')}
@@ -538,7 +541,6 @@ const HistoryViewer: React.FC = () => {
                                     >
                                         <Trash2 size={16} />
                                     </button>
-                                    <div className="tooltip">{document.hashed_name}</div>
                                 </div>
                             );
                         })}

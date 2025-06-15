@@ -1,0 +1,12 @@
+/*
+==============================================
+BASE STYLES - INDEX
+==============================================
+Imports all base styles in the correct order.
+These provide the foundation for the entire application.
+*/
+
+/* Import order is critical - reset first, then foundation styles */
+@import url('./reset.css');
+@import url('./typography.css');
+@import url('./animations.css'); 

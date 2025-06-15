@@ -1,0 +1,302 @@
+/*
+==============================================
+SHIMMER BUTTON COMPONENT
+==============================================
+Animated button with shimmer effect
+Refactored to use new design tokens
+*/
+
+.shimmer-button {
+    /* Component variables */
+    --spread: 90deg;
+    --radius: var(--radius-button-lg);
+    --speed: var(--duration-3000);
+    --cut: var(--space-0-5);
+    --shimmer-color: var(--primary-alpha, rgba(var(--primary-rgb), 0.4));
+    --bg: var(--background);
+    --unified-sidebar-radius: 8px;
+
+    /* Base styles */
+    position: relative;
+    z-index: 0;
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    white-space: nowrap;
+    border: var(--border-button);
+    padding: var(--spacing-md) var(--spacing-xl);
+    color: var(--foreground);
+    background: var(--primary);
+    border-radius: var(--radius);
+    transform: translateZ(0);
+    transition: var(--transition-button);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--text-button-size);
+    text-shadow: var(--shadow-text-subtle);
+    min-height: var(--size-button-md);
+}
+
+/* ========================================
+   BUTTON STATES
+   ======================================== */
+
+.shimmer-button:hover {
+    transform: translateY(calc(var(--space-0-5) * -1));
+    box-shadow: var(--shadow-button-hover);
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+}
+
+.shimmer-button:active {
+    transform: translateY(var(--space-0-5));
+    box-shadow: var(--shadow-button-active);
+    background-color: var(--background);
+}
+
+.shimmer-button:focus-visible {
+    outline: var(--outline-focus);
+    outline-offset: var(--outline-focus-offset);
+}
+
+.shimmer-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    transform: none;
+    box-shadow: var(--shadow-button-disabled);
+}
+
+/* ========================================
+   SHIMMER EFFECT COMPONENTS
+   ======================================== */
+
+.shimmer-button__spark-container {
+    position: absolute;
+    inset: 0;
+    z-index: -30;
+    overflow: visible;
+    container-type: size;
+    filter: blur(var(--space-0-5));
+    opacity: 0.8;
+}
+
+.shimmer-button__spark {
+    position: absolute;
+    inset: 0;
+    height: 100cqh;
+    aspect-ratio: 1;
+    border-radius: 0;
+    mask: none;
+    animation: shimmer-slide var(--speed) linear infinite;
+}
+
+.shimmer-button__spark::before {
+    content: "";
+    position: absolute;
+    inset: -100%;
+    width: auto;
+    rotate: 0;
+    background: conic-gradient(
+            from calc(270deg - (var(--spread) * 0.5)),
+            transparent 0,
+            var(--shimmer-color) var(--spread),
+            transparent var(--spread)
+    );
+    animation: spin-around var(--duration-5000) linear infinite;
+}
+
+.shimmer-button__highlight {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius);
+    padding: var(--spacing-xs) var(--spacing-lg);
+    box-shadow: inset 0 calc(var(--space-2) * -1) var(--space-2-5) var(--primary-alpha, rgba(var(--primary-rgb), 0.12));
+    transform: translateZ(0);
+    transition: var(--transition-shadow);
+}
+
+.shimmer-button:hover .shimmer-button__highlight {
+    box-shadow: inset 0 calc(var(--space-1-5) * -1) var(--space-2-5) var(--primary-alpha, rgba(var(--primary-rgb), 0.24));
+}
+
+.shimmer-button:active .shimmer-button__highlight {
+    box-shadow: inset 0 calc(var(--space-2-5) * -1) var(--space-2-5) var(--primary-alpha, rgba(var(--primary-rgb), 0.24));
+}
+
+.shimmer-button__backdrop {
+    position: absolute;
+    z-index: -20;
+    background: var(--bg);
+    border-radius: var(--radius);
+    inset: var(--cut);
+    transition: var(--transition-colors);
+}
+
+.shimmer-button:hover .shimmer-button__backdrop {
+    background-color: var(--primary-hover);
+}
+
+/* ========================================
+   BUTTON VARIANTS
+   ======================================== */
+
+/* Secondary variant */
+.shimmer-button.secondary {
+    --bg: var(--surface);
+    --shimmer-color: var(--primary-alpha, rgba(var(--primary-rgb), 0.3));
+    color: var(--foreground);
+    background: var(--background);
+    border: var(--border-interactive);
+    text-shadow: none;
+}
+
+.shimmer-button.secondary:hover {
+    background-color: var(--surface-hover);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.shimmer-button.secondary .shimmer-button__backdrop {
+    background: var(--surface);
+}
+
+.shimmer-button.secondary:hover .shimmer-button__backdrop {
+    background-color: var(--surface-hover);
+}
+
+.shimmer-button.secondary .shimmer-button__highlight {
+    box-shadow: inset 0 calc(var(--space-2) * -1) var(--space-2-5) var(--surface-alpha, rgba(var(--foreground-rgb), 0.05));
+}
+
+/* Outline variant */
+.shimmer-button.outline {
+    --bg: transparent;
+    --shimmer-color: var(--primary-alpha, rgba(var(--primary-rgb), 0.4));
+    color: var(--primary);
+    background: transparent;
+    border: var(--border-interactive);
+    text-shadow: none;
+}
+
+.shimmer-button.outline:hover {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
+}
+
+.shimmer-button.outline .shimmer-button__backdrop {
+    background: transparent;
+}
+
+.shimmer-button.outline:hover .shimmer-button__backdrop {
+    background-color: var(--primary);
+}
+
+/* Ghost variant */
+.shimmer-button.ghost {
+    --bg: transparent;
+    --shimmer-color: var(--primary-alpha, rgba(var(--primary-rgb), 0.3));
+    color: var(--primary);
+    background: transparent;
+    border: 1px solid transparent;
+    text-shadow: none;
+}
+
+.shimmer-button.ghost:hover {
+    background-color: var(--hover);
+    border-color: var(--border-subtle);
+}
+
+.shimmer-button.ghost .shimmer-button__backdrop {
+    background: transparent;
+}
+
+.shimmer-button.ghost:hover .shimmer-button__backdrop {
+    background-color: var(--hover);
+}
+
+/* ========================================
+   SIZE VARIANTS
+   ======================================== */
+
+.shimmer-button.small {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--text-body-small-size);
+    min-height: var(--size-button-sm);
+    --radius: var(--radius-button-sm);
+}
+
+.shimmer-button.large {
+    padding: var(--spacing-lg) var(--spacing-2xl);
+    font-size: var(--text-body-large-size);
+    min-height: var(--size-button-lg);
+    --radius: var(--radius-button-lg);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes shimmer-slide {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes spin-around {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========================================
+   ACCESSIBILITY & RESPONSIVE
+   ======================================== */
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .shimmer-button__spark {
+        animation: none;
+    }
+
+    .shimmer-button__spark::before {
+        animation: none;
+    }
+
+    .shimmer-button {
+        transition: var(--transition-reduced);
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .shimmer-button {
+        border-width: 2px;
+    }
+
+    .shimmer-button__spark-container {
+        display: none;
+    }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .shimmer-button {
+        padding: var(--spacing-md) var(--spacing-lg);
+        font-size: var(--text-body-size);
+    }
+
+    .shimmer-button.large {
+        padding: var(--spacing-md) var(--spacing-xl);
+        font-size: var(--text-body-large-size);
+    }
+} 
