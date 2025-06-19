@@ -13,7 +13,7 @@ using semantic tokens from the design system
 .multi-pdf-container {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-mdxs);
+    gap: var(--spacing-xs);
     width: 100%;
     min-height: 100vh;
 }

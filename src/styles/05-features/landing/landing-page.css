@@ -142,8 +142,11 @@
     text-align: center;
     padding: var(--spacing-lg);
     border-radius: var(--border-radius-md);
-    background: var(--gradient-muted);
+    background: var(--gradient-accent);
     border: var(--border-card);
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .stat-number {
@@ -223,10 +226,6 @@
 
     .preview-stats {
         grid-template-columns: repeat(2, 1fr);
-    }
-
-    .stat-number {
-        font-size: var(--text-h3-size);
     }
 
     .features-link-button {

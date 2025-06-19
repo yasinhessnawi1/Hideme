@@ -13,7 +13,7 @@ Using design tokens for maintainability
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    font-family: var(--font-family);
+    font-family: var(--font-family), serif;
 }
 
 /* Hero Section */
