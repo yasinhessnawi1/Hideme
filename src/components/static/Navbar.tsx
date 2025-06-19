@@ -1,7 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react'
 import {motion} from 'framer-motion'
 import {Link, useNavigate} from 'react-router-dom'
-import {LogOut, Menu, Settings} from 'lucide-react'
+import {LogOut, Menu, Settings, X} from 'lucide-react'
 
 import {Button} from "../common"
 import LanguageSwitcher from '../common/LanguageSwitcher'
@@ -181,41 +181,59 @@ export default function Navbar() {
 
             {/* Mobile Menu */}
             <div className={`mobile-menu ${isMobileMenuOpen ? 'open' : ''}`}>
-                <div className="nav-links">
-                    <NavLink to={"/features"} onClick={handleMobileNavClick}>{t('common', 'features')}</NavLink>
-                    <NavLink to="/how-to" onClick={handleMobileNavClick}>{t('common', 'howItWorks')}</NavLink>
-                    <NavLink to="/about" onClick={handleMobileNavClick}>{t('common', 'about')}</NavLink>
-                    {isAuthenticated && user ? (
-                        <NavLink
-                            to="/playground"
-                            onClick={(e) => {
-                                handlePlaygroundClick(e)
-                                handleMobileNavClick()
-                            }}
-                            className={isMobile ? 'mobile-restricted' : ''}
-                            title={isMobile ? 'Desktop access required' : ''}
-                        >
-                            {t('common', 'playground')}
-                            {isMobile && <span style={{marginLeft: '4px', fontSize: '12px'}}>💻</span>}
-                        </NavLink>
-                    ) : null}
-                </div>
+                <div className="mobile-menu-content">
+                    <div className="mobile-menu-header">
+                        <Link to="/" className="mobile-logo" onClick={handleMobileNavClick}>
+                            <TrueFocus
+                                sentence={t('common', 'hideMe')}
+                                manualMode={true}
+                                blurAmount={5}
+                                borderColor="limegreen"
+                                animationDuration={1}
+                                pauseBetweenAnimations={5}
+                            />
+                        </Link>
+                        <button className="mobile-menu-close" onClick={handleMobileNavClick}>
+                            <X className="close-icon"/>
+                        </button>
+                    </div>
 
-                <div className="auth-buttons">
-                    {!isLoading && !isAuthenticated && (
-                        <Button
-                            className="Sign-in-button"
-                            shimmerColor="#ffffff"
-                            borderRadius="100px"
-                            shimmerDuration="5s"
-                            onClick={() => {
-                                navigate("/login")
-                                handleMobileNavClick()
-                            }}
-                        >
-                            <span>{t('common', 'getStarted')}</span>
-                        </Button>
-                    )}
+                    <div className="nav-links">
+                        <NavLink to={"/features"} onClick={handleMobileNavClick}>{t('common', 'features')}</NavLink>
+                        <NavLink to="/how-to" onClick={handleMobileNavClick}>{t('common', 'howItWorks')}</NavLink>
+                        <NavLink to="/about" onClick={handleMobileNavClick}>{t('common', 'about')}</NavLink>
+                        {isAuthenticated && user ? (
+                            <NavLink
+                                to="/playground"
+                                onClick={(e) => {
+                                    handlePlaygroundClick(e)
+                                    handleMobileNavClick()
+                                }}
+                                className={isMobile ? 'mobile-restricted' : ''}
+                                title={isMobile ? 'Desktop access required' : ''}
+                            >
+                                {t('common', 'playground')}
+                                {isMobile && <span style={{marginLeft: '4px', fontSize: '12px'}}>💻</span>}
+                            </NavLink>
+                        ) : null}
+                    </div>
+
+                    <div className="auth-buttons">
+                        {!isLoading && !isAuthenticated && (
+                            <Button
+                                className="Sign-in-button"
+                                shimmerColor="#ffffff"
+                                borderRadius="100px"
+                                shimmerDuration="5s"
+                                onClick={() => {
+                                    navigate("/login")
+                                    handleMobileNavClick()
+                                }}
+                            >
+                                <span>{t('common', 'getStarted')}</span>
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </div>
         </>

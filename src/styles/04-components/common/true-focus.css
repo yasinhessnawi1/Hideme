@@ -12,9 +12,7 @@ Refactored to use new design tokens
 
 .focus-container {
     position: relative;
-    display: flex;
-    flex-wrap: wrap;
-    padding: var(--spacing-sm);
+    padding: var(--spacing-xs);
 }
 
 /* ========================================
@@ -24,8 +22,8 @@ Refactored to use new design tokens
 .focus-word {
     position: relative;
     font-size: var(--text-h3-size);
-    font-weight: var(--text-h1-weight);
-    line-height: var(--text-h1-line-height);
+    font-weight: var(--text-h3-weight);
+    line-height: var(--text-h3-line-height);
     cursor: pointer;
     transition: var(--transition-focus);
     color: var(--foreground);
@@ -188,14 +186,9 @@ Refactored to use new design tokens
 
 @media (max-width: 768px) {
     .focus-container {
-        gap: var(--spacing-md);
-        padding: var(--spacing-lg);
+        gap: var(--spacing-xs);
     }
 
-    .focus-word {
-        font-size: var(--text-h2-size);
-        padding: var(--spacing-xs) var(--spacing-sm);
-    }
 
     .corner {
         width: var(--size-3);
@@ -205,9 +198,6 @@ Refactored to use new design tokens
 }
 
 @media (max-width: 480px) {
-    .focus-word {
-        font-size: var(--text-h3-size);
-    }
 
     .focus-container {
         gap: var(--spacing-sm);
