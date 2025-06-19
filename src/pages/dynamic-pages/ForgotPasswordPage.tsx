@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useNotification } from '../../contexts/NotificationContext';
-import { useLoading } from '../../contexts/LoadingContext';
+import React, {useState} from 'react';
+import {Link} from 'react-router-dom';
+import {useNotification} from '../../contexts/NotificationContext';
+import {useLoading} from '../../contexts/LoadingContext';
 import LoadingWrapper from '../../components/common/LoadingWrapper';
 import Navbar from '../../components/static/Navbar';
 import authService from '../../services/database-backend-services/authService';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { mapBackendErrorToMessage } from '../../utils/errorUtils';
+import {useLanguage} from '../../contexts/LanguageContext';
+import {mapBackendErrorToMessage} from '../../utils/errorUtils';
 
 const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -110,7 +110,7 @@ const ForgotPasswordPage: React.FC = () => {
 
         <div className="login-right">
           <img
-            src="/src/assets/undraw_personal_settings_8xv3.svg"
+              src="/src/assets/undraw_forgot-password.svg"
             alt="Password reset illustration"
             className="login-image"
             draggable={false}

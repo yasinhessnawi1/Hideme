@@ -101,8 +101,19 @@ class ApiCacheService {
         this.client.interceptors.response.use(
             (response) => {
                 if (this.debugMode) {
-                    console.log(`[ApiCache] Successful response from ${response.config.url}`);
+                    console.log(`[ApiCache] Successful response from ${response.config.url}, status: ${response.status}`);
                 }
+
+                // Handle 204 No Content responses (common for DELETE operations)
+                if (response.status === 204) {
+                    // For 204 responses, create a consistent success response structure
+                    response.data = {
+                        success: true,
+                        message: 'Operation completed successfully',
+                        data: null
+                    };
+                }
+                
                 return response;
             },
             async (error) => {

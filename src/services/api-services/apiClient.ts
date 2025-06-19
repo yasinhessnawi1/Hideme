@@ -10,8 +10,7 @@
  */
 import apiCache from './apiCacheService';
 import authService from '../database-backend-services/authService';
-import { AxiosRequestConfig } from 'axios';
-import { mapBackendErrorToMessage } from '../../utils/errorUtils';
+import {mapBackendErrorToMessage} from '../../utils/errorUtils';
 
 // Configure TTL (time-to-live) for different endpoint groups
 const TTL_CONFIG = {
@@ -127,7 +126,8 @@ const apiClient = {
         }
 
         return result.then((res: any) => {
-            const isSuccess = res.data.success === true || res.data.success === "true";
+            // For 204 responses (No Content), consider them successful even if they don't have a success field
+            const isSuccess = res.status === 204 || res.data.success === true || res.data.success === "true";
             if (!isSuccess) {
                 const errorPayload = res.data.error || res.data.detail || res.data;
                 throw new Error(mapBackendErrorToMessage(errorPayload));
@@ -158,7 +158,8 @@ const apiClient = {
         apiCache.clearCacheEntry(basePath, 'GET');
 
         return result.then((res: any) => {
-            const isSuccess = res.data.success === true || res.data.success === "true";
+            // For 204 responses (No Content), consider them successful even if they don't have a success field
+            const isSuccess = res.status === 204 || res.data.success === true || res.data.success === "true";
             if (!isSuccess) {
                 const errorPayload = res.data.error || res.data.detail || res.data;
                 throw new Error(mapBackendErrorToMessage(errorPayload));
@@ -189,7 +190,8 @@ const apiClient = {
         apiCache.clearCacheEntry(basePath, 'GET');
 
         return result.then((res: any) => {
-            const isSuccess = res.data.success === true || res.data.success === "true";
+            // For 204 responses (No Content), consider them successful even if they don't have a success field
+            const isSuccess = res.status === 204 || res.data.success === true || res.data.success === "true";
             if (!isSuccess) {
                 const errorPayload = res.data.error || res.data.detail || res.data;
                 throw new Error(mapBackendErrorToMessage(errorPayload));

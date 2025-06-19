@@ -1,16 +1,16 @@
-import React, { useCallback, useState, useRef, useEffect, memo } from 'react';
-import { Page } from 'react-pdf';
-import { usePDFViewerContext } from '../../../contexts/PDFViewerContext';
-import { useEditContext } from '../../../contexts/EditContext';
+import React, {memo, useCallback, useEffect, useRef, useState} from 'react';
+import {Page} from 'react-pdf';
+import {usePDFViewerContext} from '../../../contexts/PDFViewerContext';
+import {useEditContext} from '../../../contexts/EditContext';
 import PageOverlay from './PageOverlay';
 import TextSelectionHighlighter from '../highlighters/TextSelectionHighlighter';
 import HighlightLayerFactory from '../highlighters/HighlightLayerFactory';
-import { PDFPageViewport, TextContent, HighlightCreationMode } from '../../../types';
-import { useViewportSize } from '../../../hooks/general/useViewportSize';
+import {HighlightCreationMode, PDFPageViewport, TextContent} from '../../../types';
+import {useViewportSize} from '../../../hooks/general/useViewportSize';
 import scrollManager from '../../../services/client-services/ScrollManagerService';
-import { useNotification } from '../../../contexts/NotificationContext';
-import { useLanguage } from '../../../contexts/LanguageContext';
-import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
+import {useNotification} from '../../../contexts/NotificationContext';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {mapBackendErrorToMessage} from '../../../utils/errorUtils';
 
 interface PageRendererProps {
     pageNumber: number;
@@ -281,7 +281,7 @@ const PageRenderer: React.FC<PageRendererProps> = ({
                         isEditingMode={isEditingMode}
                         pageSize={viewportSize}
                         fileKey={fileKey}
-                        isActive={true}
+                        isActive={highlightingMode === HighlightCreationMode.TEXT_SELECTION}
                     />
 
                     <HighlightLayerFactory

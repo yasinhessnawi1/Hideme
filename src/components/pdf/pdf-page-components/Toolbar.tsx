@@ -1,20 +1,13 @@
-import React, {useRef, useCallback} from 'react';
-import {
-    FaFileDownload,
-    FaPrint,
-    FaUpload,
-    FaSearch,
-    FaMagic,
-    FaEraser,
-} from 'react-icons/fa';
-import { useFileContext } from '../../../contexts/FileContext';
-import { getFileKey, usePDFViewerContext } from '../../../contexts/PDFViewerContext';
+import React, {useCallback, useRef} from 'react';
+import {FaEraser, FaFileDownload, FaMagic, FaPrint, FaSearch, FaUpload,} from 'react-icons/fa';
+import {useFileContext} from '../../../contexts/FileContext';
+import {getFileKey, usePDFViewerContext} from '../../../contexts/PDFViewerContext';
 import pdfUtilityService from '../../../store/PDFUtilityStore';
 import MinimalToolbar from '../../common/MinimalToolbar';
-import { useLoading } from "../../../contexts/LoadingContext";
+import {useLoading} from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
-import { useNotification } from '../../../contexts/NotificationContext';
-import { useLanguage } from '../../../contexts/LanguageContext';
+import {useNotification} from '../../../contexts/NotificationContext';
+import {useLanguage} from '../../../contexts/LanguageContext';
 
 interface ToolbarProps {
 }
@@ -128,7 +121,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 }
             }));
         });
-    }, [files, selectedFiles, stopLoading, startLoading, globalLoading, t, notify]);
+    }, [files, selectedFiles, stopLoading, startLoading]);
 
     // Download/save functions using enhanced utility service
     const handleDownloadPDF = async () => {
@@ -215,72 +208,120 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     // Entity detection shortcut - triggers actual detection process
     const handleEntityDetection = () => {
+        console.log('[Toolbar] Entity detection button clicked');
+        
         const filesToHandle = selectedFiles.length > 0 ? selectedFiles : files
 
         if (filesToHandle.length === 0) {
             notify({ message: t('toolbar', 'noFilesSelectedForDetection'), type: 'error' });
             return;
         }
+
+        console.log('[Toolbar] Triggering entity detection for files:', filesToHandle.map(f => f.name));
+
+        // Don't clear loading immediately - let the detection process handle it
         startLoading('toolbar.detect');
-        // Also directly trigger the entity detection process in the sidebar
-        window.dispatchEvent(new CustomEvent('trigger-entity-detection-process', {
+
+        // Set up one-time listener for detection completion
+        const handleDetectionComplete = (event: Event) => {
+            console.log('[Toolbar] Entity detection completed event received');
+            stopLoading('toolbar.detect');
+            window.removeEventListener('entity-detection-completed', handleDetectionComplete);
+        };
+
+        window.addEventListener('entity-detection-completed', handleDetectionComplete);
+
+        // Dispatch event to trigger detection
+        const event = new CustomEvent('trigger-entity-detection-process', {
             detail: {
                 source: 'toolbar-button',
                 filesToProcess: filesToHandle
             }
-        }));
-        stopLoading('toolbar.detect');
-    }
+        });
+
+        console.log('[Toolbar] Dispatching trigger-entity-detection-process event:', event.detail);
+        window.dispatchEvent(event);
+
+        // Fallback timeout to clear loading if no response after 30 seconds
+        setTimeout(() => {
+            if (globalLoading('toolbar.detect')) {
+                console.log('[Toolbar] Entity detection timeout - clearing loading state');
+                stopLoading('toolbar.detect');
+                window.removeEventListener('entity-detection-completed', handleDetectionComplete);
+            }
+        }, 30000);
+    };
 
     const handleSearchShortcut = () => {
+        console.log('[Toolbar] Search button clicked');
+        
         startLoading('toolbar.search');
-        // Add a slight delay to ensure the sidebar is active
+
+        // Set up one-time listener for search completion
+        const handleSearchComplete = (event: Event) => {
+            console.log('[Toolbar] Search completed event received');
+            stopLoading('toolbar.search');
+            window.removeEventListener('search-completed', handleSearchComplete);
+        };
+
+        window.addEventListener('search-completed', handleSearchComplete);
+
+        // Dispatch search event with a slight delay to ensure UI updates
         setTimeout(() => {
-            // Trigger search with default terms
+            console.log('[Toolbar] Dispatching execute-search event');
             window.dispatchEvent(new CustomEvent('execute-search', {
                 detail: {
                     source: 'toolbar-button',
-                    applyDefaultTerms: true // Tell the search sidebar to apply all default terms
+                    applyDefaultTerms: true
                 }
             }));
+        }, 100);
 
-            // Alternatively if there's a global function available, use it directly
-            if (typeof window.executeSearchWithDefaultTerms === 'function') {
-                window.executeSearchWithDefaultTerms();
+        // Fallback timeout to clear loading if no response after 30 seconds
+        setTimeout(() => {
+            if (globalLoading('toolbar.search')) {
+                console.log('[Toolbar] Search timeout - clearing loading state');
+                stopLoading('toolbar.search');
+                window.removeEventListener('search-completed', handleSearchComplete);
             }
-        }, 300);
-        stopLoading('toolbar.search');
-        notify({
-            message: t('toolbar', 'searchingWithDefaultTerms'),
-            type: 'success',
-            duration: 3000
-        });
-    }
+        }, 30000);
+    };
 
-    // This function now only triggers the redaction process directly
     const handleRedaction = () => {
-        const filesToHandle = selectedFiles.length > 0 ? selectedFiles : files
+        console.log('[Toolbar] Redaction button clicked');
+
+        const filesToHandle = selectedFiles.length > 0 ? selectedFiles : files;
+
         if (filesToHandle.length === 0) {
-            notify({ message: t('toolbar', 'noFilesAvailableForRedaction'), type: 'error' });
+            notify({message: t('toolbar', 'noFilesSelectedForRedaction'), type: 'error'});
             return;
         }
+
+        console.log('[Toolbar] Triggering redaction for files:', filesToHandle.map(f => f.name));
+        
         startLoading('toolbar.redact');
 
-        // Directly trigger the redaction process in the sidebar
-        window.dispatchEvent(new CustomEvent('trigger-redaction-process', {
+        // Dispatch redaction event
+        const event = new CustomEvent('trigger-redaction-process', {
             detail: {
                 source: 'toolbar-button',
-                filesToProcess: filesToHandle
+                filesToProcess: filesToHandle,
+                callback: () => {
+                    console.log('[Toolbar] Redaction completed callback received');
+                    stopLoading('toolbar.redact');
+                }
             }
-        }));
-        stopLoading('toolbar.redact');
-
-        notify({
-            message: t('toolbar', 'startingRedactionProcess'),
-            type: 'success',
-            duration: 3000
         });
-    }
+
+        console.log('[Toolbar] Dispatching trigger-redaction-process event:', event.detail);
+        window.dispatchEvent(event);
+
+        // Set timeout to clear loading if no response after 30 seconds
+        setTimeout(() => {
+            console.log('[Toolbar] Redaction timeout - clearing loading state');
+            stopLoading('toolbar.redact');
+        }, 30000);
+    };
 
     return (
         <div className="enhanced-toolbar">
@@ -332,7 +373,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     disabled={globalLoading('toolbar.search') || files.length === 0}
                 >
 
-                    <LoadingWrapper isLoading={globalLoading('toolbar.search')} overlay={true} fallback={t('toolbar', 'searching')}
+                    <LoadingWrapper isLoading={globalLoading('toolbar.search')} overlay={false}
+                                    fallback={t('toolbar', 'searching')}
                     >
                         {globalLoading('toolbar.search') ? '' :
                             <>
@@ -369,7 +411,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     disabled={globalLoading('toolbar.redact') || files.length === 0}
                 >
 
-                    <LoadingWrapper isLoading={globalLoading('toolbar.redact')} overlay={true} fallback={t('toolbar', 'redacting')}
+                    <LoadingWrapper isLoading={globalLoading('toolbar.redact')} overlay={false}
+                                    fallback={t('toolbar', 'redacting')}
                     >
                         {globalLoading('toolbar.redact') ? '' :
                             <>

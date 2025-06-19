@@ -161,10 +161,10 @@ export default function Navbar() {
                     ) : (
                         <Button
                             className="Sign-in-button"
-                            shimmerColor="#ffffff"
+                            shimmerColor="var(--primary)"
                             borderRadius="100px"
-                            shimmerDuration="5s"
-                            background="rgb(116,142,155)"
+                            shimmerDuration="10s"
+                            background="var(--background)"
                             onClick={() => navigate("/login",)}
                         >
                             <span>{t('common', 'getStarted')}</span>

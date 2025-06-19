@@ -14,6 +14,7 @@ Component-specific styles organized by category
 
 /* Form Components */
 @import './forms/index.css';
+@import './forms/range-slider.css';
 
 /* Feedback components */
 @import './feedback/notifications.css';

@@ -1,5 +1,5 @@
-import React, { type ComponentPropsWithoutRef } from "react"
-import { useLanguage } from '../../contexts/LanguageContext';
+import React, {type ComponentPropsWithoutRef} from "react"
+import {useLanguage} from '../../contexts/LanguageContext';
 
 export interface ButtonProps extends ComponentPropsWithoutRef<"button"> {
     shimmerColor?: string
@@ -16,7 +16,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {
             shimmerColor = "#ffffff",
             shimmerSize = "0.05em",
-            shimmerDuration = "3s",
+            shimmerDuration = "10s",
             borderRadius = "100px",
             background = "var(--background)",
             className,

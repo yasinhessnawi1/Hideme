@@ -109,3 +109,5 @@ MIGRATION COMPLETE: The CSS refactoring has been successfully completed with:
 - Full backward compatibility maintained
 */
 
+/* Individual component imports removed - now loaded through 04-components/index.css */
+

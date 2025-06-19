@@ -1,23 +1,23 @@
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import {AlertTriangle, CheckCircle, ChevronDown, Loader2, Save} from "lucide-react";
+import {ChevronDown, Loader2, Save} from "lucide-react";
 import {OptionType} from "../../../types";
 import {
     entitiesToOptions,
-    getGeminiOptions,
     getColorDotStyle,
+    getGeminiOptions,
     getGlinerOptions,
     getHidemeOptions,
+    getPresidioOptions,
     METHOD_ID_MAP,
-    MODEL_COLORS,
-    getPresidioOptions
+    MODEL_COLORS
 } from "../../../utils/EntityUtils";
 import useEntityDefinitions from "../../../hooks/settings/useEntityDefinitions";
 import useAuth from "../../../hooks/auth/useAuth";
-import { useLoading } from "../../../contexts/LoadingContext";
+import {useLoading} from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
-import { useNotification } from "../../../contexts/NotificationContext";
-import { useLanguage } from '../../../contexts/LanguageContext';
-import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
+import {useNotification} from "../../../contexts/NotificationContext";
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {mapBackendErrorToMessage} from '../../../utils/errorUtils';
 
 
 export default function EntitySettings() {
@@ -171,7 +171,7 @@ export default function EntitySettings() {
             options.filter(opt => !opt.value.startsWith('ALL_')).map(opt => opt.value)
         );
         notify({
-            message: t('settings', 'allSearchTermsCleared'),
+            message: t('entityDetection', 'allEntitiesSelected'),
             type: 'success',
             duration: 3000
         });
@@ -182,7 +182,7 @@ export default function EntitySettings() {
     ) => () => {
         setter([]);
         notify({
-            message: t('settings', 'clearAllSearchTermsMessage').replace('{count}', ''),
+            message: t('entityDetection', 'allEntitiesDeselected'),
             type: 'success',
             duration: 3000
         });
@@ -318,6 +318,7 @@ export default function EntitySettings() {
                                     <div
                                         className={`accordion-content ${openAccordions.includes("presidio") ? 'open' : ''}`}
                                     >
+                                        <div>
                                         <div className="space-y-4 py-2 px-1">
                                             <div className="flex justify-between gap-2">
                                                 <button className="button button-outline button-sm"
@@ -345,6 +346,7 @@ export default function EntitySettings() {
                                                     </div>
                                                 ))}
                                             </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -365,6 +367,7 @@ export default function EntitySettings() {
                                     <div
                                         className={`accordion-content ${openAccordions.includes("gliner") ? 'open' : ''}`}
                                     >
+                                        <div>
                                         <div className="space-y-4 py-2 px-1">
                                             <div className="flex justify-between gap-2">
                                                 <button className="button button-outline button-sm"
@@ -393,6 +396,7 @@ export default function EntitySettings() {
                                                     </div>
                                                 ))}
                                             </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -413,6 +417,7 @@ export default function EntitySettings() {
                                     <div
                                         className={`accordion-content ${openAccordions.includes("gemini") ? 'open' : ''}`}
                                     >
+                                        <div>
                                         <div className="space-y-4 py-2 px-1">
                                             <div className="flex justify-between gap-2">
                                                 <button className="button button-outline button-sm"
@@ -441,6 +446,7 @@ export default function EntitySettings() {
                                                     </div>
                                                 ))}
                                             </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -461,6 +467,7 @@ export default function EntitySettings() {
                                     <div
                                         className={`accordion-content ${openAccordions.includes("hideme") ? 'open' : ''}`}
                                     >
+                                        <div>
                                         <div className="space-y-4 py-2 px-1">
                                             <div className="flex justify-between gap-2">
                                                 <button className="button button-outline button-sm"
@@ -488,6 +495,7 @@ export default function EntitySettings() {
                                                         </label>
                                                     </div>
                                                 ))}
+                                            </div>
                                             </div>
                                         </div>
                                     </div>

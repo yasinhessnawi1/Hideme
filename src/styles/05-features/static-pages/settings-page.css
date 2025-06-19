@@ -1009,18 +1009,23 @@ input:disabled + .switch-slider {
     transform: rotate(180deg);
 }
 
-/* Accordion content animation */
+/* Accordion content animation using CSS Grid for dynamic height */
 .accordion-content {
+    display: grid;
+    grid-template-rows: 0fr;
     overflow: hidden;
-    transition: max-height 0.3s ease-out, padding-top 0.3s ease-out, padding-bottom 0.3s ease-out;
-    max-height: 0;
-    padding-top: 0;
+    transition: grid-template-rows 0.3s ease-out, padding-bottom 0.3s ease-out;
     padding-bottom: 0;
 }
 
-.accordion-content.open { /* Add class for open state */
-    max-height: 500px; /* Adjust as needed, should be larger than content */
+.accordion-content.open {
+    grid-template-rows: 1fr;
     padding-bottom: 1rem; /* Add padding when open */
+}
+
+/* Ensure the content wrapper has proper overflow handling */
+.accordion-content > * {
+    overflow: hidden;
 }
 
 /* ========================================
@@ -1253,4 +1258,12 @@ input:disabled + .switch-slider {
     to {
         transform: rotate(360deg);
     }
-} 
+}
+
+.form-header-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+}

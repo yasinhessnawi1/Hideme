@@ -375,7 +375,6 @@
 .paper-content {
     width: var(--size-16);
     height: var(--size-20);
-    background: rgba(var(--card-rgb, 255, 255, 255), 0.8);
     backdrop-filter: blur(10px);
     border-radius: var(--border-radius-lg);
     border: 1px solid var(--border);

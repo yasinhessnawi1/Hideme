@@ -1,6 +1,8 @@
-import React, {useState, useEffect, useRef, useCallback} from 'react';
-import {FileText, FolderOpen, Search, Eye, Edit3, History, Settings, ChevronLeft, ChevronRight} from 'lucide-react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {ChevronLeft, ChevronRight, FileText, FolderOpen, History, Search, Settings} from 'lucide-react';
 import {useFileContext} from '../../../contexts/FileContext';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {FaEraser, FaMagic,} from 'react-icons/fa';
 
 // Import existing sidebar components
 import PageThumbnailsViewer from './PageThumbnailsViewer';
@@ -26,50 +28,7 @@ interface UnifiedSidebarProps {
     onWidthChange?: (width: number) => void;
 }
 
-const sidebarTabs: SidebarTab[] = [
-    {
-        id: "thumbnails",
-        name: "Thumbnails",
-        icon: <FileText size={16}/>,
-        component: PageThumbnailsViewer,
-    },
-    {
-        id: "files",
-        name: "Files",
-        icon: <FolderOpen size={16}/>,
-        component: FileViewer,
-    },
-    {
-        id: "detection",
-        name: "Detection",
-        icon: <Eye size={16}/>,
-        component: EntityDetectionSidebar,
-    },
-    {
-        id: "search",
-        name: "Search",
-        icon: <Search size={16}/>,
-        component: SearchSidebar,
-    },
-    {
-        id: "redaction",
-        name: "Redaction",
-        icon: <Edit3 size={16}/>,
-        component: RadactionSidebar,
-    },
-    {
-        id: "settings",
-        name: "Settings",
-        icon: <Settings size={16}/>,
-        component: SettingsSidebar,
-    },
-    {
-        id: "history",
-        name: "History",
-        icon: <History size={16}/>,
-        component: HistoryViewer,
-    },
-];
+// Note: We'll need to define this inside the component to access the t function
 
 const SIDEBAR_MIN_WIDTH = 280;
 const SIDEBAR_MAX_WIDTH = 600;
@@ -97,6 +56,53 @@ const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
     const isCollapsed = externalCollapsed !== undefined ? externalCollapsed : internalCollapsed;
 
     const {currentFile} = useFileContext();
+    const {t} = useLanguage();
+
+    // Define sidebar tabs with translations
+    const sidebarTabs: SidebarTab[] = [
+        {
+            id: "thumbnails",
+            name: t('sidebar', 'thumbnails'),
+            icon: <FileText size={16}/>,
+            component: PageThumbnailsViewer,
+        },
+        {
+            id: "files",
+            name: t('sidebar', 'files'),
+            icon: <FolderOpen size={16}/>,
+            component: FileViewer,
+        },
+        {
+            id: "detection",
+            name: t('sidebar', 'detection'),
+            icon: <FaMagic size={16}/>,
+            component: EntityDetectionSidebar,
+        },
+        {
+            id: "search",
+            name: t('sidebar', 'search'),
+            icon: <Search size={16}/>,
+            component: SearchSidebar,
+        },
+        {
+            id: "redaction",
+            name: t('sidebar', 'redaction'),
+            icon: <FaEraser size={16}/>,
+            component: RadactionSidebar,
+        },
+        {
+            id: "settings",
+            name: t('sidebar', 'settings'),
+            icon: <Settings size={16}/>,
+            component: SettingsSidebar,
+        },
+        {
+            id: "history",
+            name: t('sidebar', 'history'),
+            icon: <History size={16}/>,
+            component: HistoryViewer,
+        },
+    ];
 
     // Update CSS custom property when width changes
     useEffect(() => {
@@ -291,7 +297,7 @@ const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
             <button
                 className="collapse-button"
                 onClick={toggleSidebar}
-                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                aria-label={isCollapsed ? t('sidebar', 'expandSidebar') : t('sidebar', 'collapseSidebar')}
             >
                 {isCollapsed ? <ChevronRight size={14}/> : <ChevronLeft size={14}/>}
             </button>
@@ -304,7 +310,7 @@ const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                     onMouseDown={handleResizeStart}
                     role="separator"
                     aria-orientation="vertical"
-                    aria-label="Resize sidebar"
+                    aria-label={t('sidebar', 'resizeSidebar')}
                     tabIndex={0}
                     onKeyDown={(e) => {
                         // Allow keyboard resize with arrow keys
@@ -335,7 +341,7 @@ const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                         onMouseLeave={() => setHoveredTab(null)}
                         role="button"
                         tabIndex={0}
-                        aria-label={`Switch to ${tab.name} tab`}
+                        aria-label={t('sidebar', 'switchToTab', {name: tab.name})}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
@@ -358,26 +364,37 @@ const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
             </div>
 
             {/* Content Area */}
-            {!isCollapsed && (
-                <div className="content-area">
-                    {/* File Indicator */}
-                    {currentFile?.name && (
-                        <div className="file-indicator">
-                            Viewing: {currentFile.name}
-                        </div>
-                    )}
+            <div className="content-area" style={{display: isCollapsed ? 'none' : 'block'}}>
+                {/* File Indicator */}
+                {!isCollapsed && currentFile?.name && (
+                    <div className="file-indicator">
+                        {t('sidebar', 'viewing')}: {currentFile.name}
+                    </div>
+                )}
 
-                    {/* Component Content - render directly */}
-                    {ActiveComponent && <ActiveComponent/>}
-
-                    {/* Add file storage settings to files tab */}
-                    {activeTab === 'files' && (
-                        <div className="additional-settings">
-                            <FileStorageSettings/>
+                {/* Always render all sidebar components but show only the active one */}
+                {sidebarTabs.map((tab) => {
+                    const TabComponent = tab.component;
+                    return (
+                        <div
+                            key={tab.id}
+                            className={`sidebar-tab-content ${activeTab === tab.id ? 'active' : 'hidden'}`}
+                            style={{
+                                display: activeTab === tab.id && !isCollapsed ? 'block' : 'none'
+                            }}
+                        >
+                            <TabComponent/>
                         </div>
-                    )}
-                </div>
-            )}
+                    );
+                })}
+
+                {/* Add file storage settings to files tab */}
+                {!isCollapsed && activeTab === 'files' && (
+                    <div className="additional-settings">
+                        <FileStorageSettings/>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

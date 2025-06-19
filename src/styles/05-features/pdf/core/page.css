@@ -120,10 +120,9 @@ using semantic tokens from the design system
 .react-pdf__Page__textContent span {
     position: absolute !important;
     font-family: inherit !important;
-    left: 0 !important;
-    top: 0 !important;
     transform-origin: 0% 0% !important;
     color: transparent !important;
+    /* Let PDF.js handle span positioning with transforms - don't force left/top to 0 */
 }
 
 /* ========================================

@@ -1,17 +1,30 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Save, ChevronDown, ChevronUp, AlertTriangle, Database, HardDrive, Trash2, Loader2, Sliders, Upload, Download, FileWarning } from "lucide-react";
-import { useFileContext } from "../../../contexts/FileContext"; // Adjust path if needed
-import { useAutoProcess } from "../../../hooks/general/useAutoProcess"; // Adjust path if needed
-import { ThemePreference } from "../../../hooks/general/useTheme";
-import { useThemeContext } from "../../../contexts/ThemeContext";
-import { useUserContext } from "../../../contexts/UserContext";
+import React, {useEffect, useRef, useState} from "react";
+import {
+    AlertTriangle,
+    ChevronDown,
+    ChevronUp,
+    Database,
+    Download,
+    FileWarning,
+    HardDrive,
+    Loader2,
+    Save,
+    Sliders,
+    Trash2,
+    Upload
+} from "lucide-react";
+import {useFileContext} from "../../../contexts/FileContext"; // Adjust path if needed
+import {useAutoProcess} from "../../../hooks/general/useAutoProcess"; // Adjust path if needed
+import {ThemePreference} from "../../../hooks/general/useTheme";
+import {useThemeContext} from "../../../contexts/ThemeContext";
+import {useUserContext} from "../../../contexts/UserContext";
 import useDocument from "../../../hooks/settings/useDocument";
 import LoadingWrapper from "../../common/LoadingWrapper";
-import { useNotification } from "../../../contexts/NotificationContext";
-import { useLoading } from "../../../contexts/LoadingContext";
-import { useLanguage } from "../../../contexts/LanguageContext";
-import { AVAILABLE_LANGUAGES, Language } from "../../../utils/i18n"; // Import Language type and AVAILABLE_LANGUAGES
-import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
+import {useNotification} from "../../../contexts/NotificationContext";
+import {useLoading} from "../../../contexts/LoadingContext";
+import {useLanguage} from "../../../contexts/LanguageContext";
+import {AVAILABLE_LANGUAGES, Language} from "../../../utils/i18n"; // Import Language type and AVAILABLE_LANGUAGES
+import {mapBackendErrorToMessage} from '../../../utils/errorUtils';
 
 export default function GeneralSettings() {
     const {
@@ -152,6 +165,14 @@ export default function GeneralSettings() {
     const handleAutoProcessToggle = (enabled: boolean) => {
         console.log("[GeneralSettings] handleAutoProcessToggle called, setting local state to:", enabled);
         setIsAutoProcessing(enabled);
+
+        // Immediately notify AutoProcessManager about the toggle
+        window.dispatchEvent(new CustomEvent('auto-processing-toggled', {
+            detail: {isActive: enabled}
+        }));
+
+        // Also update the auto-processing hook immediately
+        setAutoProcessHookEnabled(enabled);
     };
 
     const handleStorageToggle = (enabled: boolean) => {
@@ -174,7 +195,20 @@ export default function GeneralSettings() {
             // Update auto-processing hook
             setAutoProcessHookEnabled(isAutoProcessing);
 
-            // Notify other components about detection settings change
+            // Notify AutoProcessManager about general settings changes
+            window.dispatchEvent(new CustomEvent('settings-changed', {
+                detail: {
+                    type: 'general',
+                    settings: {
+                        auto_processing: isAutoProcessing,
+                        detection_threshold: detectionThreshold,
+                        use_banlist_for_detection: useBanlist,
+                        theme: currentThemePreference
+                    }
+                }
+            }));
+
+            // Also notify about detection settings change for entity components
             window.dispatchEvent(new CustomEvent('settings-changed', {
                 detail: {
                     type: 'entity',
@@ -182,6 +216,13 @@ export default function GeneralSettings() {
                         detectionThreshold: detectionThreshold,
                         useBanlist: useBanlist
                     }
+                }
+            }));
+
+            // Dispatch auto processing toggle event
+            window.dispatchEvent(new CustomEvent('auto-processing-toggled', {
+                detail: {
+                    isActive: isAutoProcessing
                 }
             }));
 
@@ -386,27 +427,44 @@ export default function GeneralSettings() {
                     <div className="form-group">
                         <div className="form-header-with-icon">
                             <Sliders size={18} className="text-primary" />
-                            <label className="form-label" htmlFor="detection-threshold">
-                                {t('settings', 'detectionThreshold')} ({Math.round(detectionThreshold * 100)}%)
-                            </label>
+                            <p className="form-label">{t('settings', 'detectionThreshold')}</p>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">
+                        <p className="text-sm text-muted-foreground mb-3">
                             {t('settings', 'detectionThresholdDescription')}
                         </p>
-                        <div className="flex items-center gap-4">
-                            <span className="text-xs text-muted-foreground">{t('settings', 'low')}</span>
+                        <div className="range-slider-container">
+                            <span className="range-slider-label">{t('settings', 'low')}</span>
                             <input
                                 type="range"
-                                id="detection-threshold"
-                                min="0"
-                                max="1"
+                                min="0.0"
+                                max="1.0"
                                 step="0.01"
                                 value={detectionThreshold}
-                                onChange={(e) => setDetectionThreshold(parseFloat(e.target.value))}
-                                className="flex-1 accent-primary"
+                                onChange={(e) => {
+                                    const newThreshold = parseFloat(e.target.value);
+                                    setDetectionThreshold(newThreshold);
+
+                                    // Immediately notify about threshold change
+                                    window.dispatchEvent(new CustomEvent('settings-changed', {
+                                        detail: {
+                                            type: 'entity',
+                                            settings: {
+                                                detectionThreshold: newThreshold,
+                                                useBanlist: useBanlist
+                                            }
+                                        }
+                                    }));
+                                }}
+                                className="modern-range-slider threshold-range-slider"
                                 disabled={isLoading}
+                                style={{
+                                    '--progress': `${detectionThreshold * 100}%`
+                                } as React.CSSProperties}
                             />
-                            <span className="text-xs text-muted-foreground">{t('settings', 'high')}</span>
+                            <span className="range-slider-label">{t('settings', 'high')}</span>
+                            <div className="range-slider-value">
+                                {Math.round(detectionThreshold * 100)}%
+                            </div>
                         </div>
                     </div>
 
@@ -423,7 +481,21 @@ export default function GeneralSettings() {
                                 type="checkbox"
                                 id="use-banlist"
                                 checked={useBanlist}
-                                onChange={(e) => setUseBanlist(e.target.checked)}
+                                onChange={(e) => {
+                                    const newUseBanlist = e.target.checked;
+                                    setUseBanlist(newUseBanlist);
+
+                                    // Immediately notify about banlist setting change
+                                    window.dispatchEvent(new CustomEvent('settings-changed', {
+                                        detail: {
+                                            type: 'entity',
+                                            settings: {
+                                                detectionThreshold: detectionThreshold,
+                                                useBanlist: newUseBanlist
+                                            }
+                                        }
+                                    }));
+                                }}
                                 disabled={isLoading}
                             />
                             <span className="switch-slider"></span>
@@ -468,7 +540,7 @@ export default function GeneralSettings() {
                                         <div className="progress-value" style={{ width: `${Math.min(effectiveStorageStats.percentUsed, 100)}%` }}></div>
                                     </div>
                                     <div className="text-xs text-muted-foreground">
-                                        {effectiveStorageStats.percentUsed} {t('settings', 'used')} ({effectiveStorageStats.fileCount} {effectiveStorageStats.fileCount === 1 ? t('settings', 'file') : t('settings', 'files')})
+                                        {effectiveStorageStats.percentUsed.toFixed(2)}% {t('settings', 'used')} ({effectiveStorageStats.fileCount} {effectiveStorageStats.fileCount === 1 ? t('settings', 'file') : t('settings', 'files')})
                                     </div>
                                 </div>
                                 <button

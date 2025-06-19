@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Save, Search, X, AlertTriangle, Trash2, Loader2 } from "lucide-react";
-import { SearchPattern, SearchPatternCreate } from "../../../types";
+import React, {useEffect, useRef, useState} from "react";
+import {Loader2, Search, Trash2, X} from "lucide-react";
+import {SearchPattern, SearchPatternCreate} from "../../../types";
 import useSearchPatterns from "../../../hooks/settings/useSearchPatterns";
 import useAuth from "../../../hooks/auth/useAuth"; // Adjust path
-import { useLoading } from "../../../contexts/LoadingContext";
+import {useLoading} from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
-import { useNotification } from "../../../contexts/NotificationContext";
-import { useLanguage } from '../../../contexts/LanguageContext';
-import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
+import {useNotification} from "../../../contexts/NotificationContext";
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {mapBackendErrorToMessage} from '../../../utils/errorUtils';
 
 export default function SearchSettings() {
     const { t } = useLanguage();
@@ -103,6 +103,11 @@ export default function SearchSettings() {
             setNewSearchTerm("");
             setIsCaseSensitive(false); // Reset options after adding
             setIsAiSearch(false);
+            notify({
+                message: t('settings', 'searchTermAdded'),
+                type: "success",
+                duration: 3000
+            });
         } catch (err: any) {
             notify({
                 message: mapBackendErrorToMessage(err) || t('settings', 'failedToAddSearchTerm'),
@@ -201,8 +206,8 @@ export default function SearchSettings() {
                             <label className="form-label" htmlFor="search-term">
                                 {t('settings', 'saveNewSearchTerm')}
                             </label>
-                            <div className="flex flex-col sm:flex-row sm:space-x-2"> {/* Stack on small screens */}
-                                <div className="flex-1 mb-2 sm:mb-0"> {/* Add bottom margin on small screens */}
+                            <div className="flex space-x-2">
+                                <div className="flex-1">
                                     <input
                                         className="form-input"
                                         id="search-term"
@@ -213,7 +218,7 @@ export default function SearchSettings() {
                                     />
                                 </div>
                                 <button
-                                    className="button button-primary w-full sm:w-auto" // Full width on small screens
+                                    className="button button-primary"
                                     onClick={handleAddSearchTerm}
                                     disabled={isLoading || !newSearchTerm.trim()}
                                 >
@@ -299,12 +304,13 @@ export default function SearchSettings() {
                                     <p className="text-sm text-muted-foreground">{t('settings', 'noSavedSearchTerms')}</p>
                                 </div>
                             ) : (
-                                /* List of Terms */
-                                <div className="space-y-2">
+                                /* Grid of Terms */
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                                     {/* Use patternsToRender which is guaranteed to be an array */}
                                     {patternsToRender.map((pattern) => (
-                                        <div key={pattern.id} className="flex items-center justify-between border rounded-md p-3 hover:bg-muted transition-colors duration-150"> {/* Added hover effect */}
-                                            <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                        <div key={pattern.id}
+                                             className="flex items-center justify-between border rounded-md p-2">
+                                            <div className="flex items-center space-x-1 flex-1 min-w-0">
                                                 <span className="font-medium truncate" title={pattern.pattern_text}>{pattern.pattern_text}</span>
                                                 <div className="flex space-x-1 flex-shrink-0">
                                                     {pattern.pattern_type === 'case_sensitive' && <span className="badge badge-outline">Aa</span>}
@@ -313,12 +319,19 @@ export default function SearchSettings() {
                                                 </div>
                                             </div>
                                             <button
-                                                className="button button-ghost button-sm p-1 text-muted-foreground hover:text-destructive" // Subtle styling
+                                                className="button button-ghost button-sm p-1"
                                                 onClick={() => handleRemoveSearchTerm(pattern.id)}
                                                 disabled={isLoading || searchTermBeingRemoved === pattern.pattern_text}
                                                 title={t('settings', 'removeTerm')}
                                             >
-                                                <X size={16} />
+                                                <LoadingWrapper
+                                                    isLoading={searchTermBeingRemoved === pattern.pattern_text}
+                                                    fallback={t('settings', 'removing')}>
+                                                    {(searchTermBeingRemoved === pattern.pattern_text) ?
+                                                        <Loader2 className="h-4 w-4 animate-spin button-icon"/> :
+                                                        <X size={14} className="button-icon"/>}
+                                                    {(searchTermBeingRemoved === pattern.pattern_text) ? t('settings', 'removing') : ''}
+                                                </LoadingWrapper>
                                             </button>
                                         </div>
                                     ))}

@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { useFileContext } from '../../../contexts/FileContext';
-import { Database, Trash2, HardDrive, AlertTriangle } from 'lucide-react';
+import React from 'react';
+import {useFileContext} from '../../../contexts/FileContext';
+import {AlertTriangle, Database, HardDrive, Trash2} from 'lucide-react';
 import {useLoading} from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
-import { useNotification } from '../../../contexts/NotificationContext';
-import { useLanguage } from '../../../contexts/LanguageContext';
+import {useNotification} from '../../../contexts/NotificationContext';
+import {useLanguage} from '../../../contexts/LanguageContext';
 
 /**
  * Component for managing PDF storage persistence settings
@@ -104,8 +104,8 @@ const FileStorageSettings: React.FC = () => {
                             />
                         </div>
                         <div className="usage-text">
-                            {storageStats.totalSizeFormatted} {t('pdf', 'used')}
-                            ({files.length} {t('pdf', 'files')})
+                            {Math.min(storageStats.percentUsed, 100).toFixed(2)}% {t('pdf', 'used')} ({files.length} {
+                            files.length === 1 ? t('pdf', 'file') : t('pdf', 'files')})
                         </div>
                     </div>
 

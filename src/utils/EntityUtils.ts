@@ -5,7 +5,7 @@
  * Used by both the EntityDetectionSidebar and EntitySettings components
  */
 
-import { OptionType } from '../types';
+import {OptionType} from '../types';
 
 // ======= SHARED ENTITY MODEL OPTIONS =======
 
@@ -17,7 +17,6 @@ export const PRESIDIO_ENTITY_KEYS = [
     { value: 'EMAIL_ADDRESS_P', key: 'emailAddress' },
     { value: 'IBAN_CODE_P', key: 'iban' },
     { value: 'IP_ADDRESS_P', key: 'ipAddress' },
-    { value: 'NO_COMPANY_NUMBER_P', key: 'orgNumber' },
     { value: 'LOCATION_P', key: 'location' },
     { value: 'MEDICAL_LICENSE_P', key: 'medicalLicense' },
     { value: 'URL_P', key: 'url' },
@@ -26,7 +25,6 @@ export const PRESIDIO_ENTITY_KEYS = [
     { value: 'NO_FODSELSNUMMER_P', key: 'id' },
     { value: 'NO_BANK_ACCOUNT_P', key: 'bankAccount' },
     { value: 'NO_LICENSE_PLATE_P', key: 'licensePlate' },
-    { value: 'ORGANIZATION_P', key: 'organization' },
     { value: 'CRYPTO_P', key: 'cryptoWallet' },
 ];
 

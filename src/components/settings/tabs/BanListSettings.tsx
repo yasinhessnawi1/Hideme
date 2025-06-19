@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Save, Plus, X, AlertTriangle, Trash2, Loader2 } from "lucide-react";
+import React, {useEffect, useRef, useState} from "react";
+import {Loader2, Plus, Trash2, X} from "lucide-react";
 import useBanList from "../../../hooks/settings/useBanList"; // Adjust path if needed
-import { useLoading } from "../../../contexts/LoadingContext";
+import {useLoading} from "../../../contexts/LoadingContext";
 import LoadingWrapper from "../../common/LoadingWrapper";
-import { useNotification } from "../../../contexts/NotificationContext";
-import { useLanguage } from '../../../contexts/LanguageContext';
-import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
+import {useNotification} from "../../../contexts/NotificationContext";
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {mapBackendErrorToMessage} from '../../../utils/errorUtils';
 
 export default function BanListSettings() {
     const { t } = useLanguage();
@@ -83,6 +83,11 @@ export default function BanListSettings() {
             await addBanListWords([wordToAdd]);
             // `localBannedWords` will update via useEffect watching `banList`
             setNewBannedWord("");
+            notify({
+                message: t('banlist', 'wordAdded'),
+                type: 'success',
+                duration: 3000
+            });
         } catch (err: any) {
             notify({
                 message: mapBackendErrorToMessage(err) || t('banlist', 'failedToAddBannedWord'),
@@ -97,11 +102,16 @@ export default function BanListSettings() {
 
     const handleRemoveBannedWord = async (wordToRemove: string) => {
         clearUserError();
+        setTermBeingRemoved(wordToRemove);
 
         try {
             await removeBanListWords([wordToRemove]);
             // `localBannedWords` will update via useEffect
-            setTermBeingRemoved(wordToRemove);
+            notify({
+                message: t('banlist', 'removed'),
+                type: 'success',
+                duration: 3000
+            });
         } catch (err: any) {
             notify({
                 message: mapBackendErrorToMessage(err) || t('banlist', 'failedToRemoveBannedWord'),
@@ -133,6 +143,11 @@ export default function BanListSettings() {
             if (localBannedWords.length > 0) {
                 await removeBanListWords(localBannedWords);
                 // `localBannedWords` will update via useEffect
+                notify({
+                    message: t('banlist', 'removedAll'),
+                    type: 'success',
+                    duration: 3000
+                });
             }
         } catch (err: any) {
             notify({

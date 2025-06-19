@@ -90,7 +90,6 @@ Refactored to use new design tokens
     inset: calc(var(--space-1) * -1);
     border: 1px solid var(--primary-alpha, rgba(var(--primary-rgb), 0.3));
     border-radius: var(--radius-sm);
-    background: var(--gradient-primary);
     opacity: 0.1;
     animation: var(--animation-glow);
 }

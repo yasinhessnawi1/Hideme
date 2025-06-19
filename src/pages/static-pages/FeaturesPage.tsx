@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import Navbar from '../../components/static/Navbar';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { 
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-    RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell
+import {useLanguage} from '../../contexts/LanguageContext';
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    Legend,
+    Pie,
+    PieChart,
+    PolarAngleAxis,
+    PolarGrid,
+    PolarRadiusAxis,
+    Radar,
+    RadarChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis
 } from 'recharts';
-import { 
-    getPresidioOptions, 
-    getGlinerOptions, 
-    getGeminiOptions, 
-    getHidemeOptions,
-    MODEL_COLORS
-} from '../../utils/EntityUtils';
+import {getGeminiOptions, getGlinerOptions, getHidemeOptions, getPresidioOptions} from '../../utils/EntityUtils';
 import Footer from '../../components/static/Footer';
 
 interface OptionType {
@@ -366,7 +374,7 @@ const FeaturesPage = () => {
                             icon="🔒"
                             isSafeForData={true}
                             entities={glinerOptions}
-                            precision={t('features', 'mediumPrecisionScore')}
+                            precision={t('features', 'highPrecisionScore')}
                             accuracyData={{
                                 precision: 0.78,
                                 recall: 0.82,
@@ -380,7 +388,7 @@ const FeaturesPage = () => {
                             icon="🛡️"
                             isSafeForData={true}
                             entities={presidioOptions}
-                            precision={t('features', 'highPrecisionScore')}
+                            precision={t('features', 'mediumPrecisionScore')}
                             accuracyData={{
                                 precision: 0.86,
                                 recall: 0.73,
@@ -476,22 +484,22 @@ const FeaturesPage = () => {
                             </tr>
                             <tr>
                                 <td>{t('features', 'entityTypes')}</td>
-                                <td>{geminiOptions.length}</td>
-                                <td>{glinerOptions.length}</td>
-                                <td>{presidioOptions.length}</td>
-                                <td>{hidemeOptions.length}</td>
+                                <td>{geminiOptions.length - 1}</td>
+                                <td>{glinerOptions.length - 1}</td>
+                                <td>{presidioOptions.length - 1}</td>
+                                <td>{hidemeOptions.length - 1}</td>
                             </tr>
                             <tr>
                                 <td>{t('features', 'performance')}</td>
                                 <td>{t('features', 'fast')}</td>
                                 <td>{t('features', 'medium')}</td>
-                                <td>{t('features', 'medium')}</td>
                                 <td>{t('features', 'veryFast')}</td>
+                                <td>{t('features', 'medium')}</td>
                             </tr>
                             <tr>
                                 <td>{t('features', 'contextualUnderstanding')}</td>
                                 <td className="positive">{t('features', 'high')}</td>
-                                <td className="neutral">{t('features', 'medium')}</td>
+                                <td className="positive">{t('features', 'high')}</td>
                                 <td className="neutral">{t('features', 'medium')}</td>
                                 <td className="positive">{t('features', 'high')}</td>
                             </tr>

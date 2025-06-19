@@ -156,6 +156,8 @@ export const no = {
     ignoreList: "Ignoreringsliste",
     clearAll: "Tøm alle",
     loading: "Laster...",
+    removing: "Fjerner...",
+    searchTermAdded: "Søketerm lagt til",
     autoProcessRefreshNeeded: 'Automatisk behandling kan trenge en oppdatering for å lagre endringsinnstillinger.',
     search: "Søk",
     searchScope: "Søkeomfang",
@@ -525,6 +527,8 @@ export const no = {
     hidemeAI: "Hide Me AI",
     selectEntitiesPlaceholder: "Velg kategorier som skal oppdages...",
     detectionSettings: "Deteksjonsinnstillinger",
+    allEntitiesSelected: "Alle kategorier valgt",
+    allEntitiesDeselected: "Alle kategorier fjernet",
     accuracy: "Nøyaktighet",
     accuracyDescription: "Høyere verdier reduserer falske positiver, men kan gå glipp av noen kategorier",
     low: "Lav",
@@ -713,6 +717,8 @@ export const no = {
     highlightVisibility: 'Uthevingssynlighet',
     show: 'Vis',
     settings: 'Innstillinger',
+    editModeDisabled: 'Redigeringsmodus aktivert',
+    editModeEnabled: 'Redigeringsmodus deaktivert',
 
   },
 
@@ -747,6 +753,7 @@ export const no = {
     removingAll: "Fjerner alle...",
     removed: "Ord fjernet.",
     removedAll: "Alle ignorerte ord fjernet.",
+    wordAdded: "Ord lagt til",
     removing: "Fjerner...",
     adding: "Legger til...",
     add: "Legg til",
@@ -961,7 +968,7 @@ export const no = {
     advancedSearchDescription: 'Bruk avanserte søkemønstre for å finne og sladde komplekse tekstmønstre.',
     semanticSearchTitle: 'Semantisk søk',
     semanticSearchDescription: 'AI-drevet kontekstuelt søk som forstår betydning, ikke bare nøkkelord.',
-    entityDetectionMethods: 'Entitetsdeteksjonsmetoder',
+    entityDetectionMethods: 'Entitetsdeteksjonsmetoder (Test pågår, vil bli oppdatert...)',
     detectionMethodsDescription: 'Oppdag de ulike AI- og ML-metodene som brukes for entitetsdeteksjon.',
     geminiAIDetectionTitle: 'Gemini AI-deteksjon',
     geminiAIDetectionDescription: 'AI-drevet deteksjon for et bredt spekter av sensitive kategorier.',
@@ -975,7 +982,7 @@ export const no = {
     highPrecisionScore: 'Høy presisjon med pålitelig deteksjon',
     mediumPrecisionScore: 'Middels presisjon med god deteksjon',
     veryHighPrecisionScore: 'Svært høy presisjon med utmerket deteksjon',
-    detectionMethodsComparison: 'Sammenligning av deteksjonsmetoder',
+    detectionMethodsComparison: 'Sammenligning av deteksjonsmetoder (Test pågår, vil bli oppdatert...)',
     modelComparisonVisualization: 'Visualisering av modellytelse',
     modelComparisonDescription: 'Visuell sammenligning av hvordan våre forskjellige deteksjonsmodeller presterer på tvers av nøkkelmetrikker.',
     modelPerformanceComparison: 'Radardiagram over modellytelse',
@@ -1034,6 +1041,26 @@ export const no = {
     passwordsDoNotMatch: 'Passordene er ikke like!',
     passwordTooShort: 'Passordet må være minst 8 tegn.',
     passwordPlaceholder: 'Skriv inn passord',
+  },
+
+  sidebar: {
+    // Tab names
+    thumbnails: "Miniatyrbilder",
+    files: "Filer",
+    detection: "Deteksjon",
+    search: "Søk",
+    redaction: "Sladding",
+    settings: "Innstillinger",
+    history: "Historikk",
+
+    // UI text
+    viewing: "Viser",
+
+    // Accessibility labels
+    expandSidebar: "Utvid sidepanel",
+    collapseSidebar: "Skjul sidepanel",
+    resizeSidebar: "Endre størrelse på sidepanel",
+    switchToTab: "Bytt til {name} fane",
   },
 
   footer: {

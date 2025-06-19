@@ -12,13 +12,14 @@ export interface ApiRequestOptions {
     formData?: FormData;
     headers?: Record<string, string>;
     responseType?: 'json' | 'blob' | 'arraybuffer';
+    signal?: AbortSignal;
 }
 
 /**
  * Enhanced API request helper that supports both JSON and FormData
  */
 export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
-    const { method, url, body, formData, headers = {}, responseType = 'json' } = options;
+    const {method, url, body, formData, headers = {}, responseType = 'json', signal} = options;
 
     const config: RequestInit = {
         method,
@@ -28,10 +29,16 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
             ...headers,
         },
         body: formData || (body ? JSON.stringify(body) : undefined),
+        signal,
     };
 
     try {
         const response = await fetch(url, config);
+
+        // Handle 204 No Content responses (common for DELETE operations)
+        if (response.status === 204) {
+            return {success: true, message: 'Operation completed successfully'} as unknown as T;
+        }
 
         if (!response.ok) {
             // Handle 401 (Unauthorized) and 429 (Too Many Requests) by logging out the user
@@ -91,6 +98,12 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
         }
     } catch (err: any) {
         console.error('[apiRequest] Error:', err);
+
+        // Check if it's an abort error
+        if (err.name === 'AbortError') {
+            console.log('[apiRequest] Request was aborted');
+            throw new Error('Request cancelled by user');
+        }
         
         // Check for network/CORS errors that might indicate auth issues
         if (err.message && (err.message.includes('fetch') || err.message.includes('NetworkError') || 

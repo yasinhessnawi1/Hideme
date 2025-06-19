@@ -219,29 +219,7 @@ and related components including processing indicators
     cursor: grabbing;
 }
 
-/* Improved text selection in PDF pages */
-.react-pdf__Page__textContent {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    z-index: 2;
-    transform: none !important;
-    user-select: text;
-    pointer-events: auto !important;
-}
-
-/* Ensure text spans are selectable */
-.react-pdf__Page__textContent span {
-    color: transparent;
-    position: absolute;
-    white-space: pre-wrap;
-    cursor: text !important;
-    transform-origin: 0 0;
-    user-select: text !important;
-    pointer-events: auto !important;
-}
+/* Text content styling is now handled in the "TEXT CONTENT - UPDATED FOR CUSTOM SELECTION" section above */
 
 /* Stronger visual indication for active page */
 .pdf-page-wrapper.active {
@@ -300,18 +278,7 @@ and related components including processing indicators
     pointer-events: all;
 }
 
-/* Critical! styles for react-pdf */
-.react-pdf__Page__textContent {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    z-index: 2;
-    transform: none !important;
-    pointer-events: none;
-}
-
+/* Critical annotation positioning */
 .react-pdf__Page__annotations {
     position: absolute !important;
     top: 0 !important;
@@ -832,119 +799,10 @@ FULLSCREEN OVERLAY STYLES
 
 /*
 ==============================================
-IMPROVED PDF SELECTION STYLES
+LEGACY SELECTION STYLES - REMOVED
 ==============================================
-Styles for precise text and rectangle selection in PDF viewer
+These styles have been replaced by the custom text selection system
 */
-
-/* Rectangle Selection Mode */
-.page-overlay.rectangle-mode {
-    cursor: crosshair;
-}
-
-.react-pdf__Page__textContent *::selection {
-    background: transparent !important;
-    color: inherit !important;
-}
-
-/* Hide browser's default blue selection */
-.react-pdf__Page__textContent.text-selection-enabled ::selection {
-    background-color: transparent !important;
-    color: inherit !important;
-}
-
-/* Ensure text is still selectable */
-.react-pdf__Page__textContent.text-selection-enabled {
-    cursor: text !important;
-    user-select: text !important;
-    -webkit-user-select: text !important;
-    -moz-user-select: text !important;
-    -ms-user-select: text !important;
-}
-
-/* Container for highlight spans */
-.text-selection-highlight-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    pointer-events: none;
-    z-index: 999;
-    overflow: visible;
-}
-
-/* Individual highlight spans */
-.text-selection-highlight-span {
-    position: absolute;
-    pointer-events: none;
-    border-radius: 1px;
-    will-change: transform, opacity;
-    box-sizing: border-box;
-}
-
-/* Mode indicator tooltips */
-.pdf-page-wrapper.text-selection-mode::before,
-.pdf-page-wrapper.rectangle-mode::before {
-    content: attr(data-mode-hint);
-    position: absolute;
-    top: -25px;
-    width: 100%;
-    text-align: center;
-    background-color: var(--foreground);
-    color: var(--background);
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-    white-space: nowrap;
-    z-index: 100;
-}
-
-.pdf-page-wrapper.text-selection-mode:hover::before,
-.pdf-page-wrapper.rectangle-mode:hover::before {
-    opacity: 0.8;
-}
-
-/* Rectangle selection overlay */
-.selection-overlay {
-    position: absolute;
-    pointer-events: none;
-    z-index: 50;
-    border: 1px solid rgba(39, 171, 111, 0.6);
-    background-color: rgba(39, 171, 111, 0.3);
-    border-radius: 2px;
-}
-
-.react-pdf__Page__annotations section {
-    position: absolute;
-    transform-origin: 0 0;
-}
-
-.react-pdf__Page__annotations .linkAnnotation {
-    position: absolute;
-    cursor: pointer;
-    border: 1px dashed transparent;
-    border-radius: 2px;
-    pointer-events: auto;
-}
-
-.react-pdf__Page__annotations .linkAnnotation:hover {
-    border-color: rgba(0, 0, 255, 0.2);
-    box-shadow: 0 0 3px rgba(0, 0, 255, 0.2);
-}
-
-/* Hide unusual link annotations that just cause confusion */
-.react-pdf__Page__annotations [data-annotation-id=""] {
-    display: none;
-}
-
-/* Make sure annotation links don't interfere with text selection */
-.react-pdf__Page__annotations .linkAnnotation.active {
-    pointer-events: none;
-}
 
 /*
 ==============================================
@@ -1350,43 +1208,118 @@ PROCESSING STATUS STYLES - INTEGRATED
     color: var(--foreground) !important;
 }
 
-/* FORCE text selection to work - Override ALL conflicting rules including dragging state */
-.pdf-page-wrapper .react-pdf__Page__textContent,
-.pdf-page-wrapper .react-pdf__Page__textContent *,
-.pdf-page-wrapper.dragging .react-pdf__Page__textContent,
-.pdf-page-wrapper.dragging .react-pdf__Page__textContent *,
-.pdf-page-wrapper.text-selection-mode .react-pdf__Page__textContent,
-.pdf-page-wrapper.text-selection-mode .react-pdf__Page__textContent *,
-.react-pdf__Page__textContent.text-selection-enabled,
-.react-pdf__Page__textContent.text-selection-enabled *,
-.pdf-page-wrapper:not(.dragging) .react-pdf__Page__textContent,
-.pdf-page-wrapper:not(.dragging) .react-pdf__Page__textContent *,
-.pdf-document-container:not(.dragging) .react-pdf__Page__textContent,
-.pdf-document-container:not(.dragging) .react-pdf__Page__textContent *,
-.pdf-document-container .react-pdf__Page__textContent,
-.pdf-document-container .react-pdf__Page__textContent * {
-    user-select: text !important;
-    -webkit-user-select: text !important;
-    -moz-user-select: text !important;
-    -ms-user-select: text !important;
-    pointer-events: auto !important;
-    cursor: text !important;
-}
+/* ========================================
+   TEXT CONTENT - UPDATED FOR CUSTOM SELECTION
+   ======================================== */
 
-/* Ensure text selection works globally on PDF text layers with maximum specificity */
+/* Base text content styling - allow normal text selection by default */
 .react-pdf__Page__textContent {
-    user-select: text !important;
-    -webkit-user-select: text !important;
-    -moz-user-select: text !important;
-    -ms-user-select: text !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 2;
+    transform: none !important;
+    user-select: text;
     pointer-events: auto !important;
 }
 
+/* Ensure text spans are selectable by default */
 .react-pdf__Page__textContent span {
-    user-select: text !important;
-    -webkit-user-select: text !important;
-    -moz-user-select: text !important;
-    -ms-user-select: text !important;
-    pointer-events: auto !important;
+    color: transparent;
+    position: absolute;
+    white-space: pre-wrap;
     cursor: text !important;
+    transform-origin: 0 0;
+    user-select: text !important;
+    pointer-events: auto !important;
+    /* Let PDF.js handle span positioning - don't override left/top */
+}
+
+/* Custom text selection mode overrides - handled in highlights.css */
+/* When in custom text selection mode, these rules are overridden by the custom-text-selection-mode class */
+
+/* ========================================
+   REMOVE CONFLICTING SELECTION STYLES
+   ======================================== */
+
+/* Remove the conflicting FORCE text selection rules that were interfering */
+/* These are replaced by our custom text selection system */
+
+/* Clean selection styling for normal mode */
+.react-pdf__Page__textContent ::selection {
+    background-color: rgba(var(--primary-rgb), 0.3) !important;
+    color: var(--foreground) !important;
+}
+
+/* ========================================
+   IMPROVED PDF SELECTION STYLES - UPDATED
+   ======================================== */
+
+/* Rectangle Selection Mode */
+.page-overlay.rectangle-mode {
+    cursor: crosshair;
+}
+
+/* Updated selection overlay for custom system */
+.selection-overlay {
+    position: absolute;
+    pointer-events: none;
+    z-index: 50;
+    border: 1px solid rgba(39, 171, 111, 0.6);
+    background-color: rgba(39, 171, 111, 0.3);
+    border-radius: 2px;
+}
+
+/* Keep annotation styles as they are */
+.react-pdf__Page__annotations section {
+    position: absolute;
+    transform-origin: 0 0;
+}
+
+.react-pdf__Page__annotations .linkAnnotation {
+    position: absolute;
+    cursor: pointer;
+    border: 1px dashed transparent;
+    border-radius: 2px;
+    pointer-events: auto;
+}
+
+.react-pdf__Page__annotations .linkAnnotation:hover {
+    border-color: rgba(0, 0, 255, 0.2);
+    box-shadow: 0 0 3px rgba(0, 0, 255, 0.2);
+}
+
+/* Hide unusual link annotations that just cause confusion */
+.react-pdf__Page__annotations [data-annotation-id=""] {
+    display: none;
+}
+
+/* Make sure annotation links don't interfere with text selection */
+.react-pdf__Page__annotations .linkAnnotation.active {
+    pointer-events: none;
+}
+
+/* ========================================
+   CUSTOM TEXT SELECTION INTEGRATION
+   ======================================== */
+
+/* Ensure custom text selection mode has proper cursor */
+.pdf-page-wrapper.custom-text-selection-mode .custom-text-selection-overlay {
+    cursor: text;
+}
+
+.pdf-page-wrapper.custom-text-selection-mode .custom-text-selection-overlay:active {
+    cursor: crosshair;
+}
+
+/* Visual feedback for pages in custom text selection mode */
+.pdf-page-wrapper.custom-text-selection-mode {
+    position: relative;
+}
+
+/* Ensure proper layering for custom selection overlays */
+.pdf-page-wrapper.custom-text-selection-mode .custom-text-selection-overlay {
+    z-index: 1000;
 } 

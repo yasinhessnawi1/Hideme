@@ -7,73 +7,131 @@ using semantic tokens from the design system
 */
 
 /* ========================================
-   TEXT SELECTION
+   DISABLE NATIVE TEXT SELECTION IN CUSTOM MODE
    ======================================== */
 
-.react-pdf__Page__textContent *::selection {
-    background: rgba(var(--primary-rgb), 0.3) !important;
-    color: var(--foreground) !important;
+/* Disable browser's native selection when in custom text selection mode */
+.pdf-page-wrapper.custom-text-selection-mode .react-pdf__Page__textContent,
+.pdf-page-wrapper.custom-text-selection-mode .react-pdf__Page__textContent *,
+.pdf-page-wrapper.custom-text-selection-mode .react-pdf__Page__textContent span {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    pointer-events: none !important;
 }
 
-.react-pdf__Page__textContent.text-selection-enabled ::selection {
-    background: rgba(var(--primary-rgb), 0.4) !important;
-    color: var(--foreground) !important;
-}
-
-.react-pdf__Page__textContent.text-selection-enabled {
-    user-select: text;
-    pointer-events: auto;
-    z-index: 10;
+/* Hide native browser selection highlighting */
+.pdf-page-wrapper.custom-text-selection-mode .react-pdf__Page__textContent *::selection,
+.pdf-page-wrapper.custom-text-selection-mode .react-pdf__Page__textContent *::-moz-selection {
+    background: transparent !important;
+    color: inherit !important;
 }
 
 /* ========================================
-   TEXT SELECTION HIGHLIGHT CONTAINER
+   CUSTOM TEXT SELECTION OVERLAY
    ======================================== */
 
-.text-selection-highlight-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 8;
-    mix-blend-mode: multiply;
-}
-
-.text-selection-highlight-span {
-    position: absolute;
-    background: rgba(var(--primary-rgb), 0.3);
-    border-radius: var(--radius-sm);
-    transition: background-color var(--transition-colors);
-    pointer-events: auto;
-    cursor: pointer;
-}
-
-/* ========================================
-   TEXT SELECTION MODE
-   ======================================== */
-
-.pdf-page-wrapper.text-selection-mode::before,
-.pdf-page-wrapper.text-selection-mode:hover::before {
-    content: '';
+.custom-text-selection-overlay {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(var(--primary-rgb), 0.05);
-    border: 2px solid var(--primary);
-    border-radius: var(--radius-card);
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0.7;
+    pointer-events: auto;
+    z-index: 1000;
+    cursor: text;
+    background: transparent;
 }
 
-.pdf-page-wrapper.text-selection-mode:hover::before,
-.pdf-page-wrapper.text-selection-mode.active::before {
+.custom-text-selection-overlay:hover {
+    cursor: crosshair;
+}
+
+/* Custom selection rectangles */
+.selection-rect {
+    position: absolute;
+    pointer-events: none;
+    border-radius: var(--radius-sm);
+    transition: all 0.1s ease-out;
+    box-shadow: var(--shadow-xs);
+    opacity: 0.8;
+    mix-blend-mode: multiply;
+}
+
+.selection-rect:hover {
+    opacity: 0.9;
+    transform: scale(1.01);
+}
+
+/* ========================================
+   CUSTOM TEXT SELECTION MODE INDICATOR
+   ======================================== */
+
+.pdf-page-wrapper.custom-text-selection-mode {
+    position: relative;
+}
+
+.pdf-page-wrapper.custom-text-selection-mode::before {
+    content: 'Text Selection Mode - Click and drag to select text';
+    position: absolute;
+    top: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+    z-index: 1100;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    box-shadow: var(--shadow-md);
+}
+
+.pdf-page-wrapper.custom-text-selection-mode:hover::before {
     opacity: 1;
-    background: rgba(var(--primary-rgb), 0.1);
+    transform: translateX(-50%) translateY(-2px);
+}
+
+/* Enhanced visual feedback for custom selection mode */
+.pdf-page-wrapper.custom-text-selection-mode {
+    border: 2px dashed var(--primary);
+    border-opacity: 0.3;
+    transition: border-opacity 0.3s ease;
+}
+
+.pdf-page-wrapper.custom-text-selection-mode:hover {
+    border-opacity: 0.6;
+    box-shadow: 0 0 0 1px var(--primary), var(--shadow-lg);
+}
+
+/* ========================================
+   LEGACY TEXT SELECTION CLEANUP
+   ======================================== */
+
+/* Clean up old text selection styles that are no longer needed */
+.react-pdf__Page__textContent *::selection {
+    background: rgba(var(--primary-rgb), 0.3) !important;
+    color: var(--foreground) !important;
+}
+
+/* Remove old text selection highlight containers */
+.text-selection-highlight-container {
+    display: none;
+}
+
+.text-selection-highlight-span {
+    display: none;
+}
+
+/* Remove old text selection mode styles */
+.pdf-page-wrapper.text-selection-mode::before,
+.pdf-page-wrapper.text-selection-mode:hover::before {
+    display: none;
 }
 
 /* ========================================
@@ -540,7 +598,8 @@ using semantic tokens from the design system
     height: 100% !important;
     z-index: 2;
     transform: none !important;
-    pointer-events: none;
+    pointer-events: auto;
+    user-select: text;
 }
 
 .react-pdf__Page__annotations {
@@ -595,5 +654,16 @@ using semantic tokens from the design system
     .highlight-color-option {
         width: var(--space-5);
         height: var(--space-5);
+    }
+
+    /* Mobile-specific custom text selection */
+    .pdf-page-wrapper.custom-text-selection-mode::before {
+        content: 'Tap and drag to select text';
+        font-size: var(--font-size-xs);
+        padding: var(--spacing-xs);
+    }
+
+    .custom-text-selection-overlay {
+        touch-action: none;
     }
 } 

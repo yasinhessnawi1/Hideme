@@ -157,6 +157,8 @@ export const en = {
     searchList: "Search",
     ignoreList: "Ignore List",
     loading: "Loading...",
+    removing: "Removing...",
+    searchTermAdded: "Search term added successfully",
     autoProcessRefreshNeeded: 'Auto processing might need a refresh to save setting changes.',
   },
 
@@ -209,6 +211,7 @@ export const en = {
     page: "Page",
     pages: "Pages",
     files: "Files",
+    file: "File",
     file_removed_successfully: "File removed successfully",
     file_added_successfully: "{{count}} file(s) added successfully",
     no_files_selected_for_deletion: "No files selected for deletion",
@@ -533,6 +536,8 @@ export const en = {
     hidemeAI: "Hide Me AI",
     selectEntitiesPlaceholder: "Select categories to detect...",
     detectionSettings: "Detection Settings",
+    allEntitiesSelected: "All entities selected",
+    allEntitiesDeselected: "All entities deselected",
     accuracy: "Accuracy",
     accuracyDescription: "Higher values reduce false positives but may miss some categories",
     useBanList: "Use Ban List",
@@ -722,6 +727,8 @@ export const en = {
     highlightVisibility: 'Highlight Visibility',
     show: 'Show',
     settings: 'Settings',
+    editModeDisabled: 'Edit mode disabled',
+    editModeEnabled: 'Edit mode enabled',
   },
 
   banlist: {
@@ -742,6 +749,7 @@ export const en = {
     removingAll: "Removing all...",
     removed: "Word removed.",
     removedAll: "All ignored words removed.",
+    wordAdded: "Word added successfully",
     removing: "Removing...",
     adding: "Adding...",
     add: "Add",
@@ -956,7 +964,7 @@ export const en = {
     advancedSearchDescription: 'Use advanced search patterns to find and redact complex text patterns.',
     semanticSearchTitle: 'Semantic Search',
     semanticSearchDescription: 'AI-powered contextual search that understands meaning, not just keywords.',
-    entityDetectionMethods: 'Entity Detection Methods',
+    entityDetectionMethods: 'Entity Detection Methods (Testing in progress, To be updated...)',
     detectionMethodsDescription: 'Discover the different AI and ML methods used for entity detection.',
     geminiAIDetectionTitle: 'Gemini AI Detection',
     geminiAIDetectionDescription: 'AI-powered detection for a wide range of sensitive Categories.',
@@ -970,7 +978,7 @@ export const en = {
     highPrecisionScore: 'High precision with reliable detection',
     mediumPrecisionScore: 'Medium precision with good detection',
     veryHighPrecisionScore: 'Very high precision with excellent detection',
-    detectionMethodsComparison: 'Detection Methods Comparison',
+    detectionMethodsComparison: 'Detection Methods Comparison(Testing in progress, To be updated...)',
     modelComparisonVisualization: 'Model Performance Visualization',
     modelComparisonDescription: 'Visual comparison of how our different detection models perform across key metrics.',
     modelPerformanceComparison: 'Model Performance Radar Chart',
@@ -1029,6 +1037,26 @@ export const en = {
     passwordsDoNotMatch: 'Passwords do not match!',
     passwordTooShort: 'Password must be at least 8 characters long.',
     passwordPlaceholder: 'Enter your password',
+  },
+
+  sidebar: {
+    // Tab names
+    thumbnails: "Thumbnails",
+    files: "Files",
+    detection: "Detection",
+    search: "Search",
+    redaction: "Redaction",
+    settings: "Settings",
+    history: "History",
+
+    // UI text
+    viewing: "Viewing",
+
+    // Accessibility labels
+    expandSidebar: "Expand sidebar",
+    collapseSidebar: "Collapse sidebar",
+    resizeSidebar: "Resize sidebar",
+    switchToTab: "Switch to {name} tab",
   },
 
   footer: {

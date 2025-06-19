@@ -1,36 +1,36 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import Select from 'react-select';
-import { useFileContext } from '../../../contexts/FileContext';
-import { useEditContext } from '../../../contexts/EditContext';
-import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
-import { getFileKey } from '../../../contexts/PDFViewerContext';
-import { usePDFApi } from '../../../hooks/general/usePDFApi';
-import { EntityFileSummary, HighlightType, ModelEntity, OptionType } from '../../../types';
-import { ChevronDown, ChevronRight, ChevronUp, Save, Sliders } from 'lucide-react';
-import { usePDFNavigation } from '../../../hooks/general/usePDFNavigation';
+import {useFileContext} from '../../../contexts/FileContext';
+import {useEditContext} from '../../../contexts/EditContext';
+import {useHighlightStore} from '../../../contexts/HighlightStoreContext';
+import {getFileKey} from '../../../contexts/PDFViewerContext';
+import {usePDFApi} from '../../../hooks/general/usePDFApi';
+import {EntityFileSummary, HighlightType, OptionType} from '../../../types';
+import {ChevronDown, ChevronRight, ChevronUp, Save, Sliders} from 'lucide-react';
+import {usePDFNavigation} from '../../../hooks/general/usePDFNavigation';
 import {
+    entitiesToOptions,
+    getColorDotStyle,
+    getEntityTranslationKeyAndModel,
     getGeminiOptions,
     getGlinerOptions,
     getHidemeOptions,
     getPresidioOptions,
-    entitiesToOptions,
-    getColorDotStyle,
+    handleAllOptions,
     METHOD_ID_MAP,
     MODEL_COLORS,
-    prepareEntitiesForApi,
-    handleAllOptions,
-    getEntityTranslationKeyAndModel
+    prepareEntitiesForApi
 } from '../../../utils/EntityUtils';
-import { EntityHighlightProcessor } from "../../../managers/EntityHighlightProcessor";
+import {EntityHighlightProcessor} from "../../../managers/EntityHighlightProcessor";
 import processingStateService from '../../../services/client-services/ProcessingStateService';
-import { useUserContext } from "../../../contexts/UserContext";
-import { useLoading } from "../../../contexts/LoadingContext";
-import { LoadingWrapper } from '../../common/LoadingWrapper';
-import { useNotification } from '../../../contexts/NotificationContext';
-import { useAuth } from '../../../hooks/auth/useAuth';
-import { useFileSummary } from '../../../contexts/FileSummaryContext';
-import { useLanguage } from '../../../contexts/LanguageContext';
-import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
+import {useUserContext} from "../../../contexts/UserContext";
+import {useLoading} from "../../../contexts/LoadingContext";
+import {LoadingWrapper} from '../../common/LoadingWrapper';
+import {useNotification} from '../../../contexts/NotificationContext';
+import {useAuth} from '../../../hooks/auth/useAuth';
+import {useFileSummary} from '../../../contexts/FileSummaryContext';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {mapBackendErrorToMessage} from '../../../utils/errorUtils';
 import Tooltip from '../../common/Tooltip';
 
 /**
@@ -309,6 +309,16 @@ const EntityDetectionSidebar: React.FC = () => {
                 message: t('entityDetection', 'detectionCompleted'),
                 position: 'top-right'
             });
+
+            // Dispatch completion event for toolbar and other components
+            window.dispatchEvent(new CustomEvent('entity-detection-completed', {
+                detail: {
+                    success: true,
+                    source: 'entity-detection-sidebar',
+                    processedFiles: filesToProcess.length
+                }
+            }));
+            
         } catch (err: any) {
             notify({
                 type: 'error',
@@ -321,6 +331,16 @@ const EntityDetectionSidebar: React.FC = () => {
                 const fileKey = getFileKey(file);
                 processingStateService.completeProcessing(fileKey, false);
             });
+
+            // Dispatch completion event even on error
+            window.dispatchEvent(new CustomEvent('entity-detection-completed', {
+                detail: {
+                    success: false,
+                    source: 'entity-detection-sidebar',
+                    error: mapBackendErrorToMessage(err)
+                }
+            }));
+            
         } finally {
             stopLoading('detection_sidebar.detect');
         }
@@ -646,19 +666,31 @@ const EntityDetectionSidebar: React.FC = () => {
 
     // Listen for external detection triggers (e.g., from toolbar button)
     useEffect(() => {
+        console.log('[EntityDetectionSidebar] Setting up event listener for trigger-entity-detection-process');
+        
         const handleExternalDetectionTrigger = (event: Event) => {
             const customEvent = event as CustomEvent;
             const { source, filesToProcess } = customEvent.detail || {};
 
+            console.log('[EntityDetectionSidebar] External detection trigger received:', {source, filesToProcess});
+            console.log('[EntityDetectionSidebar] Current handleDetect function:', typeof handleDetect);
+
             // Run detection process
+            try {
             handleDetect(filesToProcess);
+                console.log('[EntityDetectionSidebar] handleDetect called successfully');
+            } catch (error) {
+                console.error('[EntityDetectionSidebar] Error calling handleDetect:', error);
+            }
         };
 
-        // Add event listener
+        console.log('[EntityDetectionSidebar] Adding event listener for trigger-entity-detection-process');
+
+        // Listen for the original toolbar event directly since all sidebars are now always mounted
         window.addEventListener('trigger-entity-detection-process', handleExternalDetectionTrigger);
 
-        // Clean up
         return () => {
+            console.log('[EntityDetectionSidebar] Removing event listener for trigger-entity-detection-process');
             window.removeEventListener('trigger-entity-detection-process', handleExternalDetectionTrigger);
         };
     }, [handleDetect]);
@@ -814,7 +846,7 @@ const EntityDetectionSidebar: React.FC = () => {
                 position: 'top-right'
             });
 
-            // Notify other components
+            // Notify other components about entity settings changes
             window.dispatchEvent(new CustomEvent('settings-changed', {
                 detail: {
                     type: 'entity',
@@ -825,6 +857,24 @@ const EntityDetectionSidebar: React.FC = () => {
                         hideme: selectedHideMeEntities,
                         detectionThreshold,
                         useBanlist
+                    }
+                }
+            }));
+
+            // Get current ban list words for the event
+            const currentBanListWords = await getBanList();
+
+            // Also dispatch dedicated entity settings event for AutoProcessManager
+            window.dispatchEvent(new CustomEvent('entity-settings-updated', {
+                detail: {
+                    settings: {
+                        presidio: expandedPresidio,
+                        gliner: expandedGliner,
+                        gemini: expandedGemini,
+                        hideme: expandedHideme,
+                        detectionThreshold,
+                        useBanlist,
+                        banlistWords: useBanlist && currentBanListWords ? currentBanListWords.words : null
                     }
                 }
             }));
@@ -852,6 +902,7 @@ const EntityDetectionSidebar: React.FC = () => {
         clearUserError,
         startLoading,
         stopLoading,
+        getBanList
     ]);
 
     const ColorDot: React.FC<{ color: string }> = ({ color }) => (
@@ -999,24 +1050,30 @@ const EntityDetectionSidebar: React.FC = () => {
                     </div>
                     <div className="form-group mt-2">
                         <label className="text-sm font-medium mb-2 block">
-                            {t('entityDetection', 'accuracy')} ({Math.round(detectionThreshold * 100)}%)
+                            {t('entityDetection', 'accuracy')}
                         </label>
-                        <p className="text-xs text-muted-foreground mb-2">
+                        <p className="text-xs text-muted-foreground mb-3">
                             {t('entityDetection', 'accuracyDescription')}
                         </p>
-                        <div className="flex items-center gap-4">
-                            <span className="text-xs text-muted-foreground">{t('entityDetection', 'low')}</span>
+                        <div className="range-slider-container">
+                            <span className="range-slider-label">{t('entityDetection', 'low')}</span>
                             <input
                                 type="range"
-                                min="0"
-                                max="1"
+                                min="0.0"
+                                max="1.0"
                                 step="0.01"
                                 value={detectionThreshold}
                                 onChange={(e) => setDetectionThreshold(parseFloat(e.target.value))}
-                                className="flex-1 accent-primary"
+                                className="modern-range-slider threshold-range-slider"
                                 disabled={isLoading}
+                                style={{
+                                    '--progress': `${detectionThreshold * 100}%`
+                                } as React.CSSProperties}
                             />
-                            <span className="text-xs text-muted-foreground">{t('entityDetection', 'high')}</span>
+                            <span className="range-slider-label">{t('entityDetection', 'high')}</span>
+                            <div className="range-slider-value">
+                                {Math.round(detectionThreshold * 100)}%
+                            </div>
                         </div>
                     </div>
 

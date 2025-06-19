@@ -1,19 +1,19 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useFileContext } from '../../../contexts/FileContext';
-import { useEditContext } from '../../../contexts/EditContext';
-import { useHighlightStore } from '../../../contexts/HighlightStoreContext';
-import { usePDFApi } from '../../../hooks/general/usePDFApi';
-import { useDocumentHistory } from '../../../hooks/general/useDocumentHistory';
-import { createFullRedactionMapping, getRedactionStatistics, processRedactedFiles } from '../../../utils/redactionUtils';
-import { getFileKey } from '../../../contexts/PDFViewerContext';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {useFileContext} from '../../../contexts/FileContext';
+import {useEditContext} from '../../../contexts/EditContext';
+import {useHighlightStore} from '../../../contexts/HighlightStoreContext';
+import {usePDFApi} from '../../../hooks/general/usePDFApi';
+import {useDocumentHistory} from '../../../hooks/general/useDocumentHistory';
+import {createFullRedactionMapping, getRedactionStatistics, processRedactedFiles} from '../../../utils/redactionUtils';
+import {getFileKey} from '../../../contexts/PDFViewerContext';
 import {useLoading} from "../../../contexts/LoadingContext";
 import LoadingWrapper from '../../common/LoadingWrapper';
-import { useNotification } from '../../../contexts/NotificationContext';
-import { HighlightType } from '../../../types';
-import { highlightStore } from '../../../store/HighlightStore';
-import { useLanguage } from '../../../contexts/LanguageContext';
-import { getEntityTranslationKeyAndModel } from '../../../utils/EntityUtils';
-import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
+import {useNotification} from '../../../contexts/NotificationContext';
+import {HighlightType} from '../../../types';
+import {highlightStore} from '../../../store/HighlightStore';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {getEntityTranslationKeyAndModel} from '../../../utils/EntityUtils';
+import {mapBackendErrorToMessage} from '../../../utils/errorUtils';
 import Tooltip from '../../common/Tooltip';
 
 const RedactionSidebar: React.FC = () => {
@@ -659,6 +659,12 @@ const RedactionSidebar: React.FC = () => {
             const customEvent = event as CustomEvent;
             const { source, callback , filesToProcess} = customEvent.detail || {};
 
+            console.log('[RedactionSidebar] Redaction process trigger received:', {
+                source,
+                callback: !!callback,
+                filesToProcess
+            });
+
             if (typeof callback === 'function') {
                 // Pass the callback to handleRedact
                 handleRedact(filesToProcess, callback);
@@ -668,11 +674,14 @@ const RedactionSidebar: React.FC = () => {
             }
         };
 
+        console.log('[RedactionSidebar] Adding event listeners for apply-redaction-settings and redaction-process');
+
         // Listen for settings change events
         window.addEventListener('apply-redaction-settings', handleApplyRedactionSettings);
         window.addEventListener('trigger-redaction-process', handleTriggerRedaction);
 
         return () => {
+            console.log('[RedactionSidebar] Removing event listeners for apply-redaction-settings and redaction-process');
             window.removeEventListener('apply-redaction-settings', handleApplyRedactionSettings);
             window.removeEventListener('trigger-redaction-process', handleTriggerRedaction);
         };

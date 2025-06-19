@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { useEditContext } from '../../../contexts/EditContext';
-import { ManualHighlightProcessor } from '../../../managers/ManualHighlightProcessor';
-import {PDFPageViewport, ViewportSize, HighlightCreationMode} from '../../../types';
+import React, {useEffect, useRef, useState} from 'react';
+import {useEditContext} from '../../../contexts/EditContext';
+import {ManualHighlightProcessor} from '../../../managers/ManualHighlightProcessor';
+import {HighlightCreationMode, PDFPageViewport, ViewportSize} from '../../../types';
 
 interface TextSelectionHighlighterProps {
     pageNumber: number;
@@ -9,7 +9,33 @@ interface TextSelectionHighlighterProps {
     isEditingMode: boolean;
     pageSize: ViewportSize;
     fileKey?: string;
-    isActive: boolean; // Whether text selection mode is active
+    isActive: boolean;
+}
+
+interface SelectionRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    text: string;
+}
+
+interface HighlightSpan {
+    span: TextSpan;
+    startOffset: number;
+    endOffset: number;
+    startX: number;
+    endX: number;
+}
+
+interface TextSpan {
+    element: HTMLElement;
+    rect: DOMRect;
+    text: string;
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
 }
 
 const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
@@ -22,638 +48,607 @@ const TextSelectionHighlighter: React.FC<TextSelectionHighlighterProps> = ({
                                                                            }) => {
     const { manualColor } = useEditContext();
 
-    // State to track if we're currently processing a selection
-    const [isProcessingSelection, setIsProcessingSelection] = useState(false);
-    const selectionTimeoutRef = useRef<number | null>(null);
+    // Use refs for values that change frequently to prevent re-renders
+    const manualColorRef = useRef(manualColor);
+    const viewportRef = useRef(viewport);
 
-    // Reference to track which text layer we've modified
-    const modifiedTextLayerRef = useRef<HTMLElement | null>(null);
-
-    // Container for holding all highlight preview elements
-    const highlightContainerRef = useRef<HTMLDivElement | null>(null);
-
-    // Initialize the highlight container that will hold all selection preview spans
+    // Update refs when values change
     useEffect(() => {
-        if (isActive && isEditingMode) {
-            // Find the page container
-            let pageContainer;
-            const selectors = [
-                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file="${fileKey || '_default'}"]`,
-                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file-key="${fileKey || '_default'}"]`,
-                `[data-file-key="${fileKey || '_default'}"] [data-page-number="${pageNumber}"]`,
-                `[data-page-number="${pageNumber}"]`
-            ];
-
-            for (const selector of selectors) {
-                const container = document.querySelector(selector);
-                if (container) {
-                    pageContainer = container;
-                    break;
-                }
-            }
-
-            if (pageContainer) {
-                // Remove existing container if present
-                if (highlightContainerRef.current) {
-                    highlightContainerRef.current.remove();
-                    highlightContainerRef.current = null;
-                }
-
-                // Create new highlight container
-                const container = document.createElement('div');
-                container.className = 'text-selection-highlight-container';
-                container.style.position = 'absolute';
-                container.style.top = '0';
-                container.style.left = '0';
-                container.style.right = '0';
-                container.style.bottom = '0';
-                container.style.pointerEvents = 'none';
-                container.style.zIndex = '999';
-                container.style.overflow = 'visible';
-
-                pageContainer.appendChild(container);
-                highlightContainerRef.current = container;
-
-                // Add data attribute for debugging
-                container.setAttribute('data-page', pageNumber.toString());
-                container.setAttribute('data-file', fileKey || '_default');
-            }
-        }
-
-        return () => {
-            // Clean up the container on unmount
-            if (highlightContainerRef.current) {
-                highlightContainerRef.current.remove();
-                highlightContainerRef.current = null;
-            }
-        };
-    }, [isActive, isEditingMode, pageNumber, fileKey]);
-
-    // When text selection mode is activated, enable text selection on the page
-    useEffect(() => {
-        const cleanup = () => {
-            if (modifiedTextLayerRef.current) {
-                modifiedTextLayerRef.current.classList.remove('text-selection-enabled');
-                modifiedTextLayerRef.current.style.pointerEvents = 'none';
-                modifiedTextLayerRef.current.style.userSelect = 'none';
-                modifiedTextLayerRef.current = null;
-            }
-        };
-
-        if (isActive && isEditingMode) {
-            // Find the text layer for this page
-            let pageContainer;
-            let textLayer;
-
-            // Try several selector strategies
-            const selectors = [
-                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file="${fileKey || '_default'}"]`,
-                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file-key="${fileKey || '_default'}"]`,
-                `[data-file-key="${fileKey || '_default'}"] [data-page-number="${pageNumber}"]`,
-                `[data-page-number="${pageNumber}"]`
-            ];
-
-            for (const selector of selectors) {
-                pageContainer = document.querySelector(selector);
-                if (pageContainer) {
-                    textLayer = pageContainer.querySelector('.react-pdf__Page__textContent');
-                    if (textLayer instanceof HTMLElement) break;
-                }
-            }
-
-            if (textLayer instanceof HTMLElement) {
-                cleanup();
-
-                // Save reference to this text layer
-                modifiedTextLayerRef.current = textLayer;
-
-                // Enable text selection
-                textLayer.style.pointerEvents = 'auto';
-                textLayer.style.userSelect = 'text';
-
-                // Set page indicator if container found
-                if (pageContainer && pageContainer.classList.contains('pdf-page-wrapper')) {
-                    pageContainer.classList.add('text-selection-mode');
-                    pageContainer.setAttribute('data-mode-hint', 'Text Selection Mode');
-                }
-            }
-        } else {
-            cleanup();
-
-            // Remove page indicator
-            const pageContainer = document.querySelector(
-                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file="${fileKey || '_default'}"]`
-            );
-
-            if (pageContainer) {
-                pageContainer.classList.remove('text-selection-mode');
-                pageContainer.removeAttribute('data-mode-hint');
-            }
-        }
-
-        return cleanup;
-    }, [isActive, isEditingMode, pageNumber, fileKey]);
-
-    // Create selection highlight spans for each text selection rectangle
-    const createHighlightSpans = useCallback((range: Range, pageRect: DOMRect) => {
-        if (!highlightContainerRef.current) return;
-
-        // Clear existing highlights
-        highlightContainerRef.current.innerHTML = '';
-
-        // Get all client rects from the selection range
-        const rects = range.getClientRects();
-        if (!rects || rects.length === 0) return;
-
-        // Create individual highlight spans for each rectangle
-        for (let i = 0; i < rects.length; i++) {
-            const rect = rects[i];
-
-            // Skip very small rects (typically representing whitespace)
-            if (rect.width < 1 || rect.height < 1) continue;
-
-            const offsetX = 0; // Adjust this value to move horizontally (positive = right, negative = left)
-            const offsetY = -2; // Adjust this value to move vertically (positive = down, negative = up)
-
-            const relativeX = rect.left - pageRect.left + offsetX;
-            const relativeY = rect.top - pageRect.top + offsetY;
-
-            // Create highlight span
-            const highlight = document.createElement('span');
-            highlight.className = 'text-selection-highlight-span';
-            highlight.style.position = 'absolute';
-            highlight.style.left = `${relativeX}px`;
-            highlight.style.top = `${relativeY}px`;
-            highlight.style.width = `${rect.width}px`;
-            highlight.style.height = `${rect.height}px`;
-            highlight.style.backgroundColor = `${manualColor}4D`; // 30% opacity
-            highlight.style.border = `1px solid ${manualColor}99`; // 60% opacity
-            highlight.style.pointerEvents = 'none';
-            highlight.style.borderRadius = '1px';
-            highlight.style.transition = 'all 0.05s ease';
-            highlight.style.zIndex = '1000';
-
-            highlightContainerRef.current.appendChild(highlight);
-        }
+        manualColorRef.current = manualColor;
     }, [manualColor]);
 
-    // Track selection changes to show highlight spans
     useEffect(() => {
-        if (!isActive || !isEditingMode || !highlightContainerRef.current) return;
+        viewportRef.current = viewport;
+    }, [viewport]);
 
-        const handleSelectionChange = () => {
-            // Clear existing highlight spans if container exists
-            if (highlightContainerRef.current) {
-                highlightContainerRef.current.innerHTML = '';
-            }
+    // Selection state
+    const [isSelecting, setIsSelecting] = useState(false);
+    const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
+    const [selectionEnd, setSelectionEnd] = useState<{ x: number; y: number } | null>(null);
+    const [selectedSpans, setSelectedSpans] = useState<HighlightSpan[]>([]);
+    const [previewHighlights, setPreviewHighlights] = useState<HighlightSpan[]>([]);
+    const [textSpans, setTextSpans] = useState<TextSpan[]>([]);
 
-            const selection = window.getSelection();
-            if (!selection || selection.rangeCount === 0 || selection.toString().trim() === '') {
+    // Refs for accessing state in event handlers (to avoid stale closures)
+    const isSelectingRef = useRef(false);
+    const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
+    const selectionEndRef = useRef<{ x: number; y: number } | null>(null);
+    const selectedSpansRef = useRef<HighlightSpan[]>([]);
+    const previewHighlightsRef = useRef<HighlightSpan[]>([]);
+    const textSpansRef = useRef<TextSpan[]>([]);
+
+    // Refs
+    const pageContainerRef = useRef<HTMLElement | null>(null);
+    const textLayerRef = useRef<HTMLElement | null>(null);
+    const selectionOverlayRef = useRef<HTMLDivElement | null>(null);
+    const initializedRef = useRef(false);
+
+    // Initialize page container and text layer references - ONLY ONCE
+    useEffect(() => {
+        if (!isActive || !isEditingMode || initializedRef.current) {
+            return;
+        }
+
+        initializedRef.current = true;
+        const safeFileKey = fileKey || '_default';
+
+        // Build cache of text spans with their positions and content
+        const buildTextSpansCache = () => {
+            if (!textLayerRef.current || !pageContainerRef.current) {
                 return;
             }
 
-            // Find the page container to get its position
-            let pageContainer;
+            const spans = Array.from(textLayerRef.current.querySelectorAll('span')) as HTMLElement[];
+            const pageRect = pageContainerRef.current.getBoundingClientRect();
+
+            const textSpansData: TextSpan[] = spans
+                .filter(span => span.textContent && span.textContent.trim())
+                .map(span => {
+                    const rect = span.getBoundingClientRect();
+
+                    // Calculate position relative to the PDF content area (where the overlay is positioned)
+                    const pdfPage = pageContainerRef.current?.querySelector('.react-pdf__Page') as HTMLElement;
+                    const contentArea = pdfPage || pageContainerRef.current;
+                    const contentRect = contentArea?.getBoundingClientRect() || pageRect;
+
+                    const relativeRect = {
+                        left: rect.left - contentRect.left,
+                        top: rect.top - contentRect.top,
+                        right: rect.right - contentRect.left,
+                        bottom: rect.bottom - contentRect.top,
+                        width: rect.width,
+                        height: rect.height
+                    };
+
+                    return {
+                        element: span,
+                        rect,
+                        text: span.textContent || '',
+                        left: relativeRect.left,
+                        top: relativeRect.top,
+                        right: relativeRect.right,
+                        bottom: relativeRect.bottom
+                    };
+                })
+                .sort((a, b) => {
+                    // Sort by vertical position first, then horizontal
+                    const verticalDiff = a.top - b.top;
+                    if (Math.abs(verticalDiff) > 5) { // Different lines
+                        return verticalDiff;
+                    }
+                    return a.left - b.left; // Same line, sort horizontally
+                });
+
+            setTextSpans(textSpansData);
+        };
+
+        const findPageContainer = () => {
             const selectors = [
-                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file="${fileKey || '_default'}"]`,
-                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file-key="${fileKey || '_default'}"]`,
-                `[data-file-key="${fileKey || '_default'}"] [data-page-number="${pageNumber}"]`,
+                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file="${safeFileKey}"]`,
+                `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file-key="${safeFileKey}"]`,
+                `[data-file-key="${safeFileKey}"] [data-page-number="${pageNumber}"]`,
                 `[data-page-number="${pageNumber}"]`
             ];
 
             for (const selector of selectors) {
-                const container = document.querySelector(selector);
+                const container = document.querySelector(selector) as HTMLElement;
                 if (container) {
-                    pageContainer = container;
-                    break;
+                    pageContainerRef.current = container;
+                    const textLayer = container.querySelector('.react-pdf__Page__textContent') as HTMLElement;
+                    if (textLayer) {
+                        textLayerRef.current = textLayer;
+                        return true;
+                    }
                 }
             }
+            return false;
+        };
 
-            if (!pageContainer) return;
+        if (findPageContainer()) {
+            pageContainerRef.current?.classList.add('custom-text-selection-mode');
 
-            // Get the range from the selection
-            const range = selection.getRangeAt(0);
+            if (textLayerRef.current) {
+                textLayerRef.current.style.userSelect = 'none';
+                textLayerRef.current.style.webkitUserSelect = 'none';
+                textLayerRef.current.style.pointerEvents = 'none';
+            }
 
-            // Make sure the selection is within our page
-            const commonAncestor = range.commonAncestorContainer;
-            if (!pageContainer.contains(commonAncestor)) {
+            // Delay text spans cache to ensure DOM is ready and PDF text layer is positioned
+            setTimeout(() => {
+                buildTextSpansCache();
+
+                // If spans are still collapsed, try again after more delay
+                setTimeout(() => {
+                    if (textSpansRef.current.length > 0) {
+                        const firstSpan = textSpansRef.current[0];
+                        const lastSpan = textSpansRef.current[textSpansRef.current.length - 1];
+                        // Check if spans seem properly positioned (not all at same Y coordinate)
+                        if (Math.abs(firstSpan.top - lastSpan.top) < 1 && textSpansRef.current.length > 10) {
+                            buildTextSpansCache();
+                        }
+                    }
+                }, 500);
+            }, 200);
+        }
+
+        return () => {
+            initializedRef.current = false;
+            pageContainerRef.current?.classList.remove('custom-text-selection-mode');
+            if (textLayerRef.current) {
+                textLayerRef.current.style.userSelect = '';
+                textLayerRef.current.style.webkitUserSelect = '';
+                textLayerRef.current.style.pointerEvents = '';
+            }
+        };
+    }, [isActive, isEditingMode, pageNumber, fileKey]);
+
+    // Create selection overlay - ONLY ONCE
+    useEffect(() => {
+        if (!isActive || !isEditingMode || !pageContainerRef.current || selectionOverlayRef.current) {
+            return;
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'custom-text-selection-overlay';
+
+        // Get the actual PDF content area within the page container
+        const pdfPage = pageContainerRef.current.querySelector('.react-pdf__Page') as HTMLElement;
+        const contentArea = pdfPage || pageContainerRef.current;
+        const contentRect = contentArea.getBoundingClientRect();
+        const containerRect = pageContainerRef.current.getBoundingClientRect();
+
+        // Position overlay to match the PDF content area exactly
+        const offsetTop = contentRect.top - containerRect.top;
+        const offsetLeft = contentRect.left - containerRect.left;
+
+        overlay.style.cssText = `
+            position: absolute;
+            top: ${offsetTop}px;
+            left: ${offsetLeft}px;
+            width: ${contentRect.width}px;
+            height: ${contentRect.height}px;
+            pointer-events: auto;
+            z-index: 1000;
+            cursor: text;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            touch-action: none;
+        `;
+
+        pageContainerRef.current.appendChild(overlay);
+        selectionOverlayRef.current = overlay;
+
+        // Helper function to get character position within a span
+        const getCharacterPositionInSpan = (span: TextSpan, x: number): { offset: number; x: number } => {
+            const element = span.element;
+            const text = span.text;
+
+            if (!text || text.length === 0) {
+                return {offset: 0, x: span.left};
+            }
+
+            // Use canvas to measure text width for more accurate positioning
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            const computedStyle = getComputedStyle(element);
+
+            if (context) {
+                context.font = `${computedStyle.fontSize} ${computedStyle.fontFamily}`;
+
+                let closestOffset = 0;
+                let closestDistance = Infinity;
+                let closestX = span.left;
+
+                // Check each character position
+                for (let i = 0; i <= text.length; i++) {
+                    const substr = text.substring(0, i);
+                    const width = context.measureText(substr).width;
+                    const charX = span.left + width;
+                    const distance = Math.abs(x - charX);
+
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestOffset = i;
+                        closestX = charX;
+                    }
+                }
+
+                return {offset: closestOffset, x: closestX};
+            }
+
+            // Fallback: simple proportional calculation
+            const relativeX = Math.max(0, Math.min(x - span.left, span.right - span.left));
+            const proportion = relativeX / (span.right - span.left);
+            const offset = Math.round(proportion * text.length);
+            const charX = span.left + relativeX;
+
+            return {offset: Math.max(0, Math.min(offset, text.length)), x: charX};
+        };
+
+        // Helper function to get width of text substring
+        const getTextWidth = (span: TextSpan, startOffset: number, endOffset: number): number => {
+            const element = span.element;
+            const text = span.text.substring(startOffset, endOffset);
+
+            if (!text) return 0;
+
+            // Use canvas for accurate text measurement
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            const computedStyle = getComputedStyle(element);
+
+            if (context) {
+                context.font = `${computedStyle.fontSize} ${computedStyle.fontFamily}`;
+                return context.measureText(text).width;
+            }
+
+            // Fallback proportional calculation
+            return ((endOffset - startOffset) / span.text.length) * (span.right - span.left);
+        };
+
+        // Helper function to find character-level selection
+        const getCharacterLevelSelection = (startX: number, startY: number, endX: number, endY: number): HighlightSpan[] => {
+            // Determine selection direction for proper text flow handling
+            const isRightToLeft = endX < startX || (Math.abs(endX - startX) < 5 && endY < startY);
+
+            // Set actual start and end based on reading order, not just min/max
+            let actualStartX, actualStartY, actualEndX, actualEndY;
+
+            if (isRightToLeft) {
+                actualStartX = endX;
+                actualStartY = endY;
+                actualEndX = startX;
+                actualEndY = startY;
+            } else {
+                actualStartX = startX;
+                actualStartY = startY;
+                actualEndX = endX;
+                actualEndY = endY;
+            }
+
+            // For intersections, we still use min/max
+            const minX = Math.min(startX, endX);
+            const maxX = Math.max(startX, endX);
+            const minY = Math.min(startY, endY);
+            const maxY = Math.max(startY, endY);
+
+            // Find all spans that intersect with the selection area
+            const candidateSpans = textSpansRef.current.filter(span => {
+                return !(span.right < minX || span.left > maxX ||
+                    span.bottom < minY || span.top > maxY);
+            });
+
+            if (candidateSpans.length === 0) return [];
+
+            // Sort spans by reading order
+            candidateSpans.sort((a, b) => {
+                const yDiff = a.top - b.top;
+                if (Math.abs(yDiff) > 5) return yDiff;
+                return a.left - b.left;
+            });
+
+            const result: HighlightSpan[] = [];
+
+            candidateSpans.forEach((span, index) => {
+                const isFirstSpan = index === 0;
+                const isLastSpan = index === candidateSpans.length - 1;
+
+                let startOffset = 0;
+                let endOffset = span.text.length;
+                let spanStartX = span.left;
+                let spanEndX = span.right;
+
+                // For single span selection
+                if (candidateSpans.length === 1) {
+                    const startPos = getCharacterPositionInSpan(span, actualStartX);
+                    const endPos = getCharacterPositionInSpan(span, actualEndX);
+
+                    startOffset = startPos.offset;
+                    endOffset = endPos.offset;
+                    spanStartX = span.left + getTextWidth(span, 0, startOffset);
+                    spanEndX = span.left + getTextWidth(span, 0, endOffset);
+                }
+                // For multi-span selection
+                else {
+                    if (isFirstSpan) {
+                        // First span: start from click position to end of span
+                        const startPos = getCharacterPositionInSpan(span, actualStartX);
+                        startOffset = startPos.offset;
+                        spanStartX = span.left + getTextWidth(span, 0, startOffset);
+                    } else if (isLastSpan) {
+                        // Last span: start from beginning to click position
+                        const endPos = getCharacterPositionInSpan(span, actualEndX);
+                        endOffset = endPos.offset;
+                        spanEndX = span.left + getTextWidth(span, 0, endOffset);
+                    }
+                    // Middle spans: select entirely (default values work)
+                }
+
+                // Only add if there's actual text to select
+                if (startOffset < endOffset && span.text.trim()) {
+                    result.push({
+                        span,
+                        startOffset,
+                        endOffset,
+                        startX: spanStartX,
+                        endX: spanEndX
+                    });
+                }
+            });
+
+            return result;
+        };
+
+        // Helper function to expand selection to word boundaries (optional, can be disabled for more native feel)
+        const expandToWordBoundaries = (spans: HighlightSpan[]): HighlightSpan[] => {
+            // For now, return as-is for character-level precision
+            // Could add word boundary expansion as an option
+            return spans;
+        };
+
+        const onMouseDown = (e: MouseEvent) => {
+            if (!isActive || !isEditingMode || !pageContainerRef.current || !selectionOverlayRef.current) {
                 return;
             }
 
-            // Get page position
-            const pageRect = pageContainer.getBoundingClientRect();
+            e.preventDefault();
+            e.stopPropagation();
 
-            // Create highlight spans for this selection
-            createHighlightSpans(range, pageRect);
+            // Get coordinates relative to the overlay
+            const overlayRect = selectionOverlayRef.current.getBoundingClientRect();
+            const x = e.clientX - overlayRect.left;
+            const y = e.clientY - overlayRect.top;
+
+            setIsSelecting(true);
+            setSelectionStart({x, y});
+            setSelectionEnd({x, y});
+            setSelectedSpans([]);
+            setPreviewHighlights([]);
+
+            // Update cursor for active selection
+            if (selectionOverlayRef.current) {
+                selectionOverlayRef.current.style.cursor = 'text';
+                // Add visual feedback by slightly changing overlay opacity during selection
+                selectionOverlayRef.current.style.background = 'rgba(0, 123, 255, 0.02)';
+            }
         };
 
-        // Update on selection change
-        document.addEventListener('selectionchange', handleSelectionChange);
+        const onMouseMove = (e: MouseEvent) => {
+            if (!isSelectingRef.current || !selectionStartRef.current || !pageContainerRef.current || !selectionOverlayRef.current) return;
 
-        // Also update on mouseup to catch the final selection
-        const handleMouseUp = () => {
-            // Small delay to ensure selection is complete
-            setTimeout(handleSelectionChange, 0);
+            e.preventDefault();
+
+            const overlayRect = selectionOverlayRef.current.getBoundingClientRect();
+            const x = e.clientX - overlayRect.left;
+            const y = e.clientY - overlayRect.top;
+
+            setSelectionEnd({x, y});
+
+            // Get character-level selection
+            const selectedSpans = getCharacterLevelSelection(
+                selectionStartRef.current.x,
+                selectionStartRef.current.y,
+                x,
+                y
+            );
+
+            // Optionally expand to word boundaries
+            const finalSpans = expandToWordBoundaries(selectedSpans);
+
+            // Update preview highlights
+            setPreviewHighlights(finalSpans);
         };
 
-        document.addEventListener('mouseup', handleMouseUp);
-
-        return () => {
-            document.removeEventListener('selectionchange', handleSelectionChange);
-            document.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [isActive, isEditingMode, pageNumber, fileKey, createHighlightSpans]);
-
-    // Safely trim trailing whitespace while preserving selection boundaries
-    const getCleanRects = (rects: DOMRectList, range: Range, pageRect: DOMRect) => {
-        // Clone the range to work with (so we don't modify the original selection)
-        const rangeClone = range.cloneRange();
-        const originalText = rangeClone.toString();
-
-        // Skip processing for very short selections (likely no trailing spaces)
-        if (originalText.length <= 3) {
-            return Array.from(rects);
-        }
-
-        // For longer text, process the selection more carefully
-        let lineRects = Array.from(rects);
-
-        // Sort rectangles by vertical position (top to bottom)
-        lineRects.sort((a, b) => a.top - b.top);
-
-        // Group rectangles by line based on Y-coordinate proximity
-        const lineGroups = [];
-        let currentGroup = [lineRects[0]];
-        let currentY = lineRects[0].top;
-        const lineGroupTolerance = 5; // Tolerance for considering rects as part of the same line
-
-        for (let i = 1; i < lineRects.length; i++) {
-            const rect = lineRects[i];
-
-            // If this rect is close to the current Y position, add to current group
-            if (Math.abs(rect.top - currentY) <= lineGroupTolerance) {
-                currentGroup.push(rect);
-            } else {
-                // Otherwise start a new group
-                lineGroups.push(currentGroup);
-                currentGroup = [rect];
-                currentY = rect.top;
+        const onMouseUp = async (e: MouseEvent) => {
+            if (!isSelectingRef.current || !selectionStartRef.current) {
+                return;
             }
-        }
 
-        // Add the last group
-        lineGroups.push(currentGroup);
+            e.preventDefault();
+            e.stopPropagation();
 
-        // Process each line group to handle trailing spaces
-        const processedRects: DOMRect[] = [];
+            setIsSelecting(false);
 
-        lineGroups.forEach((group) => {
-            // Sort rects in the group by horizontal position (left to right)
-            group.sort((a, b) => a.left - b.left);
-
-            // For each group (line), check if there's a trailing space rect
-            if (group.length > 1) {
-                const lastRect = group[group.length - 1];
-                const secondLastRect = group[group.length - 2];
-
-                // Analyze the last rectangle - if it's very narrow and isolated, it might be a space
-                const isTrailingSpace =
-                    lastRect.width < 5 && // Very narrow rect
-                    (lastRect.left - (secondLastRect.left + secondLastRect.width) > 1); // Separated from previous text
-
-                if (isTrailingSpace) {
-                    // Remove the trailing space rect by taking all except the last one
-                    processedRects.push(...group.slice(0, -1));
-                } else {
-                    // If no trailing space detected, use all rects
-                    processedRects.push(...group);
-                }
-            } else {
-                // If there's only one rect in this line, keep it
-                processedRects.push(...group);
+            // Reset cursor and clear selection feedback
+            if (selectionOverlayRef.current) {
+                selectionOverlayRef.current.style.cursor = 'text';
+                selectionOverlayRef.current.style.background = '';
             }
-        });
 
-        return processedRects;
-    };
+            // Check if this was a meaningful selection (prevent accidental highlights from tiny movements)
+            const overlayRect = selectionOverlayRef.current?.getBoundingClientRect();
+            if (overlayRect) {
+                const currentX = e.clientX - overlayRect.left;
+                const currentY = e.clientY - overlayRect.top;
+                const deltaX = Math.abs(currentX - selectionStartRef.current.x);
+                const deltaY = Math.abs(currentY - selectionStartRef.current.y);
 
-    const processTextSelection = useCallback(() => {
-        const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0) return;
-
-        const selectedText = selection.toString().trim();
-        if (!selectedText) return;
-
-        const range = selection.getRangeAt(0);
-
-        // Find the page container - Make sure we use file-specific selector
-        const safeFileKey = fileKey || '_default';
-
-        // Try different selector strategies to ensure we find the right page
-        let pageContainer;
-
-        const selectors = [
-            `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file="${safeFileKey}"]`,
-            `.pdf-page-wrapper[data-page-number="${pageNumber}"][data-file-key="${safeFileKey}"]`,
-            `[data-file-key="${safeFileKey}"] [data-page-number="${pageNumber}"]`,
-            `[data-page-number="${pageNumber}"]`
-        ];
-
-        for (const selector of selectors) {
-            const container = document.querySelector(selector);
-            if (container) {
-                pageContainer = container;
-                break;
-            }
-        }
-
-        if (!pageContainer) {
-            console.warn(`[TextSelectionHighlighter] Could not find page container for page ${pageNumber} of file ${safeFileKey}`);
-            return;
-        }
-
-        // Check if selection is within our page
-        if (!pageContainer.contains(range.commonAncestorContainer)) {
-            console.warn(`[TextSelectionHighlighter] Selection not within page ${pageNumber} of file ${safeFileKey}`);
-            return;
-        }
-
-        // Calculate the bounding rectangle of the selection
-        const rects = range.getClientRects();
-        if (rects.length === 0) return;
-
-        // Get the page position
-        const pageRect = pageContainer.getBoundingClientRect();
-
-        // Get clean rectangles with trailing spaces handled
-        const cleanRects = getCleanRects(rects, range, pageRect);
-
-        // Detect if this is a multi-line selection by checking if we have multiple rects
-        // with significantly different y-coordinates
-        const isMultiLine = cleanRects.length > 1;
-
-        // Line group tolerance - group rects that are within this Y distance as same line
-        const lineGroupTolerance = 5;
-
-        // If it's a multi-line selection, create a highlight for each line
-        if (isMultiLine) {
-            // Sort rectangles by vertical position (top to bottom)
-            cleanRects.sort((a, b) => a.top - b.top);
-
-            // Group rectangles by line based on Y-coordinate proximity
-            const lineGroups = [];
-            let currentGroup = [cleanRects[0]];
-            let currentY = cleanRects[0].top;
-
-            for (let i = 1; i < cleanRects.length; i++) {
-                const rect = cleanRects[i];
-
-                // If this rect is close to the current Y position, add to current group
-                if (Math.abs(rect.top - currentY) <= lineGroupTolerance) {
-                    currentGroup.push(rect);
-                } else {
-                    // Otherwise start a new group
-                    lineGroups.push(currentGroup);
-                    currentGroup = [rect];
-                    currentY = rect.top;
+                // Only create highlights if there was meaningful selection movement
+                if (deltaX < 3 && deltaY < 3) {
+                    // Too small movement, clear selection without creating highlights
+                    if (selectionOverlayRef.current) {
+                        selectionOverlayRef.current.style.background = '';
+                    }
+                    setSelectionStart(null);
+                    setSelectionEnd(null);
+                    setSelectedSpans([]);
+                    setPreviewHighlights([]);
+                    return;
                 }
             }
 
-            // Add the last group
-            lineGroups.push(currentGroup);
+            // Use the ref to get the most current preview highlights
+            const currentPreviewHighlights = previewHighlightsRef.current;
 
-            // Process each line group and create a highlight for it
-            const highlightPromises = lineGroups.map(async (group, index) => {
-                // Calculate bounds for this line group
-                let lineMinX = Infinity, lineMinY = Infinity;
-                let lineMaxX = -Infinity, lineMaxY = -Infinity;
+            // Finalize selection
+            setSelectedSpans(currentPreviewHighlights);
 
-                group.forEach(rect => {
-                    // Get coordinates relative to the page
-                    const relativeX = rect.left - pageRect.left;
-                    const relativeY = rect.top - pageRect.top;
-                    const relativeRight = relativeX + rect.width;
-                    const relativeBottom = relativeY + rect.height;
+            if (currentPreviewHighlights.length > 0) {
+                console.log(`[TextSelectionHighlighter] Creating ${currentPreviewHighlights.length} highlights`);
 
-                    // Update line bounds
-                    lineMinX = Math.min(lineMinX, relativeX);
-                    lineMinY = Math.min(lineMinY, relativeY);
-                    lineMaxX = Math.max(lineMaxX, relativeRight);
-                    lineMaxY = Math.max(lineMaxY, relativeBottom);
+                // Extract selected text with character-level precision
+                const selectedText = currentPreviewHighlights
+                    .map(({span, startOffset, endOffset}) =>
+                        span.text.substring(startOffset, endOffset)
+                    )
+                    .join('')
+                    .trim();
+
+                console.log(`[TextSelectionHighlighter] Selected text: "${selectedText}"`);
+
+                // Create highlights for each selected span with character-level precision
+                const promises = currentPreviewHighlights.map(({span, startX, endX, startOffset, endOffset}, index) => {
+                    const zoomFactor = viewportRef.current.scale || 1;
+
+                    // Apply the same padding and offset corrections as preview highlights
+                    const paddingHorizontal = 1;
+                    const paddingVertical = 2;
+                    const offsetX = -2;
+                    const offsetY = -2;
+
+                    const adjustedStartX = startX - paddingHorizontal + offsetX;
+                    const adjustedTop = span.top - paddingVertical + offsetY;
+                    const adjustedWidth = endX - startX + (paddingHorizontal * 2);
+                    const adjustedHeight = span.bottom - span.top + (paddingVertical * 2);
+
+                    const unzoomedX = adjustedStartX / zoomFactor;
+                    const unzoomedY = adjustedTop / zoomFactor;
+                    const unzoomedW = adjustedWidth / zoomFactor;
+                    const unzoomedH = adjustedHeight / zoomFactor;
+
+                    const selectedSpanText = span.text.substring(startOffset, endOffset);
+
+                    console.log(`[TextSelectionHighlighter] Creating highlight ${index + 1}: "${selectedSpanText}" at (${unzoomedX.toFixed(1)}, ${unzoomedY.toFixed(1)}) ${unzoomedW.toFixed(1)}x${unzoomedH.toFixed(1)}`);
+
+                    return ManualHighlightProcessor.createRectangleHighlight(
+                        fileKey || '_default',
+                        pageNumber,
+                        unzoomedX,
+                        unzoomedY,
+                        unzoomedX + unzoomedW,
+                        unzoomedY + unzoomedH,
+                        manualColorRef.current,
+                        selectedSpanText,
+                        HighlightCreationMode.TEXT_SELECTION
+                    );
                 });
 
-                // Apply coordinate correction
-                const correctionX = -6;
-                const correctionY = -6;
-
-                lineMinX += correctionX;
-                lineMinY += correctionY;
-                lineMaxX += correctionX;
-                lineMaxY += correctionY;
-
-                // Apply padding for better visual appearance
-                const horizontalPadding = 4;
-                const verticalPadding = 2;
-
-                lineMinX = Math.max(0, lineMinX - horizontalPadding);
-                lineMinY = Math.max(0, lineMinY - verticalPadding);
-                lineMaxX = Math.min(pageSize.cssWidth, lineMaxX);
-                lineMaxY = Math.min(pageSize.cssHeight, lineMaxY + verticalPadding);
-
-                // Account for current zoom level
-                const zoomFactor = viewport.scale || 1;
-
-                // Convert coordinates to unzoomed values
-                const unzoomedMinX = lineMinX / zoomFactor;
-                const unzoomedMinY = lineMinY / zoomFactor;
-                const unzoomedMaxX = lineMaxX / zoomFactor;
-                const unzoomedMaxY = lineMaxY / zoomFactor;
-
-                // Extract just this line's text content if possible
-                let lineText = "";
                 try {
-                    // Create a range for just this line to extract its text
-                    const lineRange = new Range();
-                    const startNode = document.caretRangeFromPoint(
-                        group[0].left,
-                        group[0].top + (group[0].height / 2)
-                    )?.startContainer;
-
-                    const endNode = document.caretRangeFromPoint(
-                        group[group.length - 1].right - 1,
-                        group[group.length - 1].top + (group[group.length - 1].height / 2)
-                    )?.endContainer;
-
-                    if (startNode && endNode) {
-                        lineRange.setStart(startNode, 0);
-                        lineRange.setEnd(endNode, endNode.textContent?.length || 0);
-                        lineText = lineRange.toString().trim();
-                    }
-                } catch (e) {
-                    // Fallback if text extraction fails
-                    lineText = `${selectedText} (line ${index + 1})`;
+                    const results = await Promise.all(promises);
+                    console.log(`[TextSelectionHighlighter] Successfully created ${results.length} highlights`);
+                } catch (error) {
+                    console.error('[TextSelectionHighlighter] Error creating highlights:', error);
                 }
-
-                // If we couldn't extract text properly, use the fallback
-                if (!lineText) {
-                    lineText = `${selectedText} (line ${index + 1})`;
-                }
-
-                // Create the highlight for this line
-                return ManualHighlightProcessor.createRectangleHighlight(
-                    fileKey || '_default',
-                    pageNumber,
-                    unzoomedMinX,
-                    unzoomedMinY,
-                    unzoomedMaxX,
-                    unzoomedMaxY,
-                    manualColor,
-                    lineText,
-                    HighlightCreationMode.TEXT_SELECTION
-                );
-            });
-
-            // Wait for all highlights to be created
-            Promise.all(highlightPromises).then(highlights => {
-                // Clear the selection after creating all highlights
-                selection.removeAllRanges();
-
-                // Clear highlight spans
-                if (highlightContainerRef.current) {
-                    highlightContainerRef.current.innerHTML = '';
-                }
-            }).catch(error => {
-                console.error('Error creating line highlights:', error);
-            });
-
-        } else {
-            // For single-line text, process normally but still trim any trailing spaces
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-            cleanRects.forEach(rect => {
-                // Get coordinates relative to the page
-                const relativeX = rect.left - pageRect.left;
-                const relativeY = rect.top - pageRect.top;
-                const relativeRight = relativeX + rect.width;
-                const relativeBottom = relativeY + rect.height;
-
-                // Update overall bounding box
-                minX = Math.min(minX, relativeX);
-                minY = Math.min(minY, relativeY);
-                maxX = Math.max(maxX, relativeRight);
-                maxY = Math.max(maxY, relativeBottom);
-            });
-
-            // Apply coordinate correction
-            const correctionX = -2;
-            const correctionY = -6;
-
-            minX += correctionX;
-            minY += correctionY;
-            maxX += correctionX;
-            maxY += correctionY;
-
-            // Apply padding
-            const horizontalPadding = 2;
-            const verticalPadding = 4;
-
-            minX = Math.max(0, minX - horizontalPadding);
-            minY = Math.max(0, minY );
-            maxX = Math.min(pageSize.cssWidth, maxX + horizontalPadding );
-            maxY = Math.min(pageSize.cssHeight, maxY + verticalPadding);
-
-            // Account for current zoom level
-            const zoomFactor = viewport.scale || 1;
-
-            // Convert coordinates to unzoomed values
-            const unzoomedMinX = minX / zoomFactor;
-            const unzoomedMinY = minY / zoomFactor;
-            const unzoomedMaxX = maxX / zoomFactor;
-            const unzoomedMaxY = maxY / zoomFactor;
-
-            // Create the highlight for this single line
-            ManualHighlightProcessor.createRectangleHighlight(
-                fileKey || '_default',
-                pageNumber,
-                unzoomedMinX,
-                unzoomedMinY,
-                unzoomedMaxX,
-                unzoomedMaxY,
-                manualColor,
-                selectedText.trim(), // Make sure to trim the text
-                HighlightCreationMode.TEXT_SELECTION
-            ).then(highlight => {
-                if (highlight) {
-                    // Clear selection after creating highlight
-                    selection.removeAllRanges();
-
-                    // Clear highlight spans
-                    if (highlightContainerRef.current) {
-                        highlightContainerRef.current.innerHTML = '';
-                    }
-                }
-            });
-        }
-
-    }, [isActive, isEditingMode, pageNumber, fileKey, viewport, pageSize, manualColor]);
-
-    // Set up listeners for text selection with anti-flickering protection
-    useEffect(() => {
-        if (!isActive || !isEditingMode) return;
-
-        // Handler for when mouse button is released (selection is complete)
-        const handleMouseUp = (e: MouseEvent) => {
-            // Clear any existing timeout
-            if (selectionTimeoutRef.current) {
-                clearTimeout(selectionTimeoutRef.current);
+            } else {
+                console.log(`[TextSelectionHighlighter] No preview highlights to create`);
             }
 
-            // If we're already processing a selection, don't start another one
-            if (isProcessingSelection) return;
-
-            // Set a short timeout to stabilize the selection before processing
-            selectionTimeoutRef.current = window.setTimeout(() => {
-                setIsProcessingSelection(true);
-
-                try {
-                    processTextSelection();
-                } finally {
-                    // Always reset the processing flag
-                    setTimeout(() => {
-                        setIsProcessingSelection(false);
-                    }, 50);
-                }
-            }, 10); // Very short delay to ensure selection is complete
+            // Clear selection immediately after creating highlights (native-like behavior)
+            setSelectionStart(null);
+            setSelectionEnd(null);
+            setSelectedSpans([]);
+            setPreviewHighlights([]);
         };
 
-        // Handler for mousedown to prevent processing during selection
-        const handleMouseDown = () => {
-            // Clear any existing timeout
-            if (selectionTimeoutRef.current) {
-                clearTimeout(selectionTimeoutRef.current);
-                selectionTimeoutRef.current = null;
-            }
+        overlay.addEventListener('mousedown', onMouseDown);
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
 
-            // Cancel any in-progress processing
-            setIsProcessingSelection(false);
-        };
-
-        // Now add both event listeners
-        document.addEventListener('mouseup', handleMouseUp);
-        document.addEventListener('mousedown', handleMouseDown);
-
-        // Cleanup
         return () => {
-            document.removeEventListener('mouseup', handleMouseUp);
-            document.removeEventListener('mousedown', handleMouseDown);
+            overlay.removeEventListener('mousedown', onMouseDown);
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
 
-            if (selectionTimeoutRef.current) {
-                clearTimeout(selectionTimeoutRef.current);
+            if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
             }
+            selectionOverlayRef.current = null;
         };
-    }, [isActive, isEditingMode, isProcessingSelection, processTextSelection]);
+    }, [isActive, isEditingMode, pageNumber]);
 
-    // This component doesn't render anything visible
+    // Render preview highlights
+    useEffect(() => {
+        if (!selectionOverlayRef.current) return;
+
+        // Clear existing preview highlights
+        const existingHighlights = selectionOverlayRef.current.querySelectorAll('.preview-highlight');
+        existingHighlights.forEach(highlight => highlight.remove());
+
+        // Create preview highlights for each selected span with character-level precision
+        previewHighlights.forEach(({span, startX, endX}, index) => {
+            const highlightElement = document.createElement('div');
+            highlightElement.className = 'preview-highlight';
+            // Add padding and offset correction to better align with text
+            const paddingHorizontal = 2;
+            const paddingVertical = 1;
+            const offsetX = -1; // Adjust left positioning
+            const offsetY = -1; // Adjust top positioning
+            const highlightColor = manualColorRef.current;
+
+            highlightElement.style.cssText = `
+                position: absolute;
+                left: ${startX - paddingHorizontal + offsetX}px;
+                top: ${span.top - paddingVertical + offsetY}px;
+                width: ${endX - startX + (paddingHorizontal * 2)}px;
+                height: ${span.bottom - span.top + (paddingVertical * 2)}px;
+                background: ${highlightColor}40;
+                pointer-events: none;
+                z-index: 1001;
+                border-radius: 2px;
+                border: 1px solid ${highlightColor}60;
+            `;
+
+            selectionOverlayRef.current?.appendChild(highlightElement);
+        });
+    }, [previewHighlights]);
+
+    // Update refs when state changes
+    useEffect(() => {
+        isSelectingRef.current = isSelecting;
+    }, [isSelecting]);
+
+    useEffect(() => {
+        selectionStartRef.current = selectionStart;
+    }, [selectionStart]);
+
+    useEffect(() => {
+        selectionEndRef.current = selectionEnd;
+    }, [selectionEnd]);
+
+    useEffect(() => {
+        selectedSpansRef.current = selectedSpans;
+    }, [selectedSpans]);
+
+    useEffect(() => {
+        textSpansRef.current = textSpans;
+    }, [textSpans]);
+
+    useEffect(() => {
+        previewHighlightsRef.current = previewHighlights;
+    }, [previewHighlights]);
+
     return null;
 };
 

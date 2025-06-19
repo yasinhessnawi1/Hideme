@@ -29,6 +29,7 @@ export const batchHybridDetect = async (
         hideme?: string[] | null;
         threshold?: number;
         banlist?: string[] | null;
+        signal?: AbortSignal;
     } = {}
 ): Promise<Record<string, any>> => {
     try {
@@ -132,42 +133,114 @@ export const batchHybridDetect = async (
         console.log('[BatchApiService] Calling getAuthHeaders');
         const authHeaders = batchEncryptionService.getAuthHeaders();
 
-        // Make API request with encrypted data
-        const encryptedResponse = await apiRequest<any>({
-            method: 'POST',
-            url: `${API_BASE_URL}/batch/hybrid_detect`,
-            formData: encryptedFormData,
-            headers: authHeaders,
-        });
+        // Create abort signal handling
+        const controller = new AbortController();
+        const abortSignal = options.signal || controller.signal;
 
-        // Decrypt response if it's encrypted
-        let result = encryptedResponse;
-        if (encryptedResponse.encrypted_data) {
-            result = await batchEncryptionService.decrypt(encryptedResponse.encrypted_data);
+        // Register the abort controller if available
+        if (typeof window !== 'undefined' && (window as any).registerProcessingAbortController) {
+            (window as any).registerProcessingAbortController(controller);
         }
 
-        // Validate the response format
-        if (!result.file_results || !Array.isArray(result.file_results)) {
-            throw new Error('Invalid batch hybrid detection response format');
-        }
+        try {
+            // Make API request with encrypted data and abort signal
+            const encryptedResponse = await fetch(`${API_BASE_URL}/batch/hybrid_detect`, {
+                method: 'POST',
+                body: encryptedFormData,
+                headers: authHeaders,
+                signal: abortSignal,
+            });
 
-        // Create a mapping of fileKey -> detection results
-        const detectionResultsMap: Record<string, any> = {};
+            if (!encryptedResponse.ok) {
+                // Handle 401 (Unauthorized) and 429 (Too Many Requests) by logging out the user
+                if (encryptedResponse.status === 401 || encryptedResponse.status === 429) {
+                    console.warn(`[BatchApiService] Received ${encryptedResponse.status} status, logging out user`);
 
-        // Process each file result
-        result.file_results.forEach((fileResult: {
-            file: string;
-            status: string;
-            results: any;
-            error: string;
-        }) => {
-            if (fileResult.status === 'success' && fileResult.results) {
-                // Use the filename as the fileKey for simplicity
-                detectionResultsMap[fileResult.file] = fileResult.results;
+                    try {
+                        // Clear authentication state
+                        authService.clearToken();
+                        localStorage.clear();
+
+                        console.log(`[BatchApiService] User logged out due to ${encryptedResponse.status} status`);
+
+                        // Dispatch a custom event that the app can listen for
+                        const eventType = encryptedResponse.status === 401 ? 'auth:session-expired' : 'auth:too-many-requests';
+                        window.dispatchEvent(new CustomEvent(eventType, {
+                            detail: {
+                                originalUrl: `${API_BASE_URL}/batch/hybrid_detect`,
+                                status: encryptedResponse.status,
+                                message: encryptedResponse.status === 401
+                                    ? 'Your session has expired. Please log in again.'
+                                    : 'Too many requests. Please log in again.'
+                            }
+                        }));
+
+                        // For immediate redirect
+                        setTimeout(() => {
+                            if (window.location.pathname !== '/login' && !window.location.pathname.includes('/auth')) {
+                                window.location.href = '/login?expired=true';
+                            }
+                        }, 100);
+
+                    } catch (logoutError) {
+                        console.error('[BatchApiService] Error during forced logout:', logoutError);
+                    }
+                }
+
+                const errorText = await encryptedResponse.text();
+                let errorPayload;
+                try {
+                    const parsed = JSON.parse(errorText);
+                    errorPayload = parsed.error || parsed.detail || parsed;
+                } catch {
+                    errorPayload = errorText;
+                }
+                throw new Error(mapBackendErrorToMessage(errorPayload));
             }
-        });
 
-        return detectionResultsMap;
+            const responseData = await encryptedResponse.json();
+
+            // Decrypt response if it's encrypted
+            let result = responseData;
+            if (responseData.encrypted_data) {
+                result = await batchEncryptionService.decrypt(responseData.encrypted_data);
+            }
+
+            // Validate the response format
+            if (!result.file_results || !Array.isArray(result.file_results)) {
+                throw new Error('Invalid batch hybrid detection response format');
+            }
+
+            // Create a mapping of fileKey -> detection results
+            const detectionResultsMap: Record<string, any> = {};
+
+            // Process each file result
+            result.file_results.forEach((fileResult: {
+                file: string;
+                status: string;
+                results: any;
+                error: string;
+            }) => {
+                if (fileResult.status === 'success' && fileResult.results) {
+                    // Use the filename as the fileKey for simplicity
+                    detectionResultsMap[fileResult.file] = fileResult.results;
+                }
+            });
+
+            return detectionResultsMap;
+        } catch (error) {
+            // Check if it's an abort error
+            if (error instanceof Error && error.name === 'AbortError') {
+                console.log('[BatchApiService] Detection request was aborted');
+                throw new Error('Detection cancelled by user');
+            }
+            throw error;
+        } finally {
+            // Unregister the abort controller
+            if (typeof window !== 'undefined' && (window as any).unregisterProcessingAbortController) {
+                (window as any).unregisterProcessingAbortController();
+            }
+        }
     } catch (error) {
         console.error('Batch Hybrid Detection API error:', error);
         throw error;

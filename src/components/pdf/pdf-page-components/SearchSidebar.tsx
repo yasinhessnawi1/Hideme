@@ -1,15 +1,7 @@
 import LoadingWrapper from "../../common/LoadingWrapper";
 import {useHighlightStore} from '../../../contexts/HighlightStoreContext';
-import { useFileSummary } from '../../../contexts/FileSummaryContext';
+import {useFileSummary} from '../../../contexts/FileSummaryContext';
 import Tooltip from '../../common/Tooltip';
-
-declare global {
-    interface Window {
-        defaultSearchTerms?: string[];
-        executeSearchWithDefaultTerms?: () => void;
-    }
-}
-
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useFileContext} from '../../../contexts/FileContext';
 import {getFileKey} from '../../../contexts/PDFViewerContext';
@@ -18,9 +10,16 @@ import {AlertTriangle, CheckCircle, ChevronDown, ChevronRight, ChevronUp, Save, 
 import {usePDFNavigation} from '../../../hooks/general/usePDFNavigation';
 import useSearchPatterns from "../../../hooks/settings/useSearchPatterns";
 import {HighlightRect, HighlightType} from "../../../types";
-import { useNotification } from '../../../contexts/NotificationContext';
-import { useEditContext } from "../../../contexts/EditContext";
-import { useLanguage } from '../../../contexts/LanguageContext';
+import {useNotification} from '../../../contexts/NotificationContext';
+import {useEditContext} from "../../../contexts/EditContext";
+import {useLanguage} from '../../../contexts/LanguageContext';
+
+declare global {
+    interface Window {
+        defaultSearchTerms?: string[];
+        executeSearchWithDefaultTerms?: () => void;
+    }
+}
 
 /**
  * SearchSidebar component
@@ -161,11 +160,30 @@ const SearchSidebar: React.FC = () => {
 
                 // Refocus the search input after search completed
                 searchInputRef.current?.focus();
+
+                // Dispatch search completion event for toolbar
+                window.dispatchEvent(new CustomEvent('search-completed', {
+                    detail: {
+                        success: true,
+                        source: 'search-sidebar',
+                        searchTerm: searchTermToUse,
+                        totalMatches: currentStats.totalMatches
+                    }
+                }));
             }, 100);
         } catch (error: any) {
             setLocalSearchError(error.message ?? t('pdf', 'errorPerformingSearch'));
             // Refocus input even when there's an error
             searchInputRef.current?.focus();
+
+            // Dispatch search completion event even on error
+            window.dispatchEvent(new CustomEvent('search-completed', {
+                detail: {
+                    success: false,
+                    source: 'search-sidebar',
+                    error: error.message ?? t('pdf', 'errorPerformingSearch')
+                }
+            }));
         }
     }, [tempSearchTerm, getFilesToProcess, batchSearch, isCaseSensitive, isAiSearch, getSearchResultsStats, activeQueries, files, updateSearchFileSummary]);
 
@@ -212,6 +230,23 @@ const SearchSidebar: React.FC = () => {
                     // Additional cleanup if needed
                 }
             });
+
+            // Notify AutoProcessManager about updated search queries after removal
+            const updatedQueries = activeQueries
+                .filter(query => query.term !== term)
+                .map(query => ({
+                    term: query.term,
+                    case_sensitive: query.caseSensitive,
+                    ai_search: query.isAiSearch
+                }));
+
+            window.dispatchEvent(new CustomEvent('search-settings-updated', {
+                detail: {
+                    settings: {
+                        searchQueries: updatedQueries
+                    }
+                }
+            }));
         }, 50); // Short delay to ensure BatchSearchContext has updated
     };
 
@@ -285,7 +320,42 @@ const SearchSidebar: React.FC = () => {
                             updateSearchFileSummary(summary);
                         }
                     });
+
+                    // Notify AutoProcessManager about updated search queries
+                    const updatedQueries = activeQueries.map(query => ({
+                        term: query.term,
+                        case_sensitive: query.caseSensitive,
+                        ai_search: query.isAiSearch
+                    }));
+
+                    window.dispatchEvent(new CustomEvent('search-settings-updated', {
+                        detail: {
+                            settings: {
+                                searchQueries: updatedQueries
+                            }
+                        }
+                    }));
+
+                    // Dispatch search completion event for toolbar
+                    window.dispatchEvent(new CustomEvent('search-completed', {
+                        detail: {
+                            success: true,
+                            source: 'search-sidebar',
+                            addedTerms: addedCount,
+                            totalMatches: currentStats.totalMatches
+                        }
+                    }));
                 }, 300);
+            } else {
+                // Still dispatch completion event even if no terms were added
+                window.dispatchEvent(new CustomEvent('search-completed', {
+                    detail: {
+                        success: true,
+                        source: 'search-sidebar',
+                        addedTerms: 0,
+                        message: 'All default terms already active'
+                    }
+                }));
             }
         } else {
             notify({
@@ -331,24 +401,39 @@ const SearchSidebar: React.FC = () => {
             const customEvent = event as CustomEvent;
             const {source, applyDefaultTerms} = customEvent.detail || {};
 
+            console.log('[SearchSidebar] Search process trigger received:', {source, applyDefaultTerms});
+            console.log('[SearchSidebar] Available functions:', {
+                applyAllDefaultSearchTerms: typeof applyAllDefaultSearchTerms,
+                addSearchTerm: typeof addSearchTerm,
+                tempSearchTerm: tempSearchTerm
+            });
 
-            if (applyDefaultTerms) {
-                // Apply all default search terms
-                applyAllDefaultSearchTerms();
-            } else if (tempSearchTerm.trim()) {
-                // Execute the current search term if one is available
-                addSearchTerm();
-            } else {
-                console.log('[SearchSidebar] No search term to execute');
-                focusSearchInput();
+            try {
+                if (applyDefaultTerms) {
+                    // Apply all default search terms
+                    console.log('[SearchSidebar] Applying all default search terms');
+                    applyAllDefaultSearchTerms();
+                } else if (tempSearchTerm.trim()) {
+                    // Execute the current search term if one is available
+                    console.log('[SearchSidebar] Adding current search term:', tempSearchTerm);
+                    addSearchTerm();
+                } else {
+                    console.log('[SearchSidebar] No search term to execute, focusing input');
+                    focusSearchInput();
+                }
+            } catch (error) {
+                console.error('[SearchSidebar] Error handling search request:', error);
             }
         };
 
+        console.log('[SearchSidebar] Setting up event listeners for focus-search-input and execute-search');
+        
         // Register event listeners
         window.addEventListener('focus-search-input', handleFocusRequest);
         window.addEventListener('execute-search', handleSearchRequest);
 
         return () => {
+            console.log('[SearchSidebar] Removing event listeners for focus-search-input and execute-search');
             window.removeEventListener('focus-search-input', handleFocusRequest);
             window.removeEventListener('execute-search', handleSearchRequest);
         };

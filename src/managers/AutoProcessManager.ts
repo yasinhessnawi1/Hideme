@@ -1,10 +1,11 @@
-import { BanListWithWords, HighlightType, OptionType } from '../types';
-import { getFileKey } from '../contexts/PDFViewerContext';
+import {BanListWithWords, HighlightType, OptionType} from '../types';
+import {getFileKey} from '../contexts/PDFViewerContext';
 import processingStateService from '../services/client-services/ProcessingStateService';
-import { EntityHighlightProcessor } from "./EntityHighlightProcessor";
-import { highlightStore } from "../store/HighlightStore";
+import {EntityHighlightProcessor} from "./EntityHighlightProcessor";
+import {highlightStore} from "../store/HighlightStore";
 import summaryPersistenceStore from "../store/SummaryPersistenceStore";
-import { useBanList } from '../hooks/settings/useBanList';
+import {useBanList} from '../hooks/settings/useBanList';
+
 /**
  * Configuration for automatic file processing
  */
@@ -43,6 +44,7 @@ export class AutoProcessManager {
     private _detectEntitiesCallback: ((files: File[], options: any) => Promise<Record<string, any>>) | null = null;
     private _searchCallback: ((files: File[], searchTerm: string, options: any) => Promise<void>) | null = null;
     private banList: BanListWithWords | null = null;
+
     private constructor() {
         this.config = {
             presidioEntities: [],
@@ -51,10 +53,192 @@ export class AutoProcessManager {
             hidemeEntities: [],
             searchQueries: [],
             isActive: true,
-            detectionThreshold: 0.5, // Default threshold
-            useBanlist: true,
-            banlistWords: [], // Empty ban list by default
+            detectionThreshold: 0.5,
+            useBanlist: false,
+            banlistWords: []
         };
+
+        // Initialize event listeners for settings synchronization
+        this.initializeEventListeners();
+    }
+
+    /**
+     * Force synchronization with current user settings
+     * This method should be called when the manager needs to sync with latest settings
+     */
+    public async forceSynchronizeWithSettings(): Promise<void> {
+        console.log('[AutoProcessManager] Force synchronizing with current settings...');
+
+        // Dispatch event to request current settings
+        window.dispatchEvent(new CustomEvent('request-current-settings', {
+            detail: {requesterId: 'AutoProcessManager'}
+        }));
+    }
+
+    public updateConfig(config: Partial<ProcessingConfig>): void {
+        const oldConfig = {...this.config};
+        this.config = {...this.config, ...config};
+
+        console.log('[AutoProcessManager] Config updated:', {
+            old: oldConfig,
+            new: this.config,
+            changes: config
+        });
+
+        // Notify other components about config change
+        window.dispatchEvent(new CustomEvent('auto-process-config-updated', {
+            detail: {
+                config: this.config,
+                changes: config
+            }
+        }));
+    }
+
+    /**
+     * Get current configuration (with real-time sync)
+     */
+    public getConfig(): ProcessingConfig {
+        return {...this.config};
+    }
+
+    /**
+     * Initialize the manager with current settings from context
+     */
+    public async initializeWithSettings(settings: {
+        userSettings?: any;
+        entitySettings?: any;
+        searchSettings?: any;
+    }): Promise<void> {
+        console.log('[AutoProcessManager] Initializing with settings:', settings);
+
+        const updates: Partial<ProcessingConfig> = {};
+
+        // Apply user settings
+        if (settings.userSettings) {
+            if (settings.userSettings.auto_processing !== undefined) {
+                updates.isActive = settings.userSettings.auto_processing;
+            }
+            if (settings.userSettings.detection_threshold !== undefined) {
+                updates.detectionThreshold = settings.userSettings.detection_threshold;
+            }
+            if (settings.userSettings.use_banlist_for_detection !== undefined) {
+                updates.useBanlist = settings.userSettings.use_banlist_for_detection;
+            }
+        }
+
+        // Apply entity settings
+        if (settings.entitySettings) {
+            if (settings.entitySettings.presidio) {
+                updates.presidioEntities = settings.entitySettings.presidio;
+            }
+            if (settings.entitySettings.gliner) {
+                updates.glinerEntities = settings.entitySettings.gliner;
+            }
+            if (settings.entitySettings.gemini) {
+                updates.geminiEntities = settings.entitySettings.gemini;
+            }
+            if (settings.entitySettings.hideme) {
+                updates.hidemeEntities = settings.entitySettings.hideme;
+            }
+        }
+
+        // Apply search settings
+        if (settings.searchSettings?.searchQueries) {
+            updates.searchQueries = settings.searchSettings.searchQueries;
+        }
+
+        this.updateConfig(updates);
+        console.log('[AutoProcessManager] Initialized with settings, final config:', this.config);
+    }
+
+    /**
+     * Initialize event listeners for real-time settings synchronization
+     */
+    private initializeEventListeners(): void {
+        // Listen for settings changes from any component
+        window.addEventListener('settings-changed', this.handleSettingsChanged.bind(this));
+
+        // Listen for general settings updates
+        window.addEventListener('general-settings-updated', this.handleGeneralSettingsUpdated.bind(this));
+
+        // Listen for entity settings updates
+        window.addEventListener('entity-settings-updated', this.handleEntitySettingsUpdated.bind(this));
+
+        // Listen for search settings updates
+        window.addEventListener('search-settings-updated', this.handleSearchSettingsUpdated.bind(this));
+
+        // Listen for auto processing toggle
+        window.addEventListener('auto-processing-toggled', this.handleAutoProcessingToggled.bind(this));
+
+        console.log('[AutoProcessManager] Event listeners initialized for settings synchronization');
+    }
+
+    /**
+     * Handle settings-changed events and sync with AutoProcessManager config
+     */
+    private async handleSettingsChanged(event: Event): Promise<void> {
+        const customEvent = event as CustomEvent;
+        const {type, settings} = customEvent.detail || {};
+
+        console.log('[AutoProcessManager] Settings changed event received:', {type, settings});
+
+        try {
+            switch (type) {
+                case 'entity':
+                    await this.syncEntitySettings(settings);
+                    break;
+                case 'search':
+                    await this.syncSearchSettings(settings);
+                    break;
+                case 'general':
+                    await this.syncGeneralSettings(settings);
+                    break;
+                default:
+                    console.log('[AutoProcessManager] Unknown settings type:', type);
+            }
+        } catch (error) {
+            console.error('[AutoProcessManager] Error handling settings change:', error);
+        }
+    }
+
+    /**
+     * Handle general settings updates
+     */
+    private async handleGeneralSettingsUpdated(event: Event): Promise<void> {
+        const customEvent = event as CustomEvent;
+        const {settings} = customEvent.detail || {};
+        await this.syncGeneralSettings(settings);
+    }
+
+    /**
+     * Handle entity settings updates
+     */
+    private async handleEntitySettingsUpdated(event: Event): Promise<void> {
+        const customEvent = event as CustomEvent;
+        const {settings} = customEvent.detail || {};
+        await this.syncEntitySettings(settings);
+    }
+
+    /**
+     * Handle search settings updates
+     */
+    private async handleSearchSettingsUpdated(event: Event): Promise<void> {
+        const customEvent = event as CustomEvent;
+        const {settings} = customEvent.detail || {};
+        await this.syncSearchSettings(settings);
+    }
+
+    /**
+     * Handle auto processing toggle
+     */
+    private async handleAutoProcessingToggled(event: Event): Promise<void> {
+        const customEvent = event as CustomEvent;
+        const {isActive} = customEvent.detail || {};
+
+        if (typeof isActive === 'boolean') {
+            this.updateConfig({isActive});
+            console.log('[AutoProcessManager] Auto processing toggled:', isActive);
+        }
     }
 
     public static getInstance(): AutoProcessManager {
@@ -72,23 +256,78 @@ export class AutoProcessManager {
         this._searchCallback = callback;
     }
 
-    public updateConfig(config: Partial<ProcessingConfig>): void {
-        this.config = {
-            presidioEntities: config.presidioEntities ?? this.config.presidioEntities,
-            glinerEntities: config.glinerEntities ?? this.config.glinerEntities,
-            geminiEntities: config.geminiEntities ?? this.config.geminiEntities,
-            hidemeEntities: config.hidemeEntities ?? this.config.hidemeEntities,
-            searchQueries: config.searchQueries ?? this.config.searchQueries,
-            isActive: config.isActive ?? this.config.isActive,
-            // Add threshold and ban list settings
-            detectionThreshold: config.detectionThreshold ?? this.config.detectionThreshold,
-            useBanlist: config.useBanlist ?? this.config.useBanlist,
-            banlistWords: config.banlistWords ?? this.config.banlistWords,
-        };
+    /**
+     * Sync entity settings with AutoProcessManager config
+     */
+    private async syncEntitySettings(settings: any): Promise<void> {
+        if (!settings) return;
+
+        const updates: Partial<ProcessingConfig> = {};
+
+        if (settings.presidio) {
+            updates.presidioEntities = settings.presidio;
+        }
+        if (settings.gliner) {
+            updates.glinerEntities = settings.gliner;
+        }
+        if (settings.gemini) {
+            updates.geminiEntities = settings.gemini;
+        }
+        if (settings.hideme) {
+            updates.hidemeEntities = settings.hideme;
+        }
+        if (settings.detectionThreshold !== undefined) {
+            updates.detectionThreshold = settings.detectionThreshold;
+        }
+        if (settings.useBanlist !== undefined) {
+            updates.useBanlist = settings.useBanlist;
+        }
+
+        // Update ban list if needed
+        if (settings.useBanlist && settings.banlistWords) {
+            updates.banlistWords = settings.banlistWords;
+        }
+
+        this.updateConfig(updates);
+        console.log('[AutoProcessManager] Entity settings synchronized:', updates);
     }
 
-    public getConfig(): ProcessingConfig {
-        return {...this.config};
+    /**
+     * Sync search settings with AutoProcessManager config
+     */
+    private async syncSearchSettings(settings: any): Promise<void> {
+        if (!settings) return;
+
+        const updates: Partial<ProcessingConfig> = {};
+
+        if (settings.searchQueries) {
+            updates.searchQueries = settings.searchQueries;
+        }
+
+        this.updateConfig(updates);
+        console.log('[AutoProcessManager] Search settings synchronized:', updates);
+    }
+
+    /**
+     * Sync general settings with AutoProcessManager config
+     */
+    private async syncGeneralSettings(settings: any): Promise<void> {
+        if (!settings) return;
+
+        const updates: Partial<ProcessingConfig> = {};
+
+        if (settings.auto_processing !== undefined) {
+            updates.isActive = settings.auto_processing;
+        }
+        if (settings.detectionThreshold !== undefined) {
+            updates.detectionThreshold = settings.detectionThreshold;
+        }
+        if (settings.useBanlist !== undefined || settings.use_banlist_for_detection !== undefined) {
+            updates.useBanlist = settings.useBanlist ?? settings.use_banlist_for_detection;
+        }
+
+        this.updateConfig(updates);
+        console.log('[AutoProcessManager] General settings synchronized:', updates);
     }
 
     /**
