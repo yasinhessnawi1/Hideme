@@ -42,8 +42,18 @@ Refactored to use new design tokens
 }
 
 /* ========================================
-   MOBILE MENU BUTTON
+   MOBILE NAVIGATION CONTROLS
    ======================================== */
+
+.mobile-nav-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.mobile-language-switcher {
+    display: block;
+}
 
 .menu-button {
     background: none;
@@ -301,12 +311,27 @@ Refactored to use new design tokens
    RESPONSIVE DESIGN
    ======================================== */
 
+/* Desktop-only elements */
+.desktop-only {
+    display: block;
+}
+
+@media (max-width: 767px) {
+    .desktop-only {
+        display: none !important;
+    }
+}
+
 @media (min-width: 768px) {
     .nav-links {
         display: flex;
     }
 
-    .menu-button {
+    .mobile-nav-controls {
+        display: none;
+    }
+
+    .mobile-language-switcher {
         display: none;
     }
 }

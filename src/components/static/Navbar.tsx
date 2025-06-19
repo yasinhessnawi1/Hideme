@@ -160,7 +160,7 @@ export default function Navbar() {
                         </div>
                     ) : (
                         <Button
-                            className="Sign-in-button"
+                            className="Sign-in-button desktop-only"
                             shimmerColor="var(--primary)"
                             borderRadius="100px"
                             shimmerDuration="10s"
@@ -171,12 +171,15 @@ export default function Navbar() {
                         </Button>
                     )}
 
-                    <LanguageSwitcher className="nav-language-switcher"/>
+                    <LanguageSwitcher className="nav-language-switcher desktop-only"/>
                 </div>
 
-                <button className="menu-button" onClick={handleMobileMenuToggle}>
-                    <Menu className="menu-icon"/>
-                </button>
+                <div className="mobile-nav-controls">
+                    <LanguageSwitcher className="mobile-language-switcher"/>
+                    <button className="menu-button" onClick={handleMobileMenuToggle}>
+                        <Menu className="menu-icon"/>
+                    </button>
+                </div>
             </motion.nav>
 
             {/* Mobile Menu */}
