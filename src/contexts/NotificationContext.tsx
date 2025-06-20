@@ -1,6 +1,6 @@
 // NotificationContext.tsx
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
-import { useLanguage } from '../contexts/LanguageContext';
+import React, {createContext, useCallback, useContext, useRef, useState} from 'react';
+import {useLanguage} from '../contexts/LanguageContext';
 
 // Base notification types
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';
@@ -53,7 +53,7 @@ interface NotificationContextType {
         duration?: number;
         position?: NotificationPosition;
     }) => string; // Returns notification ID
-    removeToast: (id: string) => void;
+    removeToast: (id: string, removeAll?: boolean) => void;
     clearToasts: () => void;
 
     // Confirmations
@@ -104,16 +104,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const DEDUPE_WINDOW_MS = 3000; // Deduplicate identical notifications within 3 seconds
 
     // Toast methods
-    const removeToast = useCallback((id: string) => {
+    const removeToast = useCallback((id: string, removeAll: boolean = false) => {
         setToasts(prev => {
             const toast = prev.find(t => t.id === id);
             
             if (!toast) return prev;
-            
-            if (toast.count && toast.count > 1) {
-                // If count > 1, just decrement the count
-                return prev.map(t => t.id === id ? { ...t, count: t.count! - 1 } : t);
-            } else {
+
+            // If removeAll is true or user clicked X, remove completely regardless of count
+            if (removeAll || toast.count === undefined || toast.count <= 1) {
                 // When removing the toast completely, clean up the timeout
                 if (toastTimeouts.current.has(id)) {
                     clearTimeout(toastTimeouts.current.get(id));
@@ -128,6 +126,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 });
                 
                 return prev.filter(t => t.id !== id);
+            } else {
+                // Only decrement count if removeAll is false and count > 1
+                return prev.map(t => t.id === id ? {...t, count: t.count! - 1} : t);
             }
         });
     }, []);
@@ -164,6 +165,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 id: existingId,
                 timestamp: now
             });
+
+            // Clear existing timeout and set a new one (reset timer, don't extend)
+            if (toastTimeouts.current.has(existingId)) {
+                clearTimeout(toastTimeouts.current.get(existingId));
+            }
+
+            // Set new auto-removal timeout (reset to full duration)
+            if (duration !== Infinity && duration > 0) {
+                const timeout = setTimeout(() => {
+                    removeToast(existingId, true); // Remove all when auto-timeout occurs
+                }, duration);
+
+                toastTimeouts.current.set(existingId, timeout);
+            }
             
             // Increment the count of the existing notification
             setToasts(prev => 
@@ -194,7 +209,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             // Set auto-removal timeout
             if (duration !== Infinity && duration > 0) {
                 const timeout = setTimeout(() => {
-                    removeToast(newId);
+                    removeToast(newId, true); // Remove all when auto-timeout occurs
                 }, duration);
                 
                 toastTimeouts.current.set(newId, timeout);

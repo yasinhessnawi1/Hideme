@@ -457,7 +457,8 @@ export const no = {
     noFilesSelectedForDetection: "Ingen filer valgt for deteksjon",
     searchingWithDefaultTerms: "Søker med standard søkeord",
     noFilesAvailableForRedaction: "Ingen filer tilgjengelig for sladding",
-    startingRedactionProcess: "Starter sladdeprosess"
+      startingRedactionProcess: "Starter sladdeprosess",
+      highlightDeleted: 'Utheving slettet!',
   },
 
   resetPassword: {
@@ -1006,6 +1007,13 @@ export const no = {
     accuracy: 'Nøyaktighet',
     recall: 'Gjenfinning',
     f1Score: 'F1-score',
+      modes: 'Moduser',
+      textselection: 'Tekstvalg',
+      rectangular: 'Rektangulær',
+      save: 'Lagre',
+      print: 'Skriv ut',
+      select: 'Velg',
+      delete: 'Slett',
   },
 
   account: {
@@ -1062,6 +1070,29 @@ export const no = {
     resizeSidebar: "Endre størrelse på sidepanel",
     switchToTab: "Bytt til {name} fane",
   },
+
+    featuresPreview: {
+        powerfulRedactionTools: "Kraftige Sladdeverktøy",
+        everythingYouNeed: "Alt du trenger for å beskytte sensitiv informasjon i dokumenter",
+        coreFeatures: "Kjernefunksjoner",
+        aiDetectionMethods: "AI-deteksjonsmetoder",
+        smartRedactionTitle: "Smart Sladding",
+        smartRedactionDescription: "AI-drevet automatisk deteksjon og sladding av sensitiv informasjon",
+        searchRedactTitle: "Søk og Sladd",
+        searchRedactDescription: "Finn og sladd spesifikke ord eller mønstre på tvers av dokumenter",
+        privacyProtectionTitle: "Personvernbeskyttelse",
+        privacyProtectionDescription: "Ende-til-ende-kryptering sikrer at dataene dine er trygge - filer krypteres før behandling på backend",
+        hidemeAIRecommendedTitle: "HideMeAI (Anbefalt)",
+        hidemeAIRecommendedDescription: "Vår proprietære AI-modell med 89% presisjon og full lokal behandling",
+        presidioMLDescription: "Microsofts åpen kildekode-modell med 86% presisjon, personvernsikker",
+        glinerMLTitle: "GLiNER ML",
+        glinerMLDescription: "Lett modell med 78% presisjon, fullt lokal behandling",
+        geminiAIDescription: "Googles AI med 92% presisjon, men behandler data eksternt",
+        entityTypes: "Entitetstyper",
+        aiModels: "AI-modeller",
+        privacySafe: "Personvernsikker",
+        viewAllFeatures: "Vis Alle Funksjoner"
+    },
 
   footer: {
     companyName: "HideMeAI",

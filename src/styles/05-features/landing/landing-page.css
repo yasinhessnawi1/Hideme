@@ -24,7 +24,7 @@
     line-height: var(--text-h1-line-height);
     color: var(--foreground);
     margin-bottom: var(--spacing-lg);
-    background: var(--gradient-primary);
+    background: var(--gradient-accent);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -51,6 +51,10 @@
     color: var(--foreground);
     margin-bottom: var(--spacing-xl);
     text-align: center;
+    background: var(--gradient-accent);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .tools-preview-grid,

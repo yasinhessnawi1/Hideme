@@ -1,5 +1,6 @@
 import React from 'react';
-import { useLanguage } from '../../contexts/LanguageContext';
+import {useLanguage} from '../../contexts/LanguageContext';
+import CountUp from '../common/CountUp';
 
 interface ToolPreviewCardProps {
     title: string;
@@ -23,38 +24,38 @@ const FeaturesPreview: React.FC = () => {
 
     const coreTools = [
         {
-            title: 'Smart Redaction',
-            description: 'AI-powered automatic detection and redaction of sensitive information',
+            title: t('featuresPreview', 'smartRedactionTitle'),
+            description: t('featuresPreview', 'smartRedactionDescription'),
             icon: '🤖',
             category: 'tool' as const
         },
         {
-            title: 'Manual Highlighting',
-            description: 'Precise manual control with text selection and rectangular tools',
+            title: t('features', 'manualHighlightingTitle'),
+            description: t('features', 'manualHighlightingDescription'),
             icon: '✏️',
             category: 'tool' as const
         },
         {
-            title: 'Search & Redact',
-            description: 'Find and redact specific words or patterns across documents',
+            title: t('featuresPreview', 'searchRedactTitle'),
+            description: t('featuresPreview', 'searchRedactDescription'),
             icon: '🔍',
             category: 'tool' as const
         },
         {
-            title: 'Image Redaction',
-            description: 'Redact sensitive information from images and scanned documents',
+            title: t('features', 'imageRedactionTitle'),
+            description: t('features', 'imageRedactionDescription'),
             icon: '🖼️',
             category: 'tool' as const
         },
         {
-            title: 'Auto Processing',
-            description: 'Automatically process new files with your saved settings',
+            title: t('features', 'autoProcessingTitle'),
+            description: t('features', 'autoProcessingDescription'),
             icon: '⚡',
             category: 'tool' as const
         },
         {
-            title: 'Privacy Protection',
-            description: 'End-to-end encryption ensures your data is secure - files encrypted before backend processing',
+            title: t('featuresPreview', 'privacyProtectionTitle'),
+            description: t('featuresPreview', 'privacyProtectionDescription'),
             icon: '🔐',
             category: 'tool' as const
         }
@@ -62,26 +63,26 @@ const FeaturesPreview: React.FC = () => {
 
     const detectionMethods = [
         {
-            title: 'HideMeAI (Recommended)',
-            description: 'Our proprietary AI model with 89% precision and full local processing',
+            title: t('featuresPreview', 'hidemeAIRecommendedTitle'),
+            description: t('featuresPreview', 'hidemeAIRecommendedDescription'),
             icon: '🚀',
             category: 'detection' as const
         },
         {
-            title: 'Presidio ML',
-            description: 'Microsoft\'s open-source model with 86% precision, privacy-safe',
+            title: t('features', 'presidioMLDetectionTitle'),
+            description: t('featuresPreview', 'presidioMLDescription'),
             icon: '🛡️',
             category: 'detection' as const
         },
         {
-            title: 'GLiNER ML',
-            description: 'Lightweight model with 78% precision, fully local processing',
+            title: t('featuresPreview', 'glinerMLTitle'),
+            description: t('featuresPreview', 'glinerMLDescription'),
             icon: '🔒',
             category: 'detection' as const
         },
         {
-            title: 'Gemini AI',
-            description: 'Google\'s AI with 92% precision but processes data externally',
+            title: t('features', 'geminiAI'),
+            description: t('featuresPreview', 'geminiAIDescription'),
             icon: '🤖',
             category: 'detection' as const
         }
@@ -91,12 +92,12 @@ const FeaturesPreview: React.FC = () => {
         <section className="features-preview">
             <div className="features-preview-container">
                 <div className="features-preview-header">
-                    <h2>Powerful Redaction Tools</h2>
-                    <p>Everything you need to protect sensitive information in documents</p>
+                    <h2>{t('featuresPreview', 'powerfulRedactionTools')}</h2>
+                    <p>{t('featuresPreview', 'everythingYouNeed')}</p>
                 </div>
 
                 <div className="tools-preview-section">
-                    <h3>Core Features</h3>
+                    <h3>{t('featuresPreview', 'coreFeatures')}</h3>
                     <div className="tools-preview-grid">
                         {coreTools.map((tool, index) => (
                             <ToolPreviewCard
@@ -111,7 +112,7 @@ const FeaturesPreview: React.FC = () => {
                 </div>
 
                 <div className="detection-preview-section">
-                    <h3>AI Detection Methods</h3>
+                    <h3>{t('featuresPreview', 'aiDetectionMethods')}</h3>
                     <div className="detection-preview-grid">
                         {detectionMethods.map((method, index) => (
                             <ToolPreviewCard
@@ -128,26 +129,47 @@ const FeaturesPreview: React.FC = () => {
                 <div className="features-preview-footer">
                     <div className="preview-stats">
                         <div className="stat-item">
-                            <span className="stat-number">20+</span>
-                            <span className="stat-label">Redaction Tools</span>
+                            <span className="stat-number"><CountUp
+                                from={0}
+                                to={20}
+                                separator=","
+                                direction="up"
+                                duration={1}
+                                className="count-up-text"
+                            />+</span>
+                            <span className="stat-label">{t('pdf', 'redactionTools')}</span>
                         </div>
                         <div className="stat-item">
-                            <span className="stat-number">50+</span>
-                            <span className="stat-label">Entity Types</span>
+                            <span className="stat-number"><CountUp
+                                from={0}
+                                to={50}
+                                separator=","
+                                direction="up"
+                                duration={1}
+                                className="count-up-text"
+                            />+</span>
+                            <span className="stat-label">{t('featuresPreview', 'entityTypes')}</span>
                         </div>
                         <div className="stat-item">
-                            <span className="stat-number">4</span>
-                            <span className="stat-label">AI Models</span>
+                            <span className="stat-number"><CountUp
+                                from={0}
+                                to={4}
+                                separator=","
+                                direction="up"
+                                duration={1}
+                                className="count-up-text"
+                            />+</span>
+                            <span className="stat-label">{t('featuresPreview', 'aiModels')}</span>
                         </div>
                         <div className="stat-item">
                             <span className="stat-number">100%</span>
-                            <span className="stat-label">Privacy Safe</span>
+                            <span className="stat-label">{t('featuresPreview', 'privacySafe')}</span>
                         </div>
                     </div>
-                    
+
                     <div className="preview-cta">
                         <a href="/features" className="features-link-button">
-                            View All Features
+                            {t('featuresPreview', 'viewAllFeatures')}
                         </a>
                     </div>
                 </div>

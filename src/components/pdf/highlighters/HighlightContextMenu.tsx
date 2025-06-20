@@ -1,19 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Ban, Highlighter, Trash2, X } from 'lucide-react';
+import React, {useEffect, useRef, useState} from 'react';
+import {Ban, Highlighter, Trash2, X} from 'lucide-react';
 import {useHighlightStore} from '../../../contexts/HighlightStoreContext';
 import {HighlightCreationMode, HighlightRect, HighlightType} from '../../../types';
-import { useFileContext } from '../../../contexts/FileContext';
-import { getFileKey } from '../../../contexts/PDFViewerContext';
-import { usePDFApi } from '../../../hooks/general/usePDFApi';
-import { SearchHighlightProcessor } from '../../../managers/SearchHighlightProcessor';
+import {useFileContext} from '../../../contexts/FileContext';
+import {getFileKey} from '../../../contexts/PDFViewerContext';
+import {usePDFApi} from '../../../hooks/general/usePDFApi';
+import {SearchHighlightProcessor} from '../../../managers/SearchHighlightProcessor';
 import {SearchResult} from "../../../services/processing-backend-services/BatchSearchService";
 import {getCorrectedBoundingBox} from "../../../utils/utilities";
-import { useNotification } from '../../../contexts/NotificationContext';
+import {useNotification} from '../../../contexts/NotificationContext';
 import useBanList from '../../../hooks/settings/useBanList';
-import { createPortal } from 'react-dom';
-import { useLanguage } from '../../../contexts/LanguageContext';
-import { getEntityTranslationKeyAndModel } from '../../../utils/EntityUtils';
-import { mapBackendErrorToMessage } from '../../../utils/errorUtils';
+import {createPortal} from 'react-dom';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {getEntityTranslationKeyAndModel} from '../../../utils/EntityUtils';
+import {mapBackendErrorToMessage} from '../../../utils/errorUtils';
 
 interface HighlightContextMenuProps {
     highlight: HighlightRect;
@@ -57,7 +57,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
             onClose();
             notify({
                 type: 'success',
-                message: 'Highlight deleted!',
+                message: t('toolbar', 'highlightDeleted'),
                 position: 'top-right'
             });
         }

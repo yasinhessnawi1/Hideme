@@ -1,8 +1,11 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { vi, describe, test, expect, beforeEach } from 'vitest';
+import {render, screen} from '@testing-library/react';
+import {beforeEach, describe, expect, test, vi} from 'vitest';
 import HighlightLayerFactory from './HighlightLayerFactory';
-import { PDFPageViewport, TextContent, ViewportSize } from '../../../types/pdfTypes';
+import {PDFPageViewport, TextContent, ViewportSize} from '../../../types/pdfTypes';
+import {HighlightType} from '../../../types';
+import {useHighlightStore} from '../../../contexts/HighlightStoreContext';
+import {useEditContext} from '../../../contexts/EditContext';
 
 // Mock the actual component instead of using nested components and complex context
 vi.mock('./HighlightLayerFactory', () => ({
@@ -127,6 +130,9 @@ describe('HighlightLayerFactory', () => {
           scale: 1,
           convertToViewportRectangle: vi.fn(rect => rect)
         }}
+        textContent={mockTextContent}
+        pageSize={mockPageSize}
+        containerRef={containerRef}
       />
     );
     
@@ -138,14 +144,34 @@ describe('HighlightLayerFactory', () => {
 
   test.skip('does not render a layer when there are no highlights of that type', () => {
     // Mock no entity highlights
-    (useHighlightStore as jest.Mock).mockReturnValueOnce({
+    vi.mocked(useHighlightStore).mockReturnValueOnce({
       getHighlightsForPage: vi.fn().mockImplementation((page, fileKey, type) => {
         if (type === HighlightType.ENTITY) {
           return []; // No entity highlights
         }
-        return [mockHighlight];
+        return [{id: 'test-highlight', type, page, fileKey}];
       }),
-      refreshTrigger: 0
+      refreshTrigger: 0,
+      addHighlight: vi.fn(),
+      removeHighlight: vi.fn(),
+      removeAllHighlights: vi.fn(),
+      getHighlightsForFile: vi.fn(),
+      addMultipleHighlights: vi.fn(),
+      removeMultipleHighlights: vi.fn(),
+      addHighlightsToPage: vi.fn(),
+      removeHighlightsFromPage: vi.fn(),
+      addHighlightsToFile: vi.fn(),
+      removeHighlightsFromFile: vi.fn(),
+      getHighlightsByType: vi.fn(),
+      addHighlightsByType: vi.fn(),
+      removeHighlightsByType: vi.fn(),
+      getHighlightsByProperty: vi.fn(),
+      removeHighlightsByProperty: vi.fn(),
+      removeHighlightsByPropertyFromAllFiles: vi.fn(),
+      getHighlightsByText: vi.fn(),
+      removeHighlightsByText: vi.fn(),
+      removeAllHighlightsByType: vi.fn(),
+      removeHighlightsByPosition: vi.fn()
     });
 
     render(
@@ -158,6 +184,9 @@ describe('HighlightLayerFactory', () => {
           scale: 1,
           convertToViewportRectangle: vi.fn(rect => rect)
         }}
+        textContent={mockTextContent}
+        pageSize={mockPageSize}
+        containerRef={containerRef}
       />
     );
     
@@ -168,12 +197,15 @@ describe('HighlightLayerFactory', () => {
   });
 
   test.skip('does not render layers when visibility is disabled', () => {
-    // Mock visibility settings
-    (useVisibilitySettings as jest.Mock).mockReturnValueOnce({
+    // Mock edit context settings
+    vi.mocked(useEditContext).mockReturnValueOnce({
       showEntityHighlights: false,
       showSearchHighlights: false,
-      showManualHighlights: false
-    });
+      showManualHighlights: false,
+      isEditMode: false,
+      toggleEditMode: vi.fn(),
+      setEditMode: vi.fn()
+    } as any);
     
     render(
       <HighlightLayerFactory
@@ -185,6 +217,9 @@ describe('HighlightLayerFactory', () => {
           scale: 1,
           convertToViewportRectangle: vi.fn(rect => rect)
         }}
+        textContent={mockTextContent}
+        pageSize={mockPageSize}
+        containerRef={containerRef}
       />
     );
     
@@ -208,6 +243,9 @@ describe('HighlightLayerFactory', () => {
         pageNumber={2}
         fileKey="custom-file"
         viewport={customViewport}
+        textContent={mockTextContent}
+        pageSize={mockPageSize}
+        containerRef={containerRef}
       />
     );
     

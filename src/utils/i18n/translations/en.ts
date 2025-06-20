@@ -467,6 +467,7 @@ export const en = {
     deleteAll: 'Delete all {entity}',
     deleteAllSameText: 'Delete all same text',
     highlightAllSame: 'Highlight all same',
+      highlightDeleted: 'Highlight deleted!',
   },
 
   resetPassword: {
@@ -1002,6 +1003,13 @@ export const en = {
     accuracy: 'Accuracy',
     recall: 'Recall',
     f1Score: 'F1 Score',
+      modes: 'Modes',
+      textselection: 'Text Selection',
+      rectangular: 'Rectangular',
+      save: 'Save',
+      print: 'Print',
+      select: 'Select',
+      delete: 'Delete',
   },
 
   account: {
@@ -1058,6 +1066,29 @@ export const en = {
     resizeSidebar: "Resize sidebar",
     switchToTab: "Switch to {name} tab",
   },
+
+    featuresPreview: {
+        powerfulRedactionTools: "Powerful Redaction Tools",
+        everythingYouNeed: "Everything you need to protect sensitive information in documents",
+        coreFeatures: "Core Features",
+        aiDetectionMethods: "AI Detection Methods",
+        smartRedactionTitle: "Smart Redaction",
+        smartRedactionDescription: "AI-powered automatic detection and redaction of sensitive information",
+        searchRedactTitle: "Search & Redact",
+        searchRedactDescription: "Find and redact specific words or patterns across documents",
+        privacyProtectionTitle: "Privacy Protection",
+        privacyProtectionDescription: "End-to-end encryption ensures your data is secure - files encrypted before backend processing",
+        hidemeAIRecommendedTitle: "HideMeAI (Recommended)",
+        hidemeAIRecommendedDescription: "Our proprietary AI model with 89% precision and full local processing",
+        presidioMLDescription: "Microsoft's open-source model with 86% precision, privacy-safe",
+        glinerMLTitle: "GLiNER ML",
+        glinerMLDescription: "Lightweight model with 78% precision, fully local processing",
+        geminiAIDescription: "Google's AI with 92% precision but processes data externally",
+        entityTypes: "Entity Types",
+        aiModels: "AI Models",
+        privacySafe: "Privacy Safe",
+        viewAllFeatures: "View All Features"
+    },
 
   footer: {
     companyName: "HideMeAI",

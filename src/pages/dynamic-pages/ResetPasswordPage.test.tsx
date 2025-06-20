@@ -1,12 +1,12 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { vi, describe, test, expect, beforeEach } from 'vitest';
+import {act, fireEvent, render, screen} from '@testing-library/react';
+import {beforeEach, describe, expect, test, vi} from 'vitest';
 import {BrowserRouter, useSearchParams} from 'react-router-dom';
 import ResetPasswordPage from './ResetPasswordPage';
 import {ConfirmationButton, ConfirmationType, useNotification} from '../../contexts/NotificationContext';
-import { useLoading } from '../../contexts/LoadingContext';
+import {useLoading} from '../../contexts/LoadingContext';
 import authService from '../../services/database-backend-services/authService';
-import { useLanguage } from '../../contexts/LanguageContext';
+import {useLanguage} from '../../contexts/LanguageContext';
 
 // Mock dependencies - use vi.mock with a factory function
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -299,7 +299,7 @@ describe('ResetPasswordPage', () => {
     );
     
     // Mock API to reject
-    authService.resetPassword.mockRejectedValueOnce(new Error('Invalid token'));
+    vi.mocked(authService.resetPassword).mockRejectedValueOnce(new Error('Invalid token'));
     
     // Enter valid passwords
     const passwordInput = screen.getByLabelText(/new password/i);
@@ -332,7 +332,8 @@ describe('ResetPasswordPage', () => {
     fireEvent.change(confirmInput, { target: { value: 'validPassword123' } });
     
     // Submit form but don't resolve promise yet
-    authService.resetPassword.mockImplementationOnce(() => new Promise(() => {}));
+    vi.mocked(authService.resetPassword).mockImplementationOnce(() => new Promise(() => {
+    }));
     
     const submitButton = screen.getByRole('button', { name: /reset/i });
     act(() => {

@@ -1,10 +1,9 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter, useLocation, useSearchParams } from 'react-router-dom';
+import {fireEvent, render, screen} from '@testing-library/react';
+import {BrowserRouter, useLocation, useSearchParams} from 'react-router-dom';
 import LoginPage from './LoginPage';
-import { vi, describe, test, expect, beforeEach } from 'vitest';
-import { useLanguage } from '../../contexts/LanguageContext';
-import {NestedTranslationKey, TranslationKey} from "../../utils/i18n/translations";
+import {beforeEach, describe, expect, test, vi} from 'vitest';
+import {useLanguage} from '../../contexts/LanguageContext';
 
 // Mock dependencies
 vi.mock('react-router-dom', async () => {
@@ -101,11 +100,11 @@ describe('LoginPage', () => {
     vi.mocked(useLanguage).mockReturnValue({
       language: 'en',
       setLanguage: vi.fn(),
-      t: <T extends TranslationKey, K extends NestedTranslationKey<T>>(
-        category: T,
-        key: K,
+      t: (
+          category: string,
+          key: string,
         params?: Record<string, string | number>
-      ) => `${category}.${String(key)}`
+      ) => `${category}.${key}`
     });
   });
 

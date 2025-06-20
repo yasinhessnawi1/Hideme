@@ -1,12 +1,11 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { EditProvider, useEditContext } from '../contexts/EditContext';
-import { useFileContext } from '../contexts/FileContext';
-import { getFileKey } from '../contexts/PDFViewerContext';
-import { useHighlightStore } from '../contexts/HighlightStoreContext';
-import { useNotification } from '../contexts/NotificationContext';
-import { HighlightCreationMode } from '../types';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {beforeEach, describe, expect, test, vi} from 'vitest';
+import {EditProvider, useEditContext} from '../contexts/EditContext';
+import {useFileContext} from '../contexts/FileContext';
+import {useHighlightStore} from '../contexts/HighlightStoreContext';
+import {useNotification} from '../contexts/NotificationContext';
+import {HighlightCreationMode} from '../types';
 
 // Mock dependencies
 vi.mock('../contexts/FileContext', () => ({
@@ -151,6 +150,7 @@ describe('EditContext', () => {
             clearToasts: vi.fn(),
             confirmation: null,
             confirm: vi.fn(),
+            confirmWithText: vi.fn(),
             closeConfirmation: vi.fn()
         });
 

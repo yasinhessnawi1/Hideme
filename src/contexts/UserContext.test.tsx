@@ -1,24 +1,15 @@
 import React from 'react';
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import UserContextProvider, { useUserContext } from '../contexts/UserContext';
-import { useAuth } from '../hooks/auth/useAuth';
-import { useSettings } from '../hooks/settings/useSettings';
+import {act, fireEvent, render, screen} from '@testing-library/react';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
+import UserContextProvider, {useUserContext} from '../contexts/UserContext';
+import {useAuth} from '../hooks/auth/useAuth';
+import {useSettings} from '../hooks/settings/useSettings';
 import useBanList from '../hooks/settings/useBanList';
 import useEntityDefinitions from '../hooks/settings/useEntityDefinitions';
 import useSearchPatterns from '../hooks/settings/useSearchPatterns';
 import useUserProfile from '../hooks/auth/useUserProfile';
-import { BrowserRouter } from 'react-router-dom';
-import {
-    User,
-    UserSettings,
-    BanListWithWords,
-    ModelEntity,
-    SearchPattern,
-    UserSettingsUpdate,
-    PasswordChange,
-    AccountDeletion
-} from '../types';
+import {BrowserRouter} from 'react-router-dom';
+import {BanListWithWords, ModelEntity, SearchPattern, User, UserSettings} from '../types';
 
 // Mock all the hooks used by UserContext
 vi.mock('../hooks/auth/useAuth', () => ({
@@ -322,7 +313,9 @@ describe('UserContext', () => {
             getSettings: vi.fn().mockResolvedValue(null),
             updateSettings: vi.fn().mockResolvedValue(null),
             clearError: vi.fn(),
-            isInitialized: false
+            isInitialized: false,
+            exportSettings: vi.fn(),
+            importSettings: vi.fn()
         });
 
         // Setup default mock for useBanList
@@ -449,7 +442,9 @@ describe('UserContext', () => {
             getSettings: vi.fn().mockResolvedValue(mockSettings),
             updateSettings: vi.fn().mockResolvedValue(mockSettings),
             clearError: vi.fn(),
-            isInitialized: true
+            isInitialized: true,
+            exportSettings: vi.fn(),
+            importSettings: vi.fn()
         });
 
         render(
@@ -690,7 +685,9 @@ describe('UserContext', () => {
             getSettings: vi.fn().mockResolvedValue(mockSettings),
             updateSettings: updateSettingsMock,
             clearError: vi.fn(),
-            isInitialized: true
+            isInitialized: true,
+            exportSettings: vi.fn(),
+            importSettings: vi.fn()
         });
 
         render(

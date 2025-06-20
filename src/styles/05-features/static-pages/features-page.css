@@ -291,8 +291,14 @@ Using design tokens for maintainability
 }
 
 .mode-tag {
-    color: var(--accent);
+    color: var(--primary);
     font-weight: var(--font-weight-medium);
+    background-color: var(--background);
+    padding: 2px 6px;
+    border-radius: var(--border-radius-xs);
+    border: 1px solid var(--border);
+    margin-left: 4px;
+    display: inline-block;
 }
 
 /* ========================================

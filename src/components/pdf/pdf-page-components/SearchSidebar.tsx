@@ -77,7 +77,7 @@ const SearchSidebar: React.FC = () => {
     const contextMenuRef = useRef<HTMLDivElement>(null);
 
     // Add ref for the search input field
-    const searchInputRef = useRef<HTMLInputElement | null>(null);
+    const searchInputRef = useRef<HTMLTextAreaElement | null>(null);
 
     // Get current search statistics
     const searchStats = getSearchResultsStats();
@@ -376,11 +376,26 @@ const SearchSidebar: React.FC = () => {
         }, 50);
     }, []);
 
+    // Auto-resize function for textarea
+    const autoResizeTextarea = useCallback(() => {
+        if (searchInputRef.current) {
+            searchInputRef.current.style.height = 'auto';
+            searchInputRef.current.style.height = `${Math.min(searchInputRef.current.scrollHeight, 120)}px`;
+        }
+    }, []);
+
+    // Auto-resize when search term changes
+    useEffect(() => {
+        autoResizeTextarea();
+    }, [tempSearchTerm, autoResizeTextarea]);
+
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault(); // Prevent new line
             addSearchTerm().then(() => {
             });
         }
+        // Allow Shift+Enter for new lines
     };
     useEffect(() => {
         focusSearchInput();
@@ -786,15 +801,20 @@ const SearchSidebar: React.FC = () => {
                 <div className="sidebar-section">
                     <form onSubmit={handleSearchSubmit} className="search-form">
                         <div className="search-input-wrapper">
-                            <input
-                                type="text"
+                            <textarea
                                 value={tempSearchTerm}
-                                onChange={(e) => setTempSearchTerm(e.target.value)}
+                                onChange={(e) => {
+                                    setTempSearchTerm(e.target.value);
+                                    // Auto-resize the textarea
+                                    autoResizeTextarea();
+                                }}
                                 onKeyDown={handleSearchKeyDown}
                                 placeholder={t('pdf', 'searchTermPlaceholder')}
                                 className="search-input"
                                 disabled={isSearching}
                                 ref={searchInputRef}
+                                rows={1}
+                                style={{resize: 'none', overflow: 'hidden'}}
                             />
                             <button
                                 type="submit"

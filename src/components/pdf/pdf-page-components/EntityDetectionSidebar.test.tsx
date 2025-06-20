@@ -1,11 +1,11 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi, describe, test, expect, beforeEach } from 'vitest';
+import {render, screen} from '@testing-library/react';
+import {beforeEach, describe, expect, test, vi} from 'vitest';
 import EntityDetectionSidebar from './EntityDetectionSidebar';
 
 // Mock react-select
 vi.mock('react-select', () => ({
-  default: ({ options, value, onChange, placeholder, isDisabled, isLoading }) => (
+  default: ({options, value, onChange, placeholder, isDisabled, isLoading}: any) => (
     <div data-testid="mock-select">
       <input 
         data-testid="mock-select-input" 
@@ -43,10 +43,10 @@ vi.mock('lucide-react', () => ({
 
 // Mock LoadingWrapper
 vi.mock('../../common/LoadingWrapper', () => ({
-  default: ({ children, isLoading, fallback }) => (
+  default: ({children, isLoading, fallback}: any) => (
     isLoading ? <div data-testid="mock-loading-wrapper">{fallback}</div> : children
   ),
-  LoadingWrapper: ({ children, isLoading, fallback }) => (
+  LoadingWrapper: ({children, isLoading, fallback}: any) => (
     isLoading ? <div data-testid="mock-loading-wrapper">{fallback}</div> : children
   )
 }));
@@ -69,8 +69,8 @@ vi.mock('../../../contexts/FileContext', () => ({
 // Mock EditContext
 const mockSelectedMlEntities = [{ value: 'PERSON', label: 'Person' }];
 const mockSelectedAiEntities = [{ value: 'EMAIL', label: 'Email' }];
-const mockSelectedGlinerEntities = [];
-const mockSelectedHideMeEntities = [];
+const mockSelectedGlinerEntities: any[] = [];
+const mockSelectedHideMeEntities: any[] = [];
 
 vi.mock('../../../contexts/EditContext', () => ({
   useEditContext: () => ({

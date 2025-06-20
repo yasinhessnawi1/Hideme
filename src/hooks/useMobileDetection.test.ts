@@ -1,4 +1,5 @@
 import {renderHook} from '@testing-library/react'
+import {beforeEach, describe, expect, it} from 'vitest'
 import {useMobileDetection} from './useMobileDetection'
 
 // Mock window.innerWidth

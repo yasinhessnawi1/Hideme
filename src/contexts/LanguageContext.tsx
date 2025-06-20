@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Language, DEFAULT_LANGUAGE, getInitialLanguage, saveLanguagePreference } from '../utils/i18n';
-import { translations, TranslationKey, NestedTranslationKey } from '../utils/i18n/translations';
+import React, {createContext, useContext, useEffect, useState} from 'react';
+import {DEFAULT_LANGUAGE, getInitialLanguage, Language, saveLanguagePreference} from '../utils/i18n';
+import {translations} from '../utils/i18n/translations';
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (language: Language) => void;
-  t: <T extends TranslationKey, K extends NestedTranslationKey<T>>(
+    t: (
       category: string,
       key: string,
       params?: Record<string, string | number>
@@ -29,13 +29,23 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // Translation function with parameter interpolation
-  const t = <T extends TranslationKey, K extends NestedTranslationKey<T>>(
-    category: T,
-    key: K,
+    const t = (
+        category: string,
+        key: string,
     params?: Record<string, string | number>
   ): string => {
-    let translation = translations[language]?.[category]?.[key as any] as string
-      || translations[DEFAULT_LANGUAGE][category][key as keyof typeof translations[typeof DEFAULT_LANGUAGE][T]] as string;
+        const langTranslations = translations[language as keyof typeof translations];
+        const defaultTranslations = translations[DEFAULT_LANGUAGE];
+
+        let translation: string;
+
+        try {
+            translation = (langTranslations?.[category as keyof typeof langTranslations] as any)?.[key] as string
+                || (defaultTranslations[category as keyof typeof defaultTranslations] as any)?.[key] as string
+                || key;
+        } catch {
+            translation = key;
+        }
 
     if (params) {
       Object.entries(params).forEach(([paramKey, paramValue]) => {

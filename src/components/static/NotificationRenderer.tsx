@@ -1,13 +1,13 @@
 // NotificationRenderer.tsx
-import React, { useEffect, useState } from 'react';
-import { useNotification, ToastNotification, NotificationPosition } from '../../contexts/NotificationContext';
-import { AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
-import { useLanguage } from '../../utils/i18n';
+import React, {useEffect, useState} from 'react';
+import {NotificationPosition, ToastNotification, useNotification} from '../../contexts/NotificationContext';
+import {AlertTriangle, CheckCircle, Info, X} from 'lucide-react';
+import {useLanguage} from '../../utils/i18n';
 
 // Animation component for smooth transitions
 const AnimatedToast: React.FC<{
     toast: ToastNotification;
-    onRemove: (id: string) => void;
+    onRemove: (id: string, removeAll?: boolean) => void;
 }> = ({ toast, onRemove }) => {
     const [isLeaving, setIsLeaving] = useState(false);
     const { t } = useLanguage();
@@ -16,7 +16,8 @@ const AnimatedToast: React.FC<{
         setIsLeaving(true);
         // Wait for animation to complete before actually removing
         setTimeout(() => {
-            onRemove(toast.id);
+            // If this is a stacked notification (count > 1), remove all instances
+            onRemove(toast.id, !!(toast.count && toast.count > 1));
         }, 300);
     };
 
@@ -52,6 +53,12 @@ export const ToastContainer: React.FC = () => {
     const { toasts, removeToast } = useNotification();
     const { t } = useLanguage();
 
+    // Enhanced remove handler that passes the removeAll flag to the context
+    const handleRemoveToast = (id: string, removeAll: boolean = false) => {
+        // When user clicks X on a stacked notification, remove all instances
+        removeToast(id, removeAll);
+    };
+
     // Group toasts by position
     const toastsByPosition = toasts.reduce((acc, toast) => {
         const position = toast.position || 'top-right';
@@ -71,7 +78,7 @@ export const ToastContainer: React.FC = () => {
                         <AnimatedToast
                             key={toast.id}
                             toast={toast}
-                            onRemove={removeToast}
+                            onRemove={handleRemoveToast}
                         />
                     ))}
                 </div>

@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
-import { vi, describe, test, expect, beforeEach } from 'vitest';
+import {act, fireEvent, render, screen} from '@testing-library/react';
+import {beforeEach, describe, expect, test, vi} from 'vitest';
 import PageThumbnailsViewer from './PageThumbnailsViewer';
 
 // Mock react-pdf components
@@ -129,12 +129,10 @@ describe('PageThumbnailsViewer Component', () => {
   });
 
   test.skip('returns null when sidebar is collapsed', async () => {
-    let container;
     await act(async () => {
-      const result = render(<PageThumbnailsViewer isSidebarCollapsed={true} />);
-      container = result.container;
+        const {container} = render(<PageThumbnailsViewer isSidebarCollapsed={true}/>);
+        expect(container.firstChild).toBeNull();
     });
-    expect(container.firstChild).toBeNull();
   });
 
   test.skip('renders thumbnails header and files count', async () => {

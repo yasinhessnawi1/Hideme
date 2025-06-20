@@ -141,6 +141,8 @@ const ToolFeatureCard: React.FC<{ title: string; description: string; icon: stri
     icon,
     modes
 }) => {
+    const {t} = useLanguage();
+    
     return (
         <div className="tool-feature-card">
             <div className="tool-feature-icon">{icon}</div>
@@ -148,10 +150,10 @@ const ToolFeatureCard: React.FC<{ title: string; description: string; icon: stri
             <p>{description}</p>
             {modes && modes.length > 0 && (
                 <div className="selection-modes">
-                    <span className="modes-label">Modes: </span>
+                    <span className="modes-label">{t('features', 'modes')}: </span>
                     {modes.map((mode, index) => (
                         <span key={index} className="mode-tag">
-                            {mode}
+                            {t('features', mode.toLowerCase().replace(/\s+/g, '') as any)}
                             {index < modes.length - 1 ? ', ' : ''}
                         </span>
                     ))}
@@ -220,7 +222,7 @@ const FeaturesPage = () => {
                                     title={t('features', 'manualHighlightingTitle')}
                                     icon="✏️"
                                     description={t('features', 'manualHighlightingDescription')}
-                                    modes={['Text Selection', 'Rectangular']}
+                                    modes={['textselection', 'rectangular']}
                                 />
                                 <ToolFeatureCard
                                     title={t('features', 'searchHighlightingTitle')}
@@ -262,7 +264,7 @@ const FeaturesPage = () => {
                                     title={t('features', 'fileManipulationTitle')}
                                     icon="📄"
                                     description={t('features', 'fileManipulationDescription')}
-                                    modes={['Save', 'Print', 'Select', 'Delete']}
+                                    modes={['save', 'print', 'select', 'delete']}
                                 />
                             </div>
                         </div>

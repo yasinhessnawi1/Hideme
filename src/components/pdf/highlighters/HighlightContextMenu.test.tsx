@@ -1,8 +1,8 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi, test, describe, expect, beforeEach, afterEach } from 'vitest';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import HighlightContextMenu from './HighlightContextMenu';
-import { HighlightRect, HighlightType } from '../../../types/pdfTypes';
+import {HighlightRect, HighlightType} from '../../../types/pdfTypes';
 
 // Mock the HighlightStore
 vi.mock('../../../store/HighlightStore', () => {
@@ -414,7 +414,6 @@ describe('HighlightContextMenu', () => {
         containerRef={containerRef}
         zoomLevel={1}
         onClose={mockOnClose}
-        showDeleteByPositionOption={true}
       />
     );
     
@@ -428,7 +427,6 @@ describe('HighlightContextMenu', () => {
         containerRef={containerRef}
         zoomLevel={1}
         onClose={mockOnClose}
-        showDeleteByPositionOption={true}
       />
     );
     

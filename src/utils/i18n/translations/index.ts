@@ -23,11 +23,11 @@ export function getNestedTranslation<T extends TranslationKey, K extends NestedT
   }
   
   const langTranslations = translations[language as keyof typeof translations];
-  if (!langTranslations[category]?.[key as any]) {
+    if (!langTranslations[category]?.[key as keyof typeof langTranslations[T]]) {
     return en[category][key as keyof typeof en[T]] as string;
   }
-  
-  return langTranslations[category][key as any] as string;
+
+    return langTranslations[category][key as keyof typeof langTranslations[T]] as string;
 }
 
 export default translations; 

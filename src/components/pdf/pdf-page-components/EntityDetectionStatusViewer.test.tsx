@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
-import { vi, describe, test, afterEach, expect, beforeEach } from 'vitest';
+import {fireEvent, render, screen} from '@testing-library/react';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import EntityDetectionStatusViewer from './EntityDetectionStatusViewer';
 
 // Mock Lucide icons
@@ -75,11 +75,18 @@ vi.mock('../../../contexts/LanguageContext', () => ({
 
 // Simplified version of the test suite
 describe('EntityDetectionStatusViewer Component', () => {
+    let mockProcessingInfo: any;
+    let mockClearProcessing: any;
+    let mockStopProcessing: any;
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     // Reset processing state for each test
     processingState = {};
+      mockProcessingInfo = {};
+      mockClearProcessing = vi.fn();
+      mockStopProcessing = vi.fn();
   });
 
   afterEach(() => {

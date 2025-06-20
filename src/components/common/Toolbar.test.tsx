@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { vi, describe, test, expect, beforeEach } from 'vitest';
+import {fireEvent, render, screen} from '@testing-library/react';
+import {beforeEach, describe, expect, test, vi} from 'vitest';
 import {
   Toolbar,
   ToolbarButton,
@@ -96,7 +96,7 @@ describe('Toolbar Components', () => {
       render(
         <ToolbarButton
           icon={<span data-testid="button-icon">Icon</span>}
-          title="test"
+          title="zoomIn"
           onClick={mockOnClick}
         />
       );
@@ -109,28 +109,28 @@ describe('Toolbar Components', () => {
       expect(screen.getByTestId('button-icon')).toBeInTheDocument();
       
       // Check for title attribute
-      expect(button).toHaveAttribute('title', 'toolbar.test');
+        expect(button).toHaveAttribute('title', 'toolbar.zoomIn');
     });
     
     test.skip('renders with label', () => {
       render(
         <ToolbarButton
           icon={<span>Icon</span>}
-          title="test"
-          label="Button Label"
+          title="zoomIn"
+          label="zoomOut"
           onClick={mockOnClick}
         />
       );
       
       // Check that label is rendered
-      expect(screen.getByText('Button Label')).toBeInTheDocument();
+        expect(screen.getByText('toolbar.zoomOut')).toBeInTheDocument();
     });
     
     test.skip('handles click events', () => {
       render(
         <ToolbarButton
           icon={<span>Icon</span>}
-          title="test"
+          title="zoomIn"
           onClick={mockOnClick}
         />
       );
@@ -147,7 +147,7 @@ describe('Toolbar Components', () => {
       render(
         <ToolbarButton
           icon={<span>Icon</span>}
-          title="test"
+          title="zoomIn"
           onClick={mockOnClick}
           disabled={true}
         />
@@ -168,7 +168,7 @@ describe('Toolbar Components', () => {
       render(
         <ToolbarButton
           icon={<span>Icon</span>}
-          title="test"
+          title="zoomIn"
           onClick={mockOnClick}
           active={true}
         />

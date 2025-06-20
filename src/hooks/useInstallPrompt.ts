@@ -40,8 +40,8 @@ export const useInstallPrompt = () => {
         }
 
         try {
-            const result = await installPrompt.prompt()
-            const {outcome} = await result.userChoice
+            await installPrompt.prompt()
+            const {outcome} = await installPrompt.userChoice
 
             if (outcome === 'accepted') {
                 setIsInstallable(false)

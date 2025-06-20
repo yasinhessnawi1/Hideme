@@ -85,9 +85,9 @@ export const MobileRestriction: React.FC<MobileRestrictionProps> = ({
                         fontSize: '14px',
                         textAlign: 'left'
                     }}>
-                        <li>Desktop computer</li>
-                        <li>Laptop</li>
-                        <li>Tablet in landscape mode</li>
+                        <li>💻 Desktop computer</li>
+                        <li>💻 Laptop</li>
+                        <li>📱 Tablet in landscape mode</li>
                     </ul>
                 </div>
 

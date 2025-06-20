@@ -1,8 +1,8 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { AutoProcessProvider } from '../contexts/AutoProcessProvider';
-import { useAutoProcess } from '../hooks/general/useAutoProcess';
+import {render} from '@testing-library/react';
+import {beforeEach, describe, expect, test, vi} from 'vitest';
+import {AutoProcessProvider} from '../contexts/AutoProcessProvider';
+import {useAutoProcess} from '../hooks/general/useAutoProcess';
 
 // Mock the useAutoProcess hook
 vi.mock('../hooks/general/useAutoProcess', () => ({
@@ -28,7 +28,8 @@ describe('AutoProcessProvider', () => {
             })),
             processNewFile: vi.fn(),
             processNewFiles: vi.fn(),
-            setAutoProcessingEnabled: vi.fn()
+            setAutoProcessingEnabled: vi.fn(),
+            isInitialized: true
         });
     });
 
@@ -59,7 +60,8 @@ describe('AutoProcessProvider', () => {
             getConfig: getConfigMock,
             processNewFile: vi.fn(),
             processNewFiles: vi.fn(),
-            setAutoProcessingEnabled: vi.fn()
+            setAutoProcessingEnabled: vi.fn(),
+            isInitialized: true
         });
 
         render(<AutoProcessProvider><div /></AutoProcessProvider>);
@@ -88,7 +90,8 @@ describe('AutoProcessProvider', () => {
             getConfig: getConfigMock,
             processNewFile: vi.fn(),
             processNewFiles: vi.fn(),
-            setAutoProcessingEnabled: vi.fn()
+            setAutoProcessingEnabled: vi.fn(),
+            isInitialized: true
         });
 
         render(<AutoProcessProvider><div /></AutoProcessProvider>);
@@ -114,7 +117,8 @@ describe('AutoProcessProvider', () => {
             getConfig: getConfigMock,
             processNewFile: vi.fn(),
             processNewFiles: vi.fn(),
-            setAutoProcessingEnabled: vi.fn()
+            setAutoProcessingEnabled: vi.fn(),
+            isInitialized: true
         });
 
         render(<AutoProcessProvider><div /></AutoProcessProvider>);
