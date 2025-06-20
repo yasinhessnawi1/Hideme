@@ -143,6 +143,16 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
         setContextMenuState(null);
     }, []);
 
+    // Handle click on empty space to deselect highlights
+    const handleContainerClick = useCallback((e: React.MouseEvent) => {
+        // Only deselect if clicking directly on the container (not propagated from a highlight)
+        if (e.target === e.currentTarget) {
+            setSelectedHighlightId(null);
+            setSelectedHighlightIds([]);
+            setContextMenuState(null);
+        }
+    }, [setSelectedHighlightId, setSelectedHighlightIds]);
+
     // Render highlights with proper zoom handling
     const renderedHighlights = useMemo(() => {
         if (highlights.length === 0) {
@@ -227,11 +237,12 @@ const BaseHighlightLayer: React.FC<BaseHighlightLayerProps> = ({
                 left: 0,
                 width: '100%',
                 height: '100%',
-                pointerEvents: 'none',
+                pointerEvents: 'auto',
                 backgroundColor: 'transparent',
                 border: 'none',
                 zIndex: 1000,
             }}
+            onClick={handleContainerClick}
             data-highlight-layer={layerClass}
             data-page={pageNumber}
             data-file={fileKey || 'default'}

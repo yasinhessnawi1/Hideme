@@ -1,7 +1,7 @@
-import { useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useNotification } from '../contexts/NotificationContext';
-import { useLanguage } from '../contexts/LanguageContext';
+import {useCallback, useEffect} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {useNotification} from '../contexts/NotificationContext';
+import {useLanguage} from '../contexts/LanguageContext';
 import authService from '../services/database-backend-services/authService';
 import authStateManager from '../managers/authStateManager';
 
@@ -46,12 +46,7 @@ export const useAutoLogout = (options?: AutoLogoutOptions) => {
                 message = t('auth', 'sessionExpired') || 'Your session has expired. Please log in again.';
                 targetPath = '/login?expired=true';
             }
-                
-            notify({
-                message,
-                type: 'error',
-                duration: 5000
-            });
+
 
             // Call optional callback
             if (options?.onLogout) {

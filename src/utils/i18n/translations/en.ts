@@ -173,7 +173,7 @@ export const en = {
     signUp: "Sign Up",
     signIn: "Sign In",
     loginSuccess: "Logged in successfully!",
-    loginFailed: "Login failed.",
+    loginFailed: "Login failed. Please check your username and password, or try again later.",
     registrationSuccess: "Registration successful!",
     registrationFailed: "Registration failed.",
     passwordsDoNotMatch: "Passwords do not match!",

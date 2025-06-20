@@ -9,11 +9,11 @@
  */
 
 import React, {JSX} from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useUserContext } from '../../contexts/UserContext';
-import { useLoading } from '../../contexts/LoadingContext';
-import { useNotification } from '../../contexts/NotificationContext';
-import { useLanguage } from '../../contexts/LanguageContext';
+import {Link, useNavigate} from 'react-router-dom';
+import {useUserContext} from '../../contexts/UserContext';
+import {useLoading} from '../../contexts/LoadingContext';
+import {useNotification} from '../../contexts/NotificationContext';
+import {useLanguage} from '../../contexts/LanguageContext';
 
 /**
  * Props interface for the LoginForm component.
@@ -172,7 +172,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
       stopLoading('login.submit');
       notify({
         type: 'error',
-        message: t('auth', 'loginFailed') + ' ' + err.message,
+        message: t('auth', 'loginFailed'),
         position: 'top-right'
       });
     }

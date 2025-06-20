@@ -191,7 +191,7 @@ export const no = {
     signUp: "Registrer Deg",
     signIn: "Logg Inn",
     loginSuccess: "Innlogging vellykket!",
-    loginFailed: "Innlogging mislyktes.",
+    loginFailed: "Innlogging mislyktes. Sjekk brukernavn og passord, eller prøv igjen senere.",
     registrationSuccess: "Registrering vellykket!",
     registrationFailed: "Registrering mislyktes.",
     passwordsDoNotMatch: "Passordene er ikke like!",

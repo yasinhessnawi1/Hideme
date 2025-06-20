@@ -2,7 +2,7 @@ import React from 'react';
 import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import HighlightContextMenu from './HighlightContextMenu';
-import {HighlightRect, HighlightType} from '../../../types/pdfTypes';
+import {HighlightRect, HighlightType} from '../../../types';
 
 // Mock the HighlightStore
 vi.mock('../../../store/HighlightStore', () => {
