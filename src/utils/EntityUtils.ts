@@ -30,36 +30,63 @@ export const PRESIDIO_ENTITY_KEYS = [
 
 export const GLINER_ENTITY_KEYS = [
     { value: 'ALL_GLINER', key: 'allGlinerEntities' },
+
+    // Enhanced person detection entities
     { value: 'person', key: 'person' },
+
+    // Core entities
     { value: 'location', key: 'location' },
     { value: 'date', key: 'date' },
     { value: 'organization', key: 'organization' },
     { value: 'phone number', key: 'phoneNumber' },
     { value: 'address', key: 'address' },
-    { value: 'passport number', key: 'passportNumber' },
     { value: 'email', key: 'emailAddress' },
+
+    // Norwegian-specific entities
+    { value: 'norwegian_personal_id', key: 'norwegianPersonalId' },
+    { value: 'norwegian_organization_id', key: 'norwegianOrganizationId' },
+    { value: 'norwegian_address', key: 'norwegianAddress' },
+    { value: 'norwegian_phone', key: 'norwegianPhone' },
+    { value: 'norwegian_bank_account', key: 'norwegianBankAccount' },
+
+    // Norwegian medical entities
+    { value: 'medical_condition_norwegian', key: 'medicalConditionNorwegian' },
+    { value: 'medication_norwegian', key: 'medicationNorwegian' },
+    { value: 'anatomical_structure_norwegian', key: 'anatomicalStructureNorwegian' },
+    { value: 'medical_procedure_norwegian', key: 'medicalProcedureNorwegian' },
+    { value: 'health_provider_norwegian', key: 'healthProviderNorwegian' },
+
+    // Financial and identification
+    { value: 'passport number', key: 'passportNumber' },
     { value: 'credit card number', key: 'creditCardNumber' },
     { value: 'date of birth', key: 'dateOfBirth' },
     { value: 'bank account number', key: 'bankAccountNumber' },
-    { value: 'medication', key: 'medication' },
     { value: 'tax identification number', key: 'taxIdentificationNumber' },
-    { value: 'medical condition', key: 'medicalCondition' },
     { value: 'identity card number', key: 'identityCardNumber' },
     { value: 'national id number', key: 'nationalIdNumber' },
+    { value: 'insurance number', key: 'insuranceNumber' },
+    { value: 'license plate number', key: 'licensePlateNumber' },
+
+    // Technical identifiers
     { value: 'ip address', key: 'ipAddress' },
     { value: 'iban', key: 'iban' },
-    { value: 'credit card expiration date', key: 'creditCardExpirationDate' },
     { value: 'username', key: 'username' },
+    { value: 'social media handle', key: 'socialMediaHandle' },
     { value: 'registration number', key: 'registrationNumber' },
     { value: 'student id number', key: 'studentIdNumber' },
-    { value: 'insurance number', key: 'insuranceNumber' },
-    { value: 'social media handle', key: 'socialMediaHandle' },
-    { value: 'license plate number', key: 'licensePlateNumber' },
-    { value: 'postal code', key: 'postalCode' },
     { value: 'vehicle registration number', key: 'vehicleRegistrationNumber' },
     { value: 'fax number', key: 'faxNumber' },
     { value: 'visa number', key: 'visaNumber' },
-    { value: 'passport_number', key: 'passportNumber' },
+    { value: 'postal code', key: 'postalCode' },
+
+    // Medical (standard)
+    { value: 'medication', key: 'medication' },
+    { value: 'medical condition', key: 'medicalCondition' },
+
+    // Temporal
+    { value: 'credit card expiration date', key: 'creditCardExpirationDate' },
+
+
 ];
 
 export const GEMINI_ENTITY_KEYS = [

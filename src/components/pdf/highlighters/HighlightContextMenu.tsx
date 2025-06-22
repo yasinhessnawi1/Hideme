@@ -340,7 +340,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
         document.addEventListener('mousedown', handleClickOutside);
 
         // Auto-close menu after 5 seconds
-        const timeoutId = setTimeout(onClose, 1000);
+        const timeoutId = setTimeout(onClose, 10000);
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
@@ -389,7 +389,7 @@ const HighlightContextMenu: React.FC<HighlightContextMenuProps> = ({
                     position: 'fixed',
                     left: adjustedPosition.x,
                     top: adjustedPosition.y + 20 * (zoomLevel ?? 1),
-                    zIndex: 9999,
+                    zIndex: 1000,
                     pointerEvents: 'auto',
                     backgroundColor: 'var(--background)',
                     boxShadow: 'var(--shadow-md)',

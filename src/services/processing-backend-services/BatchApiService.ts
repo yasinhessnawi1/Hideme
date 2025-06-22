@@ -9,8 +9,8 @@ import authService from '../database-backend-services/authService';
 import {mapBackendErrorToMessage} from '../../utils/errorUtils';
 
 // Base API URL - ensure this is consistent across services
-const API_BASE_URL = 'https://api.hidemeai.com';
-//const API_BASE_URL = 'http://localhost:8000';
+//const API_BASE_URL = 'https://api.hidemeai.com';
+const API_BASE_URL = 'http://localhost:8000';
 
 /**
  * Calls the batch hybrid detection API endpoint.
