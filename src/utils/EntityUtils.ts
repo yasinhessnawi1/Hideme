@@ -42,12 +42,6 @@ export const GLINER_ENTITY_KEYS = [
     { value: 'address', key: 'address' },
     { value: 'email', key: 'emailAddress' },
 
-    // Norwegian-specific entities
-    { value: 'norwegian_personal_id', key: 'norwegianPersonalId' },
-    { value: 'norwegian_organization_id', key: 'norwegianOrganizationId' },
-    { value: 'norwegian_address', key: 'norwegianAddress' },
-    { value: 'norwegian_phone', key: 'norwegianPhone' },
-    { value: 'norwegian_bank_account', key: 'norwegianBankAccount' },
 
     // Norwegian medical entities
     { value: 'medical_condition_norwegian', key: 'medicalConditionNorwegian' },
